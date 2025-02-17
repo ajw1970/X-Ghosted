@@ -5,7 +5,7 @@
 // @description  Highlight the parent div of a div containing "Pinned" on X.com
 // @author       John Welty
 // @match        https://x.com/ApostleJohnW/with_replies
-// @grant        none
+// @grant        GM_log
 // ==/UserScript==
 
 (function() {
@@ -18,17 +18,20 @@
 
     // Function to highlight elements
     function highlightSuspectReplies() {
-        // Query all div elements
-        let divs = document.getElementsByTagName('div');
+        // Query all article elements (tweets)
+        let articles = document.getElementsByTagName('article');
 
-        for (let div of divs) {
-            if (isReplyingTo(div)) {
-                // Traverse up to find the tweet article container
-                let tweetContainer = div.closest('article');
-                if (tweetContainer) {
+        for (let article of articles) {
+            let divs = article.getElementsByTagName('div');
+            let found = false;
+
+            for (let i = 0; i < divs.length && i < 99 && !found; i++) {
+                if (isReplyingTo(divs[i])) {
                     // Apply highlight style to the tweet container
-                    tweetContainer.style.backgroundColor = 'rgba(255, 255, 0, 0.3)'; // Yellow highlight with transparency
-                    tweetContainer.style.border = '2px solid yellow';
+                    article.style.backgroundColor = 'rgba(255, 255, 0, 0.3)'; // Yellow highlight with transparency
+                    article.style.border = '2px solid yellow';
+                    found = true;
+                    // GM_log("Replying to found at index: " + i); //Add console logging to get a feel for ranges - Quoted replies look to be buried deeper.
                 }
             }
         }
