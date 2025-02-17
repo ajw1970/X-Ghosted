@@ -4,7 +4,7 @@
 // @version      0.2
 // @description  Highlight the parent div of a div containing "Pinned" on X.com
 // @author       John Welty
-// @match        https://x.com/ApostleJohnW/with_replies
+// @match        https://x.com/*/with_replies
 // @grant        GM_log
 // ==/UserScript==
 
