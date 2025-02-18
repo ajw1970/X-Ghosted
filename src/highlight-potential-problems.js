@@ -11,14 +11,14 @@
 (function() {
     'use strict';
 
-    // Configuration object
+    // Configuration object for easier maintenance
     const CONFIG = {
         HIGHLIGHT_STYLE: {
             backgroundColor: 'rgba(255, 255, 0, 0.3)',
             border: '2px solid yellow'
         },
-        CHECK_INTERVAL: 100, // Reduced from 1000ms to 100ms
-        MAX_REPLYING: 99 // Max number of divs on /with_replies page
+        CHECK_INTERVAL: 100, // milliseconds
+        MAX_REPLYING_INDEX: 99 // Maximum elements to check for 'replying to'
     };
 
     // Utility functions
@@ -29,19 +29,21 @@
         wasDeleted: text => text.startsWith('this post was deleted by the post author.')
     };
 
-    // Cache for processed articles
-    const processedArticles = new Set();
+    // Cache for processed articles to prevent redundant processing
+    const processedArticles = new WeakSet();
 
-    // Check if on profile replies page
+    // Check if we're on a profile's replies page
     function isProfileRepliesPage() {
-        return window.location.href.endsWith('/with_replies');
+        const url = window.location.href;
+        return url.startsWith('https://x.com/') && url.endsWith('/with_replies');
     }
 
-    // Apply/remove highlight styles
+    // Apply highlight styles to an article
     function applyHighlight(article) {
         Object.assign(article.style, CONFIG.HIGHLIGHT_STYLE);
     }
 
+    // Remove highlight styles from an article
     function removeHighlight(article) {
         article.style.backgroundColor = '';
         article.style.border = '';
@@ -56,16 +58,16 @@
             // Skip already processed articles
             if (processedArticles.has(article)) continue;
 
-            const textElements = article.querySelectorAll('[data-testid="tweetText"], time, span');
+            const elements = article.querySelectorAll('div, span');
             let shouldHighlight = false;
 
-            for (let i = 0; i < textElements.length && !shouldHighlight; i++) {
-                const content = textElements[i].textContent.trim().toLowerCase();
+            for (let i = 0; i < elements.length && !shouldHighlight; i++) {
+                const content = elements[i].textContent.trim().toLowerCase();
 
                 if (Checkers.isUnavailable(content) ||
                     Checkers.isSuspended(content) ||
                     Checkers.wasDeleted(content) ||
-                    (isRepliesPage && i < CONFIG.MAX_REPLYING && Checkers.isReplyingTo(content))) {
+                    (isRepliesPage && i < CONFIG.MAX_REPLYING_INDEX && Checkers.isReplyingTo(content))) {
                     shouldHighlight = true;
                 }
             }
@@ -77,23 +79,16 @@
         }
     }
 
-    // Throttle function to ensure periodic execution
-    function throttle(func, limit) {
-        let lastFunc;
-        let lastRan;
-        return function(...args) {
-            if (!lastRan) {
+    // Debounce function to limit execution frequency
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
                 func(...args);
-                lastRan = Date.now();
-            } else {
-                clearTimeout(lastFunc);
-                lastFunc = setTimeout(() => {
-                    if ((Date.now() - lastRan) >= limit) {
-                        func(...args);
-                        lastRan = Date.now();
-                    }
-                }, limit - (Date.now() - lastRan));
-            }
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
         };
     }
 
@@ -102,22 +97,23 @@
         // Initial run
         highlightPotentialProblems();
 
-        // Throttled highlight function
-        const throttledHighlight = throttle(highlightPotentialProblems, CONFIG.CHECK_INTERVAL);
+        // Debounced highlight function
+        const debouncedHighlight = debounce(highlightPotentialProblems, CONFIG.CHECK_INTERVAL);
 
-        // MutationObserver scoped to main content area
-        const targetNode = document.querySelector('main') || document.body;
-        const observer = new MutationObserver(throttledHighlight);
-        observer.observe(targetNode, {
+        // MutationObserver for dynamic content
+        const observer = new MutationObserver(debouncedHighlight);
+        observer.observe(document.body, {
             childList: true,
             subtree: true
         });
 
-        // Periodic check
-        setInterval(throttledHighlight, CONFIG.CHECK_INTERVAL);
+        // Periodic check for missed updates
+        setInterval(debouncedHighlight, CONFIG.CHECK_INTERVAL * 2);
 
-        // Cleanup
-        window.addEventListener('unload', () => observer.disconnect());
+        // Cleanup on page unload
+        window.addEventListener('unload', () => {
+            observer.disconnect();
+        });
     }
 
     // Start the script
