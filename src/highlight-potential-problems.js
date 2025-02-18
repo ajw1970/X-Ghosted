@@ -12,10 +12,6 @@
     'use strict';
 
     // Function to check if an element contains the text "Pinned"
-    function isReposted(lowercaseValue) {
-        return lowercaseValue.endsWith(' reposted');
-    }
-
     function isReplyingTo(lowercaseValue) {
         return lowercaseValue.startsWith('replying to');
     }
@@ -44,18 +40,15 @@
         for (let article of articles) {
             let elements = article.querySelectorAll('div, span');
             let found = false;
-            let notReposted = true;
 
             for (let i = 0; i < elements.length && !found; i++) {
                 let contentValue = elements[i].textContent.trim().toLowerCase();
                 //GM_log("Found: <" + contentValue + "> at " + i);
-                if (notReposted && i < 50 && isReposted(contentValue)) {
-                    notReposted = false;
-                }
+
                 if (isUnavailable(contentValue) ||
                     isSuspended(contentValue) ||
                     wasDeleted(contentValue) ||
-                    (lookingAtProfileWithReplies && notReposted && i < 99 && isReplyingTo(contentValue))) {
+                    (lookingAtProfileWithReplies && i < 99 && isReplyingTo(contentValue))) {
                     // Apply highlight style to the post container
                     article.style.backgroundColor = 'rgba(255, 255, 0, 0.3)'; // Yellow highlight with transparency
                     article.style.border = '2px solid yellow';
