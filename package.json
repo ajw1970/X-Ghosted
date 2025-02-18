@@ -18,6 +18,13 @@
   },
   "homepage": "https://github.com/ajw1970/X-Ghosted#readme",
   "devDependencies": {
-    "jest": "^29.7.0"
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFiles": [
+      "./test/setup.js"
+    ]
   }
 }
