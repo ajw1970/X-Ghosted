@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/ajw1970/X-Ghosted/issues"
   },
-  "homepage": "https://github.com/ajw1970/X-Ghosted#readme"
+  "homepage": "https://github.com/ajw1970/X-Ghosted#readme",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
 }
