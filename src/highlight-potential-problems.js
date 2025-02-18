@@ -1,77 +1,125 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.2
-// @description  Highlight the parent article of potentially problematic posts on X.com
+// @version      0.4
+// @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
-// @match        https://x.com
+// @match        https://x.com/*
 // @grant        GM_log
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    // Function to check if an element contains the text "Pinned"
-    function isReplyingTo(lowercaseValue) {
-        return lowercaseValue.startsWith('replying to');
+    // Configuration object
+    const CONFIG = {
+        HIGHLIGHT_STYLE: {
+            backgroundColor: 'rgba(255, 255, 0, 0.3)',
+            border: '2px solid yellow'
+        },
+        CHECK_INTERVAL: 100, // Reduced from 1000ms to 100ms
+        MAX_REPLYING: 99 // Max number of divs on /with_replies page
+    };
+
+    // Utility functions
+    const Checkers = {
+        isReplyingTo: text => text.startsWith('replying to'),
+        isUnavailable: text => text === 'this post is unavailable.',
+        isSuspended: text => text.startsWith('this post is from a suspended account.'),
+        wasDeleted: text => text.startsWith('this post was deleted by the post author.')
+    };
+
+    // Cache for processed articles
+    const processedArticles = new Set();
+
+    // Check if on profile replies page
+    function isProfileRepliesPage() {
+        return window.location.href.endsWith('/with_replies');
     }
 
-    function isUnavailable(lowercaseValue) {
-        return lowercaseValue === 'this post is unavailable.';
+    // Apply/remove highlight styles
+    function applyHighlight(article) {
+        Object.assign(article.style, CONFIG.HIGHLIGHT_STYLE);
     }
 
-    function isSuspended(lowercaseValue) {
-        return lowercaseValue.startsWith('this post is from a suspended account.');
+    function removeHighlight(article) {
+        article.style.backgroundColor = '';
+        article.style.border = '';
     }
 
-    function wasDeleted(lowercaseValue) {
-        return lowercaseValue.startsWith('this post was deleted by the post author.');
-    }
-
-    // Function to highlight elements
+    // Main highlighting function
     function highlightPotentialProblems() {
-        let url = window.location.href;
-        let lookingAtProfileWithReplies = url.startsWith('https://x.com/') && url.endsWith('/with_replies');
-        //GM_log("Looking in: " + url);
+        const articles = document.getElementsByTagName('article');
+        const isRepliesPage = isProfileRepliesPage();
 
-        // Query all article elements (tweets)
-        let articles = document.getElementsByTagName('article');
+        for (const article of articles) {
+            // Skip already processed articles
+            if (processedArticles.has(article)) continue;
 
-        for (let article of articles) {
-            let elements = article.querySelectorAll('div, span');
-            let found = false;
+            const textElements = article.querySelectorAll('[data-testid="tweetText"], time, span');
+            let shouldHighlight = false;
 
-            for (let i = 0; i < elements.length && !found; i++) {
-                let contentValue = elements[i].textContent.trim().toLowerCase();
-                //GM_log("Found: <" + contentValue + "> at " + i);
+            for (let i = 0; i < textElements.length && !shouldHighlight; i++) {
+                const content = textElements[i].textContent.trim().toLowerCase();
 
-                if (isUnavailable(contentValue) ||
-                    isSuspended(contentValue) ||
-                    wasDeleted(contentValue) ||
-                    (lookingAtProfileWithReplies && i < 99 && isReplyingTo(contentValue))) {
-                    // Apply highlight style to the post container
-                    article.style.backgroundColor = 'rgba(255, 255, 0, 0.3)'; // Yellow highlight with transparency
-                    article.style.border = '2px solid yellow';
-                    found = true;
-                    // GM_log("Replying to found at index: " + i); //Add console logging to get a feel for ranges - Quoted replies look to be buried deeper.
+                if (Checkers.isUnavailable(content) ||
+                    Checkers.isSuspended(content) ||
+                    Checkers.wasDeleted(content) ||
+                    (isRepliesPage && i < CONFIG.MAX_REPLYING && Checkers.isReplyingTo(content))) {
+                    shouldHighlight = true;
                 }
+            }
+
+            if (shouldHighlight) {
+                applyHighlight(article);
+                processedArticles.add(article);
             }
         }
     }
 
-    // MutationObserver to watch for changes in the DOM
-    const observer = new MutationObserver(() => {
-        // Remove existing highlights to avoid duplicates
-        let highlighted = document.querySelectorAll('article[style]');
-        highlighted.forEach(el => {
-            el.style.backgroundColor = '';
-            el.style.border = '';
-        });
-        // Reapply highlights
-        highlightPotentialProblems();
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+    // Throttle function to ensure periodic execution
+    function throttle(func, limit) {
+        let lastFunc;
+        let lastRan;
+        return function(...args) {
+            if (!lastRan) {
+                func(...args);
+                lastRan = Date.now();
+            } else {
+                clearTimeout(lastFunc);
+                lastFunc = setTimeout(() => {
+                    if ((Date.now() - lastRan) >= limit) {
+                        func(...args);
+                        lastRan = Date.now();
+                    }
+                }, limit - (Date.now() - lastRan));
+            }
+        };
+    }
 
-    // Initial call to highlight existing pinned divs
-    highlightPotentialProblems();
+    // Initialize observer and periodic checking
+    function setupMonitoring() {
+        // Initial run
+        highlightPotentialProblems();
+
+        // Throttled highlight function
+        const throttledHighlight = throttle(highlightPotentialProblems, CONFIG.CHECK_INTERVAL);
+
+        // MutationObserver scoped to main content area
+        const targetNode = document.querySelector('main') || document.body;
+        const observer = new MutationObserver(throttledHighlight);
+        observer.observe(targetNode, {
+            childList: true,
+            subtree: true
+        });
+
+        // Periodic check
+        setInterval(throttledHighlight, CONFIG.CHECK_INTERVAL);
+
+        // Cleanup
+        window.addEventListener('unload', () => observer.disconnect());
+    }
+
+    // Start the script
+    setupMonitoring();
 })();

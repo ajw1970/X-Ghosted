@@ -1,14 +1,29 @@
-= X Ghostban Prevention or Cleanup
+= 𝕏 Ghostban Prevention or Cleanup
+:toc:
 
 Working on a tool to make it easier to find "Hanging Chads" in replies to deleted posts or suspended accounts. The idea is to help find situations like these to avoid being ghostbanned or somtimes known as being shadowbanned on X.
 
-== Quoted Post Now Unavailable
+== Examples
+
+=== Quoted Post Now Unavailable
 image::img/quoted-post-unavailable.png[Quoted Post Unavailable]
 
-== Replied to Post Before Author Deleted 
+=== Replied to Post Before Author Deleted 
 image::img/replied-to-now-deleted-post.png[Replied to Post Before Author Deleted]
 
 This will be in JavaScript for use within the Tampermonkey browser extension.
+
+== Message from Monetization Coach on 𝕏
+
+image::img/message-from-coach.png[Monetization Coach to the rescue]
+
+https://x.com/monetization_x/status/1858506676208382325
+
+== Join the 𝕏 Community to get updates
+
+image::img/community-banner.png[Ghostbanned on X community banner]
+
+https://x.com/i/communities/1891057939835666756
 
 == Definitions from Grok 2
 
