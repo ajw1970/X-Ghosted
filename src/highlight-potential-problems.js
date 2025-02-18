@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.4
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -11,14 +11,14 @@
 (function() {
     'use strict';
 
-    // Configuration object for easier maintenance
+    // Configuration object
     const CONFIG = {
         HIGHLIGHT_STYLE: {
             backgroundColor: 'rgba(255, 255, 0, 0.3)',
             border: '2px solid yellow'
         },
-        CHECK_INTERVAL: 1000, // milliseconds
-        MAX_INITIAL_CHECK: 99 // Maximum elements to check for 'replying to'
+        CHECK_INTERVAL: 100, // Reduced from 1000ms to 100ms
+        MAX_REPLYING: 99 // Max number of divs on /with_replies page
     };
 
     // Utility functions
@@ -29,21 +29,19 @@
         wasDeleted: text => text.startsWith('this post was deleted by the post author.')
     };
 
-    // Cache for processed articles to prevent redundant processing
-    const processedArticles = new WeakSet();
+    // Cache for processed articles
+    const processedArticles = new Set();
 
-    // Check if we're on a profile's replies page
+    // Check if on profile replies page
     function isProfileRepliesPage() {
-        const url = window.location.href;
-        return url.startsWith('https://x.com/') && url.endsWith('/with_replies');
+        return window.location.href.endsWith('/with_replies');
     }
 
-    // Apply highlight styles to an article
+    // Apply/remove highlight styles
     function applyHighlight(article) {
         Object.assign(article.style, CONFIG.HIGHLIGHT_STYLE);
     }
 
-    // Remove highlight styles from an article
     function removeHighlight(article) {
         article.style.backgroundColor = '';
         article.style.border = '';
@@ -58,16 +56,16 @@
             // Skip already processed articles
             if (processedArticles.has(article)) continue;
 
-            const elements = article.querySelectorAll('div, span');
+            const textElements = article.querySelectorAll('[data-testid="tweetText"], time, span');
             let shouldHighlight = false;
 
-            for (let i = 0; i < elements.length && !shouldHighlight; i++) {
-                const content = elements[i].textContent.trim().toLowerCase();
+            for (let i = 0; i < textElements.length && !shouldHighlight; i++) {
+                const content = textElements[i].textContent.trim().toLowerCase();
 
                 if (Checkers.isUnavailable(content) ||
                     Checkers.isSuspended(content) ||
                     Checkers.wasDeleted(content) ||
-                    (isRepliesPage && i < CONFIG.MAX_INITIAL_CHECK && Checkers.isReplyingTo(content))) {
+                    (isRepliesPage && i < CONFIG.MAX_REPLYING && Checkers.isReplyingTo(content))) {
                     shouldHighlight = true;
                 }
             }
@@ -79,16 +77,23 @@
         }
     }
 
-    // Debounce function to limit execution frequency
-    function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
+    // Throttle function to ensure periodic execution
+    function throttle(func, limit) {
+        let lastFunc;
+        let lastRan;
+        return function(...args) {
+            if (!lastRan) {
                 func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
+                lastRan = Date.now();
+            } else {
+                clearTimeout(lastFunc);
+                lastFunc = setTimeout(() => {
+                    if ((Date.now() - lastRan) >= limit) {
+                        func(...args);
+                        lastRan = Date.now();
+                    }
+                }, limit - (Date.now() - lastRan));
+            }
         };
     }
 
@@ -97,23 +102,22 @@
         // Initial run
         highlightPotentialProblems();
 
-        // Debounced highlight function
-        const debouncedHighlight = debounce(highlightPotentialProblems, CONFIG.CHECK_INTERVAL);
+        // Throttled highlight function
+        const throttledHighlight = throttle(highlightPotentialProblems, CONFIG.CHECK_INTERVAL);
 
-        // MutationObserver for dynamic content
-        const observer = new MutationObserver(debouncedHighlight);
-        observer.observe(document.body, {
+        // MutationObserver scoped to main content area
+        const targetNode = document.querySelector('main') || document.body;
+        const observer = new MutationObserver(throttledHighlight);
+        observer.observe(targetNode, {
             childList: true,
             subtree: true
         });
 
-        // Periodic check for missed updates
-        setInterval(debouncedHighlight, CONFIG.CHECK_INTERVAL * 2);
+        // Periodic check
+        setInterval(throttledHighlight, CONFIG.CHECK_INTERVAL);
 
-        // Cleanup on page unload
-        window.addEventListener('unload', () => {
-            observer.disconnect();
-        });
+        // Cleanup
+        window.addEventListener('unload', () => observer.disconnect());
     }
 
     // Start the script
