@@ -6,12 +6,23 @@ Working on a tool to make it easier to find "Hanging Chads" in replies to delete
 == Examples
 
 === Quoted Post Now Unavailable
-image::img/quoted-post-unavailable.png[Quoted Post Unavailable]
+image::img/post-unavailable.png[Quoted Post Unavailable]
 
 === Replied to Post Before Author Deleted 
 image::img/replied-to-now-deleted-post.png[Replied to Post Before Author Deleted]
 
-This will be in JavaScript for use within the Tampermonkey browser extension.
+=== Reply Deleted by Author After You Replied
+
+image::img/post-deleted-by-author.png[Replied to Reply Before Author Deleted]
+
+== This is for use within the https://www.tampermonkey.net[Tampermonkey] browser extension.
+
+image::img/tampermonkey-web.png[Tampermonkey.net screenshot]
+
+=== Video for using Tampermonkey
+
+image::img/tampermonkey-video.png[Tampermonkey Video Tutorial]
+https://youtu.be/7LWOBkKhbGk?si=B8OXS99yR7Ln939V[YouTube Tutorial]
 
 == Message from Monetization Coach on 𝕏
 
@@ -51,4 +62,4 @@ On Reddit:: Ghostbanning might refer to when comments or posts are visible to th
 
 In summary, while there might be slight nuances in how people or platforms use these terms, shadowbanning and ghostbanning are generally regarded as the same action with different names, aimed at content moderation without the user's explicit awareness.
 
-Source: https://x.com/i/grok/share/mufaVpmILrU6ebeGQsDzddEnd
+Source: https://x.com/i/grok/share/mufaVpmILrU6ebeGQsDzddEnd[Grok from xAI]
