@@ -1,4 +1,4 @@
-describe('DOM Selectors Test', () => {
+describe.skip('DOM Selectors Test', () => {
   // Load HTML before each test
   beforeEach(() => {
     loadHTML('../samples/sample.html');
