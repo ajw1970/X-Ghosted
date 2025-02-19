@@ -88,3 +88,14 @@ test('We skip this embedded example', () => {
 
     document.documentElement.innerHTML = '';
 });
+
+//<span class="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3">@LorraineMarie71</span> 
+//instead of there being a <a> with link to user profile
+test('We recognized unlinked reply to handles', () => {
+    loadHTML('../samples/Search-With-Unlinked-Replying-To-Handle.html');
+
+    const matchingArticles = findMatchingArticles(document);
+    expect(matchingArticles.length).toBe(1);
+
+    document.documentElement.innerHTML = '';
+});
