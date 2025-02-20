@@ -26,7 +26,8 @@
         isReplyingTo: text => text.startsWith('replying to'),
         isUnavailable: text => text === 'this post is unavailable.',
         isSuspended: text => text.startsWith('this post is from a suspended account.'),
-        wasDeleted: text => text.startsWith('this post was deleted by the post author.')
+        wasDeleted: text => text.startsWith('this post was deleted by the post author.'),
+        unableToView: text => text.startsWith('You’re unable to view this Post')
     };
 
     // Cache for processed articles to prevent redundant processing
@@ -93,6 +94,7 @@
                 if (Checkers.isUnavailable(content) ||
                     Checkers.isSuspended(content) ||
                     Checkers.wasDeleted(content) ||
+                    Checkers.unableToView(content) ||
                     (isRepliesPage && i < CONFIG.MAX_REPLYING_INDEX && Checkers.isReplyingTo(content))) {
                     shouldHighlight = true;
                 }
