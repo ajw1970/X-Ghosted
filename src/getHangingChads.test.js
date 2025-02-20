@@ -2,6 +2,8 @@
 //Find parent article container of each
 //Return if vertical line is present: div class .r-1bnu78o
 
+//TODO: add configuration argument to drive what we check for
+//TODO: consider limiting nested depth like this: https://x.com/i/grok/share/2lwRYfwWMP7uguNodbpXhfd3K
 function findMatchingArticles(document) {
     // Select all <article> elements (or adjust selector for your structure)
     const articles = document.querySelectorAll('article');
@@ -93,6 +95,24 @@ test('We skip this embedded example', () => {
 //instead of there being a <a> with link to user profile
 test('We recognized unlinked reply to handles', () => {
     loadHTML('../samples/Search-With-Unlinked-Replying-To-Handle.html');
+
+    const matchingArticles = findMatchingArticles(document);
+    expect(matchingArticles.length).toBe(1);
+
+    document.documentElement.innerHTML = '';
+});
+
+test('We recognize posts to suspect community', () => {
+    loadHTML('../samples/CommunityPost.html');
+
+    const matchingArticles = findMatchingArticles(document);
+    expect(matchingArticles.length).toBe(1);
+
+    document.documentElement.innerHTML = '';
+});
+
+test('We recognize an unable to view post', () => {
+    loadHTML('../samples/You-Cant-View-This-Post.html');
 
     const matchingArticles = findMatchingArticles(document);
     expect(matchingArticles.length).toBe(1);
