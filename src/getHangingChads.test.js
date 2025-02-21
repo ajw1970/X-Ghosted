@@ -173,3 +173,12 @@ test('We identify the unavailable post in this conversation thread', () => {
 
     document.documentElement.innerHTML = '';
 });
+
+test('We identify the deleted post in this conversation thread', () => {
+    loadHTML('../samples/Conversation-with-now-deleted-post.html');
+
+    const matchingArticles = findMatchingArticles(document);
+    expect(matchingArticles.length).toBe(1);
+
+    document.documentElement.innerHTML = '';
+});
