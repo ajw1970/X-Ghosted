@@ -182,3 +182,12 @@ test('We identify the deleted post in this conversation thread', () => {
 
     document.documentElement.innerHTML = '';
 });
+
+test('We identify the unable to view this Post message', () => {
+    loadHTML('../samples/Conversation-with-limited-visibility.html');
+
+    const matchingArticles = findMatchingArticles(document);
+    expect(matchingArticles.length).toBe(1);
+
+    document.documentElement.innerHTML = '';
+});
