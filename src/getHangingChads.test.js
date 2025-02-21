@@ -200,3 +200,13 @@ test('We identify all three problem posts in this conversation', () => {
 
     document.documentElement.innerHTML = '';
 });
+
+test('We identify post no longer available without a subscription', () => {
+    loadHTML('../samples/Conversation-with-expred-subscription.html');
+
+    const matchingArticles = findMatchingArticles(document);
+    expect(matchingArticles.length).toBe(1);
+
+    document.documentElement.innerHTML = '';
+});
+
