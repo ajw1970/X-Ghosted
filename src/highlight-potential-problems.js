@@ -23,11 +23,12 @@
 
     // Utility functions
     const Checkers = {
+        // These need to be lowercase because that's what we check them against
         isReplyingTo: text => text.startsWith('replying to'),
         isUnavailable: text => text === 'this post is unavailable.',
         isSuspended: text => text.startsWith('this post is from a suspended account.'),
         wasDeleted: text => text.startsWith('this post was deleted by the post author.'),
-        unableToView: text => text.startsWith('You’re unable to view this Post')
+        unableToView: text => text.startsWith('you’re unable to view this post')
     };
 
     // Cache for processed articles to prevent redundant processing
