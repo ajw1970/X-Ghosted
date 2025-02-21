@@ -119,3 +119,12 @@ test('We recognize an unable to view post', () => {
 
     document.documentElement.innerHTML = '';
 });
+
+test('We recognize an unable to view post', () => {
+    loadHTML('../samples/Multiple-Deleted-Posts-Conversation-Thread.html');
+
+    const matchingArticles = findMatchingArticles(document);
+    expect(matchingArticles.length).toBe(5);
+
+    document.documentElement.innerHTML = '';
+});
