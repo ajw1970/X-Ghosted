@@ -202,7 +202,16 @@ test('We identify all three problem posts in this conversation', () => {
 });
 
 test('We identify post no longer available without a subscription', () => {
-    loadHTML('../samples/Conversation-with-expred-subscription.html');
+    loadHTML('../samples/Conversation-with-expired-subscription.html');
+
+    const matchingArticles = findMatchingArticles(document);
+    expect(matchingArticles.length).toBe(1);
+
+    document.documentElement.innerHTML = '';
+});
+
+test('We should find nothing to identify in this conversation', () => {
+    loadHTML('../samples/Conversation-without-problems.html');
 
     const matchingArticles = findMatchingArticles(document);
     expect(matchingArticles.length).toBe(1);
