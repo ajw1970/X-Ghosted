@@ -191,3 +191,12 @@ test('We identify the unable to view this Post message', () => {
 
     document.documentElement.innerHTML = '';
 });
+
+test('We identify all three problem posts in this conversation', () => {
+    loadHTML('../samples/Conversation-with-multiple-problem-posts.html');
+
+    const matchingArticles = findMatchingArticles(document);
+    expect(matchingArticles.length).toBe(3);
+
+    document.documentElement.innerHTML = '';
+});
