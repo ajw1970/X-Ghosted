@@ -223,8 +223,18 @@ test('We identify two problems in this conversation', () => {
     loadHTML('../samples/Conversation-with-two-problem-posts.html');
 
     const matchingArticles = findMatchingArticles(document);
+    expect(matchingArticles.length).toBe(2);
+
+    document.documentElement.innerHTML = '';
+});
+
+test('We identify reply to now unavailable account in this conversation', () => {
+    loadHTML('../samples/Conversation-with-account-no-longer-available.html');
+
+    const matchingArticles = findMatchingArticles(document);
     expect(matchingArticles.length).toBe(1);
 
     document.documentElement.innerHTML = '';
 });
+
 
