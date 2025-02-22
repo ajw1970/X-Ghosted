@@ -4,6 +4,44 @@
 
 //TODO: add configuration argument to drive what we check for
 //TODO: consider limiting nested depth like this: https://x.com/i/grok/share/2lwRYfwWMP7uguNodbpXhfd3K
+
+function findRestrictedArticles(doc) {
+    function cleanTextContent(text) {
+        return text
+            .replace(/\n/g, ' ')           // Replace linebreaks with space
+            .replace(/\s+/g, ' ')          // Replace multiple spaces with single space
+            .trim();                       // Remove leading/trailing spaces
+    }
+
+    const targetNotices = [
+        'This Post is unavailable',
+        'This Post violated the X Rules',
+        'This Post may violate X’s rules against Hateful Conduct',
+        'This media has been disabled in response to a report by the copyright owner',
+        'Unavailable',
+        'Content Warning',
+        'You’re unable to view this Post',
+        'This Post is from an account that no longer exists'
+    ];
+
+    // Get all article elements
+    const articles = doc.querySelectorAll('article');
+
+    // Convert to array and filter articles that contain matching spans
+    const restrictedArticles = Array.from(articles).filter(article => {
+        // Get all spans within the current article
+        const spans = article.querySelectorAll('span');
+
+        // Check if any span's text content starts with a target notice
+        return Array.from(spans).some(span => {
+            const textContent = cleanTextContent(span.textContent);
+            return targetNotices.some(notice => textContent.startsWith(notice));
+        });
+    });
+
+    return restrictedArticles;
+}
+
 function findMatchingArticles(document) {
     // Select all <article> elements (or adjust selector for your structure)
     const articles = document.querySelectorAll('article');
@@ -91,7 +129,7 @@ test('We skip this embedded example', () => {
     document.documentElement.innerHTML = '';
 });
 
-//<span class="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3">@LorraineMarie71</span> 
+//<span class="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3">@LorraineMarie71</span>
 //instead of there being a <a> with link to user profile
 test('We recognized unlinked reply to handles', () => {
     loadHTML('../samples/Search-With-Unlinked-Replying-To-Handle.html');
@@ -214,7 +252,7 @@ test('We should find nothing to identify in this conversation', () => {
     loadHTML('../samples/Conversation-without-problems.html');
 
     const matchingArticles = findMatchingArticles(document);
-    expect(matchingArticles.length).toBe(1);
+    expect(matchingArticles.length).toBe(0);
 
     document.documentElement.innerHTML = '';
 });
@@ -222,7 +260,7 @@ test('We should find nothing to identify in this conversation', () => {
 test('We identify two problems in this conversation', () => {
     loadHTML('../samples/Conversation-with-two-problem-posts.html');
 
-    const matchingArticles = findMatchingArticles(document);
+    const matchingArticles = findRestrictedArticles(document);
     expect(matchingArticles.length).toBe(2);
 
     document.documentElement.innerHTML = '';
@@ -231,10 +269,8 @@ test('We identify two problems in this conversation', () => {
 test('We identify reply to now unavailable account in this conversation', () => {
     loadHTML('../samples/Conversation-with-account-no-longer-available.html');
 
-    const matchingArticles = findMatchingArticles(document);
+    const matchingArticles = findRestrictedArticles(document);
     expect(matchingArticles.length).toBe(1);
 
     document.documentElement.innerHTML = '';
 });
-
-
