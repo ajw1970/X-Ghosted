@@ -5,50 +5,53 @@
 //TODO: add configuration argument to drive what we check for
 //TODO: consider limiting nested depth like this: https://x.com/i/grok/share/2lwRYfwWMP7uguNodbpXhfd3K
 
-function findRestrictedArticles(doc) {
-    function cleanTextContent(text) {
-        return text
-            .replace(/\n/g, ' ')           // Replace linebreaks with space
-            .replace(/\s+/g, ' ')          // Replace multiple spaces with single space
-            .trim();                       // Remove leading/trailing spaces
-    }
-
-    const targetNotices = [
-        'This Post is unavailable',
-        'This Post violated the X Rules',
-        'This Post may violate X’s rules against Hateful Conduct',
-        'This media has been disabled in response to a report by the copyright owner',
-        'Unavailable',
-        'Content Warning',
-        'You’re unable to view this Post',
-        'This Post is from an account that no longer exists'
-    ];
-
-    // Get all article elements
-    const articles = doc.querySelectorAll('article');
-
-    // Convert to array and filter articles that contain matching spans
-    const restrictedArticles = Array.from(articles).filter(article => {
-        // Get all spans within the current article
-        const spans = article.querySelectorAll('span');
-
-        // Check if any span's text content starts with a target notice
-        return Array.from(spans).some(span => {
-            const textContent = cleanTextContent(span.textContent);
-            return targetNotices.some(notice => textContent.startsWith(notice));
-        });
-    });
-
-    return restrictedArticles;
-}
-
 function findMatchingArticles(document) {
     // Select all <article> elements (or adjust selector for your structure)
     const articles = document.querySelectorAll('article');
     const matchingArticles = [];
 
+    // Function for finding spans with notices from X
+    function articleContainsSystemNotice(article) {
+        // X notices to look for 
+        // We want straight apostrophes here 
+        // we replace curly with straight in normalizedTextContent()
+        const targetNotices = [
+            "unavailable",
+            "content warning",
+            "this post is unavailable",
+            "this post violated the x rules",
+            "this post was deleted by the post author",
+            "this post is from an account that no longer exists",
+            "this post may violate x's rules against hateful conduct",
+            "this media has been disabled in response to a report by the copyright owner",
+            "you're unable to view this post"
+        ];
+
+        // Helper function for span.textContent
+        function normalizedTextContent(textContent) {
+            return textContent
+                .replace(/\n/g, ' ')           // Replace linebreaks with space
+                .replace(/\s+/g, ' ')          // Replace multiple spaces with single space
+                .replace(/[‘’]/g, "'")         // Replace curly single with straight                
+                .trim()                       // Remove leading/trailing spaces
+                .toLowerCase();
+        }
+
+        // Check if any span's text content starts with a target notice
+        return Array.from(article.querySelectorAll('span')).some(span => {
+            const textContent = normalizedTextContent(span.textContent);
+            return targetNotices.some(notice => textContent.startsWith(notice));
+        });
+    }
+
     // Iterate through each article
     articles.forEach(article => {
+
+        if (articleContainsSystemNotice(article)) {
+            matchingArticles.push(article);
+            return; // Continue forEach     
+        }
+
         // Get all divs within the current article
         const divs = article.querySelectorAll('div');
         let hasReplyingTo = false;
@@ -225,7 +228,7 @@ test('We identify the unable to view this Post message', () => {
     loadHTML('../samples/Conversation-with-limited-visibility.html');
 
     const matchingArticles = findMatchingArticles(document);
-    expect(matchingArticles.length).toBe(1);
+    expect(matchingArticles.length).toBe(2);
 
     document.documentElement.innerHTML = '';
 });
@@ -260,7 +263,7 @@ test('We should find nothing to identify in this conversation', () => {
 test('We identify two problems in this conversation', () => {
     loadHTML('../samples/Conversation-with-two-problem-posts.html');
 
-    const matchingArticles = findRestrictedArticles(document);
+    const matchingArticles = findMatchingArticles(document);
     expect(matchingArticles.length).toBe(2);
 
     document.documentElement.innerHTML = '';
@@ -269,7 +272,7 @@ test('We identify two problems in this conversation', () => {
 test('We identify reply to now unavailable account in this conversation', () => {
     loadHTML('../samples/Conversation-with-account-no-longer-available.html');
 
-    const matchingArticles = findRestrictedArticles(document);
+    const matchingArticles = findMatchingArticles(document);
     expect(matchingArticles.length).toBe(1);
 
     document.documentElement.innerHTML = '';
