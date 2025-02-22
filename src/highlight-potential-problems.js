@@ -106,7 +106,7 @@
 
                 //Get hrref to this artcile so that we can replace the button if needed
                 const href = article.querySelector('.css-146c3p1.r-1loqt21 time').parentElement.getAttribute('href');
-                replaceMenuButton(article, href);
+                replaceMenuButton(article, 'https:\\\\x.com' + href);
                 //GM_log('highlighted post href=' + href);
 
                 processedArticles.add(article);
