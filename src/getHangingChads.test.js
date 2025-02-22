@@ -219,3 +219,12 @@ test('We should find nothing to identify in this conversation', () => {
     document.documentElement.innerHTML = '';
 });
 
+test('We identify two problems in this conversation', () => {
+    loadHTML('../samples/Conversation-with-two-problem-posts.html');
+
+    const matchingArticles = findMatchingArticles(document);
+    expect(matchingArticles.length).toBe(1);
+
+    document.documentElement.innerHTML = '';
+});
+
