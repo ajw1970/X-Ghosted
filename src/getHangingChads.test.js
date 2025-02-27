@@ -277,3 +277,12 @@ test('We identify reply to now unavailable account in this conversation', () => 
 
     document.documentElement.innerHTML = '';
 });
+
+test('We identify copyright violation in this conversation', () => {
+    loadHTML('../samples/Conversation-with-copyright-violating-quote-repost.html');
+
+    const matchingArticles = findMatchingArticles(document);
+    expect(matchingArticles.length).toBe(1);
+
+    document.documentElement.innerHTML = '';
+});
