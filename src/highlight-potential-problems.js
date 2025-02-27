@@ -23,12 +23,13 @@
 
     // Utility functions
     const Checkers = {
+        // These need to be lowercase because that's what we check them against
         isReplyingTo: text => text.startsWith('replying to'),
         isUnavailable: text => text === 'this post is unavailable.',
         isGutfeld: text => text.includes('gutfeld'),
         isSuspended: text => text.startsWith('this post is from a suspended account.'),
         wasDeleted: text => text.startsWith('this post was deleted by the post author.'),
-        unableToView: text => text.startsWith('You’re unable to view this Post')
+        unableToView: text => text.startsWith('you’re unable to view this post')
     };
 
     // Cache for processed articles to prevent redundant processing
@@ -51,6 +52,32 @@
         article.style.border = '';
     }
 
+    // Function to replace the menu button
+    function replaceMenuButton(article, href) {
+        // Find all menu buttons with data-testid="caret"
+        const button = article.querySelector('button[aria-label="Share post"]');
+
+        // Create new link element
+        const newLink = document.createElement('a');
+
+        // Customize these attributes as needed
+        newLink.href = href; // Replace with your desired URL
+        newLink.textContent = '👀';           // Replace with your desired link text
+        newLink.target = '_blank';            // Opens in new tab
+        newLink.rel = 'noopener noreferrer';  // Security best practice
+
+        // Optional: Add some styling
+        newLink.style.color = 'rgb(29, 155, 240)'; // Twitter blue
+        newLink.style.textDecoration = 'none';
+        newLink.style.padding = '8px';
+
+        // Get the parent container
+        const parentContainer = button.parentElement;
+
+        // Replace the button with the link
+        parentContainer.replaceChild(newLink, button);
+    }
+
     // Main highlighting function
     function highlightPotentialProblems() {
         const articles = document.getElementsByTagName('article');
@@ -70,7 +97,6 @@
                     Checkers.isSuspended(content) ||
                     Checkers.wasDeleted(content) ||
                     Checkers.unableToView(content) ||
-                    Checkers.isGutfeld(content) ||
                     (isRepliesPage && i < CONFIG.MAX_REPLYING_INDEX && Checkers.isReplyingTo(content))) {
                     shouldHighlight = true;
                 }
@@ -78,6 +104,12 @@
 
             if (shouldHighlight) {
                 applyHighlight(article);
+
+                //Get hrref to this artcile so that we can replace the button if needed
+                const href = article.querySelector('.css-146c3p1.r-1loqt21 time').parentElement.getAttribute('href');
+                replaceMenuButton(article, 'https:\\\\x.com' + href);
+                //GM_log('highlighted post href=' + href);
+
                 processedArticles.add(article);
             }
         }
