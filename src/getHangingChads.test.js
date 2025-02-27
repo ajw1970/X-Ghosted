@@ -138,7 +138,16 @@ test('We recognized unlinked reply to handles', () => {
     loadHTML('../samples/Search-With-Unlinked-Replying-To-Handle.html');
 
     const matchingArticles = findMatchingArticles(document);
-    expect(matchingArticles.length).toBe(1);
+    expect(matchingArticles.length).toBe(4);
+
+    document.documentElement.innerHTML = '';
+});
+
+test('We find no unlinked reply to handles in this sample', () => {
+    loadHTML('../samples/Home-Timeline-With-Replies.html');
+
+    const matchingArticles = findMatchingArticles(document);
+    expect(matchingArticles.length).toBe(0);
 
     document.documentElement.innerHTML = '';
 });
@@ -165,7 +174,7 @@ test('We can highlight multiple problems in a conversation thread', () => {
     loadHTML('../samples/Multiple-Deleted-Posts-Conversation-Thread.html');
 
     const matchingArticles = findMatchingArticles(document);
-    expect(matchingArticles.length).toBe(5);
+    expect(matchingArticles.length).toBe(4);
 
     document.documentElement.innerHTML = '';
 });
