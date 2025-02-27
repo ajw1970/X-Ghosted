@@ -30,10 +30,7 @@ function findMatchingArticles(document) {
         // Helper function for span.textContent
         function normalizedTextContent(textContent) {
             return textContent
-                .replace(/\n/g, ' ')           // Replace linebreaks with space
-                .replace(/\s+/g, ' ')          // Replace multiple spaces with single space
-                .replace(/[‘’]/g, "'")         // Replace curly single with straight                
-                .trim()                       // Remove leading/trailing spaces
+                .replace(/[‘’]/g, "'") // Replace curly single with straight
                 .toLowerCase();
         }
 
