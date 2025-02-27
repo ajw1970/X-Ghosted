@@ -21,20 +21,21 @@ image::img/tampermonkey-web.png[Tampermonkey.net screenshot]
 
 === Video for using Tampermonkey
 
+[link=https://youtu.be/7LWOBkKhbGk?si=B8OXS99yR7Ln939V]
 image::img/tampermonkey-video.png[Tampermonkey Video Tutorial]
-https://youtu.be/7LWOBkKhbGk?si=B8OXS99yR7Ln939V[YouTube Tutorial]
+https://youtu.be/7LWOBkKhbGk?si=B8OXS99yR7Ln939V[Link to YouTube Tutorial]
 
 == Message from Monetization Coach on 𝕏
 
+[link=https://x.com/monetization_x/status/1858506676208382325]
 image::img/message-from-coach.png[Monetization Coach to the rescue]
-
-https://x.com/monetization_x/status/1858506676208382325
+https://x.com/monetization_x/status/1858506676208382325[Link to post]
 
 == Join the 𝕏 Community to get updates
 
+[link=https://x.com/i/communities/1891057939835666756]
 image::img/community-banner.png[Ghostbanned on X community banner]
-
-https://x.com/i/communities/1891057939835666756
+https://x.com/i/communities/1891057939835666756[Link to community]
 
 == Definitions from Grok 2
 
