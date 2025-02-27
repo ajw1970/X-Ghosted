@@ -17,6 +17,7 @@ image::img/post-deleted-by-author.png[Replied to Reply Before Author Deleted]
 
 == This is for use within the https://www.tampermonkey.net[Tampermonkey] browser extension.
 
+[link=https://www.tampermonkey.net]
 image::img/tampermonkey-web.png[Tampermonkey.net screenshot]
 
 === Video for using Tampermonkey
