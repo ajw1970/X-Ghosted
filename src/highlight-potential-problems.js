@@ -5,6 +5,7 @@
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=x.com
 // @grant        GM_log
 // ==/UserScript==
 
