@@ -6,14 +6,26 @@ test('We can get posts from sample data', () => {
 
     const articles = document.querySelectorAll('article');
     expect(articles.length).toBe(4);
-    const first = getArticleDetails(articles.item(0));
-    expect(first.href).toBe("/ProphetJoshuaD/status/1895793341721186371");
-    const second = getArticleDetails(articles.item(1));
-    expect(second.href).toBe("/ApostleLucille/status/1895520569833009525");
-    const third = getArticleDetails(articles.item(2));
-    expect(third.href).toBe("/ApostleEric/status/1895511099434283310");
-    const fourth = getArticleDetails(articles.item(3));
-    expect(fourth.href).toBe("/catievanderwalt/status/1895383819655749937");
+
+    expect(getArticleDetails(articles.item(0))).toEqual({
+        href: "/ProphetJoshuaD/status/1895793341721186371",
+        datetime: "2025-03-01T11:08:49.000Z"
+    });
+
+    expect(getArticleDetails(articles.item(1))).toEqual({
+        href: "/ApostleLucille/status/1895520569833009525",
+        datetime: "2025-02-28T17:04:55.000Z"
+    });
+
+    expect(getArticleDetails(articles.item(2))).toEqual({
+        href: "/ApostleEric/status/1895511099434283310",
+        datetime: "2025-02-28T16:27:17.000Z"
+    });
+
+    expect(getArticleDetails(articles.item(3))).toEqual({
+        href: "/catievanderwalt/status/1895383819655749937",
+        datetime: "2025-02-28T08:01:31.000Z"
+    });
 
     document.documentElement.innerHTML = '';
 });
@@ -24,14 +36,26 @@ test('We can get replies from sample data', () => {
 
     const articles = document.querySelectorAll('article');
     expect(articles.length).toBe(4);
-    const first = getArticleDetails(articles.item(0));
-    expect(first.href).toBe("/ProphetJoshuaD/status/1895796406956544359");
-    const second = getArticleDetails(articles.item(1));
-    expect(second.href).toBe("/NeethlingBert/status/1895783011716641099");
-    const third = getArticleDetails(articles.item(2));
-    expect(third.href).toBe("/NeethlingBert/status/1895766475425923528");
-    const fourth = getArticleDetails(articles.item(3));
-    expect(fourth.href).toBe("/TeacherColleen/status/1895615009159594130");
+
+    expect(getArticleDetails(articles.item(0))).toEqual({
+        href: "/ProphetJoshuaD/status/1895796406956544359",
+        datetime: "2025-03-01T11:21:00.000Z"
+    });
+
+    expect(getArticleDetails(articles.item(1))).toEqual({
+        href: "/NeethlingBert/status/1895783011716641099",
+        datetime: "2025-03-01T10:27:46.000Z"
+    });
+
+    expect(getArticleDetails(articles.item(2))).toEqual({
+        href: "/NeethlingBert/status/1895766475425923528",
+        datetime: "2025-03-01T09:22:04.000Z"
+    });
+
+    expect(getArticleDetails(articles.item(3))).toEqual({
+        href: "/TeacherColleen/status/1895615009159594130",
+        datetime: "2025-02-28T23:20:11.000Z"
+    });
 
     document.documentElement.innerHTML = '';
 });
