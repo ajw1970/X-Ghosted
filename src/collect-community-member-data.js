@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Extract Community Member List Data
+// @name         Collect Community Member Data
 // @namespace    http://tampermonkey.net/
 // @version      0.1
-// @description  Extract Community Member List Data
+// @description  Collect Community Member Data and display object array in updated popup
 // @author       John Welty
 // @match        https://x.com/i/communities/*/members
 // @grant        GM_log
@@ -40,20 +40,20 @@
         };
     }
 
-    // Function to collect span content
+    // Persistent Set to track unique postLinks
+    const seenUserNames = new Set();
+    const memberDataArray = []; // Store full post data
+
     function collectMemberData() {
         const members = document.querySelectorAll('div[aria-label="Home timeline"] li[data-testid="UserCell"]');
-        const memberDataSet = new Set(); // Using Set to avoid duplicates
-
         for (let member of members) {
             const memberData = getCommunityMemberDetails(member);
-            if (memberData) {
-                memberDataSet.add(memberData);
+            if (memberData && !seenUserNames.has(memberData.userName)) {
+                seenUserNames.add(memberData.userName);
+                memberDataArray.push(memberData);
             }
         }
-
-        // Convert Set to array and join with newlines
-        textArea.value = JSON.stringify(Array.from(memberDataSet), null, 2);
+        textArea.value = memberDataArray.length + ' members\n' + JSON.stringify(memberDataArray, null, 2);
     }
 
     // Create popup container
