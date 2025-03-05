@@ -8,7 +8,27 @@
 function findMatchingArticles(document) {
     // Select all <article> elements (or adjust selector for your structure)
     const articles = document.querySelectorAll('article');
-    const matchingArticles = [];
+    const results = {
+        matchingArticles: [],
+        logMessages: []
+    };
+
+    function articleLinksToTargetCommunity(article) {
+        const communityIds = [
+            "1886523857676460463"
+        ];
+
+        // Check if any anchor's href ends with a target community ID
+        const aTags = Array.from(article.querySelectorAll('a'));
+        for (const aTag of aTags) {
+            for (const id of communityIds) {
+                if (aTag.href.endsWith(`/i/communities/${id}`)) {
+                    return id;
+                }
+            }
+        }
+        return "";
+    }
 
     // Function for finding spans with notices from X
     function articleContainsSystemNotice(article) {
@@ -34,22 +54,37 @@ function findMatchingArticles(document) {
                 .toLowerCase();
         }
 
-        // Check if any span's text content starts with a target notice
-        return Array.from(article.querySelectorAll('span')).some(span => {
+        // Check spans and return first matching notice or empty string
+        const spans = Array.from(article.querySelectorAll('span'));
+        for (const span of spans) {
             const textContent = normalizedTextContent(span.textContent);
-            return targetNotices.some(notice => textContent.startsWith(notice));
-        });
+            for (const notice of targetNotices) {
+                if (textContent.startsWith(notice)) {
+                    return notice;
+                }
+            }
+        }
+        return "";
     }
 
     // Iterate through each article
     articles.forEach(article => {
 
-        if (articleContainsSystemNotice(article)) {
-            matchingArticles.push(article);
-            return; // Continue forEach     
+        const noticeFound = articleContainsSystemNotice(article);
+        if (noticeFound) {
+            results.logMessages.push(`Found notice: ${noticeFound}`);
+            results.matchingArticles.push(article);
+            return; // Continue forEach
         }
 
-        // Get all divs within the current article
+        const communityFound = articleLinksToTargetCommunity(article);
+        if (communityFound){
+            results.logMessages.push(`Found community: ${noticeFound}`);
+            results.matchingArticles.push(article);
+            return; // Continue forEach  
+        }
+
+        results.logMessages.push("Get all divs within the current article");
         const divs = article.querySelectorAll('div');
         let hasReplyingTo = false;
         let hasR1bnu78o = false;
@@ -68,11 +103,11 @@ function findMatchingArticles(document) {
 
         // If article has "replying to" div and no r-1bnu78o div, add to results
         if (hasReplyingTo && !hasR1bnu78o) {
-            matchingArticles.push(article);
+            results.matchingArticles.push(article);
         }
     });
 
-    return matchingArticles;
+    return results;
 }
 
 module.exports = findMatchingArticles;
