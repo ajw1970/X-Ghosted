@@ -67,6 +67,38 @@ function findMatchingArticles(document) {
         return "";
     }
 
+    function getReplyDepths(articleElement) {
+        // Check if valid article element is provided
+        if (!(articleElement instanceof HTMLElement) || articleElement.tagName.toLowerCase() !== 'article') {
+            return [];
+        }
+
+        // Array to store results
+        const replyDepths = [];
+
+        // Recursive function to calculate depth and find matching divs
+        function analyzeElement(element, currentDepth = 0) {
+            // Check if current element is a div with textContent starting with 'Replying to'
+            if (element.tagName.toLowerCase() === 'div' &&
+                element.textContent.trim().startsWith('Replying to')) {
+                replyDepths.push({
+                    depth: currentDepth,
+                    textContent: element.textContent.trim()
+                });
+            }
+
+            // Recursively process all child elements
+            Array.from(element.children).forEach(child => {
+                analyzeElement(child, currentDepth + 1);
+            });
+        }
+
+        // Start analysis from the article element
+        analyzeElement(articleElement);
+
+        return replyDepths;
+    }
+
     // Iterate through each article
     articles.forEach(article => {
 
@@ -78,13 +110,25 @@ function findMatchingArticles(document) {
         }
 
         const communityFound = articleLinksToTargetCommunity(article);
-        if (communityFound){
+        if (communityFound) {
             results.logMessages.push(`Found community: ${noticeFound}`);
             results.matchingArticles.push(article);
             return; // Continue forEach  
         }
 
+        //results.logMessages.push(article.outerHTML);
+        const replyingToDepths = getReplyDepths(article);
+        if (replyingToDepths.length > 0) {
+            results.logMessages.push(JSON.stringify(replyingToDepths, null, 2));
+            // results.logMessages.push(`Found ${replyingToDepths.length} 'Replying to' divs`);
+            // results.logMessages.push(`Deepest 'Replying to' div depth: ${replyingToDepths[replyingToDepths.length - 1].depth}`);
+            //return; // Continue forEach
+        }
+
         results.logMessages.push("Get all divs within the current article");
+
+
+
         const divs = article.querySelectorAll('div');
         let hasReplyingTo = false;
         let hasR1bnu78o = false;
