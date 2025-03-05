@@ -121,11 +121,22 @@ test('We should find nothing to identify in this conversation', () => {
     document.documentElement.innerHTML = '';
 });
 
+test('We should find suspicious posts to identify in this single example', () => {
+    loadHTML('../samples/Home-Timeline-SingleExample.html');
+
+    const results = findMatchingArticles(document);
+    expect(results.logMessages).toEqual([]);
+    expect(results.matchingArticles.length).toBe(1);
+
+    document.documentElement.innerHTML = '';
+});
+
 test('We should find suspicious posts to identify in this conversation', () => {
     loadHTML('../samples/Home-Timeline-With-Replies-SeparateButRelated.html');
 
     const results = findMatchingArticles(document);
-    expect(results.matchingArticles.length).toBe(0);
+    expect(results.logMessages).toEqual([]);
+    expect(results.matchingArticles.length).toBe(1);
 
     document.documentElement.innerHTML = '';
 });
@@ -170,6 +181,7 @@ test('We can identify post no longer available', () => {
     loadHTML('../samples/Post-No-Longer-Available.html');
 
     const results = findMatchingArticles(document);
+    expect(results.logMessages).toEqual([]);
     expect(results.matchingArticles.length).toBe(1);
 
     document.documentElement.innerHTML = '';
@@ -188,6 +200,7 @@ test('We identify this example', () => {
     loadHTML('../samples/Reply-To-Two-But-Only-See-One.html');
 
     const results = findMatchingArticles(document);
+    expect(results.logMessages).toEqual([]);
     expect(results.matchingArticles.length).toBe(1);
 
     document.documentElement.innerHTML = '';
@@ -197,6 +210,7 @@ test('We skip this embedded example', () => {
     loadHTML('../samples/Replying-To-Embedded-Example.html');
 
     const results = findMatchingArticles(document);
+    expect(results.logMessages).toEqual([]);
     expect(results.matchingArticles.length).toBe(0);
 
     document.documentElement.innerHTML = '';
@@ -233,6 +247,7 @@ test('We can identify this example of post no longer available', () => {
     loadHTML('../samples/Search-Including-Post-No-Longer-Available.html');
 
     const results = findMatchingArticles(document);
+    expect(results.logMessages).toEqual([]);
     expect(results.matchingArticles.length).toBe(1);
 
     document.documentElement.innerHTML = '';
