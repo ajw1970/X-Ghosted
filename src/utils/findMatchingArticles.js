@@ -67,36 +67,36 @@ function findMatchingArticles(document) {
         return "";
     }
 
-    function getReplyDepths(articleElement) {
-        // Check if valid article element is provided
-        if (!(articleElement instanceof HTMLElement) || articleElement.tagName.toLowerCase() !== 'article') {
-            return [];
+    function findReplyingToWithDepth(article) {
+        const result = [];
+
+        function getInnerHTMLWithoutAttributes(element) {
+            // Clone the element to avoid modifying the original
+            const clone = element.cloneNode(true);
+            // Get all elements with any attributes
+            clone.querySelectorAll('*').forEach(el => {
+                // Remove all attributes
+                while (el.attributes.length > 0) {
+                    el.removeAttribute(el.attributes[0].name);
+                }
+            });
+            return clone.innerHTML;
         }
 
-        // Array to store results
-        const replyDepths = [];
-
-        // Recursive function to calculate depth and find matching divs
-        function analyzeElement(element, currentDepth = 0) {
-            // Check if current element is a div with textContent starting with 'Replying to'
-            if (element.tagName.toLowerCase() === 'div' &&
-                element.textContent.trim().startsWith('Replying to')) {
-                replyDepths.push({
-                    depth: currentDepth,
-                    textContent: element.textContent.trim()
+        function findDivs(element, depth) {
+            if (element.tagName === 'DIV' && element.innerHTML.startsWith('Replying to')) {
+                result.push({
+                    depth,
+                    innerHTML: getInnerHTMLWithoutAttributes(element)
+                        .replace(/<\/?(div|span)>/gi, '')   // Remove div and span tags
                 });
             }
 
-            // Recursively process all child elements
-            Array.from(element.children).forEach(child => {
-                analyzeElement(child, currentDepth + 1);
-            });
+            Array.from(element.children).forEach(child => findDivs(child, depth + 1));
         }
 
-        // Start analysis from the article element
-        analyzeElement(articleElement);
-
-        return replyDepths;
+        findDivs(article, 0);
+        return result;
     }
 
     // Iterate through each article
@@ -117,9 +117,11 @@ function findMatchingArticles(document) {
         }
 
         //results.logMessages.push(article.outerHTML);
-        const replyingToDepths = getReplyDepths(article);
+        const replyingToDepths = findReplyingToWithDepth(article);
         if (replyingToDepths.length > 0) {
-            results.logMessages.push(JSON.stringify(replyingToDepths, null, 2));
+            results.logMessages.push(JSON.stringify(replyingToDepths, null, 2)
+                .replace(/"([^"]+)":/g, '$1:')  // Remove quotes from keys
+                .replace(/(?<!\\)"/g, "'"));    // Replace double quotes with single quotes
             // results.logMessages.push(`Found ${replyingToDepths.length} 'Replying to' divs`);
             // results.logMessages.push(`Deepest 'Replying to' div depth: ${replyingToDepths[replyingToDepths.length - 1].depth}`);
             //return; // Continue forEach
