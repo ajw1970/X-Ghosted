@@ -116,16 +116,17 @@ function findMatchingArticles(document) {
             return; // Continue forEach  
         }
 
-        //results.logMessages.push(article.outerHTML);
         const replyingToDepths = findReplyingToWithDepth(article);
-        if (replyingToDepths.length > 0) {
-            results.logMessages.push(JSON.stringify(replyingToDepths, null, 2)
-                .replace(/"([^"]+)":/g, '$1:')  // Remove quotes from keys
-                .replace(/(?<!\\)"/g, "'"));    // Replace double quotes with single quotes
-            // results.logMessages.push(`Found ${replyingToDepths.length} 'Replying to' divs`);
-            // results.logMessages.push(`Deepest 'Replying to' div depth: ${replyingToDepths[replyingToDepths.length - 1].depth}`);
-            //return; // Continue forEach
+        if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
+            results.logMessages.push(replyingToDepths);
+        
+            if (replyingToDepths.some(object => object.depth < 10)) {
+                results.matchingArticles.push(article);
+                return; // Continue forEach
+            }
         }
+
+        return; // Let's see how giving up works
 
         results.logMessages.push("Get all divs within the current article");
 
