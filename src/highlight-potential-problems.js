@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.5
+// @version      0.5.1
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -155,20 +155,26 @@
         parentContainer.replaceChild(newLink, button);
     }
 
+    function isProfileRepliesPage() {
+        const url = window.location.href;
+        return url.startsWith('https://x.com/') && url.endsWith('/with_replies');
+    }
+
     // Main highlighting function
     function highlightPotentialProblems() {
-        const articles = document.getElementsByTagName('article');
         const isRepliesPage = isProfileRepliesPage();
+        const articles = document.getElementsByTagName('article');
 
         for (const article of articles) {
             // Skip already processed articles
             if (processedArticles.has(article)) continue;
 
             let shouldHighlight = false;
+            const isRepliesPage = isProfileRepliesPage();
 
             if (articleContainsSystemNotice(article) || articleLinksToTargetCommunities(article)) {
                 shouldHighlight = true;
-            } else {
+            } else if (isRepliesPage) {
                 const replyingToDepths = findReplyingToWithDepth(article);
                 if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
                     if (replyingToDepths.some(object => object.depth < 10)) {
