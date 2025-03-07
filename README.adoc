@@ -20,7 +20,17 @@ image::img/post-deleted-by-author.png[Replied to Reply Before Author Deleted]
 [link=https://www.tampermonkey.net]
 image::img/tampermonkey-web.png[Tampermonkey.net screenshot]
 
-=== Video for using Tampermonkey
+=== Article from Kacey Green on how to get started
+
+image::img/GCustom-Article.png[Recently published step-by-step guide]
+https://x.com/GCustom/status/1897906587299135563[Kacey Green's article]
+
+=== 3-Part Video and Tutorial on how to get started
+
+image::img/Video-Article.png[]
+https://x.com/ApostleJohnW/status/1895431408379683094[My introduction article]
+
+=== YouTube Video for using Tampermonkey
 
 [link=https://youtu.be/7LWOBkKhbGk?si=B8OXS99yR7Ln939V]
 image::img/tampermonkey-video.png[Tampermonkey Video Tutorial]
@@ -30,13 +40,13 @@ https://youtu.be/7LWOBkKhbGk?si=B8OXS99yR7Ln939V[Link to YouTube Tutorial]
 
 [link=https://x.com/monetization_x/status/1858506676208382325]
 image::img/message-from-coach.png[Monetization Coach to the rescue]
-https://x.com/monetization_x/status/1858506676208382325[Link to post]
+https://x.com/monetization_x/status/1858506676208382325[Link to Monetization Coach's post]
 
 == Join the 𝕏 Community to get updates
 
 [link=https://x.com/i/communities/1891057939835666756]
-image::img/community-banner.png[Ghostbanned on X community banner]
-https://x.com/i/communities/1891057939835666756[Link to community]
+image::img/Community-Screenshot.png[Ghostbanned on X Community Screenshot]
+https://x.com/i/communities/1891057939835666756[Link to Ghostbanned on X Community]
 
 == Definitions from Grok 2
 
