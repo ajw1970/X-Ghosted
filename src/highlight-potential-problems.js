@@ -52,7 +52,7 @@
     // Injected from src/utils/articleLinksToTargetCommunities.js
     function articleLinksToTargetCommunities(article) {
         const communityIds = [
-            "1886523857676460463"
+            "1889908654133911912" // This is a community I deleted
         ];
 
         // Check if any anchor's href ends with a target community ID
