@@ -319,6 +319,16 @@ test('We recognized unlinked reply to handles', () => {
     document.documentElement.innerHTML = '';
 });
 
+test('This should not be identified as a problem post', () => {
+    loadHTML('../samples/This-Quote-Repost-Into-Community-Should-Be-Fine.html');
+
+    const results = findMatchingArticles(document);
+    expect(results.logMessages).toEqual([]);
+    expect(results.matchingArticles.length).toBe(0);
+
+    document.documentElement.innerHTML = '';
+});
+
 test('We recognize an unable to view post', () => {
     loadHTML('../samples/You-Cant-View-This-Post.html');
 
