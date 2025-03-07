@@ -126,32 +126,30 @@ function findMatchingArticles(document) {
             }
         }
 
-        return; // Let's see how giving up works
+        // return; // Let's see how giving up works
 
-        results.logMessages.push("Get all divs within the current article");
+        // results.logMessages.push("Get all divs within the current article");
 
+        // const divs = article.querySelectorAll('div');
+        // let hasReplyingTo = false;
+        // let hasR1bnu78o = false;
 
+        // // Check each div
+        // divs.forEach(div => {
+        //     // Check if div text content starts with "replying to" (trimmed for consistency)
+        //     if (div.textContent.trim().startsWith('Replying to')) {
+        //         hasReplyingTo = true;
+        //     }
+        //     // Check if div has class r-1bnu78o
+        //     if (div.classList.contains('r-1bnu78o')) {
+        //         hasR1bnu78o = true;
+        //     }
+        // });
 
-        const divs = article.querySelectorAll('div');
-        let hasReplyingTo = false;
-        let hasR1bnu78o = false;
-
-        // Check each div
-        divs.forEach(div => {
-            // Check if div text content starts with "replying to" (trimmed for consistency)
-            if (div.textContent.trim().startsWith('Replying to')) {
-                hasReplyingTo = true;
-            }
-            // Check if div has class r-1bnu78o
-            if (div.classList.contains('r-1bnu78o')) {
-                hasR1bnu78o = true;
-            }
-        });
-
-        // If article has "replying to" div and no r-1bnu78o div, add to results
-        if (hasReplyingTo && !hasR1bnu78o) {
-            results.matchingArticles.push(article);
-        }
+        // // If article has "replying to" div and no r-1bnu78o div, add to results
+        // if (hasReplyingTo && !hasR1bnu78o) {
+        //     results.matchingArticles.push(article);
+        // }
     });
 
     return results;
