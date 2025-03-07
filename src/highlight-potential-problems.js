@@ -186,7 +186,7 @@
             if (shouldHighlight) {
                 applyHighlight(article);
 
-                //Get hrref to this artcile so that we can replace the button if needed
+                //Get href to this article so that we can replace the button if needed
                 const href = article.querySelector('.css-146c3p1.r-1loqt21 time').parentElement.getAttribute('href');
                 
                 replaceMenuButton(article, 'https:\\\\x.com' + href);
