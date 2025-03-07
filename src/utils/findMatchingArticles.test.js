@@ -125,7 +125,10 @@ test('We should find suspicious posts to identify in this single example', () =>
     loadHTML('../samples/Home-Timeline-SingleExample.html');
 
     const results = findMatchingArticles(document);
-    expect(results.logMessages).toEqual([]);
+    expect(results.logMessages).toEqual([[{
+        depth: 6,
+        innerHTML: 'Replying to <a>@KanekoaTheGreat</a>'
+    }]]);
     expect(results.matchingArticles.length).toBe(1);
 
     document.documentElement.innerHTML = '';
@@ -135,7 +138,10 @@ test('We should find suspicious posts to identify in this conversation', () => {
     loadHTML('../samples/Home-Timeline-With-Replies-SeparateButRelated.html');
 
     const results = findMatchingArticles(document);
-    expect(results.logMessages).toEqual([]);
+    expect(results.logMessages).toEqual([[{
+        depth: 6,
+        innerHTML: 'Replying to <a>@KanekoaTheGreat</a>'
+    }]]);
     expect(results.matchingArticles.length).toBe(1);
 
     document.documentElement.innerHTML = '';
@@ -159,11 +165,46 @@ test('We can find reply to @TheRabbitHole84', () => {
     document.documentElement.innerHTML = '';
 });
 
+test('We can find reply suspect reply in this sample', () => {
+    loadHTML('../samples/Home-Timeline-With-Replies-With-Suspect-Reply.html');
+
+    const results = findMatchingArticles(document);
+    expect(results.logMessages).toEqual([[{
+        "depth": 10,
+        "innerHTML": "Replying to @jeffreyatucker",
+    }], [{
+        "depth": 6,
+        "innerHTML": "Replying to <a>@cgallaty</a>",
+    }]]);
+    expect(results.matchingArticles.length).toBe(1);
+
+    document.documentElement.innerHTML = '';
+});
+
 test('We find no unlinked reply to handles in this sample', () => {
     loadHTML('../samples/Home-Timeline-With-Replies.html');
 
     const results = findMatchingArticles(document);
     expect(results.matchingArticles.length).toBe(0);
+
+    document.documentElement.innerHTML = '';
+});
+
+test("We identify Owen's repost of now missing post", () => {
+    loadHTML('../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
+
+    const results = findMatchingArticles(document);
+    expect(results.logMessages).toEqual([
+        "Found notice: this post is unavailable",
+        "Found notice: this post is unavailable",
+        [{
+            "depth": 6,
+            "innerHTML": "Replying to <a>@godswayfoundinc</a> and <a>@monetization_x</a>",
+        },], [{
+            "depth": 6,
+            "innerHTML": "Replying to <a>@monetization_x</a>",
+        },],]);
+    expect(results.matchingArticles.length).toBe(1);
 
     document.documentElement.innerHTML = '';
 });
@@ -181,7 +222,10 @@ test('We can identify post no longer available', () => {
     loadHTML('../samples/Post-No-Longer-Available.html');
 
     const results = findMatchingArticles(document);
-    expect(results.logMessages).toEqual([]);
+    expect(results.logMessages).toEqual([
+        "Found notice: this post is unavailable",
+        "Found notice: this post is unavailable",
+    ]);
     expect(results.matchingArticles.length).toBe(1);
 
     document.documentElement.innerHTML = '';
@@ -210,7 +254,11 @@ test('We skip this embedded example', () => {
     loadHTML('../samples/Replying-To-Embedded-Example.html');
 
     const results = findMatchingArticles(document);
-    expect(results.logMessages).toEqual([]);
+    expect(results.logMessages).toEqual([[
+        {
+            "depth": 10,
+            "innerHTML": "Replying to @ai_daytrading",
+        },],]);
     expect(results.matchingArticles.length).toBe(0);
 
     document.documentElement.innerHTML = '';
@@ -247,8 +295,15 @@ test('We can identify this example of post no longer available', () => {
     loadHTML('../samples/Search-Including-Post-No-Longer-Available.html');
 
     const results = findMatchingArticles(document);
-    expect(results.logMessages).toEqual([]);
-    expect(results.matchingArticles.length).toBe(1);
+    expect(results.logMessages).toEqual([[
+        {
+            "depth": 6,
+            "innerHTML": "Replying to <a>@GuntherEagleman</a>and<a>@LeaderJohnThune</a>",
+        },],
+        "Found notice: this post is unavailable",
+        "Found notice: this post is unavailable",
+    ]);
+    expect(results.matchingArticles.length).toBe(3);
 
     document.documentElement.innerHTML = '';
 });
@@ -267,8 +322,15 @@ test('We recognized unlinked reply to handles', () => {
 test('We recognize an unable to view post', () => {
     loadHTML('../samples/You-Cant-View-This-Post.html');
 
+    const articles = document.querySelectorAll('article');
+    expect(articles.length).toBe(3);
+
     const results = findMatchingArticles(document);
-    expect(results.matchingArticles.length).toBe(1);
+    expect(results.logMessages).toEqual([
+        "Found notice: you're unable to view this post",
+        "Found notice: you're unable to view this post",
+    ]);
+    expect(results.matchingArticles.length).toBe(2);
 
     document.documentElement.innerHTML = '';
 });
