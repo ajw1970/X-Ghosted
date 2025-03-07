@@ -1,15 +1,104 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.4
+// @version      0.5
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=x.com
 // @grant        GM_log
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
+
+    // Injected from src/utils/articleContainsSystemNotice.js
+    function articleContainsSystemNotice(article) {
+        // X notices to look for 
+        // We want straight apostrophes here 
+        // we replace curly with straight in normalizedTextContent()
+        const targetNotices = [
+            "unavailable",
+            "content warning",
+            "this post is unavailable",
+            "this post violated the x rules",
+            "this post was deleted by the post author",
+            "this post is from an account that no longer exists",
+            "this post may violate x's rules against hateful conduct",
+            "this media has been disabled in response to a report by the copyright owner",
+            "you're unable to view this post"
+        ];
+
+        // Helper function for span.textContent
+        function normalizedTextContent(textContent) {
+            return textContent
+                .replace(/[‘’]/g, "'") // Replace curly single with straight
+                .toLowerCase();
+        }
+
+        // Check spans and return first matching notice or empty string
+        const spans = Array.from(article.querySelectorAll('span'));
+        for (const span of spans) {
+            const textContent = normalizedTextContent(span.textContent);
+            for (const notice of targetNotices) {
+                if (textContent.startsWith(notice)) {
+                    return notice;
+                }
+            }
+        }
+        return "";
+    }
+
+    // Injected from src/utils/articleLinksToTargetCommunities.js
+    function articleLinksToTargetCommunities(article) {
+        const communityIds = [
+            "1886523857676460463"
+        ];
+
+        // Check if any anchor's href ends with a target community ID
+        const aTags = Array.from(article.querySelectorAll('a'));
+        for (const aTag of aTags) {
+            for (const id of communityIds) {
+                if (aTag.href.endsWith(`/i/communities/${id}`)) {
+                    return id;
+                }
+            }
+        }
+        return "";
+    }
+
+    // Injected from src/utils/findReplyingToWithDepth.js  
+    function findReplyingToWithDepth(article) {
+        const result = [];
+
+        function getInnerHTMLWithoutAttributes(element) {
+            // Clone the element to avoid modifying the original
+            const clone = element.cloneNode(true);
+            // Get all elements with any attributes
+            clone.querySelectorAll('*').forEach(el => {
+                // Remove all attributes
+                while (el.attributes.length > 0) {
+                    el.removeAttribute(el.attributes[0].name);
+                }
+            });
+            return clone.innerHTML;
+        }
+
+        function findDivs(element, depth) {
+            if (element.tagName === 'DIV' && element.innerHTML.startsWith('Replying to')) {
+                result.push({
+                    depth,
+                    innerHTML: getInnerHTMLWithoutAttributes(element)
+                        .replace(/<\/?(div|span)>/gi, '')   // Remove div and span tags
+                });
+            }
+
+            Array.from(element.children).forEach(child => findDivs(child, depth + 1));
+        }
+
+        findDivs(article, 0);
+        return result;
+    }
 
     // Configuration object for easier maintenance
     const CONFIG = {
@@ -18,17 +107,6 @@
             border: '2px solid yellow'
         },
         CHECK_INTERVAL: 100, // milliseconds
-        MAX_REPLYING_INDEX: 99 // Maximum elements to check for 'replying to'
-    };
-
-    // Utility functions
-    const Checkers = {
-        // These need to be lowercase because that's what we check them against
-        isReplyingTo: text => text.startsWith('replying to'),
-        isUnavailable: text => text === 'this post is unavailable.',
-        isSuspended: text => text.startsWith('this post is from a suspended account.'),
-        wasDeleted: text => text.startsWith('this post was deleted by the post author.'),
-        unableToView: text => text.startsWith('you’re unable to view this post')
     };
 
     // Cache for processed articles to prevent redundant processing
@@ -86,18 +164,16 @@
             // Skip already processed articles
             if (processedArticles.has(article)) continue;
 
-            const elements = article.querySelectorAll('div, span');
             let shouldHighlight = false;
 
-            for (let i = 0; i < elements.length && !shouldHighlight; i++) {
-                const content = elements[i].textContent.trim().toLowerCase();
-
-                if (Checkers.isUnavailable(content) ||
-                    Checkers.isSuspended(content) ||
-                    Checkers.wasDeleted(content) ||
-                    Checkers.unableToView(content) ||
-                    (isRepliesPage && i < CONFIG.MAX_REPLYING_INDEX && Checkers.isReplyingTo(content))) {
-                    shouldHighlight = true;
+            if (articleContainsSystemNotice(article) || articleLinksToTargetCommunities(article)) {
+                shouldHighlight = true;
+            } else {
+                const replyingToDepths = findReplyingToWithDepth(article);
+                if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
+                    if (replyingToDepths.some(object => object.depth < 10)) {
+                        shouldHighlight = true;
+                    }
                 }
             }
 
@@ -106,6 +182,7 @@
 
                 //Get hrref to this artcile so that we can replace the button if needed
                 const href = article.querySelector('.css-146c3p1.r-1loqt21 time').parentElement.getAttribute('href');
+                
                 replaceMenuButton(article, 'https:\\\\x.com' + href);
                 //GM_log('highlighted post href=' + href);
 
