@@ -1,10 +1,19 @@
 const findMatchingArticles = require('./findMatchingArticles');
 
-test('We recognize posts to suspect community', () => {
-    loadHTML('../samples/CommunityPost.html');
+test('This community post is uses deleted community id', () => {
+    loadHTML('../samples/CommunityPost-TargetCommunity.html');
 
     const results = findMatchingArticles(document);
     expect(results.matchingArticles.length).toBe(1);
+
+    document.documentElement.innerHTML = '';
+});
+
+test('This community post is ok', () => {
+    loadHTML('../samples/CommunityPost.html');
+
+    const results = findMatchingArticles(document);
+    expect(results.matchingArticles.length).toBe(0);
 
     document.documentElement.innerHTML = '';
 });
