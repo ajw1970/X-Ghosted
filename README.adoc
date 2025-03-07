@@ -6,37 +6,50 @@ Working on a tool to make it easier to find "Hanging Chads" in replies to delete
 == Examples
 
 === Quoted Post Now Unavailable
-image::img/post-unavailable.png[Quoted Post Unavailable]
+image::img/post-unavailable-Resized.png[Quoted Post Unavailable]
 
 === Replied to Post Before Author Deleted 
-image::img/replied-to-now-deleted-post.png[Replied to Post Before Author Deleted]
+image::img/replied-to-now-deleted-post-Resized.png[Replied to Post Before Author Deleted]
 
 === Reply Deleted by Author After You Replied
 
-image::img/post-deleted-by-author.png[Replied to Reply Before Author Deleted]
+image::img/post-deleted-by-author-Resized.png[Replied to Reply Before Author Deleted]
+
 
 == This is for use within the https://www.tampermonkey.net[Tampermonkey] browser extension.
 
 [link=https://www.tampermonkey.net]
-image::img/tampermonkey-web.png[Tampermonkey.net screenshot]
+image::img/tampermonkey-web-Resized.png[Tampermonkey.net screenshot]
 
-=== Video for using Tampermonkey
+=== Article from Kacey Green on how to get started
+
+[link=https://x.com/GCustom/status/1897906587299135563]
+image::img/GCustom-Article-Resized.png[Recently published step-by-step guide]
+https://x.com/GCustom/status/1897906587299135563[Kacey Green's article]
+
+=== 3-Part Video and Tutorial on how to get started
+
+[link=https://x.com/ApostleJohnW/status/1895431408379683094]
+image::img/Video-Article-Resized.png[Getting Started with 3 Videos]
+https://x.com/ApostleJohnW/status/1895431408379683094[My introduction article]
+
+=== YouTube Video for using Tampermonkey
 
 [link=https://youtu.be/7LWOBkKhbGk?si=B8OXS99yR7Ln939V]
-image::img/tampermonkey-video.png[Tampermonkey Video Tutorial]
+image::img/tampermonkey-video-Resized.png[Tampermonkey Video Tutorial]
 https://youtu.be/7LWOBkKhbGk?si=B8OXS99yR7Ln939V[Link to YouTube Tutorial]
 
 == Message from Monetization Coach on 𝕏
 
 [link=https://x.com/monetization_x/status/1858506676208382325]
-image::img/message-from-coach.png[Monetization Coach to the rescue]
-https://x.com/monetization_x/status/1858506676208382325[Link to post]
+image::img/message-from-coach-Resized.png[Monetization Coach to the rescue]
+https://x.com/monetization_x/status/1858506676208382325[Link to Monetization Coach's post]
 
 == Join the 𝕏 Community to get updates
 
 [link=https://x.com/i/communities/1891057939835666756]
-image::img/community-banner.png[Ghostbanned on X community banner]
-https://x.com/i/communities/1891057939835666756[Link to community]
+image::img/Community-Screenshot-Resized.png[Ghostbanned on X Community Screenshot]
+https://x.com/i/communities/1891057939835666756[Link to Ghostbanned on X Community]
 
 == Definitions from Grok 2
 
