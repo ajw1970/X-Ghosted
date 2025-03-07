@@ -1,10 +1,19 @@
 const findMatchingArticles = require('./findMatchingArticles');
 
-test('We recognize posts to suspect community', () => {
-    loadHTML('../samples/CommunityPost.html');
+test('This community post is uses deleted community id', () => {
+    loadHTML('../samples/CommunityPost-TargetCommunity.html');
 
     const results = findMatchingArticles(document);
     expect(results.matchingArticles.length).toBe(1);
+
+    document.documentElement.innerHTML = '';
+});
+
+test('This community post is ok', () => {
+    loadHTML('../samples/CommunityPost.html');
+
+    const results = findMatchingArticles(document);
+    expect(results.matchingArticles.length).toBe(0);
 
     document.documentElement.innerHTML = '';
 });
@@ -315,6 +324,16 @@ test('We recognized unlinked reply to handles', () => {
 
     const results = findMatchingArticles(document);
     expect(results.matchingArticles.length).toBe(4);
+
+    document.documentElement.innerHTML = '';
+});
+
+test('This should not be identified as a problem post', () => {
+    loadHTML('../samples/This-Quote-Repost-Into-Community-Should-Be-Fine.html');
+
+    const results = findMatchingArticles(document);
+    expect(results.logMessages).toEqual([]);
+    expect(results.matchingArticles.length).toBe(0);
 
     document.documentElement.innerHTML = '';
 });
