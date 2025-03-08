@@ -65,31 +65,41 @@ gulp.task('build-only', function() {
 // Combined build task with version bump
 gulp.task('build', gulp.series('bump-version', 'build-only'));
 
-// Watch task with loop prevention
+// Watch task with explicit watcher management to prevent loops
 gulp.task('watch', function() {
-    const files = [
+    const utilityFiles = [
         'src/utils/articleContainsSystemNotice.js',
         'src/utils/articleLinksToTargetCommunities.js',
         'src/utils/findReplyingToWithDepth.js'
     ];
     const templateFile = 'src/highlight-potential-problems-template.js';
+    const templatePath = resolve(templateFile);
     console.log('Starting watch task...');
-    console.log('Watching utility files:', files.map(f => resolve(f)));
-    console.log('Watching template file separately:', resolve(templateFile));
+    console.log('Utility files:', utilityFiles.map(f => resolve(f)));
+    console.log('Template file:', templatePath);
 
-    // Watch utility files for full build (including version bump)
-    const utilityWatcher = gulp.watch(files, { usePolling: true, interval: 1000 }, gulp.series('build'));
-    utilityWatcher.on('change', function(path) {
-        console.log(`Utility file ${path} was changed, running full build...`);
-    });
+    const watcher = gulp.watch([...utilityFiles, templateFile], { usePolling: true, interval: 1000 });
 
-    // Watch template file for build-only (no version bump)
-    const templateWatcher = gulp.watch(templateFile, { usePolling: true, interval: 1000 }, gulp.series('build-only'));
-    templateWatcher.on('change', function(path) {
-        console.log(`Template file ${path} was changed, running build-only...`);
+    function runBuild(path) {
+        console.log(`File ${path} was changed, running full build...`);
+        // Temporarily remove template from watcher to avoid catching our own write
+        watcher.unwatch(templateFile);
+        console.log(`Temporarily unwatched ${templateFile}`);
+
+        gulp.series('build')(() => {
+            console.log('Build cycle completed');
+            // Re-add template to watcher after build
+            watcher.add(templateFile);
+            console.log(`Re-added ${templateFile} to watcher`);
+        });
+    }
+
+    watcher.on('change', function(path) {
+        runBuild(path);
     });
 
     console.log('Watcher initialized');
+    return watcher; // Signal that this is an ongoing task
 });
 
 // Default task
