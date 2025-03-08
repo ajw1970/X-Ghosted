@@ -1,6 +1,6 @@
 {
   "name": "x-ghosted",
-  "version": "0.2.0",
+  "version": "0.5.2",
   "description": "= 𝕏 Ghostban Prevention or Cleanup",
   "main": "index.js",
   "scripts": {
@@ -26,10 +26,8 @@
   "directories": {
     "test": "test"
   },
-  "dependencies": {
-    "dateformat": "latest"
-  },
   "devDependencies": {
+    "dateformat": "4.0.0",
     "gulp": "^5.0.0",
     "gulp-bump": "^3.2.0",
     "gulp-concat": "^2.6.1",
@@ -38,12 +36,14 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "meow": "^13.2.0",
+    "patch-package": "^8.0.0",
+    "semver": "^7.7.1",
     "trim-newlines": "^3.0.1"
   },
   "overrides": {
     "gulp-bump": {
       "plugin-log": {
-        "dateformat": "^5.0.3"
+        "dateformat": "4.0.0"
       }
     },
     "meow": "^13.2.0",
