@@ -1,7 +1,7 @@
 {
-  "name": "X-Ghosted",
-  "version": "0.1.0",
-  "description": "= 𝕏 Ghostban Prevention or Cleanup\r :toc:",
+  "name": "x-ghosted",
+  "version": "0.2.0",
+  "description": "= 𝕏 Ghostban Prevention or Cleanup",
   "main": "index.js",
   "scripts": {
     "test": "jest --coverage"
@@ -17,21 +17,36 @@
     "url": "https://github.com/ajw1970/X-Ghosted/issues"
   },
   "homepage": "https://github.com/ajw1970/X-Ghosted#readme",
-  "devDependencies": {
-    "gulp-bump": "^3.2.0",
-    "gulp-prettier": "^6.0.0",
-    "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0"
-  },
   "jest": {
     "testEnvironment": "jsdom",
     "setupFiles": [
       "./test/setup.js"
     ]
   },
+  "directories": {
+    "test": "test"
+  },
   "dependencies": {
+    "dateformat": "latest"
+  },
+  "devDependencies": {
     "gulp": "^5.0.0",
+    "gulp-bump": "^3.2.0",
     "gulp-concat": "^2.6.1",
-    "gulp-replace": "^1.1.4"
+    "gulp-prettier": "^6.0.0",
+    "gulp-replace": "^1.1.4",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "meow": "^13.2.0",
+    "trim-newlines": "^3.0.1"
+  },
+  "overrides": {
+    "gulp-bump": {
+      "plugin-log": {
+        "dateformat": "^5.0.3"
+      }
+    },
+    "meow": "^13.2.0",
+    "trim-newlines": "^3.0.1"
   }
 }

@@ -4,7 +4,7 @@
         {
             "label": "Run Gulp",
             "type": "shell",
-            "command": "gulp",
+            "command": "bash -c 'source ~/.nvm/nvm.sh && nvm use 22.14.0 && npx gulp'",
             "problemMatcher": [],
             "options": {
                 "shell": {
