@@ -1,0 +1,20 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Gulp",
+            "type": "shell",
+            "command": "gulp",
+            "problemMatcher": [],
+            "options": {
+                "shell": {
+                    "executable": "wsl",
+                    "args": []
+                }
+            },
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
+        }
+    ]
+}

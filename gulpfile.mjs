@@ -1,8 +1,9 @@
-const gulp = require('gulp');
-const concat = require('gulp-concat');
-const replace = require('gulp-replace');
-const prettier = require('gulp-prettier').default;
-const fs = require('fs');
+import gulp from 'gulp';
+import concat from 'gulp-concat';
+import replace from 'gulp-replace';
+import prettier from 'gulp-prettier';
+import fs from 'fs';
+import bump from 'gulp-bump';
 
 // Function to read and clean utility file content
 function readAndCleanFile(filePath) {
@@ -15,6 +16,14 @@ const articleContainsSystemNotice = readAndCleanFile('src/utils/articleContainsS
 const articleLinksToTargetCommunities = readAndCleanFile('src/utils/articleLinksToTargetCommunities.js');
 const findReplyingToWithDepth = readAndCleanFile('src/utils/findReplyingToWithDepth.js');
 
+// Task to bump the version in the header of the template file
+gulp.task('bump-version', function() {
+    return gulp.src('src/highlight-potential-problems-template.js')
+        .pipe(bump({ key: 'version' }))
+        .pipe(gulp.dest('src'));
+});
+
+// Task to build the output file
 gulp.task('build', function() {
     return gulp.src('src/highlight-potential-problems-template.js')
         .pipe(replace('// INJECT: articleContainsSystemNotice', articleContainsSystemNotice))
@@ -24,3 +33,16 @@ gulp.task('build', function() {
         .pipe(prettier({ singleQuote: true, trailingComma: 'all' })) // Prettify the output
         .pipe(gulp.dest('src'));
 });
+
+// Watch task to monitor changes in specific files and trigger version bump and build
+gulp.task('watch', function() {
+    gulp.watch([
+        'src/highlight-potential-problems-template.js',
+        'src/utils/articleContainsSystemNotice.js',
+        'src/utils/articleLinksToTargetCommunities.js',
+        'src/utils/findReplyingToWithDepth.js'
+    ], gulp.series('bump-version', 'build'));
+});
+
+// Default task to run the watch task
+gulp.task('default', gulp.series('watch'));
