@@ -37,6 +37,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "meow": "^13.2.0",
     "patch-package": "^8.0.0",
+    "semver": "^7.7.1",
     "trim-newlines": "^3.0.1"
   },
   "overrides": {

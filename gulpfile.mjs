@@ -3,7 +3,7 @@ import concat from 'gulp-concat';
 import replace from 'gulp-replace';
 import prettier from 'gulp-prettier';
 import fs from 'fs';
-import bump from 'gulp-bump';
+import semver from 'semver';
 import { resolve } from 'path';
 
 // Function to read and clean utility file content
@@ -19,25 +19,22 @@ const findReplyingToWithDepth = readAndCleanFile('src/utils/findReplyingToWithDe
 
 // Task to bump version in package.json and sync with template
 gulp.task('bump-version', function(done) {
-    gulp.src('./package.json')
-        .pipe(bump({ type: 'patch' }))
-        .pipe(gulp.dest('./'))
+    console.log('Starting bump-version task...');
+    const pkgPath = './package.json';
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    pkg.version = semver.inc(pkg.version, 'patch');
+    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+    console.log(`Bumped package.json to ${pkg.version}`);
+
+    gulp.src('src/highlight-potential-problems-template.js')
+        .pipe(replace(
+            /\/\/\s*@version\s+\d+\.\d+\.\d+/,
+            `// @version      ${pkg.version}`
+        ))
+        .pipe(gulp.dest('src'))
         .on('end', () => {
-            // After package.json is updated, update the template
-            gulp.src('src/highlight-potential-problems-template.js')
-                .pipe(replace(
-                    /version:\s*['"]\d+\.\d+\.\d+['"]/,
-                    () => {
-                        const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-                        return `version: '${packageJson.version}'`;
-                    }
-                ))
-                .pipe(gulp.dest('src'))
-                .on('error', (err) => {
-                    console.error('Error in bump-version:', err);
-                    done(err);
-                })
-                .on('end', done); // Signal completion when the nested stream finishes
+            console.log(`Updated template to version ${pkg.version}`);
+            done();
         })
         .on('error', (err) => {
             console.error('Error in bump-version:', err);
@@ -46,17 +43,23 @@ gulp.task('bump-version', function(done) {
 });
 
 // Task to build the output file
-gulp.task('build', function() {
+gulp.task('build', gulp.series('bump-version', function() {
+    console.log('Starting build task...');
     return gulp.src('src/highlight-potential-problems-template.js')
         .pipe(replace('// INJECT: articleContainsSystemNotice', articleContainsSystemNotice))
         .pipe(replace('// INJECT: articleLinksToTargetCommunities', articleLinksToTargetCommunities))
         .pipe(replace('// INJECT: findReplyingToWithDepth', findReplyingToWithDepth))
         .pipe(concat('highlight-potential-problems.js'))
         .pipe(prettier({ singleQuote: true, trailingComma: 'all' }))
-        .pipe(gulp.dest('src'));
-});
+        .pipe(gulp.dest('src'))
+        .on('end', () => console.log('Build completed'))
+        .on('error', (err) => {
+            console.error('Error in build:', err);
+            throw err;
+        });
+}));
 
-// Watch task with debugging
+// Watch task
 gulp.task('watch', function() {
     const files = [
         'src/highlight-potential-problems-template.js',
@@ -66,18 +69,11 @@ gulp.task('watch', function() {
     ];
     console.log('Starting watch task...');
     console.log('Watching files:', files.map(f => resolve(f)));
-    const watcher = gulp.watch(files, { usePolling: true, interval: 1000 }, gulp.series('bump-version', 'build'));
-    watcher.on('change', function(path, stats) {
+    const watcher = gulp.watch(files, { usePolling: true, interval: 1000 }, gulp.series('build'));
+    watcher.on('change', function(path) {
         console.log(`File ${path} was changed, running tasks...`);
     });
-    watcher.on('add', function(path) {
-        console.log(`File ${path} was added`);
-    });
-    watcher.on('unlink', function(path) {
-        console.log(`File ${path} was deleted`);
-    });
     console.log('Watcher initialized');
-    return watcher;
 });
 
 // Default task
