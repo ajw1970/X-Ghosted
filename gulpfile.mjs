@@ -46,7 +46,7 @@ gulp.task('build', function() {
 
 // Watch task to monitor changes in specific files and trigger version bump and build
 gulp.task('watch', function() {
-    gulp.watch([
+    return gulp.watch([
         'src/highlight-potential-problems-template.js',
         'src/utils/articleContainsSystemNotice.js',
         'src/utils/articleLinksToTargetCommunities.js',
