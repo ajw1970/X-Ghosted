@@ -16,11 +16,21 @@ const articleContainsSystemNotice = readAndCleanFile('src/utils/articleContainsS
 const articleLinksToTargetCommunities = readAndCleanFile('src/utils/articleLinksToTargetCommunities.js');
 const findReplyingToWithDepth = readAndCleanFile('src/utils/findReplyingToWithDepth.js');
 
-// Task to bump the version in the header of the template file
+// Task to bump version in package.json and sync with template
 gulp.task('bump-version', function() {
-    return gulp.src('src/highlight-potential-problems-template.js')
-        .pipe(bump({ key: 'version' }))
-        .pipe(gulp.dest('src'));
+    return gulp.src('./package.json')
+        .pipe(bump({ type: 'patch' })) // You can change to 'minor' or 'major' as needed
+        .pipe(gulp.dest('./'))
+        .pipe(gulp.src('src/highlight-potential-problems-template.js')
+            .pipe(replace(
+                /version:\s*['"]\d+\.\d+\.\d+['"]/,
+                () => {
+                    const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+                    return `version: '${packageJson.version}'`;
+                }
+            ))
+            .pipe(gulp.dest('src'))
+        );
 });
 
 // Task to build the output file
@@ -30,7 +40,7 @@ gulp.task('build', function() {
         .pipe(replace('// INJECT: articleLinksToTargetCommunities', articleLinksToTargetCommunities))
         .pipe(replace('// INJECT: findReplyingToWithDepth', findReplyingToWithDepth))
         .pipe(concat('highlight-potential-problems.js'))
-        .pipe(prettier({ singleQuote: true, trailingComma: 'all' })) // Prettify the output
+        .pipe(prettier({ singleQuote: true, trailingComma: 'all' }))
         .pipe(gulp.dest('src'));
 });
 
