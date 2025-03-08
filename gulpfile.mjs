@@ -4,6 +4,7 @@ import replace from 'gulp-replace';
 import prettier from 'gulp-prettier';
 import fs from 'fs';
 import bump from 'gulp-bump';
+import { resolve } from 'path';  // Add this import
 
 // Function to read and clean utility file content
 function readAndCleanFile(filePath) {
@@ -46,12 +47,15 @@ gulp.task('build', function() {
 
 // Watch task to monitor changes in specific files and trigger version bump and build
 gulp.task('watch', function() {
-    return gulp.watch([
+    const files = [
         'src/highlight-potential-problems-template.js',
         'src/utils/articleContainsSystemNotice.js',
         'src/utils/articleLinksToTargetCommunities.js',
         'src/utils/findReplyingToWithDepth.js'
-    ], gulp.series('bump-version', 'build'));
+    ];
+    // Use ES Module path resolution instead of require
+    console.log('Watching files:', files.map(f => resolve(f)));
+    return gulp.watch(files, gulp.series('bump-version', 'build'));
 });
 
 // Default task to run the watch task
