@@ -183,21 +183,24 @@
     sidePanel.style.top = '10px';
     sidePanel.style.right = '10px';
     sidePanel.style.width = '400px';
-    sidePanel.style.maxHeight = '80vh';
-    sidePanel.style.overflow = 'auto';
+    sidePanel.style.maxHeight = '80vh'; // Total height of the panel
     sidePanel.style.zIndex = '9999';
     sidePanel.style.padding = '10px';
     sidePanel.style.borderRadius = '8px';
+    sidePanel.style.background = isDarkMode ? '#333' : '#fff'; // Initial background
+    sidePanel.style.color = isDarkMode ? '#fff' : '#333'; // Initial text color
 
     const toolbar = document.createElement('div');
     toolbar.style.display = 'flex';
-    toolbar.style.alignItems = 'center'; // Align items vertically
-    toolbar.style.justifyContent = 'space-between'; // Space between label and buttons
+    toolbar.style.alignItems = 'center';
+    toolbar.style.justifyContent = 'space-between';
     toolbar.style.marginBottom = '10px';
+    toolbar.style.padding = '5px 0'; // Add some padding for better spacing
+    toolbar.style.borderBottom = '1px solid ' + (isDarkMode ? '#555' : '#ccc'); // Separator
 
     label = document.createElement('span');
     label.textContent = 'Potential Problems (0):';
-    label.style.marginRight = 'auto'; // Pushes label to the left
+    label.style.marginRight = 'auto';
 
     darkLightButton = document.createElement('button');
     darkLightButton.textContent = 'Light Mode';
@@ -207,7 +210,7 @@
     darkLightButton.style.padding = '5px 10px';
     darkLightButton.style.cursor = 'pointer';
     darkLightButton.style.borderRadius = '4px';
-    darkLightButton.style.marginRight = '5px'; // Small gap between Light Mode and Hide
+    darkLightButton.style.marginRight = '5px';
     darkLightButton.addEventListener('click', () => {
       isDarkMode = !isDarkMode;
       darkLightButton.textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
@@ -229,14 +232,14 @@
         darkLightButton.style.display = 'inline-block';
         contentWrapper.style.display = 'block';
         toggleButton.textContent = 'Hide';
-        sidePanel.style.width = '400px'; // Restore original width
+        sidePanel.style.width = '400px';
       } else {
         label.style.display = 'none';
         darkLightButton.style.display = 'none';
         contentWrapper.style.display = 'none';
         toggleButton.textContent = 'Show';
-        sidePanel.style.width = 'auto'; // Collapse to fit Show button
-        toggleButton.style.margin = '0'; // Ensure button stays right-aligned
+        sidePanel.style.width = 'auto';
+        toggleButton.style.margin = '0';
       }
       GM_log(
         'Panel visibility toggled to: ' +
@@ -249,6 +252,9 @@
     toolbar.appendChild(toggleButton);
 
     contentWrapper = document.createElement('div');
+    contentWrapper.style.maxHeight = 'calc(80vh - 60px)'; // Adjust height to account for toolbar
+    contentWrapper.style.overflowY = 'auto'; // Enable vertical scrolling
+    contentWrapper.style.paddingTop = '5px'; // Add some padding for better look
 
     sidePanel.appendChild(toolbar);
     sidePanel.appendChild(contentWrapper);
@@ -260,6 +266,7 @@
     GM_log('Panel created with new layout');
   }
 
+  // Update the panel with the current list of problematic links
   // Update the panel with the current list of problematic links
   function updatePanel() {
     label.textContent = `Potential Problems (${problemLinks.size}):`;
@@ -275,6 +282,8 @@
       a.style.marginBottom = '5px';
       contentWrapper.appendChild(a);
     });
+    // Scroll to the bottom after adding new content
+    contentWrapper.scrollTop = contentWrapper.scrollHeight;
   }
 
   // Update the panel's theme based on dark/light mode
