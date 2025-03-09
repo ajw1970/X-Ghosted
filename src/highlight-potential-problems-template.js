@@ -179,6 +179,7 @@
             const a = document.createElement('a');
             a.href = 'https://x.com' + href;
             a.textContent = 'https://x.com' + href;
+            a.target = '_blank'; // Open in a new tab
             a.style.display = 'block';
             a.style.color = isDarkMode ? '#1da1f2' : '#0066cc';
             a.style.textDecoration = 'none';
