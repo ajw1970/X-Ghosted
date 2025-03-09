@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.5.3
+// @version      0.5.4
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=x.com
 // @grant        GM_log
+// @run-at       document-idle
 // ==/UserScript==
 
 (function () {
@@ -21,110 +22,113 @@
     // Injected from src/utils/findReplyingToWithDepth.js
     // INJECT: findReplyingToWithDepth
 
-    // Configuration object for easier maintenance
     const CONFIG = {
         HIGHLIGHT_STYLE: {
             backgroundColor: 'rgba(255, 255, 0, 0.3)',
             border: '2px solid yellow'
         },
-        CHECK_INTERVAL: 100, // milliseconds
+        CHECK_INTERVAL: 100,
     };
 
-    // Cache for processed articles to prevent redundant processing
     const processedArticles = new WeakSet();
-
-    // Set to store unique problematic links for the panel
     const problemLinks = new Set();
-
-    // Flags for panel state (dark mode is default)
     let isDarkMode = true;
     let isPanelVisible = true;
+    let sidePanel, label, darkLightButton, toggleButton, contentWrapper, styleSheet, toolbar;
 
-    // References to panel elements
-    let sidePanel, label, darkLightButton, toggleButton, contentWrapper;
+    function log(message) {
+        // GM_log\(`[${new Date().toISOString()}] ${message}`);
+    }
 
-    // Check if we're on a profile's replies page
     function isProfileRepliesPage() {
         const url = window.location.href;
+        log(`Checking URL: ${url}`);
         return url.startsWith('https://x.com/') && url.endsWith('/with_replies');
     }
 
-    // Apply highlight styles to an article
     function applyHighlight(article) {
         Object.assign(article.style, CONFIG.HIGHLIGHT_STYLE);
+        log('Highlighted article');
     }
 
-    // Remove highlight styles from an article
     function removeHighlight(article) {
         article.style.backgroundColor = '';
         article.style.border = '';
     }
 
-    // Function to replace the menu button
     function replaceMenuButton(article, href) {
-        // Find all menu buttons with data-testid="caret"
         const button = article.querySelector('button[aria-label="Share post"]');
-
         if (button) {
-            // Create new link element
             const newLink = document.createElement('a');
-
-            // Customize these attributes as needed
-            newLink.href = 'https://x.com' + href; // Corrected to absolute URL
-            newLink.textContent = '👀';           // Replace with your desired link text
-            newLink.target = '_blank';            // Opens in new tab
-            newLink.rel = 'noopener noreferrer';  // Security best practice
-
-            // Optional: Add some styling
-            newLink.style.color = 'rgb(29, 155, 240)'; // Twitter blue
+            newLink.href = 'https://x.com' + href;
+            newLink.textContent = '👀';
+            newLink.target = '_blank';
+            newLink.rel = 'noopener noreferrer';
+            newLink.style.color = 'rgb(29, 155, 240)';
             newLink.style.textDecoration = 'none';
             newLink.style.padding = '8px';
-
-            // Get the parent container
             const parentContainer = button.parentElement;
-
-            // Replace the button with the link
             parentContainer.replaceChild(newLink, button);
+            log(`Replaced menu button with href: ${href}`);
+        } else {
+            log('No share button found in article');
         }
     }
 
-    // Create the side panel for displaying problematic links
     function createPanel() {
-        GM_log('Creating panel with new layout...');
-
+        log('Creating panel...');
         sidePanel = document.createElement('div');
-        sidePanel.style.position = 'fixed';
-        sidePanel.style.top = '10px';
-        sidePanel.style.right = '10px';
-        sidePanel.style.width = '400px';
-        sidePanel.style.maxHeight = '80vh'; // Total height of the panel
-        sidePanel.style.zIndex = '9999';
-        sidePanel.style.padding = '10px';
-        sidePanel.style.borderRadius = '8px';
-        sidePanel.style.background = isDarkMode ? '#333' : '#fff'; // Initial background
-        sidePanel.style.color = isDarkMode ? '#fff' : '#333'; // Initial text color
+        Object.assign(sidePanel.style, {
+            position: 'fixed',
+            top: '60px',
+            right: '10px',
+            width: '350px',
+            maxHeight: 'calc(100vh - 70px)',
+            zIndex: '9999',
+            background: isDarkMode ? '#15202B' : '#FFFFFF',
+            color: isDarkMode ? '#FFFFFF' : '#0F1419',
+            border: isDarkMode ? '1px solid #38444D' : '1px solid #E1E8ED',
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+            padding: '12px',
+            transition: 'all 0.2s ease'
+        });
 
-        const toolbar = document.createElement('div');
-        toolbar.style.display = 'flex';
-        toolbar.style.alignItems = 'center';
-        toolbar.style.justifyContent = 'space-between';
-        toolbar.style.marginBottom = '10px';
-        toolbar.style.padding = '5px 0'; // Add some padding for better spacing
-        toolbar.style.borderBottom = '1px solid ' + (isDarkMode ? '#555' : '#ccc'); // Separator
+        toolbar = document.createElement('div');
+        Object.assign(toolbar.style, {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingBottom: '8px',
+            borderBottom: isDarkMode ? '1px solid #38444D' : '1px solid #E1E8ED',
+            marginBottom: '12px'
+        });
 
         label = document.createElement('span');
         label.textContent = 'Potential Problems (0):';
-        label.style.marginRight = 'auto';
+        Object.assign(label.style, {
+            fontSize: '15px',
+            fontWeight: '700',
+            color: isDarkMode ? '#FFFFFF' : '#0F1419'
+        });
 
         darkLightButton = document.createElement('button');
         darkLightButton.textContent = 'Light Mode';
-        darkLightButton.style.background = '#1da1f2';
-        darkLightButton.style.color = '#fff';
-        darkLightButton.style.border = 'none';
-        darkLightButton.style.padding = '5px 10px';
-        darkLightButton.style.cursor = 'pointer';
-        darkLightButton.style.borderRadius = '4px';
-        darkLightButton.style.marginRight = '5px';
+        Object.assign(darkLightButton.style, {
+            background: '#1DA1F2',
+            color: '#FFFFFF',
+            border: 'none',
+            padding: '6px 12px',
+            borderRadius: '9999px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '500',
+            marginRight: '8px',
+            transition: 'background 0.2s ease'
+        });
+        darkLightButton.addEventListener('mouseover', () => { darkLightButton.style.background = '#1A91DA'; });
+        darkLightButton.addEventListener('mouseout', () => { darkLightButton.style.background = '#1DA1F2'; });
         darkLightButton.addEventListener('click', () => {
             isDarkMode = !isDarkMode;
             darkLightButton.textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
@@ -133,12 +137,19 @@
 
         toggleButton = document.createElement('button');
         toggleButton.textContent = 'Hide';
-        toggleButton.style.background = '#1da1f2';
-        toggleButton.style.color = '#fff';
-        toggleButton.style.border = 'none';
-        toggleButton.style.padding = '5px 10px';
-        toggleButton.style.cursor = 'pointer';
-        toggleButton.style.borderRadius = '4px';
+        Object.assign(toggleButton.style, {
+            background: '#1DA1F2',
+            color: '#FFFFFF',
+            border: 'none',
+            padding: '6px 12px',
+            borderRadius: '9999px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '500',
+            transition: 'background 0.2s ease'
+        });
+        toggleButton.addEventListener('mouseover', () => { toggleButton.style.background = '#1A91DA'; });
+        toggleButton.addEventListener('mouseout', () => { toggleButton.style.background = '#1DA1F2'; });
         toggleButton.addEventListener('click', () => {
             isPanelVisible = !isPanelVisible;
             if (isPanelVisible) {
@@ -146,7 +157,7 @@
                 darkLightButton.style.display = 'inline-block';
                 contentWrapper.style.display = 'block';
                 toggleButton.textContent = 'Hide';
-                sidePanel.style.width = '400px';
+                sidePanel.style.width = '350px';
             } else {
                 label.style.display = 'none';
                 darkLightButton.style.display = 'none';
@@ -155,7 +166,7 @@
                 sidePanel.style.width = 'auto';
                 toggleButton.style.margin = '0';
             }
-            GM_log('Panel visibility toggled to: ' + (isPanelVisible ? 'visible' : 'hidden'));
+            log('Panel visibility toggled to: ' + (isPanelVisible ? 'visible' : 'hidden'));
         });
 
         toolbar.appendChild(label);
@@ -163,94 +174,151 @@
         toolbar.appendChild(toggleButton);
 
         contentWrapper = document.createElement('div');
-        contentWrapper.style.maxHeight = 'calc(80vh - 60px)'; // Adjust height to account for toolbar
-        contentWrapper.style.overflowY = 'auto'; // Enable vertical scrolling
-        contentWrapper.style.paddingTop = '5px'; // Add some padding for better look
+        contentWrapper.className = 'problem-links-wrapper';
+        Object.assign(contentWrapper.style, {
+            maxHeight: 'calc(100vh - 130px)',
+            overflowY: 'auto',
+            fontSize: '14px',
+            lineHeight: '1.4',
+            scrollbarWidth: 'thin',
+            scrollbarColor: isDarkMode ? '#38444D #15202B' : '#CCD6DD #FFFFFF'
+        });
 
         sidePanel.appendChild(toolbar);
         sidePanel.appendChild(contentWrapper);
         document.body.appendChild(sidePanel);
 
-        // Apply initial theme
-        updateTheme();
+        styleSheet = document.createElement('style');
+        styleSheet.textContent = `
+            .problem-links-wrapper::-webkit-scrollbar {
+                width: 6px;
+            }
+            .problem-links-wrapper::-webkit-scrollbar-thumb {
+                background: ${isDarkMode ? '#38444D' : '#CCD6DD'};
+                borderRadius: 3px;
+            }
+            .problem-links-wrapper::-webkit-scrollbar-track {
+                background: ${isDarkMode ? '#15202B' : '#FFFFFF'};
+            }
+        `;
+        document.head.appendChild(styleSheet);
 
-        GM_log('Panel created with new layout');
+        log('Panel created successfully');
+        try {
+            updateTheme();
+            log('Theme updated successfully');
+        } catch (e) {
+            log(`Error updating theme: ${e.message}`);
+        }
     }
 
-    // Update the panel with the current list of problematic links
-    // Update the panel with the current list of problematic links
     function updatePanel() {
+        if (!label) {
+            log('Label is undefined, cannot update panel');
+            return;
+        }
         label.textContent = `Potential Problems (${problemLinks.size}):`;
         contentWrapper.innerHTML = '';
         problemLinks.forEach(href => {
             const a = document.createElement('a');
             a.href = 'https://x.com' + href;
             a.textContent = 'https://x.com' + href;
-            a.target = '_blank'; // Open in a new tab
-            a.style.display = 'block';
-            a.style.color = isDarkMode ? '#1da1f2' : '#0066cc';
-            a.style.textDecoration = 'none';
-            a.style.marginBottom = '5px';
+            a.target = '_blank';
+            Object.assign(a.style, {
+                display: 'block',
+                color: '#1DA1F2',
+                textDecoration: 'none',
+                marginBottom: '5px'
+            });
             contentWrapper.appendChild(a);
         });
-        // Scroll to the bottom after adding new content
         contentWrapper.scrollTop = contentWrapper.scrollHeight;
     }
 
-    // Update the panel's theme based on dark/light mode
     function updateTheme() {
-        sidePanel.style.background = isDarkMode ? '#333' : '#fff';
-        sidePanel.style.color = isDarkMode ? '#fff' : '#333';
+        log('Updating theme...');
+        if (!sidePanel || !toolbar || !label || !contentWrapper || !styleSheet) {
+            log('One or more panel elements are undefined');
+            return;
+        }
+        sidePanel.style.background = isDarkMode ? '#15202B' : '#FFFFFF';
+        sidePanel.style.color = isDarkMode ? '#FFFFFF' : '#0F1419';
+        sidePanel.style.border = isDarkMode ? '1px solid #38444D' : '1px solid #E1E8ED';
+        toolbar.style.borderBottom = isDarkMode ? '1px solid #38444D' : '1px solid #E1E8ED';
+        label.style.color = isDarkMode ? '#FFFFFF' : '#0F1419';
+        contentWrapper.style.scrollbarColor = isDarkMode ? '#38444D #15202B' : '#CCD6DD #FFFFFF';
+        styleSheet.textContent = `
+            .problem-links-wrapper::-webkit-scrollbar {
+                width: 6px;
+            }
+            .problem-links-wrapper::-webkit-scrollbar-thumb {
+                background: ${isDarkMode ? '#38444D' : '#CCD6DD'};
+                borderRadius: 3px;
+            }
+            .problem-links-wrapper::-webkit-scrollbar-track {
+                background: ${isDarkMode ? '#15202B' : '#FFFFFF'};
+            }
+        `;
         const links = contentWrapper.querySelectorAll('a');
-        links.forEach(link => {
-            link.style.color = isDarkMode ? '#1da1f2' : '#0066cc';
-        });
+        links.forEach(link => { link.style.color = '#1DA1F2'; });
     }
 
-    // Main highlighting function
     function highlightPotentialProblems() {
         const isRepliesPage = isProfileRepliesPage();
         const articles = document.getElementsByTagName('article');
 
+        log(`Scanning ${articles.length} articles`);
+
         for (const article of articles) {
-            // Skip already processed articles
-            if (processedArticles.has(article)) continue;
+            if (processedArticles.has(article)) {
+                log('Skipping already processed article');
+                continue;
+            }
 
             let shouldHighlight = false;
 
-            if (articleContainsSystemNotice(article) || articleLinksToTargetCommunities(article)) {
-                shouldHighlight = true;
-            } else if (isRepliesPage) {
-                const replyingToDepths = findReplyingToWithDepth(article);
-                if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
-                    if (replyingToDepths.some(object => object.depth < 10)) {
-                        shouldHighlight = true;
+            try {
+                if (articleContainsSystemNotice(article) || articleLinksToTargetCommunities(article)) {
+                    shouldHighlight = true;
+                    log('Article flagged by notice or links');
+                } else if (isRepliesPage) {
+                    const replyingToDepths = findReplyingToWithDepth(article);
+                    if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
+                        if (replyingToDepths.some(object => object.depth < 10)) {
+                            shouldHighlight = true;
+                            log('Article flagged as reply with depth < 10');
+                        }
                     }
                 }
+            } catch (e) {
+                log(`Error in highlight conditions: ${e.message}`);
             }
 
             if (shouldHighlight) {
                 applyHighlight(article);
-
-                // Get href to this article so that we can replace the button and add to panel
                 const timeElement = article.querySelector('.css-146c3p1.r-1loqt21 time');
                 if (timeElement) {
                     const href = timeElement.parentElement.getAttribute('href');
                     if (href) {
                         problemLinks.add(href);
-                        replaceMenuButton(article, href); // Use relative href for the link
-                        // GM_log('highlighted post href=' + href);
+                        replaceMenuButton(article, href);
+                        log('Processed article with href: ' + href);
+                    } else {
+                        log('No href found for time element');
                     }
+                } else {
+                    log('No time element found in article');
                 }
-
                 processedArticles.add(article);
             }
         }
-        // Update the panel with the latest list of problematic links
-        updatePanel();
+        try {
+            updatePanel();
+        } catch (e) {
+            log(`Error updating panel: ${e.message}`);
+        }
     }
 
-    // Debounce function to limit execution frequency
     function debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -263,31 +331,44 @@
         };
     }
 
-    // Initialize observer and periodic checking
     function setupMonitoring() {
-        // Initial run
-        highlightPotentialProblems();
+        log('Setting up monitoring...');
 
-        // Debounced highlight function
+        function tryHighlighting(attempt = 1, maxAttempts = 5) {
+            log(`Attempt ${attempt} to highlight articles`);
+            highlightPotentialProblems();
+            const articles = document.getElementsByTagName('article');
+            if (articles.length === 0 && attempt < maxAttempts) {
+                log('No articles found, retrying...');
+                setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 1000);
+            } else {
+                log(`Found ${articles.length} articles, proceeding with monitoring`);
+            }
+        }
+
+        tryHighlighting();
+
         const debouncedHighlight = debounce(highlightPotentialProblems, CONFIG.CHECK_INTERVAL);
-
-        // MutationObserver for dynamic content
-        const observer = new MutationObserver(debouncedHighlight);
+        const observer = new MutationObserver((mutations) => {
+            log(`DOM changed (${mutations.length} mutations)`);
+            debouncedHighlight();
+        });
         observer.observe(document.body, {
             childList: true,
-            subtree: true
+            subtree: true,
+            attributes: true
         });
-
-        // Periodic check for missed updates
-        setInterval(debouncedHighlight, CONFIG.CHECK_INTERVAL * 2);
-
-        // Cleanup on page unload
-        window.addEventListener('unload', () => {
-            observer.disconnect();
-        });
+        setInterval(() => {
+            log('Periodic scan triggered');
+            debouncedHighlight();
+        }, CONFIG.CHECK_INTERVAL * 2);
     }
 
-    // Create the panel and start the script
-    createPanel();
-    setupMonitoring();
+    log('Script starting...');
+    try {
+        createPanel();
+        setupMonitoring();
+    } catch (e) {
+        log(`Error in script execution: ${e.message}`);
+    }
 })();
