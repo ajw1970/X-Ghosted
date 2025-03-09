@@ -1,12 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>X-Ghosted - GitHub Project</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
+        html,
         body {
-            font-family: Arial, sans-serif;
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: "Roboto", "Arial", sans-serif;
+            font-size: 1.1em;
             line-height: 1.6;
             max-width: 800px;
             margin: 0 auto;
@@ -14,17 +24,39 @@
             background-color: #f5f5f5;
             color: #333;
             transition: background-color 0.3s, color 0.3s;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
-        h1, h2 {
+
+        header {
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
             color: #2c3e50;
         }
+
+        h2 {
+            font-size: 1.8em;
+            color: #2c3e50;
+        }
+
         a {
             color: #2980b9;
             text-decoration: none;
         }
+
         a:hover {
             text-decoration: underline;
         }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
         .button {
             display: inline-block;
             padding: 10px 20px;
@@ -32,38 +64,74 @@
             color: white;
             border-radius: 5px;
             margin: 10px 0;
-            transition: background-color 0.3s, color 0.3s;
+            transition: background-color 0.3s, box-shadow 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
+
         .button:hover {
             background-color: #3498db;
             text-decoration: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
+
+        section {
+            margin-bottom: 40px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease-in forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        pre {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
         footer {
-            margin-top: 40px;
+            margin-top: auto;
             text-align: center;
             font-size: 0.9em;
             color: #7f8c8d;
         }
+
         .dark-mode {
-            background-color: #333;
-            color: #f5f5f5;
+            background-color: #2d2d2d;
+            color: #fff;
         }
-        .dark-mode h1, .dark-mode h2 {
+
+        .dark-mode h1,
+        .dark-mode h2 {
             color: #ecf0f1;
         }
+
         .dark-mode a {
             color: #3498db;
         }
+
         .dark-mode .button {
             background-color: #3498db;
             color: white;
         }
+
         .dark-mode .button:hover {
             background-color: #2980b9;
         }
+
         .dark-mode footer {
             color: #bdc3c7;
         }
+
+        .dark-mode pre {
+            background-color: #444;
+            color: #fff;
+        }
+
         .toggle-button {
             position: fixed;
             top: 10px;
@@ -76,54 +144,83 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
+
         .toggle-button:hover {
             background-color: #3498db;
         }
+
         .dark-mode .toggle-button {
             background-color: #3498db;
-            color: white;
+            border: 1px solid #3498db;
         }
+
         .dark-mode .toggle-button:hover {
             background-color: #2980b9;
         }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            h2 {
+                font-size: 1.5em;
+            }
+
+            .button {
+                display: block;
+                text-align: center;
+            }
+        }
     </style>
 </head>
+
 <body class="dark-mode">
     <button class="toggle-button" onclick="toggleDarkMode()">Toggle Dark Mode</button>
     <header>
         <h1>X-Ghosted</h1>
-        <image src="img/Ghostbanned Banner (2).jpg" alt="X-Ghosted Banner" width="400" height="200"></image>
-        <p>X-Ghosted is a Tampermonkey userscript designed to help X (Twitter) users identify and manage “hanging chads”—replies or interactions left dangling after the original post is deleted, edited, or the account is suspended. These lingering replies can potentially trigger X’s moderation algorithms to flag an account as low-quality or risky, leading to reduced visibility or ghostbanning (where posts are hidden from others without the user’s knowledge).</p>
+        <img src="img/Ghostbanned Banner (2).jpg" alt="X-Ghosted Banner">
+        <p>X-Ghosted is a Tampermonkey userscript designed to help X (Twitter) users identify and manage “hanging
+            chads”—replies or interactions left dangling after the original post is deleted, edited, or the account is
+            suspended. These lingering replies can potentially trigger X’s moderation algorithms to flag an account as
+            low-quality or risky, leading to reduced visibility or ghostbanning (where posts are hidden from others
+            without the user’s knowledge).</p>
     </header>
 
     <section>
-        <h2>Latest</h2>
+        <h2><i class="fas fa-newspaper"></i> Latest</h2>
         <p>Get the latest stable userscript for use in Tampermonkey:</p>
-        <a href="https://github.com/ajw1970/X-Ghosted/blob/stable/0.5.5/src/highlight-potential-problems.js" class="button">Latest Copy</a>
+        <a href="https://github.com/ajw1970/X-Ghosted/blob/stable/0.5.5/src/highlight-potential-problems.js"
+            class="button">Latest Copy</a>
         <p><small>Tip: This can be used to update your Tampermonkey browser plugin.</small></p>
     </section>
 
     <section>
-        <h2>Contribute & Provide Feedback</h2>
+        <h2><i class="fas fa-comment"></i> Contribute & Provide Feedback</h2>
         <p>Have a feature request or feedback? We’d love to hear from you! Submit it directly via GitHub Issues:</p>
         <a href="https://github.com/ajw1970/X-Ghosted/issues" class="button">Submit an Issue</a>
         <p><small>Tip: Please check existing issues before submitting a new one.</small></p>
     </section>
 
     <section>
-        <h2>Explore the Project</h2>
+        <h2><i class="fab fa-github"></i> Explore the Project</h2>
         <p>Check out the source code, documentation, and more on GitHub:</p>
         <a href="https://github.com/ajw1970/X-Ghosted" class="button">Visit GitHub Repository</a>
     </section>
 
     <section>
-        <h2>Get Started</h2>
+        <h2><i class="fas fa-rocket"></i> Get Started</h2>
         <p>Clone the repo and start exploring:</p>
         <pre><code>git clone https://github.com/ajw1970/X-Ghosted.git</code></pre>
     </section>
 
     <footer>
-        <p>Created by ajw1970 | Last updated: March 2025</p>
+        <p>Created by ajw1970 | Last updated: March 2025 | <a href="https://github.com/ajw1970"><i
+                    class="fab fa-github"></i> GitHub</a></p>
     </footer>
 
     <script>
@@ -132,4 +229,5 @@
         }
     </script>
 </body>
+
 </html>
