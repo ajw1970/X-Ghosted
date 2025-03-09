@@ -1,7 +1,10 @@
 = 𝕏 Ghostban Prevention or Cleanup
-:toc:
+:toc: preamble
 
-Working on a tool to make it easier to find "Hanging Chads" in replies to deleted posts or suspended accounts. The idea is to help find situations like these to avoid being ghostbanned or somtimes known as being shadowbanned on X.
+X-Ghosted is a Tampermonkey userscript designed to help X (Twitter) users identify and manage “hanging chads”—replies or interactions left dangling after the original post is deleted, edited, or the account is suspended. These lingering replies can potentially trigger X’s moderation algorithms to flag an account as low-quality or risky, leading to reduced visibility or ghostbanning (where posts are hidden from others without the user’s knowledge).
+
+Be sure to visit our https://ajw1970.github.io/X-Ghosted/[User Friendly Page]
+
 
 == Examples
 
