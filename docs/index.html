@@ -13,6 +13,7 @@
             padding: 20px;
             background-color: #f5f5f5;
             color: #333;
+            transition: background-color 0.3s, color 0.3s;
         }
         h1, h2 {
             color: #2c3e50;
@@ -31,6 +32,7 @@
             color: white;
             border-radius: 5px;
             margin: 10px 0;
+            transition: background-color 0.3s, color 0.3s;
         }
         .button:hover {
             background-color: #3498db;
@@ -42,9 +44,52 @@
             font-size: 0.9em;
             color: #7f8c8d;
         }
+        .dark-mode {
+            background-color: #333;
+            color: #f5f5f5;
+        }
+        .dark-mode h1, .dark-mode h2 {
+            color: #ecf0f1;
+        }
+        .dark-mode a {
+            color: #3498db;
+        }
+        .dark-mode .button {
+            background-color: #3498db;
+            color: white;
+        }
+        .dark-mode .button:hover {
+            background-color: #2980b9;
+        }
+        .dark-mode footer {
+            color: #bdc3c7;
+        }
+        .toggle-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 10px;
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .toggle-button:hover {
+            background-color: #3498db;
+        }
+        .dark-mode .toggle-button {
+            background-color: #3498db;
+            color: white;
+        }
+        .dark-mode .toggle-button:hover {
+            background-color: #2980b9;
+        }
     </style>
 </head>
-<body>
+<body class="dark-mode">
+    <button class="toggle-button" onclick="toggleDarkMode()">Toggle Dark Mode</button>
     <header>
         <h1>X-Ghosted</h1>
         <p>X-Ghosted is a userscript designed to help X (Twitter) users identify and manage “hanging chads”—replies or interactions left dangling after the original post is deleted, edited, or the account is suspended. These lingering replies can potentially trigger X’s moderation algorithms to flag an account as low-quality or risky, leading to reduced visibility or ghostbanning (where posts are hidden from others without the user’s knowledge).</p>
@@ -73,5 +118,11 @@
     <footer>
         <p>Created by ajw1970 | Last updated: March 2025</p>
     </footer>
+
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+        }
+    </script>
 </body>
 </html>
