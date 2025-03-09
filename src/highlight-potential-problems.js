@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.5.4
+// @version      0.5.5
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -122,14 +122,14 @@
   let isPanelVisible = true;
   let sidePanel,
     label,
-    darkLightButton,
+    modeSelector,
     toggleButton,
     contentWrapper,
     styleSheet,
     toolbar;
 
   function log(message) {
-    // GM_log\(`[${new Date().toISOString()}] ${message}`);
+    // GM_log(`[${new Date().toISOString()}] ${message}`);
   }
 
   function isProfileRepliesPage() {
@@ -167,8 +167,71 @@
     }
   }
 
+  function detectTheme() {
+    // First, check for data-theme attribute
+    const dataTheme = document.body.getAttribute('data-theme');
+    log(`Detected data-theme: ${dataTheme}`);
+    if (dataTheme) {
+      if (dataTheme.includes('lights-out') || dataTheme.includes('dark')) {
+        return 'dark';
+      } else if (dataTheme.includes('dim')) {
+        return 'dim';
+      } else if (dataTheme.includes('light') || dataTheme.includes('default')) {
+        return 'light';
+      }
+    }
+
+    // Fallback: Check body class
+    const bodyClasses = document.body.classList;
+    log(`Body classes: ${Array.from(bodyClasses).join(', ')}`);
+    if (
+      bodyClasses.contains('dark') ||
+      bodyClasses.contains('theme-dark') ||
+      bodyClasses.contains('theme-lights-out')
+    ) {
+      return 'dark';
+    } else if (
+      bodyClasses.contains('dim') ||
+      bodyClasses.contains('theme-dim')
+    ) {
+      return 'dim';
+    } else if (
+      bodyClasses.contains('light') ||
+      bodyClasses.contains('theme-light')
+    ) {
+      return 'light';
+    }
+
+    // Fallback: Check background color of the body
+    const bodyBgColor = window.getComputedStyle(document.body).backgroundColor;
+    log(`Body background color: ${bodyBgColor}`);
+    if (bodyBgColor === 'rgb(0, 0, 0)') {
+      // Lights Out / Dark
+      return 'dark';
+    } else if (bodyBgColor === 'rgb(21, 32, 43)') {
+      // Dim (#15202B)
+      return 'dim';
+    } else if (bodyBgColor === 'rgb(255, 255, 255)') {
+      // Light
+      return 'light';
+    }
+
+    // Default to Light if all detection fails
+    return 'light';
+  }
+
   function createPanel() {
     log('Creating panel...');
+
+    // Detect the user's active theme on X.com
+    let initialMode = detectTheme();
+    log(`Detected initial mode: ${initialMode}`);
+    if (initialMode === 'dark' || initialMode === 'dim') {
+      isDarkMode = true;
+    } else {
+      isDarkMode = false;
+    }
+
     sidePanel = document.createElement('div');
     Object.assign(sidePanel.style, {
       position: 'fixed',
@@ -177,9 +240,19 @@
       width: '350px',
       maxHeight: 'calc(100vh - 70px)',
       zIndex: '9999',
-      background: isDarkMode ? '#15202B' : '#FFFFFF',
-      color: isDarkMode ? '#FFFFFF' : '#0F1419',
-      border: isDarkMode ? '1px solid #38444D' : '1px solid #E1E8ED',
+      background:
+        initialMode === 'light'
+          ? '#FFFFFF'
+          : initialMode === 'dim'
+            ? '#15202B'
+            : '#000000',
+      color: initialMode === 'light' ? '#292F33' : '#D9D9D9',
+      border:
+        initialMode === 'light'
+          ? '1px solid #E1E8ED'
+          : initialMode === 'dim'
+            ? '1px solid #38444D'
+            : '1px solid #333333',
       borderRadius: '12px',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
       fontFamily:
@@ -194,7 +267,12 @@
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingBottom: '8px',
-      borderBottom: isDarkMode ? '1px solid #38444D' : '1px solid #E1E8ED',
+      borderBottom:
+        initialMode === 'light'
+          ? '1px solid #E1E8ED'
+          : initialMode === 'dim'
+            ? '1px solid #38444D'
+            : '1px solid #333333',
       marginBottom: '12px',
     });
 
@@ -203,40 +281,59 @@
     Object.assign(label.style, {
       fontSize: '15px',
       fontWeight: '700',
-      color: isDarkMode ? '#FFFFFF' : '#0F1419',
+      color: initialMode === 'light' ? '#292F33' : '#D9D9D9',
     });
 
-    darkLightButton = document.createElement('button');
-    darkLightButton.textContent = 'Light Mode';
-    Object.assign(darkLightButton.style, {
-      background: '#1DA1F2',
-      color: '#FFFFFF',
+    // Mode selector dropdown styled like the "Post" button
+    modeSelector = document.createElement('select');
+    Object.assign(modeSelector.style, {
+      background:
+        initialMode === 'light'
+          ? '#D3D3D3'
+          : initialMode === 'dim'
+            ? '#38444D'
+            : '#333333',
+      color: initialMode === 'light' ? '#292F33' : '#FFFFFF',
       border: 'none',
-      padding: '6px 12px',
+      padding: '6px 24px 6px 12px',
       borderRadius: '9999px',
       cursor: 'pointer',
       fontSize: '13px',
       fontWeight: '500',
       marginRight: '8px',
-      transition: 'background 0.2s ease',
+      minWidth: '80px',
+      appearance: 'none !important',
+      WebkitAppearance: 'none !important',
+      MozAppearance: 'none !important',
+      outline: 'none',
+      backgroundImage: 'none',
     });
-    darkLightButton.addEventListener('mouseover', () => {
-      darkLightButton.style.background = '#1A91DA';
-    });
-    darkLightButton.addEventListener('mouseout', () => {
-      darkLightButton.style.background = '#1DA1F2';
-    });
-    darkLightButton.addEventListener('click', () => {
-      isDarkMode = !isDarkMode;
-      darkLightButton.textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
+    modeSelector.innerHTML = `
+            <option value="dark">Dark</option>
+            <option value="dim">Dim</option>
+            <option value="light">Light</option>
+        `;
+    modeSelector.value = initialMode; // Set to detected mode
+    modeSelector.addEventListener('change', (e) => {
+      const mode = e.target.value;
+      if (mode === 'dim' || mode === 'dark') {
+        isDarkMode = true;
+      } else if (mode === 'light') {
+        isDarkMode = false;
+      }
       updateTheme();
     });
 
     toggleButton = document.createElement('button');
     toggleButton.textContent = 'Hide';
     Object.assign(toggleButton.style, {
-      background: '#1DA1F2',
-      color: '#FFFFFF',
+      background:
+        initialMode === 'light'
+          ? '#D3D3D3'
+          : initialMode === 'dim'
+            ? '#38444D'
+            : '#333333',
+      color: initialMode === 'light' ? '#292F33' : '#FFFFFF',
       border: 'none',
       padding: '6px 12px',
       borderRadius: '9999px',
@@ -246,22 +343,32 @@
       transition: 'background 0.2s ease',
     });
     toggleButton.addEventListener('mouseover', () => {
-      toggleButton.style.background = '#1A91DA';
+      toggleButton.style.background =
+        initialMode === 'light'
+          ? '#C0C0C0'
+          : initialMode === 'dim'
+            ? '#4A5C6D'
+            : '#444444';
     });
     toggleButton.addEventListener('mouseout', () => {
-      toggleButton.style.background = '#1DA1F2';
+      toggleButton.style.background =
+        initialMode === 'light'
+          ? '#D3D3D3'
+          : initialMode === 'dim'
+            ? '#38444D'
+            : '#333333';
     });
     toggleButton.addEventListener('click', () => {
       isPanelVisible = !isPanelVisible;
       if (isPanelVisible) {
         label.style.display = 'inline';
-        darkLightButton.style.display = 'inline-block';
+        modeSelector.style.display = 'inline-block';
         contentWrapper.style.display = 'block';
         toggleButton.textContent = 'Hide';
         sidePanel.style.width = '350px';
       } else {
         label.style.display = 'none';
-        darkLightButton.style.display = 'none';
+        modeSelector.style.display = 'none';
         contentWrapper.style.display = 'none';
         toggleButton.textContent = 'Show';
         sidePanel.style.width = 'auto';
@@ -274,7 +381,7 @@
     });
 
     toolbar.appendChild(label);
-    toolbar.appendChild(darkLightButton);
+    toolbar.appendChild(modeSelector);
     toolbar.appendChild(toggleButton);
 
     contentWrapper = document.createElement('div');
@@ -285,7 +392,12 @@
       fontSize: '14px',
       lineHeight: '1.4',
       scrollbarWidth: 'thin',
-      scrollbarColor: isDarkMode ? '#38444D #15202B' : '#CCD6DD #FFFFFF',
+      scrollbarColor:
+        initialMode === 'light'
+          ? '#CCD6DD #FFFFFF'
+          : initialMode === 'dim'
+            ? '#4A5C6D #15202B'
+            : '#666666 #000000',
     });
 
     sidePanel.appendChild(toolbar);
@@ -298,11 +410,28 @@
                 width: 6px;
             }
             .problem-links-wrapper::-webkit-scrollbar-thumb {
-                background: ${isDarkMode ? '#38444D' : '#CCD6DD'};
+                background: ${initialMode === 'light' ? '#CCD6DD' : initialMode === 'dim' ? '#4A5C6D' : '#666666'};
                 borderRadius: 3px;
             }
             .problem-links-wrapper::-webkit-scrollbar-track {
-                background: ${isDarkMode ? '#15202B' : '#FFFFFF'};
+                background: ${initialMode === 'light' ? '#FFFFFF' : initialMode === 'dim' ? '#15202B' : '#000000'};
+            }
+            select {
+                background-repeat: no-repeat;
+                background-position: right 8px center;
+            }
+            select.dark {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
+            }
+            select.dim {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
+            }
+            select.light {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23292F33\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
+            }
+            select:focus {
+                outline: none;
+                box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3);
             }
         `;
     document.head.appendChild(styleSheet);
@@ -341,34 +470,162 @@
 
   function updateTheme() {
     log('Updating theme...');
-    if (!sidePanel || !toolbar || !label || !contentWrapper || !styleSheet) {
+    if (
+      !sidePanel ||
+      !toolbar ||
+      !label ||
+      !contentWrapper ||
+      !styleSheet ||
+      !modeSelector
+    ) {
       log('One or more panel elements are undefined');
       return;
     }
-    sidePanel.style.background = isDarkMode ? '#15202B' : '#FFFFFF';
-    sidePanel.style.color = isDarkMode ? '#FFFFFF' : '#0F1419';
-    sidePanel.style.border = isDarkMode
-      ? '1px solid #38444D'
-      : '1px solid #E1E8ED';
-    toolbar.style.borderBottom = isDarkMode
-      ? '1px solid #38444D'
-      : '1px solid #E1E8ED';
-    label.style.color = isDarkMode ? '#FFFFFF' : '#0F1419';
-    contentWrapper.style.scrollbarColor = isDarkMode
-      ? '#38444D #15202B'
-      : '#CCD6DD #FFFFFF';
-    styleSheet.textContent = `
-            .problem-links-wrapper::-webkit-scrollbar {
-                width: 6px;
-            }
-            .problem-links-wrapper::-webkit-scrollbar-thumb {
-                background: ${isDarkMode ? '#38444D' : '#CCD6DD'};
-                borderRadius: 3px;
-            }
-            .problem-links-wrapper::-webkit-scrollbar-track {
-                background: ${isDarkMode ? '#15202B' : '#FFFFFF'};
-            }
-        `;
+
+    const mode = modeSelector.value;
+    if (mode === 'dark') {
+      sidePanel.style.background = '#000000';
+      sidePanel.style.color = '#D9D9D9';
+      sidePanel.style.border = '1px solid #333333';
+      toolbar.style.borderBottom = '1px solid #333333';
+      label.style.color = '#D9D9D9';
+      toggleButton.style.background = '#333333';
+      toggleButton.style.color = '#FFFFFF';
+      toggleButton.addEventListener('mouseover', () => {
+        toggleButton.style.background = '#444444';
+      });
+      toggleButton.addEventListener('mouseout', () => {
+        toggleButton.style.background = '#333333';
+      });
+      modeSelector.style.background = '#333333';
+      modeSelector.style.color = '#FFFFFF';
+      modeSelector.className = 'dark';
+      contentWrapper.style.scrollbarColor = '#666666 #000000';
+      styleSheet.textContent = `
+                .problem-links-wrapper::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .problem-links-wrapper::-webkit-scrollbar-thumb {
+                    background: #666666;
+                    borderRadius: 3px;
+                }
+                .problem-links-wrapper::-webkit-scrollbar-track {
+                    background: #000000;
+                }
+                select {
+                    background-repeat: no-repeat;
+                    background-position: right 8px center;
+                }
+                select.dark {
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
+                }
+                select.dim {
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
+                }
+                select.light {
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23292F33\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
+                }
+                select:focus {
+                    outline: none;
+                    box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3);
+                }
+            `;
+    } else if (mode === 'dim') {
+      sidePanel.style.background = '#15202B';
+      sidePanel.style.color = '#D9D9D9';
+      sidePanel.style.border = '1px solid #38444D';
+      toolbar.style.borderBottom = '1px solid #38444D';
+      label.style.color = '#D9D9D9';
+      toggleButton.style.background = '#38444D';
+      toggleButton.style.color = '#FFFFFF';
+      toggleButton.addEventListener('mouseover', () => {
+        toggleButton.style.background = '#4A5C6D';
+      });
+      toggleButton.addEventListener('mouseout', () => {
+        toggleButton.style.background = '#38444D';
+      });
+      modeSelector.style.background = '#38444D';
+      modeSelector.style.color = '#FFFFFF';
+      modeSelector.className = 'dim';
+      contentWrapper.style.scrollbarColor = '#4A5C6D #15202B';
+      styleSheet.textContent = `
+                .problem-links-wrapper::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .problem-links-wrapper::-webkit-scrollbar-thumb {
+                    background: #4A5C6D;
+                    borderRadius: 3px;
+                }
+                .problem-links-wrapper::-webkit-scrollbar-track {
+                    background: #15202B;
+                }
+                select {
+                    background-repeat: no-repeat;
+                    background-position: right 8px center;
+                }
+                select.dark {
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
+                }
+                select.dim {
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
+                }
+                select.light {
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23292F33\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
+                }
+                select:focus {
+                    outline: none;
+                    box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3);
+                }
+            `;
+    } else if (mode === 'light') {
+      sidePanel.style.background = '#FFFFFF';
+      sidePanel.style.color = '#292F33';
+      sidePanel.style.border = '1px solid #E1E8ED';
+      toolbar.style.borderBottom = '1px solid #E1E8ED';
+      label.style.color = '#292F33';
+      toggleButton.style.background = '#D3D3D3';
+      toggleButton.style.color = '#292F33';
+      toggleButton.addEventListener('mouseover', () => {
+        toggleButton.style.background = '#C0C0C0';
+      });
+      toggleButton.addEventListener('mouseout', () => {
+        toggleButton.style.background = '#D3D3D3';
+      });
+      modeSelector.style.background = '#D3D3D3';
+      modeSelector.style.color = '#292F33';
+      modeSelector.className = 'light';
+      contentWrapper.style.scrollbarColor = '#CCD6DD #FFFFFF';
+      styleSheet.textContent = `
+                .problem-links-wrapper::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .problem-links-wrapper::-webkit-scrollbar-thumb {
+                    background: #CCD6DD;
+                    borderRadius: 3px;
+                }
+                .problem-links-wrapper::-webkit-scrollbar-track {
+                    background: #FFFFFF;
+                }
+                select {
+                    background-repeat: no-repeat;
+                    background-position: right 8px center;
+                }
+                select.dark {
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
+                }
+                select.dim {
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
+                }
+                select.light {
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23292F33\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
+                }
+                select:focus {
+                    outline: none;
+                    box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3);
+                }
+            `;
+    }
+
     const links = contentWrapper.querySelectorAll('a');
     links.forEach((link) => {
       link.style.color = '#1DA1F2';
