@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.5.9
+// @version      0.5.10
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -13,6 +13,492 @@
 (function () {
   'use strict';
 
+  // --- Configuration ---
+  const CONFIG = {
+    CHECK_DELAY: 250, // Increased debounce delay
+    HIGHLIGHT_STYLE: 'highlight-post',
+    COLLAPSE_STYLE: 'collapse-post',
+    PANEL: {
+      WIDTH: '350px',
+      MAX_HEIGHT: 'calc(100vh - 70px)',
+      TOP: '60px',
+      RIGHT: '10px',
+      Z_INDEX: '9999',
+      FONT: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    },
+    THEMES: {
+      light: {
+        bg: '#FFFFFF',
+        text: '#292F33',
+        border: '#E1E8ED',
+        button: '#D3D3D3',
+        hover: '#C0C0C0',
+        scroll: '#CCD6DD',
+      },
+      dim: {
+        bg: '#15202B',
+        text: '#D9D9D9',
+        border: '#38444D',
+        button: '#38444D',
+        hover: '#4A5C6D',
+        scroll: '#4A5C6D',
+      },
+      dark: {
+        bg: '#000000',
+        text: '#D9D9D9',
+        border: '#333333',
+        button: '#333333',
+        hover: '#444444',
+        scroll: '#666666',
+      },
+    },
+  };
+
+  // --- State ---
+  const state = {
+    processedArticles: new WeakSet(),
+    problemLinks: new Set(),
+    isDarkMode: true,
+    isPanelVisible: true,
+    isCollapsingEnabled: false,
+    isCollapsingRunning: false,
+  };
+
+  // --- UI Elements ---
+  const uiElements = {};
+
+  // --- Utility Functions ---
+  function log(message) {
+    // GM_log(`[${new Date().toISOString()}] ${message}`);
+  }
+
+  function debounce(func, wait) {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  }
+
+  // --- Detection Functions ---
+  function detectTheme() {
+    const dataTheme = document.body.getAttribute('data-theme') || '';
+    const bodyClasses = document.body.classList;
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+
+    if (
+      dataTheme.includes('lights-out') ||
+      dataTheme.includes('dark') ||
+      bodyClasses.contains('dark') ||
+      bgColor === 'rgb(0, 0, 0)'
+    ) {
+      return 'dark';
+    } else if (
+      dataTheme.includes('dim') ||
+      bodyClasses.contains('dim') ||
+      bgColor === 'rgb(21, 32, 43)'
+    ) {
+      return 'dim';
+    } else {
+      return 'light';
+    }
+  }
+
+  function isProfileRepliesPage() {
+    const url = window.location.href;
+    log(`Checking URL: ${url}`);
+    return url.startsWith('https://x.com/') && url.endsWith('/with_replies');
+  }
+
+  // --- UI Manipulation Functions ---
+  function applyHighlight(article) {
+    article.classList.add(CONFIG.HIGHLIGHT_STYLE);
+    log('Highlighted article');
+  }
+
+  function removeHighlight(article) {
+    article.classList.remove(CONFIG.HIGHLIGHT_STYLE);
+  }
+
+  function collapseArticle(article) {
+    article.classList.add(CONFIG.COLLAPSE_STYLE);
+  }
+
+  function expandArticle(article) {
+    article.classList.remove(CONFIG.COLLAPSE_STYLE);
+  }
+
+  function replaceMenuButton(article, href) {
+    const button = article.querySelector('button[aria-label="Share post"]');
+    if (button) {
+      const newLink = Object.assign(document.createElement('a'), {
+        href: 'https://x.com' + href,
+        textContent: '👀',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+      });
+      Object.assign(newLink.style, {
+        color: 'rgb(29, 155, 240)',
+        textDecoration: 'none',
+        padding: '8px',
+      });
+      button.parentElement.replaceChild(newLink, button);
+      log(`Replaced menu button with href: ${href}`);
+    } else {
+      log('No share button found in article');
+    }
+  }
+
+  // --- Panel Management ---
+  function createButton(text, mode, onClick) {
+    const button = document.createElement('button');
+    button.textContent = text;
+    Object.assign(button.style, {
+      background: CONFIG.THEMES[mode].button,
+      color: CONFIG.THEMES[mode].text,
+      border: 'none',
+      padding:
+        text === 'Start' || text === 'Stop' || text === 'Reset'
+          ? '4px 8px'
+          : '6px 12px',
+      borderRadius: '9999px',
+      cursor: 'pointer',
+      fontSize:
+        text === 'Start' || text === 'Stop' || text === 'Reset'
+          ? '12px'
+          : '13px',
+      fontWeight: '500',
+      transition: 'background 0.2s ease',
+      marginRight: text === 'Copy' || text === 'Hide' ? '8px' : '0',
+    });
+    button.addEventListener(
+      'mouseover',
+      () => (button.style.background = CONFIG.THEMES[mode].hover),
+    );
+    button.addEventListener(
+      'mouseout',
+      () => (button.style.background = CONFIG.THEMES[mode].button),
+    );
+    button.addEventListener('click', onClick);
+    return button;
+  }
+
+  function createPanel() {
+    log('Creating panel...');
+    const mode = detectTheme();
+    state.isDarkMode = mode !== 'light';
+
+    uiElements.panel = document.createElement('div');
+    Object.assign(uiElements.panel.style, {
+      position: 'fixed',
+      top: CONFIG.PANEL.TOP,
+      right: CONFIG.PANEL.RIGHT,
+      width: CONFIG.PANEL.WIDTH,
+      maxHeight: CONFIG.PANEL.MAX_HEIGHT,
+      zIndex: CONFIG.PANEL.Z_INDEX,
+      background: CONFIG.THEMES[mode].bg,
+      color: CONFIG.THEMES[mode].text,
+      border: `1px solid ${CONFIG.THEMES[mode].border}`,
+      borderRadius: '12px',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+      fontFamily: CONFIG.PANEL.FONT,
+      padding: '12px',
+      transition: 'all 0.2s ease',
+    });
+
+    uiElements.toolbar = document.createElement('div');
+    Object.assign(uiElements.toolbar.style, {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingBottom: '8px',
+      borderBottom: `1px solid ${CONFIG.THEMES[mode].border}`,
+      marginBottom: '8px',
+    });
+
+    uiElements.label = document.createElement('span');
+    uiElements.label.textContent = 'Potential Problems (0):';
+    Object.assign(uiElements.label.style, {
+      fontSize: '15px',
+      fontWeight: '700',
+      color: CONFIG.THEMES[mode].text,
+    });
+
+    uiElements.copyButton = createButton('Copy', mode, () => {
+      const linksText = Array.from(state.problemLinks)
+        .map((href) => `https://x.com${href}`)
+        .join('\n');
+      navigator.clipboard
+        .writeText(linksText)
+        .then(() => {
+          log('Links copied');
+          alert('Links copied to clipboard!');
+        })
+        .catch((err) => {
+          log(`Copy failed: ${err}`);
+          alert('Failed to copy links.');
+        });
+    });
+
+    uiElements.modeSelector = document.createElement('select');
+    uiElements.modeSelector.innerHTML =
+      '<option value="dark">Dark</option><option value="dim">Dim</option><option value="light">Light</option>';
+    uiElements.modeSelector.value = mode;
+    Object.assign(uiElements.modeSelector.style, {
+      background: CONFIG.THEMES[mode].button,
+      color: CONFIG.THEMES[mode].text,
+      border: 'none',
+      padding: '6px 24px 6px 12px',
+      borderRadius: '9999px',
+      cursor: 'pointer',
+      fontSize: '13px',
+      fontWeight: '500',
+      marginRight: '8px',
+      minWidth: '80px',
+      appearance: 'none',
+      outline: 'none',
+    });
+    uiElements.modeSelector.addEventListener('change', () => {
+      state.isDarkMode = uiElements.modeSelector.value !== 'light';
+      updateTheme();
+    });
+
+    uiElements.toggleButton = createButton('Hide', mode, togglePanelVisibility);
+
+    uiElements.controlRow = document.createElement('div');
+    Object.assign(uiElements.controlRow.style, {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingBottom: '8px',
+      marginBottom: '8px',
+    });
+
+    uiElements.controlLabel = document.createElement('span');
+    uiElements.controlLabel.textContent = 'Auto Collapse Off';
+    Object.assign(uiElements.controlLabel.style, {
+      fontSize: '13px',
+      fontWeight: '500',
+      color: CONFIG.THEMES[mode].text,
+    });
+
+    const buttonContainer = document.createElement('div');
+    Object.assign(buttonContainer.style, { display: 'flex', gap: '6px' });
+
+    buttonContainer.append(
+      createButton('Start', mode, () => {
+        state.isCollapsingEnabled = true;
+        state.isCollapsingRunning = true;
+        log('Collapsing started');
+        updateControlLabel();
+        highlightPotentialProblems();
+      }),
+      createButton('Stop', mode, () => {
+        state.isCollapsingEnabled = false;
+        log('Collapsing stopped');
+        updateControlLabel();
+        highlightPotentialProblems();
+      }),
+      createButton('Reset', mode, () => {
+        state.isCollapsingEnabled = false;
+        state.isCollapsingRunning = false;
+        log('Collapsing reset');
+        document
+          .querySelectorAll('div[data-testid="cellInnerDiv"]')
+          .forEach(expandArticle);
+        state.processedArticles.clear();
+        updateControlLabel();
+        highlightPotentialProblems();
+      }),
+    );
+
+    uiElements.contentWrapper = document.createElement('div');
+    uiElements.contentWrapper.className = 'problem-links-wrapper';
+    Object.assign(uiElements.contentWrapper.style, {
+      maxHeight: 'calc(100vh - 150px)',
+      overflowY: 'auto',
+      fontSize: '14px',
+      lineHeight: '1.4',
+      scrollbarWidth: 'thin',
+      scrollbarColor: `${CONFIG.THEMES[mode].scroll} ${CONFIG.THEMES[mode].bg}`,
+    });
+
+    uiElements.toolbar.append(
+      uiElements.label,
+      uiElements.copyButton,
+      uiElements.modeSelector,
+      uiElements.toggleButton,
+    );
+    uiElements.controlRow.append(uiElements.controlLabel, buttonContainer);
+    uiElements.panel.append(
+      uiElements.toolbar,
+      uiElements.controlRow,
+      uiElements.contentWrapper,
+    );
+    document.body.appendChild(uiElements.panel);
+
+    uiElements.styleSheet = document.createElement('style');
+    uiElements.styleSheet.textContent = `
+            .${CONFIG.HIGHLIGHT_STYLE} { background-color: rgba(255, 255, 0, 0.3); border: 2px solid yellow; }
+            .${CONFIG.COLLAPSE_STYLE} { height: 0; overflow: hidden; margin: 0; padding: 0; transition: height 0.2s ease; }
+            .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
+            .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${CONFIG.THEMES[mode].scroll}; border-radius: 3px; }
+            .problem-links-wrapper::-webkit-scrollbar-track { background: ${CONFIG.THEMES[mode].bg}; }
+            select { background-repeat: no-repeat; background-position: right 8px center; }
+            select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+            select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+            select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+            select:focus { outline: none; box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3); }
+            .link-item { padding: 4px 0; }
+        `;
+    document.head.appendChild(uiElements.styleSheet);
+    updateTheme();
+    updateControlLabel();
+    log('Panel created successfully');
+  }
+
+  function togglePanelVisibility() {
+    state.isPanelVisible = !state.isPanelVisible;
+    const {
+      label,
+      copyButton,
+      modeSelector,
+      toggleButton,
+      controlRow,
+      contentWrapper,
+      panel,
+    } = uiElements;
+    if (state.isPanelVisible) {
+      label.style.display =
+        copyButton.style.display =
+        modeSelector.style.display =
+          'inline-block';
+      controlRow.style.display = 'flex';
+      contentWrapper.style.display = 'block';
+      toggleButton.textContent = 'Hide';
+      panel.style.width = CONFIG.PANEL.WIDTH;
+    } else {
+      label.style.display =
+        copyButton.style.display =
+        modeSelector.style.display =
+        controlRow.style.display =
+        contentWrapper.style.display =
+          'none';
+      toggleButton.textContent = 'Show';
+      panel.style.width = 'auto';
+      toggleButton.style.margin = '0';
+    }
+    log(
+      `Panel visibility toggled to: ${state.isPanelVisible ? 'visible' : 'hidden'}`,
+    );
+  }
+
+  function updateControlLabel() {
+    if (!uiElements.controlLabel) return;
+    uiElements.controlLabel.textContent = state.isCollapsingEnabled
+      ? 'Auto Collapse Running'
+      : state.isCollapsingRunning
+        ? 'Auto Collapse Paused'
+        : 'Auto Collapse Off';
+  }
+
+  function updatePanel() {
+    if (!uiElements.label) {
+      log('Label is undefined, cannot update panel');
+      return;
+    }
+    uiElements.label.textContent = `Potential Problems (${state.problemLinks.size}):`;
+    uiElements.contentWrapper.innerHTML = '';
+    state.problemLinks.forEach((href) => {
+      const linkItem = document.createElement('div');
+      linkItem.className = 'link-item';
+      const a = Object.assign(document.createElement('a'), {
+        href: `https://x.com${href}`,
+        textContent: `https://x.com${href}`,
+        target: '_blank',
+      });
+      Object.assign(a.style, {
+        display: 'block',
+        color: '#1DA1F2',
+        textDecoration: 'none',
+        wordBreak: 'break-all',
+      });
+      linkItem.appendChild(a);
+      uiElements.contentWrapper.appendChild(linkItem);
+    });
+    uiElements.contentWrapper.scrollTop =
+      uiElements.contentWrapper.scrollHeight;
+  }
+
+  function updateTheme() {
+    log('Updating theme...');
+    const {
+      panel,
+      toolbar,
+      label,
+      contentWrapper,
+      styleSheet,
+      modeSelector,
+      controlLabel,
+      toggleButton,
+      copyButton,
+      controlRow,
+    } = uiElements;
+    if (
+      !panel ||
+      !toolbar ||
+      !label ||
+      !contentWrapper ||
+      !styleSheet ||
+      !modeSelector ||
+      !controlLabel ||
+      !toggleButton ||
+      !copyButton ||
+      !controlRow
+    ) {
+      log('One or more panel elements are undefined');
+      return;
+    }
+
+    const mode = modeSelector.value;
+    const theme = CONFIG.THEMES[mode];
+    Object.assign(panel.style, {
+      background: theme.bg,
+      color: theme.text,
+      border: `1px solid ${theme.border}`,
+    });
+    toolbar.style.borderBottom = `1px solid ${theme.border}`;
+    label.style.color = controlLabel.style.color = theme.text;
+    [
+      toggleButton,
+      copyButton,
+      ...controlRow.querySelectorAll('button'),
+    ].forEach((btn) => {
+      btn.style.background = theme.button;
+      btn.style.color = theme.text;
+      btn.onmouseover = () => (btn.style.background = theme.hover);
+      btn.onmouseout = () => (btn.style.background = theme.button);
+    });
+    modeSelector.style.background = theme.button;
+    modeSelector.style.color = theme.text;
+    modeSelector.className = mode;
+    contentWrapper.style.scrollbarColor = `${theme.scroll} ${theme.bg}`;
+    styleSheet.textContent = `
+            .${CONFIG.HIGHLIGHT_STYLE} { background-color: rgba(255, 255, 0, 0.3); border: 2px solid yellow; }
+            .${CONFIG.COLLAPSE_STYLE} { height: 0; overflow: hidden; margin: 0; padding: 0; transition: height 0.2s ease; }
+            .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
+            .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${theme.scroll}; border-radius: 3px; }
+            .problem-links-wrapper::-webkit-scrollbar-track { background: ${theme.bg}; }
+            select { background-repeat: no-repeat; background-position: right 8px center; }
+            select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+            select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+            select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+            select:focus { outline: none; box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3); }
+            .link-item { padding: 4px 0; }
+        `;
+  }
+
+  // --- Injected Modules ---
   // Injected from src/utils/articleContainsSystemNotice.js
   function articleContainsSystemNotice(article) {
     // X notices to look for
@@ -108,862 +594,20 @@
     return result;
   }
 
-  const CONFIG = {
-    HIGHLIGHT_STYLE: {
-      backgroundColor: 'rgba(255, 255, 0, 0.3)',
-      border: '2px solid yellow',
-    },
-    CHECK_INTERVAL: 100,
-  };
-
-  const processedArticles = new WeakSet();
-  const problemLinks = new Set();
-  let isDarkMode = true;
-  let isPanelVisible = true;
-  let isCollapsingEnabled = false;
-  let isCollapsingRunning = false; // New state to track running vs paused
-  let sidePanel,
-    label,
-    modeSelector,
-    toggleButton,
-    copyButton,
-    contentWrapper,
-    styleSheet,
-    toolbar,
-    controlRow,
-    controlLabel;
-
-  function log(message) {
-    // GM_log(`[${new Date().toISOString()}] ${message}`);
-  }
-
-  function isProfileRepliesPage() {
-    const url = window.location.href;
-    log(`Checking URL: ${url}`);
-    return url.startsWith('https://x.com/') && url.endsWith('/with_replies');
-  }
-
-  function applyHighlight(article) {
-    Object.assign(article.style, CONFIG.HIGHLIGHT_STYLE);
-    log('Highlighted article');
-  }
-
-  function removeHighlight(article) {
-    article.style.backgroundColor = '';
-    article.style.border = '';
-  }
-
-  function replaceMenuButton(article, href) {
-    const button = article.querySelector('button[aria-label="Share post"]');
-    if (button) {
-      const newLink = document.createElement('a');
-      newLink.href = 'https://x.com' + href;
-      newLink.textContent = '👀';
-      newLink.target = '_blank';
-      newLink.rel = 'noopener noreferrer';
-      newLink.style.color = 'rgb(29, 155, 240)';
-      newLink.style.textDecoration = 'none';
-      newLink.style.padding = '8px';
-      const parentContainer = button.parentElement;
-      parentContainer.replaceChild(newLink, button);
-      log(`Replaced menu button with href: ${href}`);
-    } else {
-      log('No share button found in article');
-    }
-  }
-
-  function detectTheme() {
-    const dataTheme = document.body.getAttribute('data-theme');
-    log(`Detected data-theme: ${dataTheme}`);
-    if (dataTheme) {
-      if (dataTheme.includes('lights-out') || dataTheme.includes('dark')) {
-        return 'dark';
-      } else if (dataTheme.includes('dim')) {
-        return 'dim';
-      } else if (dataTheme.includes('light') || dataTheme.includes('default')) {
-        return 'light';
-      }
-    }
-
-    const bodyClasses = document.body.classList;
-    log(`Body classes: ${Array.from(bodyClasses).join(', ')}`);
-    if (
-      bodyClasses.contains('dark') ||
-      bodyClasses.contains('theme-dark') ||
-      bodyClasses.contains('theme-lights-out')
-    ) {
-      return 'dark';
-    } else if (
-      bodyClasses.contains('dim') ||
-      bodyClasses.contains('theme-dim')
-    ) {
-      return 'dim';
-    } else if (
-      bodyClasses.contains('light') ||
-      bodyClasses.contains('theme-light')
-    ) {
-      return 'light';
-    }
-
-    const bodyBgColor = window.getComputedStyle(document.body).backgroundColor;
-    log(`Body background color: ${bodyBgColor}`);
-    if (bodyBgColor === 'rgb(0, 0, 0)') {
-      return 'dark';
-    } else if (bodyBgColor === 'rgb(21, 32, 43)') {
-      return 'dim';
-    } else if (bodyBgColor === 'rgb(255, 255, 255)') {
-      return 'light';
-    }
-
-    return 'light';
-  }
-
-  function updateControlLabel() {
-    if (!controlLabel) return;
-    if (isCollapsingEnabled) {
-      controlLabel.textContent = 'Auto Collapse Running';
-    } else if (isCollapsingRunning) {
-      controlLabel.textContent = 'Auto Collapse Paused';
-    } else {
-      controlLabel.textContent = 'Auto Collapse Off';
-    }
-  }
-
-  function createPanel() {
-    log('Creating panel...');
-
-    let initialMode = detectTheme();
-    log(`Detected initial mode: ${initialMode}`);
-    if (initialMode === 'dark' || initialMode === 'dim') {
-      isDarkMode = true;
-    } else {
-      isDarkMode = false;
-    }
-
-    sidePanel = document.createElement('div');
-    Object.assign(sidePanel.style, {
-      position: 'fixed',
-      top: '60px',
-      right: '10px',
-      width: '350px',
-      maxHeight: 'calc(100vh - 70px)',
-      zIndex: '9999',
-      background:
-        initialMode === 'light'
-          ? '#FFFFFF'
-          : initialMode === 'dim'
-            ? '#15202B'
-            : '#000000',
-      color: initialMode === 'light' ? '#292F33' : '#D9D9D9',
-      border:
-        initialMode === 'light'
-          ? '1px solid #E1E8ED'
-          : initialMode === 'dim'
-            ? '1px solid #38444D'
-            : '1px solid #333333',
-      borderRadius: '12px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-      fontFamily:
-        '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-      padding: '12px',
-      transition: 'all 0.2s ease',
-    });
-
-    toolbar = document.createElement('div');
-    Object.assign(toolbar.style, {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingBottom: '8px',
-      borderBottom:
-        initialMode === 'light'
-          ? '1px solid #E1E8ED'
-          : initialMode === 'dim'
-            ? '1px solid #38444D'
-            : '1px solid #333333',
-      marginBottom: '8px',
-    });
-
-    label = document.createElement('span');
-    label.textContent = 'Potential Problems (0):';
-    Object.assign(label.style, {
-      fontSize: '15px',
-      fontWeight: '700',
-      color: initialMode === 'light' ? '#292F33' : '#D9D9D9',
-    });
-
-    copyButton = document.createElement('button');
-    copyButton.textContent = 'Copy';
-    Object.assign(copyButton.style, {
-      background:
-        initialMode === 'light'
-          ? '#D3D3D3'
-          : initialMode === 'dim'
-            ? '#38444D'
-            : '#333333',
-      color: initialMode === 'light' ? '#292F33' : '#FFFFFF',
-      border: 'none',
-      padding: '6px 12px',
-      borderRadius: '9999px',
-      cursor: 'pointer',
-      fontSize: '13px',
-      fontWeight: '500',
-      transition: 'background 0.2s ease',
-      marginRight: '8px',
-    });
-    copyButton.addEventListener('mouseover', () => {
-      copyButton.style.background =
-        initialMode === 'light'
-          ? '#C0C0C0'
-          : initialMode === 'dim'
-            ? '#4A5C6D'
-            : '#444444';
-    });
-    copyButton.addEventListener('mouseout', () => {
-      copyButton.style.background =
-        initialMode === 'light'
-          ? '#D3D3D3'
-          : initialMode === 'dim'
-            ? '#38444D'
-            : '#333333';
-    });
-    copyButton.addEventListener('click', () => {
-      const linksText = Array.from(problemLinks)
-        .map((href) => `https://x.com${href}`)
-        .join('\n');
-      navigator.clipboard
-        .writeText(linksText)
-        .then(() => {
-          log('Links copied to clipboard');
-          alert('Links copied to clipboard!');
-        })
-        .catch((err) => {
-          log(`Failed to copy links: ${err}`);
-          alert('Failed to copy links. Check console for details.');
-        });
-    });
-
-    modeSelector = document.createElement('select');
-    Object.assign(modeSelector.style, {
-      background:
-        initialMode === 'light'
-          ? '#D3D3D3'
-          : initialMode === 'dim'
-            ? '#38444D'
-            : '#333333',
-      color: initialMode === 'light' ? '#292F33' : '#FFFFFF',
-      border: 'none',
-      padding: '6px 24px 6px 12px',
-      borderRadius: '9999px',
-      cursor: 'pointer',
-      fontSize: '13px',
-      fontWeight: '500',
-      marginRight: '8px',
-      minWidth: '80px',
-      appearance: 'none !important',
-      WebkitAppearance: 'none !important',
-      MozAppearance: 'none !important',
-      outline: 'none',
-      backgroundImage: 'none',
-    });
-    modeSelector.innerHTML = `
-            <option value="dark">Dark</option>
-            <option value="dim">Dim</option>
-            <option value="light">Light</option>
-        `;
-    modeSelector.value = initialMode;
-    modeSelector.addEventListener('change', (e) => {
-      const mode = e.target.value;
-      if (mode === 'dim' || mode === 'dark') {
-        isDarkMode = true;
-      } else if (mode === 'light') {
-        isDarkMode = false;
-      }
-      updateTheme();
-    });
-
-    toggleButton = document.createElement('button');
-    toggleButton.textContent = 'Hide';
-    Object.assign(toggleButton.style, {
-      background:
-        initialMode === 'light'
-          ? '#D3D3D3'
-          : initialMode === 'dim'
-            ? '#38444D'
-            : '#333333',
-      color: initialMode === 'light' ? '#292F33' : '#FFFFFF',
-      border: 'none',
-      padding: '6px 12px',
-      borderRadius: '9999px',
-      cursor: 'pointer',
-      fontSize: '13px',
-      fontWeight: '500',
-      transition: 'background 0.2s ease',
-    });
-    toggleButton.addEventListener('mouseover', () => {
-      toggleButton.style.background =
-        initialMode === 'light'
-          ? '#C0C0C0'
-          : initialMode === 'dim'
-            ? '#4A5C6D'
-            : '#444444';
-    });
-    toggleButton.addEventListener('mouseout', () => {
-      toggleButton.style.background =
-        initialMode === 'light'
-          ? '#D3D3D3'
-          : initialMode === 'dim'
-            ? '#38444D'
-            : '#333333';
-    });
-    toggleButton.addEventListener('click', () => {
-      isPanelVisible = !isPanelVisible;
-      if (isPanelVisible) {
-        label.style.display = 'inline';
-        copyButton.style.display = 'inline-block';
-        modeSelector.style.display = 'inline-block';
-        controlRow.style.display = 'flex';
-        contentWrapper.style.display = 'block';
-        toggleButton.textContent = 'Hide';
-        sidePanel.style.width = '350px';
-      } else {
-        label.style.display = 'none';
-        copyButton.style.display = 'none';
-        modeSelector.style.display = 'none';
-        controlRow.style.display = 'none';
-        contentWrapper.style.display = 'none';
-        toggleButton.textContent = 'Show';
-        sidePanel.style.width = 'auto';
-        toggleButton.style.margin = '0';
-      }
-      log(
-        'Panel visibility toggled to: ' +
-          (isPanelVisible ? 'visible' : 'hidden'),
-      );
-    });
-
-    toolbar.appendChild(label);
-    toolbar.appendChild(copyButton);
-    toolbar.appendChild(modeSelector);
-    toolbar.appendChild(toggleButton);
-
-    controlRow = document.createElement('div');
-    Object.assign(controlRow.style, {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingBottom: '8px',
-      marginBottom: '8px',
-    });
-
-    controlLabel = document.createElement('span');
-    controlLabel.textContent = 'Auto Collapse Off'; // Initial state
-    Object.assign(controlLabel.style, {
-      fontSize: '13px',
-      fontWeight: '500',
-      color: initialMode === 'light' ? '#292F33' : '#D9D9D9',
-    });
-
-    const buttonContainer = document.createElement('div');
-    Object.assign(buttonContainer.style, {
-      display: 'flex',
-      gap: '6px',
-    });
-
-    const startButton = document.createElement('button');
-    startButton.textContent = 'Start';
-    Object.assign(startButton.style, {
-      background:
-        initialMode === 'light'
-          ? '#D3D3D3'
-          : initialMode === 'dim'
-            ? '#38444D'
-            : '#333333',
-      color: initialMode === 'light' ? '#292F33' : '#FFFFFF',
-      border: 'none',
-      padding: '4px 8px',
-      borderRadius: '9999px',
-      cursor: 'pointer',
-      fontSize: '12px',
-      fontWeight: '500',
-      transition: 'background 0.2s ease',
-    });
-    startButton.addEventListener('mouseover', () => {
-      startButton.style.background =
-        initialMode === 'light'
-          ? '#C0C0C0'
-          : initialMode === 'dim'
-            ? '#4A5C6D'
-            : '#444444';
-    });
-    startButton.addEventListener('mouseout', () => {
-      startButton.style.background =
-        initialMode === 'light'
-          ? '#D3D3D3'
-          : initialMode === 'dim'
-            ? '#38444D'
-            : '#333333';
-    });
-    startButton.addEventListener('click', () => {
-      isCollapsingEnabled = true;
-      isCollapsingRunning = true;
-      log('Collapsing started');
-      updateControlLabel();
-      highlightPotentialProblems();
-    });
-
-    const stopButton = document.createElement('button');
-    stopButton.textContent = 'Stop';
-    Object.assign(stopButton.style, {
-      background:
-        initialMode === 'light'
-          ? '#D3D3D3'
-          : initialMode === 'dim'
-            ? '#38444D'
-            : '#333333',
-      color: initialMode === 'light' ? '#292F33' : '#FFFFFF',
-      border: 'none',
-      padding: '4px 8px',
-      borderRadius: '9999px',
-      cursor: 'pointer',
-      fontSize: '12px',
-      fontWeight: '500',
-      transition: 'background 0.2s ease',
-    });
-    stopButton.addEventListener('mouseover', () => {
-      stopButton.style.background =
-        initialMode === 'light'
-          ? '#C0C0C0'
-          : initialMode === 'dim'
-            ? '#4A5C6D'
-            : '#444444';
-    });
-    stopButton.addEventListener('mouseout', () => {
-      stopButton.style.background =
-        initialMode === 'light'
-          ? '#D3D3D3'
-          : initialMode === 'dim'
-            ? '#38444D'
-            : '#333333';
-    });
-    stopButton.addEventListener('click', () => {
-      isCollapsingEnabled = false;
-      log('Collapsing stopped');
-      updateControlLabel();
-      highlightPotentialProblems();
-    });
-
-    const resetButton = document.createElement('button');
-    resetButton.textContent = 'Reset';
-    Object.assign(resetButton.style, {
-      background:
-        initialMode === 'light'
-          ? '#D3D3D3'
-          : initialMode === 'dim'
-            ? '#38444D'
-            : '#333333',
-      color: initialMode === 'light' ? '#292F33' : '#FFFFFF',
-      border: 'none',
-      padding: '4px 8px',
-      borderRadius: '9999px',
-      cursor: 'pointer',
-      fontSize: '12px',
-      fontWeight: '500',
-      transition: 'background 0.2s ease',
-    });
-    resetButton.addEventListener('mouseover', () => {
-      resetButton.style.background =
-        initialMode === 'light'
-          ? '#C0C0C0'
-          : initialMode === 'dim'
-            ? '#4A5C6D'
-            : '#444444';
-    });
-    resetButton.addEventListener('mouseout', () => {
-      resetButton.style.background =
-        initialMode === 'light'
-          ? '#D3D3D3'
-          : initialMode === 'dim'
-            ? '#38444D'
-            : '#333333';
-    });
-    resetButton.addEventListener('click', () => {
-      isCollapsingEnabled = false;
-      isCollapsingRunning = false;
-      log('Collapsing reset');
-      const articles = document.querySelectorAll(
-        'div[data-testid="cellInnerDiv"]',
-      );
-      articles.forEach((article) => expandArticle(article));
-      processedArticles.clear();
-      updateControlLabel();
-      highlightPotentialProblems();
-    });
-
-    buttonContainer.appendChild(startButton);
-    buttonContainer.appendChild(stopButton);
-    buttonContainer.appendChild(resetButton);
-
-    controlRow.appendChild(controlLabel);
-    controlRow.appendChild(buttonContainer);
-
-    contentWrapper = document.createElement('div');
-    contentWrapper.className = 'problem-links-wrapper';
-    Object.assign(contentWrapper.style, {
-      maxHeight: 'calc(100vh - 150px)',
-      overflowY: 'auto',
-      fontSize: '14px',
-      lineHeight: '1.4',
-      scrollbarWidth: 'thin',
-      scrollbarColor:
-        initialMode === 'light'
-          ? '#CCD6DD #FFFFFF'
-          : initialMode === 'dim'
-            ? '#4A5C6D #15202B'
-            : '#666666 #000000',
-    });
-
-    sidePanel.appendChild(toolbar);
-    sidePanel.appendChild(controlRow);
-    sidePanel.appendChild(contentWrapper);
-    document.body.appendChild(sidePanel);
-
-    styleSheet = document.createElement('style');
-    styleSheet.textContent = `
-            .problem-links-wrapper::-webkit-scrollbar {
-                width: 6px;
-            }
-            .problem-links-wrapper::-webkit-scrollbar-thumb {
-                background: ${initialMode === 'light' ? '#CCD6DD' : initialMode === 'dim' ? '#4A5C6D' : '#666666'};
-                borderRadius: 3px;
-            }
-            .problem-links-wrapper::-webkit-scrollbar-track {
-                background: ${initialMode === 'light' ? '#FFFFFF' : initialMode === 'dim' ? '#15202B' : '#000000'};
-            }
-            select {
-                background-repeat: no-repeat;
-                background-position: right 8px center;
-            }
-            select.dark {
-                background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
-            }
-            select.dim {
-                background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
-            }
-            select.light {
-                background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23292F33\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
-            }
-            select:focus {
-                outline: none;
-                box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3);
-            }
-            .link-item {
-                padding: 4px 0;
-            }
-        `;
-    document.head.appendChild(styleSheet);
-
-    log('Panel created successfully');
-    try {
-      updateTheme();
-      updateControlLabel();
-      log('Theme and control label updated successfully');
-    } catch (e) {
-      log(`Error updating theme or control label: ${e.message}`);
-    }
-  }
-
-  function updatePanel() {
-    if (!label) {
-      log('Label is undefined, cannot update panel');
-      return;
-    }
-    label.textContent = `Potential Problems (${problemLinks.size}):`;
-    contentWrapper.innerHTML = '';
-    problemLinks.forEach((href) => {
-      const linkItem = document.createElement('div');
-      linkItem.className = 'link-item';
-      const a = document.createElement('a');
-      a.href = 'https://x.com' + href;
-      a.textContent = 'https://x.com' + href;
-      a.target = '_blank';
-      Object.assign(a.style, {
-        display: 'block',
-        color: '#1DA1F2',
-        textDecoration: 'none',
-        wordBreak: 'break-all',
-      });
-      linkItem.appendChild(a);
-      contentWrapper.appendChild(linkItem);
-    });
-    contentWrapper.scrollTop = contentWrapper.scrollHeight;
-  }
-
-  function updateTheme() {
-    log('Updating theme...');
-    if (
-      !sidePanel ||
-      !toolbar ||
-      !label ||
-      !contentWrapper ||
-      !styleSheet ||
-      !modeSelector ||
-      !controlRow ||
-      !controlLabel ||
-      !copyButton
-    ) {
-      log('One or more panel elements are undefined');
-      return;
-    }
-
-    const mode = modeSelector.value;
-    if (mode === 'dark') {
-      sidePanel.style.background = '#000000';
-      sidePanel.style.color = '#D9D9D9';
-      sidePanel.style.border = '1px solid #333333';
-      toolbar.style.borderBottom = '1px solid #333333';
-      label.style.color = '#D9D9D9';
-      toggleButton.style.background = '#333333';
-      toggleButton.style.color = '#FFFFFF';
-      toggleButton.addEventListener('mouseover', () => {
-        toggleButton.style.background = '#444444';
-      });
-      toggleButton.addEventListener('mouseout', () => {
-        toggleButton.style.background = '#333333';
-      });
-      copyButton.style.background = '#333333';
-      copyButton.style.color = '#FFFFFF';
-      copyButton.addEventListener('mouseover', () => {
-        copyButton.style.background = '#444444';
-      });
-      copyButton.addEventListener('mouseout', () => {
-        copyButton.style.background = '#333333';
-      });
-      modeSelector.style.background = '#333333';
-      modeSelector.style.color = '#FFFFFF';
-      modeSelector.className = 'dark';
-      controlLabel.style.color = '#D9D9D9';
-      controlRow.querySelectorAll('button').forEach((btn) => {
-        btn.style.background = '#333333';
-        btn.style.color = '#FFFFFF';
-        btn.addEventListener('mouseover', () => {
-          btn.style.background = '#444444';
-        });
-        btn.addEventListener('mouseout', () => {
-          btn.style.background = '#333333';
-        });
-      });
-      contentWrapper.style.scrollbarColor = '#666666 #000000';
-      styleSheet.textContent = `
-                .problem-links-wrapper::-webkit-scrollbar {
-                    width: 6px;
-                }
-                .problem-links-wrapper::-webkit-scrollbar-thumb {
-                    background: #666666;
-                    borderRadius: 3px;
-                }
-                .problem-links-wrapper::-webkit-scrollbar-track {
-                    background: #000000;
-                }
-                select {
-                    background-repeat: no-repeat;
-                    background-position: right 8px center;
-                }
-                select.dark {
-                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
-                }
-                select.dim {
-                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
-                }
-                select.light {
-                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23292F33\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
-                }
-                select:focus {
-                    outline: none;
-                    box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3);
-                }
-                .link-item {
-                    padding: 4px 0;
-                }
-            `;
-    } else if (mode === 'dim') {
-      sidePanel.style.background = '#15202B';
-      sidePanel.style.color = '#D9D9D9';
-      sidePanel.style.border = '1px solid #38444D';
-      toolbar.style.borderBottom = '1px solid #38444D';
-      label.style.color = '#D9D9D9';
-      toggleButton.style.background = '#38444D';
-      toggleButton.style.color = '#FFFFFF';
-      toggleButton.addEventListener('mouseover', () => {
-        toggleButton.style.background = '#4A5C6D';
-      });
-      toggleButton.addEventListener('mouseout', () => {
-        toggleButton.style.background = '#38444D';
-      });
-      copyButton.style.background = '#38444D';
-      copyButton.style.color = '#FFFFFF';
-      copyButton.addEventListener('mouseover', () => {
-        copyButton.style.background = '#4A5C6D';
-      });
-      copyButton.addEventListener('mouseout', () => {
-        copyButton.style.background = '#38444D';
-      });
-      modeSelector.style.background = '#38444D';
-      modeSelector.style.color = '#FFFFFF';
-      modeSelector.className = 'dim';
-      controlLabel.style.color = '#D9D9D9';
-      controlRow.querySelectorAll('button').forEach((btn) => {
-        btn.style.background = '#38444D';
-        btn.style.color = '#FFFFFF';
-        btn.addEventListener('mouseover', () => {
-          btn.style.background = '#4A5C6D';
-        });
-        btn.addEventListener('mouseout', () => {
-          btn.style.background = '#38444D';
-        });
-      });
-      contentWrapper.style.scrollbarColor = '#4A5C6D #15202B';
-      styleSheet.textContent = `
-                .problem-links-wrapper::-webkit-scrollbar {
-                    width: 6px;
-                }
-                .problem-links-wrapper::-webkit-scrollbar-thumb {
-                    background: #4A5C6D;
-                    borderRadius: 3px;
-                }
-                .problem-links-wrapper::-webkit-scrollbar-track {
-                    background: #15202B;
-                }
-                select {
-                    background-repeat: no-repeat;
-                    background-position: right 8px center;
-                }
-                select.dark {
-                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
-                }
-                select.dim {
-                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
-                }
-                select.light {
-                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23292F33\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
-                }
-                select:focus {
-                    outline: none;
-                    box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3);
-                }
-                .link-item {
-                    padding: 4px 0;
-                }
-            `;
-    } else if (mode === 'light') {
-      sidePanel.style.background = '#FFFFFF';
-      sidePanel.style.color = '#292F33';
-      sidePanel.style.border = '1px solid #E1E8ED';
-      toolbar.style.borderBottom = '1px solid #E1E8ED';
-      label.style.color = '#292F33';
-      toggleButton.style.background = '#D3D3D3';
-      toggleButton.style.color = '#292F33';
-      toggleButton.addEventListener('mouseover', () => {
-        toggleButton.style.background = '#C0C0C0';
-      });
-      toggleButton.addEventListener('mouseout', () => {
-        toggleButton.style.background = '#D3D3D3';
-      });
-      copyButton.style.background = '#D3D3D3';
-      copyButton.style.color = '#292F33';
-      copyButton.addEventListener('mouseover', () => {
-        copyButton.style.background = '#C0C0C0';
-      });
-      copyButton.addEventListener('mouseout', () => {
-        copyButton.style.background = '#D3D3D3';
-      });
-      modeSelector.style.background = '#D3D3D3';
-      modeSelector.style.color = '#292F33';
-      modeSelector.className = 'light';
-      controlLabel.style.color = '#292F33';
-      controlRow.querySelectorAll('button').forEach((btn) => {
-        btn.style.background = '#D3D3D3';
-        btn.style.color = '#292F33';
-        btn.addEventListener('mouseover', () => {
-          btn.style.background = '#C0C0C0';
-        });
-        btn.addEventListener('mouseout', () => {
-          btn.style.background = '#D3D3D3';
-        });
-      });
-      contentWrapper.style.scrollbarColor = '#CCD6DD #FFFFFF';
-      styleSheet.textContent = `
-                .problem-links-wrapper::-webkit-scrollbar {
-                    width: 6px;
-                }
-                .problem-links-wrapper::-webkit-scrollbar-thumb {
-                    background: #CCD6DD;
-                    borderRadius: 3px;
-                }
-                .problem-links-wrapper::-webkit-scrollbar-track {
-                    background: #FFFFFF;
-                }
-                select {
-                    background-repeat: no-repeat;
-                    background-position: right 8px center;
-                }
-                select.dark {
-                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
-                }
-                select.dim {
-                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23FFFFFF\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
-                }
-                select.light {
-                    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%23292F33\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z\'/%3E%3C/svg%3E");
-                }
-                select:focus {
-                    outline: none;
-                    box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3);
-                }
-                .link-item {
-                    padding: 4px 0;
-                }
-            `;
-    }
-
-    const links = contentWrapper.querySelectorAll('a');
-    links.forEach((link) => {
-      link.style.color = '#1DA1F2';
-    });
-  }
-
-  function collapseArticle(article) {
-    article.style.height = '0';
-    article.style.overflow = 'hidden';
-    article.style.margin = '0';
-    article.style.padding = '0';
-    article.style.transition = 'height 0.2s ease';
-  }
-
-  function expandArticle(article) {
-    article.style.height = '';
-    article.style.overflow = '';
-    article.style.margin = '';
-    article.style.padding = '';
-    article.style.transition = '';
-  }
-
-  function highlightPotentialProblems() {
+  // --- Core Logic ---
+  function highlightPotentialProblems(mutations = []) {
     const isRepliesPage = isProfileRepliesPage();
-    const articles = document.querySelectorAll(
+    let articlesContainer =
+      document.querySelector('main [role="region"]') || document.body; // Narrow to main content if possible
+    const articles = articlesContainer.querySelectorAll(
       'div[data-testid="cellInnerDiv"]',
     );
-
     log(`Scanning ${articles.length} articles`);
 
     for (const article of articles) {
-      if (processedArticles.has(article)) {
-        log('Skipping already processed article');
-        continue;
-      }
+      if (state.processedArticles.has(article)) continue;
 
       let shouldHighlight = false;
-
       try {
         if (
           articleContainsSystemNotice(article) ||
@@ -974,7 +618,7 @@
         } else if (isRepliesPage) {
           const replyingToDepths = findReplyingToWithDepth(article);
           if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
-            if (replyingToDepths.some((object) => object.depth < 10)) {
+            if (replyingToDepths.some((obj) => obj.depth < 10)) {
               shouldHighlight = true;
               log('Article flagged as reply with depth < 10');
             }
@@ -992,19 +636,15 @@
         if (timeElement) {
           const href = timeElement.parentElement.getAttribute('href');
           if (href) {
-            problemLinks.add(href);
+            state.problemLinks.add(href);
             replaceMenuButton(article, href);
-            log('Processed article with href: ' + href);
-          } else {
-            log('No href found for time element');
+            log(`Processed article with href: ${href}`);
           }
-        } else {
-          log('No time element found in article');
         }
-        processedArticles.add(article);
-      } else if (isRepliesPage && isCollapsingEnabled) {
+        state.processedArticles.add(article);
+      } else if (isRepliesPage && state.isCollapsingEnabled) {
         collapseArticle(article);
-        processedArticles.add(article);
+        state.processedArticles.add(article);
       }
     }
     try {
@@ -1014,59 +654,52 @@
     }
   }
 
-  function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  }
-
+  // --- Initialization ---
   function setupMonitoring() {
     log('Setting up monitoring...');
-
-    function tryHighlighting(attempt = 1, maxAttempts = 5) {
+    function tryHighlighting(attempt = 1, maxAttempts = 3) {
       log(`Attempt ${attempt} to highlight articles`);
       highlightPotentialProblems();
-      const articles = document.getElementsByTagName('article');
-      if (articles.length === 0 && attempt < maxAttempts) {
+      if (
+        document.getElementsByTagName('article').length === 0 &&
+        attempt < maxAttempts
+      ) {
         log('No articles found, retrying...');
-        setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 1000);
+        setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000); // Slower retry
       } else {
-        log(`Found ${articles.length} articles, proceeding with monitoring`);
+        log(
+          `Found ${document.getElementsByTagName('article').length} articles, proceeding with monitoring`,
+        );
       }
     }
 
     tryHighlighting();
-
     const debouncedHighlight = debounce(
       highlightPotentialProblems,
-      CONFIG.CHECK_INTERVAL,
+      CONFIG.CHECK_DELAY,
     );
-    const observer = new MutationObserver((mutations) => {
+    const observerTarget =
+      document.querySelector('main [role="region"]') || document.body; // Narrow observation scope
+    new MutationObserver((mutations) => {
       log(`DOM changed (${mutations.length} mutations)`);
-      debouncedHighlight();
-    });
-    observer.observe(document.body, {
+      debouncedHighlight(mutations);
+    }).observe(observerTarget, {
       childList: true,
       subtree: true,
       attributes: true,
     });
-    setInterval(() => {
-      log('Periodic scan triggered');
-      debouncedHighlight();
-    }, CONFIG.CHECK_INTERVAL * 2);
+    // Removed setInterval to rely solely on MutationObserver
   }
 
-  log('Script starting...');
-  try {
-    createPanel();
-    setupMonitoring();
-  } catch (e) {
-    log(`Error in script execution: ${e.message}`);
+  function init() {
+    log('Script starting...');
+    try {
+      createPanel();
+      setupMonitoring();
+    } catch (e) {
+      log(`Error in script execution: ${e.message}`);
+    }
   }
+
+  init();
 })();

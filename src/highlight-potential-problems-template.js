@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.5.9
+// @version      0.5.10
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -15,11 +15,9 @@
 
     // --- Configuration ---
     const CONFIG = {
-        CHECK_INTERVAL: 100,
-        HIGHLIGHT_STYLE: {
-            backgroundColor: 'rgba(255, 255, 0, 0.3)',
-            border: '2px solid yellow',
-        },
+        CHECK_DELAY: 250, // Increased debounce delay
+        HIGHLIGHT_STYLE: 'highlight-post',
+        COLLAPSE_STYLE: 'collapse-post',
         PANEL: {
             WIDTH: '350px',
             MAX_HEIGHT: 'calc(100vh - 70px)',
@@ -84,25 +82,20 @@
 
     // --- UI Manipulation Functions ---
     function applyHighlight(article) {
-        Object.assign(article.style, CONFIG.HIGHLIGHT_STYLE);
+        article.classList.add(CONFIG.HIGHLIGHT_STYLE);
         log('Highlighted article');
     }
 
     function removeHighlight(article) {
-        article.style.backgroundColor = '';
-        article.style.border = '';
+        article.classList.remove(CONFIG.HIGHLIGHT_STYLE);
     }
 
     function collapseArticle(article) {
-        Object.assign(article.style, {
-            height: '0', overflow: 'hidden', margin: '0', padding: '0', transition: 'height 0.2s ease',
-        });
+        article.classList.add(CONFIG.COLLAPSE_STYLE);
     }
 
     function expandArticle(article) {
-        Object.assign(article.style, {
-            height: '', overflow: '', margin: '', padding: '', transition: '',
-        });
+        article.classList.remove(CONFIG.COLLAPSE_STYLE);
     }
 
     function replaceMenuButton(article, href) {
@@ -239,6 +232,19 @@
         document.body.appendChild(uiElements.panel);
 
         uiElements.styleSheet = document.createElement('style');
+        uiElements.styleSheet.textContent = `
+            .${CONFIG.HIGHLIGHT_STYLE} { background-color: rgba(255, 255, 0, 0.3); border: 2px solid yellow; }
+            .${CONFIG.COLLAPSE_STYLE} { height: 0; overflow: hidden; margin: 0; padding: 0; transition: height 0.2s ease; }
+            .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
+            .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${CONFIG.THEMES[mode].scroll}; border-radius: 3px; }
+            .problem-links-wrapper::-webkit-scrollbar-track { background: ${CONFIG.THEMES[mode].bg}; }
+            select { background-repeat: no-repeat; background-position: right 8px center; }
+            select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+            select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+            select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+            select:focus { outline: none; box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3); }
+            .link-item { padding: 4px 0; }
+        `;
         document.head.appendChild(uiElements.styleSheet);
         updateTheme();
         updateControlLabel();
@@ -313,6 +319,8 @@
         modeSelector.className = mode;
         contentWrapper.style.scrollbarColor = `${theme.scroll} ${theme.bg}`;
         styleSheet.textContent = `
+            .${CONFIG.HIGHLIGHT_STYLE} { background-color: rgba(255, 255, 0, 0.3); border: 2px solid yellow; }
+            .${CONFIG.COLLAPSE_STYLE} { height: 0; overflow: hidden; margin: 0; padding: 0; transition: height 0.2s ease; }
             .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
             .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${theme.scroll}; border-radius: 3px; }
             .problem-links-wrapper::-webkit-scrollbar-track { background: ${theme.bg}; }
@@ -323,7 +331,6 @@
             select:focus { outline: none; box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3); }
             .link-item { padding: 4px 0; }
         `;
-        contentWrapper.querySelectorAll('a').forEach(link => link.style.color = '#1DA1F2');
     }
 
     // --- Injected Modules ---
@@ -337,16 +344,14 @@
     // INJECT: findReplyingToWithDepth
 
     // --- Core Logic ---
-    function highlightPotentialProblems() {
+    function highlightPotentialProblems(mutations = []) {
         const isRepliesPage = isProfileRepliesPage();
-        const articles = document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+        let articlesContainer = document.querySelector('main [role="region"]') || document.body; // Narrow to main content if possible
+        const articles = articlesContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
         log(`Scanning ${articles.length} articles`);
 
         for (const article of articles) {
-            if (state.processedArticles.has(article)) {
-                log('Skipping already processed article');
-                continue;
-            }
+            if (state.processedArticles.has(article)) continue;
 
             let shouldHighlight = false;
             try {
@@ -375,11 +380,7 @@
                         state.problemLinks.add(href);
                         replaceMenuButton(article, href);
                         log(`Processed article with href: ${href}`);
-                    } else {
-                        log('No href found for time element');
                     }
-                } else {
-                    log('No time element found in article');
                 }
                 state.processedArticles.add(article);
             } else if (isRepliesPage && state.isCollapsingEnabled) {
@@ -397,27 +398,25 @@
     // --- Initialization ---
     function setupMonitoring() {
         log('Setting up monitoring...');
-        function tryHighlighting(attempt = 1, maxAttempts = 5) {
+        function tryHighlighting(attempt = 1, maxAttempts = 3) {
             log(`Attempt ${attempt} to highlight articles`);
             highlightPotentialProblems();
             if (document.getElementsByTagName('article').length === 0 && attempt < maxAttempts) {
                 log('No articles found, retrying...');
-                setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 1000);
+                setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000); // Slower retry
             } else {
                 log(`Found ${document.getElementsByTagName('article').length} articles, proceeding with monitoring`);
             }
         }
 
         tryHighlighting();
-        const debouncedHighlight = debounce(highlightPotentialProblems, CONFIG.CHECK_INTERVAL);
+        const debouncedHighlight = debounce(highlightPotentialProblems, CONFIG.CHECK_DELAY);
+        const observerTarget = document.querySelector('main [role="region"]') || document.body; // Narrow observation scope
         new MutationObserver(mutations => {
             log(`DOM changed (${mutations.length} mutations)`);
-            debouncedHighlight();
-        }).observe(document.body, { childList: true, subtree: true, attributes: true });
-        setInterval(() => {
-            log('Periodic scan triggered');
-            debouncedHighlight();
-        }, CONFIG.CHECK_INTERVAL * 2);
+            debouncedHighlight(mutations);
+        }).observe(observerTarget, { childList: true, subtree: true, attributes: true });
+        // Removed setInterval to rely solely on MutationObserver
     }
 
     function init() {
