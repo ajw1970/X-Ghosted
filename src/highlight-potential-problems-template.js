@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.5.7
+// @version      0.5.8
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -35,7 +35,7 @@
     let isDarkMode = true;
     let isPanelVisible = true;
     let isCollapsingEnabled = false;
-    let sidePanel, label, modeSelector, toggleButton, contentWrapper, styleSheet, toolbar;
+    let sidePanel, label, modeSelector, toggleButton, contentWrapper, styleSheet, toolbar, controlRow, controlLabel;
 
     function log(message) {
         // GM_log(`[${new Date().toISOString()}] ${message}`);
@@ -148,7 +148,7 @@
             justifyContent: 'space-between',
             paddingBottom: '8px',
             borderBottom: initialMode === 'light' ? '1px solid #E1E8ED' : (initialMode === 'dim' ? '1px solid #38444D' : '1px solid #333333'),
-            marginBottom: '12px'
+            marginBottom: '8px'
         });
 
         label = document.createElement('span');
@@ -158,40 +158,6 @@
             fontWeight: '700',
             color: initialMode === 'light' ? '#292F33' : '#D9D9D9'
         });
-
-        const collapseCheckboxContainer = document.createElement('div');
-        Object.assign(collapseCheckboxContainer.style, {
-            display: 'flex',
-            alignItems: 'center',
-            marginRight: '8px'
-        });
-
-        const collapseCheckbox = document.createElement('input');
-        collapseCheckbox.type = 'checkbox';
-        collapseCheckbox.id = 'collapseCheckbox';
-        collapseCheckbox.checked = isCollapsingEnabled;
-        Object.assign(collapseCheckbox.style, {
-            marginRight: '4px',
-            cursor: 'pointer'
-        });
-
-        const collapseLabel = document.createElement('label');
-        collapseLabel.htmlFor = 'collapseCheckbox';
-        collapseLabel.textContent = 'Collapse';
-        Object.assign(collapseLabel.style, {
-            fontSize: '13px',
-            color: initialMode === 'light' ? '#292F33' : '#D9D9D9',
-            cursor: 'pointer'
-        });
-
-        collapseCheckbox.addEventListener('change', (e) => {
-            isCollapsingEnabled = e.target.checked;
-            log(`Collapsing articles ${isCollapsingEnabled ? 'enabled' : 'disabled'}`);
-            highlightPotentialProblems();
-        });
-
-        collapseCheckboxContainer.appendChild(collapseCheckbox);
-        collapseCheckboxContainer.appendChild(collapseLabel);
 
         modeSelector = document.createElement('select');
         Object.assign(modeSelector.style, {
@@ -251,14 +217,14 @@
             if (isPanelVisible) {
                 label.style.display = 'inline';
                 modeSelector.style.display = 'inline-block';
-                collapseCheckboxContainer.style.display = 'flex';
+                controlRow.style.display = 'flex';
                 contentWrapper.style.display = 'block';
                 toggleButton.textContent = 'Hide';
                 sidePanel.style.width = '350px';
             } else {
                 label.style.display = 'none';
                 modeSelector.style.display = 'none';
-                collapseCheckboxContainer.style.display = 'none';
+                controlRow.style.display = 'none';
                 contentWrapper.style.display = 'none';
                 toggleButton.textContent = 'Show';
                 sidePanel.style.width = 'auto';
@@ -268,14 +234,122 @@
         });
 
         toolbar.appendChild(label);
-        toolbar.appendChild(collapseCheckboxContainer);
         toolbar.appendChild(modeSelector);
         toolbar.appendChild(toggleButton);
+
+        // Control row with label and horizontal buttons floated right
+        controlRow = document.createElement('div');
+        Object.assign(controlRow.style, {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingBottom: '8px',
+            marginBottom: '8px'
+        });
+
+        controlLabel = document.createElement('span');
+        controlLabel.textContent = 'Auto Collapse:';
+        Object.assign(controlLabel.style, {
+            fontSize: '13px',
+            fontWeight: '500',
+            color: initialMode === 'light' ? '#292F33' : '#D9D9D9'
+        });
+
+        const buttonContainer = document.createElement('div');
+        Object.assign(buttonContainer.style, {
+            display: 'flex',
+            gap: '6px'
+        });
+
+        const startButton = document.createElement('button');
+        startButton.textContent = 'Start';
+        Object.assign(startButton.style, {
+            background: initialMode === 'light' ? '#D3D3D3' : (initialMode === 'dim' ? '#38444D' : '#333333'),
+            color: initialMode === 'light' ? '#292F33' : '#FFFFFF',
+            border: 'none',
+            padding: '4px 8px',
+            borderRadius: '9999px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: '500',
+            transition: 'background 0.2s ease'
+        });
+        startButton.addEventListener('mouseover', () => { 
+            startButton.style.background = initialMode === 'light' ? '#C0C0C0' : (initialMode === 'dim' ? '#4A5C6D' : '#444444');
+        });
+        startButton.addEventListener('mouseout', () => { 
+            startButton.style.background = initialMode === 'light' ? '#D3D3D3' : (initialMode === 'dim' ? '#38444D' : '#333333');
+        });
+        startButton.addEventListener('click', () => {
+            isCollapsingEnabled = true;
+            log('Collapsing started');
+            highlightPotentialProblems();
+        });
+
+        const stopButton = document.createElement('button');
+        stopButton.textContent = 'Stop';
+        Object.assign(stopButton.style, {
+            background: initialMode === 'light' ? '#D3D3D3' : (initialMode === 'dim' ? '#38444D' : '#333333'),
+            color: initialMode === 'light' ? '#292F33' : '#FFFFFF',
+            border: 'none',
+            padding: '4px 8px',
+            borderRadius: '9999px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: '500',
+            transition: 'background 0.2s ease'
+        });
+        stopButton.addEventListener('mouseover', () => { 
+            stopButton.style.background = initialMode === 'light' ? '#C0C0C0' : (initialMode === 'dim' ? '#4A5C6D' : '#444444');
+        });
+        stopButton.addEventListener('mouseout', () => { 
+            stopButton.style.background = initialMode === 'light' ? '#D3D3D3' : (initialMode === 'dim' ? '#38444D' : '#333333');
+        });
+        stopButton.addEventListener('click', () => {
+            isCollapsingEnabled = false;
+            log('Collapsing stopped');
+            highlightPotentialProblems();
+        });
+
+        const resetButton = document.createElement('button');
+        resetButton.textContent = 'Reset';
+        Object.assign(resetButton.style, {
+            background: initialMode === 'light' ? '#D3D3D3' : (initialMode === 'dim' ? '#38444D' : '#333333'),
+            color: initialMode === 'light' ? '#292F33' : '#FFFFFF',
+            border: 'none',
+            padding: '4px 8px',
+            borderRadius: '9999px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: '500',
+            transition: 'background 0.2s ease'
+        });
+        resetButton.addEventListener('mouseover', () => { 
+            resetButton.style.background = initialMode === 'light' ? '#C0C0C0' : (initialMode === 'dim' ? '#4A5C6D' : '#444444');
+        });
+        resetButton.addEventListener('mouseout', () => { 
+            resetButton.style.background = initialMode === 'light' ? '#D3D3D3' : (initialMode === 'dim' ? '#38444D' : '#333333');
+        });
+        resetButton.addEventListener('click', () => {
+            isCollapsingEnabled = false;
+            log('Collapsing reset');
+            const articles = document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+            articles.forEach(article => expandArticle(article));
+            processedArticles.clear();
+            highlightPotentialProblems();
+        });
+
+        buttonContainer.appendChild(startButton);
+        buttonContainer.appendChild(stopButton);
+        buttonContainer.appendChild(resetButton);
+
+        controlRow.appendChild(controlLabel);
+        controlRow.appendChild(buttonContainer);
 
         contentWrapper = document.createElement('div');
         contentWrapper.className = 'problem-links-wrapper';
         Object.assign(contentWrapper.style, {
-            maxHeight: 'calc(100vh - 130px)',
+            maxHeight: 'calc(100vh - 150px)',
             overflowY: 'auto',
             fontSize: '14px',
             lineHeight: '1.4',
@@ -284,6 +358,7 @@
         });
 
         sidePanel.appendChild(toolbar);
+        sidePanel.appendChild(controlRow);
         sidePanel.appendChild(contentWrapper);
         document.body.appendChild(sidePanel);
 
@@ -353,7 +428,7 @@
 
     function updateTheme() {
         log('Updating theme...');
-        if (!sidePanel || !toolbar || !label || !contentWrapper || !styleSheet || !modeSelector) {
+        if (!sidePanel || !toolbar || !label || !contentWrapper || !styleSheet || !modeSelector || !controlRow || !controlLabel) {
             log('One or more panel elements are undefined');
             return;
         }
@@ -372,7 +447,13 @@
             modeSelector.style.background = '#333333';
             modeSelector.style.color = '#FFFFFF';
             modeSelector.className = 'dark';
-            collapseLabel.style.color = '#D9D9D9';
+            controlLabel.style.color = '#D9D9D9';
+            controlRow.querySelectorAll('button').forEach(btn => {
+                btn.style.background = '#333333';
+                btn.style.color = '#FFFFFF';
+                btn.addEventListener('mouseover', () => { btn.style.background = '#444444'; });
+                btn.addEventListener('mouseout', () => { btn.style.background = '#333333'; });
+            });
             contentWrapper.style.scrollbarColor = '#666666 #000000';
             styleSheet.textContent = `
                 .problem-links-wrapper::-webkit-scrollbar {
@@ -416,7 +497,13 @@
             modeSelector.style.background = '#38444D';
             modeSelector.style.color = '#FFFFFF';
             modeSelector.className = 'dim';
-            collapseLabel.style.color = '#D9D9D9';
+            controlLabel.style.color = '#D9D9D9';
+            controlRow.querySelectorAll('button').forEach(btn => {
+                btn.style.background = '#38444D';
+                btn.style.color = '#FFFFFF';
+                btn.addEventListener('mouseover', () => { btn.style.background = '#4A5C6D'; });
+                btn.addEventListener('mouseout', () => { btn.style.background = '#38444D'; });
+            });
             contentWrapper.style.scrollbarColor = '#4A5C6D #15202B';
             styleSheet.textContent = `
                 .problem-links-wrapper::-webkit-scrollbar {
@@ -460,7 +547,13 @@
             modeSelector.style.background = '#D3D3D3';
             modeSelector.style.color = '#292F33';
             modeSelector.className = 'light';
-            collapseLabel.style.color = '#292F33';
+            controlLabel.style.color = '#292F33';
+            controlRow.querySelectorAll('button').forEach(btn => {
+                btn.style.background = '#D3D3D3';
+                btn.style.color = '#292F33';
+                btn.addEventListener('mouseover', () => { btn.style.background = '#C0C0C0'; });
+                btn.addEventListener('mouseout', () => { btn.style.background = '#D3D3D3'; });
+            });
             contentWrapper.style.scrollbarColor = '#CCD6DD #FFFFFF';
             styleSheet.textContent = `
                 .problem-links-wrapper::-webkit-scrollbar {
@@ -502,7 +595,7 @@
         article.style.overflow = 'hidden';
         article.style.margin = '0';
         article.style.padding = '0';
-        article.style.transition = 'height 0.2s ease'; // Smooth transition
+        article.style.transition = 'height 0.2s ease';
     }
 
     function expandArticle(article) {
@@ -562,8 +655,7 @@
                 processedArticles.add(article);
             } else if (isRepliesPage && isCollapsingEnabled) {
                 collapseArticle(article);
-            } else if (isRepliesPage && !isCollapsingEnabled) {
-                expandArticle(article);
+                processedArticles.add(article);
             }
         }
         try {
