@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.5.5
+// @version      0.5.6
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -34,6 +34,7 @@
     const problemLinks = new Set();
     let isDarkMode = true;
     let isPanelVisible = true;
+    let isCollapsingEnabled = false;
     let sidePanel, label, modeSelector, toggleButton, contentWrapper, styleSheet, toolbar;
 
     function log(message) {
@@ -76,7 +77,6 @@
     }
 
     function detectTheme() {
-        // First, check for data-theme attribute
         const dataTheme = document.body.getAttribute('data-theme');
         log(`Detected data-theme: ${dataTheme}`);
         if (dataTheme) {
@@ -89,7 +89,6 @@
             }
         }
 
-        // Fallback: Check body class
         const bodyClasses = document.body.classList;
         log(`Body classes: ${Array.from(bodyClasses).join(', ')}`);
         if (bodyClasses.contains('dark') || bodyClasses.contains('theme-dark') || bodyClasses.contains('theme-lights-out')) {
@@ -100,25 +99,22 @@
             return 'light';
         }
 
-        // Fallback: Check background color of the body
         const bodyBgColor = window.getComputedStyle(document.body).backgroundColor;
         log(`Body background color: ${bodyBgColor}`);
-        if (bodyBgColor === 'rgb(0, 0, 0)') { // Lights Out / Dark
+        if (bodyBgColor === 'rgb(0, 0, 0)') {
             return 'dark';
-        } else if (bodyBgColor === 'rgb(21, 32, 43)') { // Dim (#15202B)
+        } else if (bodyBgColor === 'rgb(21, 32, 43)') {
             return 'dim';
-        } else if (bodyBgColor === 'rgb(255, 255, 255)') { // Light
+        } else if (bodyBgColor === 'rgb(255, 255, 255)') {
             return 'light';
         }
 
-        // Default to Light if all detection fails
         return 'light';
     }
 
     function createPanel() {
         log('Creating panel...');
 
-        // Detect the user's active theme on X.com
         let initialMode = detectTheme();
         log(`Detected initial mode: ${initialMode}`);
         if (initialMode === 'dark' || initialMode === 'dim') {
@@ -163,7 +159,42 @@
             color: initialMode === 'light' ? '#292F33' : '#D9D9D9'
         });
 
-        // Mode selector dropdown styled like the "Post" button
+        // Collapse checkbox
+        const collapseCheckboxContainer = document.createElement('div');
+        Object.assign(collapseCheckboxContainer.style, {
+            display: 'flex',
+            alignItems: 'center',
+            marginRight: '8px'
+        });
+
+        const collapseCheckbox = document.createElement('input');
+        collapseCheckbox.type = 'checkbox';
+        collapseCheckbox.id = 'collapseCheckbox';
+        collapseCheckbox.checked = isCollapsingEnabled;
+        Object.assign(collapseCheckbox.style, {
+            marginRight: '4px',
+            cursor: 'pointer'
+        });
+
+        const collapseLabel = document.createElement('label');
+        collapseLabel.htmlFor = 'collapseCheckbox';
+        collapseLabel.textContent = 'Collapse';
+        Object.assign(collapseLabel.style, {
+            fontSize: '13px',
+            color: initialMode === 'light' ? '#292F33' : '#D9D9D9',
+            cursor: 'pointer'
+        });
+
+        collapseCheckbox.addEventListener('change', (e) => {
+            isCollapsingEnabled = e.target.checked;
+            log(`Collapsing articles ${isCollapsingEnabled ? 'enabled' : 'disabled'}`);
+            highlightPotentialProblems();
+        });
+
+        collapseCheckboxContainer.appendChild(collapseCheckbox);
+        collapseCheckboxContainer.appendChild(collapseLabel);
+
+        // Mode selector
         modeSelector = document.createElement('select');
         Object.assign(modeSelector.style, {
             background: initialMode === 'light' ? '#D3D3D3' : (initialMode === 'dim' ? '#38444D' : '#333333'),
@@ -187,7 +218,7 @@
             <option value="dim">Dim</option>
             <option value="light">Light</option>
         `;
-        modeSelector.value = initialMode; // Set to detected mode
+        modeSelector.value = initialMode;
         modeSelector.addEventListener('change', (e) => {
             const mode = e.target.value;
             if (mode === 'dim' || mode === 'dark') {
@@ -198,6 +229,7 @@
             updateTheme();
         });
 
+        // Toggle button
         toggleButton = document.createElement('button');
         toggleButton.textContent = 'Hide';
         Object.assign(toggleButton.style, {
@@ -222,12 +254,14 @@
             if (isPanelVisible) {
                 label.style.display = 'inline';
                 modeSelector.style.display = 'inline-block';
+                collapseCheckboxContainer.style.display = 'flex';
                 contentWrapper.style.display = 'block';
                 toggleButton.textContent = 'Hide';
                 sidePanel.style.width = '350px';
             } else {
                 label.style.display = 'none';
                 modeSelector.style.display = 'none';
+                collapseCheckboxContainer.style.display = 'none';
                 contentWrapper.style.display = 'none';
                 toggleButton.textContent = 'Show';
                 sidePanel.style.width = 'auto';
@@ -237,6 +271,7 @@
         });
 
         toolbar.appendChild(label);
+        toolbar.appendChild(collapseCheckboxContainer);
         toolbar.appendChild(modeSelector);
         toolbar.appendChild(toggleButton);
 
@@ -340,6 +375,7 @@
             modeSelector.style.background = '#333333';
             modeSelector.style.color = '#FFFFFF';
             modeSelector.className = 'dark';
+            collapseLabel.style.color = '#D9D9D9';
             contentWrapper.style.scrollbarColor = '#666666 #000000';
             styleSheet.textContent = `
                 .problem-links-wrapper::-webkit-scrollbar {
@@ -383,6 +419,7 @@
             modeSelector.style.background = '#38444D';
             modeSelector.style.color = '#FFFFFF';
             modeSelector.className = 'dim';
+            collapseLabel.style.color = '#D9D9D9';
             contentWrapper.style.scrollbarColor = '#4A5C6D #15202B';
             styleSheet.textContent = `
                 .problem-links-wrapper::-webkit-scrollbar {
@@ -426,6 +463,7 @@
             modeSelector.style.background = '#D3D3D3';
             modeSelector.style.color = '#292F33';
             modeSelector.className = 'light';
+            collapseLabel.style.color = '#292F33';
             contentWrapper.style.scrollbarColor = '#CCD6DD #FFFFFF';
             styleSheet.textContent = `
                 .problem-links-wrapper::-webkit-scrollbar {
@@ -462,9 +500,13 @@
         links.forEach(link => { link.style.color = '#1DA1F2'; });
     }
 
+    function collapseArticle(article) {
+        article.style.display = 'none';
+    }
+
     function highlightPotentialProblems() {
         const isRepliesPage = isProfileRepliesPage();
-        const articles = document.getElementsByTagName('article');
+        const articles = document.querySelectorAll('div[data-testid="cellInnerDiv"]');
 
         log(`Scanning ${articles.length} articles`);
 
@@ -509,6 +551,10 @@
                     log('No time element found in article');
                 }
                 processedArticles.add(article);
+            } else if (isRepliesPage && isCollapsingEnabled) {
+                collapseArticle(article);
+            } else if (isRepliesPage && !isCollapsingEnabled) {
+                article.style.display = '';
             }
         }
         try {
