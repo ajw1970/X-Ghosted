@@ -1,6 +1,6 @@
 {
   "name": "x-ghosted",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "= 𝕏 Ghostban Prevention or Cleanup",
   "main": "index.js",
   "scripts": {

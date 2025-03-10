@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.5.6
+// @version      0.5.7
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -277,7 +277,6 @@
       color: initialMode === 'light' ? '#292F33' : '#D9D9D9',
     });
 
-    // Collapse checkbox
     const collapseCheckboxContainer = document.createElement('div');
     Object.assign(collapseCheckboxContainer.style, {
       display: 'flex',
@@ -314,7 +313,6 @@
     collapseCheckboxContainer.appendChild(collapseCheckbox);
     collapseCheckboxContainer.appendChild(collapseLabel);
 
-    // Mode selector
     modeSelector = document.createElement('select');
     Object.assign(modeSelector.style, {
       background:
@@ -354,7 +352,6 @@
       updateTheme();
     });
 
-    // Toggle button
     toggleButton = document.createElement('button');
     toggleButton.textContent = 'Hide';
     Object.assign(toggleButton.style, {
@@ -670,7 +667,19 @@
   }
 
   function collapseArticle(article) {
-    article.style.display = 'none';
+    article.style.height = '0';
+    article.style.overflow = 'hidden';
+    article.style.margin = '0';
+    article.style.padding = '0';
+    article.style.transition = 'height 0.2s ease'; // Smooth transition
+  }
+
+  function expandArticle(article) {
+    article.style.height = '';
+    article.style.overflow = '';
+    article.style.margin = '';
+    article.style.padding = '';
+    article.style.transition = '';
   }
 
   function highlightPotentialProblems() {
@@ -730,7 +739,7 @@
       } else if (isRepliesPage && isCollapsingEnabled) {
         collapseArticle(article);
       } else if (isRepliesPage && !isCollapsingEnabled) {
-        article.style.display = '';
+        expandArticle(article);
       }
     }
     try {
