@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.5.8
+// @version      0.5.9
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -35,7 +35,8 @@
     let isDarkMode = true;
     let isPanelVisible = true;
     let isCollapsingEnabled = false;
-    let sidePanel, label, modeSelector, toggleButton, contentWrapper, styleSheet, toolbar, controlRow, controlLabel;
+    let isCollapsingRunning = false; // New state to track running vs paused
+    let sidePanel, label, modeSelector, toggleButton, copyButton, contentWrapper, styleSheet, toolbar, controlRow, controlLabel;
 
     function log(message) {
         // GM_log(`[${new Date().toISOString()}] ${message}`);
@@ -112,6 +113,17 @@
         return 'light';
     }
 
+    function updateControlLabel() {
+        if (!controlLabel) return;
+        if (isCollapsingEnabled) {
+            controlLabel.textContent = 'Auto Collapse Running';
+        } else if (isCollapsingRunning) {
+            controlLabel.textContent = 'Auto Collapse Paused';
+        } else {
+            controlLabel.textContent = 'Auto Collapse Off';
+        }
+    }
+
     function createPanel() {
         log('Creating panel...');
 
@@ -157,6 +169,37 @@
             fontSize: '15px',
             fontWeight: '700',
             color: initialMode === 'light' ? '#292F33' : '#D9D9D9'
+        });
+
+        copyButton = document.createElement('button');
+        copyButton.textContent = 'Copy';
+        Object.assign(copyButton.style, {
+            background: initialMode === 'light' ? '#D3D3D3' : (initialMode === 'dim' ? '#38444D' : '#333333'),
+            color: initialMode === 'light' ? '#292F33' : '#FFFFFF',
+            border: 'none',
+            padding: '6px 12px',
+            borderRadius: '9999px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '500',
+            transition: 'background 0.2s ease',
+            marginRight: '8px'
+        });
+        copyButton.addEventListener('mouseover', () => { 
+            copyButton.style.background = initialMode === 'light' ? '#C0C0C0' : (initialMode === 'dim' ? '#4A5C6D' : '#444444');
+        });
+        copyButton.addEventListener('mouseout', () => { 
+            copyButton.style.background = initialMode === 'light' ? '#D3D3D3' : (initialMode === 'dim' ? '#38444D' : '#333333');
+        });
+        copyButton.addEventListener('click', () => {
+            const linksText = Array.from(problemLinks).map(href => `https://x.com${href}`).join('\n');
+            navigator.clipboard.writeText(linksText).then(() => {
+                log('Links copied to clipboard');
+                alert('Links copied to clipboard!');
+            }).catch(err => {
+                log(`Failed to copy links: ${err}`);
+                alert('Failed to copy links. Check console for details.');
+            });
         });
 
         modeSelector = document.createElement('select');
@@ -216,6 +259,7 @@
             isPanelVisible = !isPanelVisible;
             if (isPanelVisible) {
                 label.style.display = 'inline';
+                copyButton.style.display = 'inline-block';
                 modeSelector.style.display = 'inline-block';
                 controlRow.style.display = 'flex';
                 contentWrapper.style.display = 'block';
@@ -223,6 +267,7 @@
                 sidePanel.style.width = '350px';
             } else {
                 label.style.display = 'none';
+                copyButton.style.display = 'none';
                 modeSelector.style.display = 'none';
                 controlRow.style.display = 'none';
                 contentWrapper.style.display = 'none';
@@ -234,10 +279,10 @@
         });
 
         toolbar.appendChild(label);
+        toolbar.appendChild(copyButton);
         toolbar.appendChild(modeSelector);
         toolbar.appendChild(toggleButton);
 
-        // Control row with label and horizontal buttons floated right
         controlRow = document.createElement('div');
         Object.assign(controlRow.style, {
             display: 'flex',
@@ -248,7 +293,7 @@
         });
 
         controlLabel = document.createElement('span');
-        controlLabel.textContent = 'Auto Collapse:';
+        controlLabel.textContent = 'Auto Collapse Off'; // Initial state
         Object.assign(controlLabel.style, {
             fontSize: '13px',
             fontWeight: '500',
@@ -282,7 +327,9 @@
         });
         startButton.addEventListener('click', () => {
             isCollapsingEnabled = true;
+            isCollapsingRunning = true;
             log('Collapsing started');
+            updateControlLabel();
             highlightPotentialProblems();
         });
 
@@ -308,6 +355,7 @@
         stopButton.addEventListener('click', () => {
             isCollapsingEnabled = false;
             log('Collapsing stopped');
+            updateControlLabel();
             highlightPotentialProblems();
         });
 
@@ -332,10 +380,12 @@
         });
         resetButton.addEventListener('click', () => {
             isCollapsingEnabled = false;
+            isCollapsingRunning = false;
             log('Collapsing reset');
             const articles = document.querySelectorAll('div[data-testid="cellInnerDiv"]');
             articles.forEach(article => expandArticle(article));
             processedArticles.clear();
+            updateControlLabel();
             highlightPotentialProblems();
         });
 
@@ -391,15 +441,19 @@
                 outline: none;
                 box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3);
             }
+            .link-item {
+                padding: 4px 0;
+            }
         `;
         document.head.appendChild(styleSheet);
 
         log('Panel created successfully');
         try {
             updateTheme();
-            log('Theme updated successfully');
+            updateControlLabel();
+            log('Theme and control label updated successfully');
         } catch (e) {
-            log(`Error updating theme: ${e.message}`);
+            log(`Error updating theme or control label: ${e.message}`);
         }
     }
 
@@ -411,6 +465,8 @@
         label.textContent = `Potential Problems (${problemLinks.size}):`;
         contentWrapper.innerHTML = '';
         problemLinks.forEach(href => {
+            const linkItem = document.createElement('div');
+            linkItem.className = 'link-item';
             const a = document.createElement('a');
             a.href = 'https://x.com' + href;
             a.textContent = 'https://x.com' + href;
@@ -419,16 +475,17 @@
                 display: 'block',
                 color: '#1DA1F2',
                 textDecoration: 'none',
-                marginBottom: '5px'
+                wordBreak: 'break-all'
             });
-            contentWrapper.appendChild(a);
+            linkItem.appendChild(a);
+            contentWrapper.appendChild(linkItem);
         });
         contentWrapper.scrollTop = contentWrapper.scrollHeight;
     }
 
     function updateTheme() {
         log('Updating theme...');
-        if (!sidePanel || !toolbar || !label || !contentWrapper || !styleSheet || !modeSelector || !controlRow || !controlLabel) {
+        if (!sidePanel || !toolbar || !label || !contentWrapper || !styleSheet || !modeSelector || !controlRow || !controlLabel || !copyButton) {
             log('One or more panel elements are undefined');
             return;
         }
@@ -444,6 +501,10 @@
             toggleButton.style.color = '#FFFFFF';
             toggleButton.addEventListener('mouseover', () => { toggleButton.style.background = '#444444'; });
             toggleButton.addEventListener('mouseout', () => { toggleButton.style.background = '#333333'; });
+            copyButton.style.background = '#333333';
+            copyButton.style.color = '#FFFFFF';
+            copyButton.addEventListener('mouseover', () => { copyButton.style.background = '#444444'; });
+            copyButton.addEventListener('mouseout', () => { copyButton.style.background = '#333333'; });
             modeSelector.style.background = '#333333';
             modeSelector.style.color = '#FFFFFF';
             modeSelector.className = 'dark';
@@ -483,6 +544,9 @@
                     outline: none;
                     box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3);
                 }
+                .link-item {
+                    padding: 4px 0;
+                }
             `;
         } else if (mode === 'dim') {
             sidePanel.style.background = '#15202B';
@@ -494,6 +558,10 @@
             toggleButton.style.color = '#FFFFFF';
             toggleButton.addEventListener('mouseover', () => { toggleButton.style.background = '#4A5C6D'; });
             toggleButton.addEventListener('mouseout', () => { toggleButton.style.background = '#38444D'; });
+            copyButton.style.background = '#38444D';
+            copyButton.style.color = '#FFFFFF';
+            copyButton.addEventListener('mouseover', () => { copyButton.style.background = '#4A5C6D'; });
+            copyButton.addEventListener('mouseout', () => { copyButton.style.background = '#38444D'; });
             modeSelector.style.background = '#38444D';
             modeSelector.style.color = '#FFFFFF';
             modeSelector.className = 'dim';
@@ -533,6 +601,9 @@
                     outline: none;
                     box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3);
                 }
+                .link-item {
+                    padding: 4px 0;
+                }
             `;
         } else if (mode === 'light') {
             sidePanel.style.background = '#FFFFFF';
@@ -544,6 +615,10 @@
             toggleButton.style.color = '#292F33';
             toggleButton.addEventListener('mouseover', () => { toggleButton.style.background = '#C0C0C0'; });
             toggleButton.addEventListener('mouseout', () => { toggleButton.style.background = '#D3D3D3'; });
+            copyButton.style.background = '#D3D3D3';
+            copyButton.style.color = '#292F33';
+            copyButton.addEventListener('mouseover', () => { copyButton.style.background = '#C0C0C0'; });
+            copyButton.addEventListener('mouseout', () => { copyButton.style.background = '#D3D3D3'; });
             modeSelector.style.background = '#D3D3D3';
             modeSelector.style.color = '#292F33';
             modeSelector.className = 'light';
@@ -582,6 +657,9 @@
                 select:focus {
                     outline: none;
                     box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3);
+                }
+                .link-item {
+                    padding: 4px 0;
                 }
             `;
         }
