@@ -1,12 +1,14 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.6.2
+// @version      0.6.3
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=x.com
 // @grant        GM_log
+// @grant        GM_setValue
+// @grant        GM_getValue
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -86,6 +88,20 @@
     };
   }
 
+  // Load and save allPosts persistently
+  function loadAllPosts() {
+    const savedPosts = GM_getValue('allPosts', '{}');
+    const parsedPosts = JSON.parse(savedPosts);
+    state.allPosts = new Map(Object.entries(parsedPosts));
+    GM_log(`Loaded ${state.allPosts.size} posts from storage`);
+  }
+
+  function saveAllPosts() {
+    const postsObj = Object.fromEntries(state.allPosts);
+    GM_setValue('allPosts', JSON.stringify(postsObj));
+    GM_log(`Saved ${state.allPosts.size} posts to storage`);
+  }
+
   // --- Detection Functions ---
   function detectTheme() {
     const dataTheme = document.body.getAttribute('data-theme') || '';
@@ -135,8 +151,8 @@
       .querySelector('.css-146c3p1.r-1loqt21 time')
       ?.parentElement?.getAttribute('href');
     if (href && status !== 'none') {
-      // Only track posts that are potential, problem, or safe
       state.allPosts.set(href, status);
+      saveAllPosts();
     }
   }
 
@@ -397,7 +413,8 @@
           : '13px',
       fontWeight: '500',
       transition: 'background 0.2s ease',
-      marginRight: text === 'Copy' || text === 'Hide' ? '8px' : '0',
+      marginRight:
+        text === 'Copy' || text === 'Hide' || text === 'Import' ? '8px' : '0',
     });
     button.addEventListener(
       'mouseover',
@@ -477,6 +494,11 @@
         });
     });
 
+    uiElements.importButton = createButton('Import', mode, () => {
+      uiElements.importRow.style.display =
+        uiElements.importRow.style.display === 'none' ? 'block' : 'none';
+    });
+
     uiElements.modeSelector = document.createElement('select');
     uiElements.modeSelector.innerHTML =
       '<option value="dark">Dark</option><option value="dim">Dim</option><option value="light">Light</option>';
@@ -501,6 +523,86 @@
     });
 
     uiElements.toggleButton = createButton('Hide', mode, togglePanelVisibility);
+
+    uiElements.importRow = document.createElement('div');
+    Object.assign(uiElements.importRow.style, {
+      display: 'none',
+      padding: '8px 0',
+      borderBottom: `1px solid ${CONFIG.THEMES[mode].border}`,
+      marginBottom: '8px',
+    });
+
+    uiElements.importTextarea = document.createElement('textarea');
+    Object.assign(uiElements.importTextarea.style, {
+      width: '100%',
+      height: '60px',
+      marginBottom: '8px',
+      background: CONFIG.THEMES[mode].bg,
+      color: CONFIG.THEMES[mode].text,
+      border: `1px solid ${CONFIG.THEMES[mode].border}`,
+      borderRadius: '4px',
+      padding: '4px',
+      resize: 'none',
+    });
+
+    uiElements.importSubmitButton = createButton('Submit', mode, () => {
+      const csvText = uiElements.importTextarea.value.trim();
+      if (!csvText) {
+        alert('Please paste CSV data to import.');
+        return;
+      }
+      try {
+        const lines = csvText.split('\n').filter((line) => line.trim());
+        if (lines.length === 0) {
+          alert('No valid data to import.');
+          return;
+        }
+
+        // Skip header row if present
+        const startIndex = lines[0].startsWith('"Status","URL"') ? 1 : 0;
+        let importedCount = 0;
+        for (let i = startIndex; i < lines.length; i++) {
+          const line = lines[i];
+          const match = line.match(/"([^"]+)","(https:\/\/x\.com[^"]+)"/);
+          if (match) {
+            const statusWord = match[1];
+            const url = match[2];
+            const href = url.replace('https://x.com', '');
+            const status =
+              statusWord === 'unverified'
+                ? 'potential'
+                : statusWord === 'problem'
+                  ? 'problem'
+                  : statusWord === 'good'
+                    ? 'safe'
+                    : null;
+            if (status) {
+              state.allPosts.set(href, status);
+              if (status === 'problem') {
+                state.problemLinks.add(href);
+              }
+              importedCount++;
+            }
+          }
+        }
+        saveAllPosts();
+        updatePanel();
+        uiElements.importTextarea.value = '';
+        uiElements.importRow.style.display = 'none';
+        alert(`Successfully imported ${importedCount} posts.`);
+        GM_log(`Imported ${importedCount} posts from CSV`);
+      } catch (e) {
+        GM_log(`Error importing CSV: ${e.message}`);
+        alert(
+          'Error importing CSV data. Please ensure it matches the expected format.',
+        );
+      }
+    });
+
+    uiElements.importRow.append(
+      uiElements.importTextarea,
+      uiElements.importSubmitButton,
+    );
 
     uiElements.controlRow = document.createElement('div');
     Object.assign(uiElements.controlRow.style, {
@@ -553,8 +655,9 @@
           .forEach(expandArticle);
         state.processedArticles = new WeakSet();
         state.fullyProcessedArticles.clear();
-        state.allPosts.clear(); // Clear allPosts on reset
+        state.allPosts.clear();
         state.problemLinks.clear();
+        GM_setValue('allPosts', '{}'); // Clear persistent storage
         updateControlLabel();
         highlightPotentialProblems();
       }),
@@ -574,12 +677,14 @@
     uiElements.toolbar.append(
       uiElements.label,
       uiElements.copyButton,
+      uiElements.importButton,
       uiElements.modeSelector,
       uiElements.toggleButton,
     );
     uiElements.controlRow.append(uiElements.controlLabel, buttonContainer);
     uiElements.panel.append(
       uiElements.toolbar,
+      uiElements.importRow,
       uiElements.controlRow,
       uiElements.contentWrapper,
     );
@@ -616,8 +721,10 @@
     const {
       label,
       copyButton,
+      importButton,
       modeSelector,
       toggleButton,
+      importRow,
       controlRow,
       contentWrapper,
       panel,
@@ -625,6 +732,7 @@
     if (state.isPanelVisible) {
       label.style.display =
         copyButton.style.display =
+        importButton.style.display =
         modeSelector.style.display =
           'inline-block';
       controlRow.style.display = 'flex';
@@ -634,8 +742,10 @@
     } else {
       label.style.display =
         copyButton.style.display =
+        importButton.style.display =
         modeSelector.style.display =
         controlRow.style.display =
+        importRow.style.display =
         contentWrapper.style.display =
           'none';
       toggleButton.textContent = 'Show';
@@ -706,6 +816,10 @@
       controlLabel,
       toggleButton,
       copyButton,
+      importButton,
+      importRow,
+      importTextarea,
+      importSubmitButton,
       controlRow,
     } = uiElements;
     if (
@@ -718,6 +832,10 @@
       !controlLabel ||
       !toggleButton ||
       !copyButton ||
+      !importButton ||
+      !importRow ||
+      !importTextarea ||
+      !importSubmitButton ||
       !controlRow
     ) {
       GM_log('One or more panel elements are undefined');
@@ -732,10 +850,16 @@
       border: `1px solid ${theme.border}`,
     });
     toolbar.style.borderBottom = `1px solid ${theme.border}`;
+    importRow.style.borderBottom = `1px solid ${theme.border}`;
     label.style.color = controlLabel.style.color = theme.text;
+    importTextarea.style.background = theme.bg;
+    importTextarea.style.color = theme.text;
+    importTextarea.style.border = `1px solid ${theme.border}`;
     [
       toggleButton,
       copyButton,
+      importButton,
+      importSubmitButton,
       ...controlRow.querySelectorAll('button'),
     ].forEach((btn) => {
       btn.style.background = theme.button;
@@ -881,6 +1005,22 @@
         const href = article
           .querySelector('.css-146c3p1.r-1loqt21 time')
           ?.parentElement?.getAttribute('href');
+        if (href && state.allPosts.has(href)) {
+          const status = state.allPosts.get(href);
+          // Skip rechecking if the post has a verified status (problem or safe)
+          if (status === 'problem' || status === 'safe') {
+            GM_log(
+              `Skipping already verified post: ${href} (status: ${status})`,
+            );
+            applyHighlight(article, status);
+            state.fullyProcessedArticles.add(article);
+            if (status === 'problem') {
+              state.problemLinks.add(href);
+            }
+            continue;
+          }
+        }
+
         const hasNotice = articleContainsSystemNotice(article);
         const hasLinks = articleLinksToTargetCommunities(article);
 
@@ -957,7 +1097,9 @@
   function init() {
     GM_log('Script starting...');
     try {
+      loadAllPosts();
       createPanel();
+      updatePanel();
       setupMonitoring();
     } catch (e) {
       GM_log(`Error in script execution: ${e.message}`);
