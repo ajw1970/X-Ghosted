@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.5.10
+// @version      0.5.11
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=x.com
 // @grant        GM_log
+// @grant        GM.xmlHttpRequest
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -15,7 +16,7 @@
 
     // --- Configuration ---
     const CONFIG = {
-        CHECK_DELAY: 250, // Increased debounce delay
+        CHECK_DELAY: 250,
         HIGHLIGHT_STYLE: 'highlight-post',
         COLLAPSE_STYLE: 'collapse-post',
         PANEL: {
@@ -36,6 +37,7 @@
     // --- State ---
     const state = {
         processedArticles: new WeakSet(),
+        fullyProcessedArticles: new Set(),
         problemLinks: new Set(),
         isDarkMode: true,
         isPanelVisible: true,
@@ -47,10 +49,6 @@
     const uiElements = {};
 
     // --- Utility Functions ---
-    function log(message) {
-        // GM_log(`[${new Date().toISOString()}] ${message}`);
-    }
-
     function debounce(func, wait) {
         let timeout;
         return (...args) => {
@@ -76,25 +74,30 @@
 
     function isProfileRepliesPage() {
         const url = window.location.href;
-        log(`Checking URL: ${url}`);
         return url.startsWith('https://x.com/') && url.endsWith('/with_replies');
     }
 
     // --- UI Manipulation Functions ---
-    function applyHighlight(article) {
-        article.classList.add(CONFIG.HIGHLIGHT_STYLE);
-        log('Highlighted article');
-    }
-
-    function removeHighlight(article) {
-        article.classList.remove(CONFIG.HIGHLIGHT_STYLE);
+    function applyHighlight(article, status = 'potential') {
+        const styles = {
+            'problem': { background: 'rgba(255, 0, 0, 0.3)', border: '2px solid red' },
+            'potential': { background: 'rgba(255, 255, 0, 0.3)', border: '2px solid yellow' },
+            'safe': { background: 'rgba(0, 255, 0, 0.3)', border: '2px solid green' },
+            'none': { background: '', border: '' }
+        };
+        const style = styles[status] || styles['none'];
+        article.style.backgroundColor = style.background;
+        article.style.border = style.border;
+        // GM_log(`Applied ${status} highlight to article with text: ${article.textContent.slice(0, 50)}...`);
     }
 
     function collapseArticle(article) {
         article.classList.add(CONFIG.COLLAPSE_STYLE);
+        // GM_log(`Collapsed article with text: ${article.textContent.slice(0, 50)}...`);
     }
 
     function expandArticle(article) {
+        // GM_log(`Expanded article with text: ${article.textContent.slice(0, 50)}...`);
         article.classList.remove(CONFIG.COLLAPSE_STYLE);
     }
 
@@ -102,18 +105,118 @@
         const button = article.querySelector('button[aria-label="Share post"]');
         if (button) {
             const newLink = Object.assign(document.createElement('a'), {
-                href: 'https://x.com' + href,
                 textContent: '👀',
-                target: '_blank',
-                rel: 'noopener noreferrer',
+                href: '#', // Prevent default navigation; we'll handle it in the click event
             });
             Object.assign(newLink.style, {
-                color: 'rgb(29, 155, 240)', textDecoration: 'none', padding: '8px',
+                color: 'rgb(29, 155, 240)', textDecoration: 'none', padding: '8px', cursor: 'pointer',
+            });
+            newLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                checkPostInNewTab(article, href);
             });
             button.parentElement.replaceChild(newLink, button);
-            log(`Replaced menu button with href: ${href}`);
+            // GM_log(`Replaced menu button with clickable eyeballs for href: ${href}`);
         } else {
-            log('No share button found in article');
+            // GM_log('No share button found in article');
+        }
+    }
+
+    function checkPostInNewTab(article, href) {
+        const fullUrl = `https://x.com${href}`;
+        GM_log(`Opening new tab to check: ${fullUrl}`);
+    
+        const newWindow = window.open(fullUrl, '_blank');
+        if (!newWindow) {
+            GM_log('Failed to open new tab; popup blocker may be active');
+            alert('Please allow popups for this site to check the post.');
+            return;
+        }
+    
+        let attempts = 0;
+        const maxAttempts = 10; // Try for 5 seconds total
+        const checkInterval = setInterval(() => {
+            attempts++;
+            try {
+                if (newWindow.closed) {
+                    clearInterval(checkInterval);
+                    GM_log('New tab was closed by user');
+                    applyHighlight(article, 'potential');
+                    return;
+                }
+    
+                if (newWindow.document.readyState === 'complete') {
+                    clearInterval(checkInterval);
+                    const doc = newWindow.document;
+                    const threadArticles = doc.querySelectorAll('div[data-testid="cellInnerDiv"]');
+    
+                    GM_log(`Found ${threadArticles.length} articles in new tab for ${fullUrl}`);
+                    let isProblem = false;
+    
+                    if (threadArticles.length === 0) {
+                        GM_log('No articles found - page might not have loaded correctly');
+                        // Wait a bit longer in case of slow loading
+                        if (attempts < maxAttempts) {
+                            setTimeout(() => checkDom(newWindow, article, href, checkInterval), 1000);
+                            return;
+                        }
+                    }
+    
+                    for (let threadArticle of threadArticles) {
+                        const hasNotice = articleContainsSystemNotice(threadArticle);
+                        const hasLinks = articleLinksToTargetCommunities(threadArticle);
+                        GM_log(`Thread article - System Notice: ${hasNotice}, Target Links: ${hasLinks}`);
+                        if (hasNotice || hasLinks) {
+                            isProblem = true;
+                            break;
+                        }
+                    }
+    
+                    applyHighlight(article, isProblem ? 'problem' : 'safe');
+                    if (isProblem) {
+                        state.problemLinks.add(href);
+                        GM_log(`Problem confirmed for ${href}`);
+                    } else {
+                        state.problemLinks.delete(href);
+                        GM_log(`No problems found for ${href}`);
+                    }
+    
+                    state.fullyProcessedArticles.add(article);
+                    updatePanel();
+                    setTimeout(() => newWindow.close(), 500); // Give time for visual confirmation
+                }
+            } catch (e) {
+                GM_log(`Error accessing new tab DOM (attempt ${attempts}): ${e.message}`);
+                if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    applyHighlight(article, 'potential');
+                    GM_log('Max attempts reached, marking as potential');
+                    newWindow.close();
+                }
+            }
+        }, 500);
+    
+        function checkDom(win, art, link, interval) {
+            const articles = win.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+            if (articles.length > 0) {
+                clearInterval(interval);
+                let isProblem = false;
+                for (let threadArticle of articles) {
+                    const hasNotice = articleContainsSystemNotice(threadArticle);
+                    const hasLinks = articleLinksToTargetCommunities(threadArticle);
+                    GM_log(`Delayed check - System Notice: ${hasNotice}, Target Links: ${hasLinks}`);
+                    if (hasNotice || hasLinks) {
+                        isProblem = true;
+                        break;
+                    }
+                }
+                applyHighlight(art, isProblem ? 'problem' : 'safe');
+                if (isProblem) state.problemLinks.add(link);
+                else state.problemLinks.delete(link);
+                state.fullyProcessedArticles.add(art);
+                updatePanel();
+                setTimeout(() => win.close(), 500);
+            }
         }
     }
 
@@ -136,7 +239,7 @@
     }
 
     function createPanel() {
-        log('Creating panel...');
+        GM_log('Creating panel...');
         const mode = detectTheme();
         state.isDarkMode = mode !== 'light';
 
@@ -157,14 +260,14 @@
         });
 
         uiElements.label = document.createElement('span');
-        uiElements.label.textContent = 'Potential Problems (0):';
+        uiElements.label.textContent = 'Problem Posts (0):';
         Object.assign(uiElements.label.style, { fontSize: '15px', fontWeight: '700', color: CONFIG.THEMES[mode].text });
 
         uiElements.copyButton = createButton('Copy', mode, () => {
             const linksText = Array.from(state.problemLinks).map(href => `https://x.com${href}`).join('\n');
             navigator.clipboard.writeText(linksText)
-                .then(() => { log('Links copied'); alert('Links copied to clipboard!'); })
-                .catch(err => { log(`Copy failed: ${err}`); alert('Failed to copy links.'); });
+                .then(() => { GM_log('Links copied'); alert('Links copied to clipboard!'); })
+                .catch(err => { GM_log(`Copy failed: ${err}`); alert('Failed to copy links.'); });
         });
 
         uiElements.modeSelector = document.createElement('select');
@@ -198,22 +301,29 @@
             createButton('Start', mode, () => {
                 state.isCollapsingEnabled = true;
                 state.isCollapsingRunning = true;
-                log('Collapsing started');
+                GM_log('Collapsing started');
                 updateControlLabel();
+                const articles = document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+                articles.forEach(article => {
+                    if (state.processedArticles.has(article) && !state.fullyProcessedArticles.has(article) && !state.problemLinks.has(article.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement.getAttribute('href'))) {
+                        collapseArticle(article);
+                    }
+                });
                 highlightPotentialProblems();
             }),
             createButton('Stop', mode, () => {
                 state.isCollapsingEnabled = false;
-                log('Collapsing stopped');
+                GM_log('Collapsing stopped');
                 updateControlLabel();
                 highlightPotentialProblems();
             }),
             createButton('Reset', mode, () => {
                 state.isCollapsingEnabled = false;
                 state.isCollapsingRunning = false;
-                log('Collapsing reset');
+                GM_log('Collapsing reset');
                 document.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(expandArticle);
                 state.processedArticles.clear();
+                state.fullyProcessedArticles.clear();
                 updateControlLabel();
                 highlightPotentialProblems();
             })
@@ -248,7 +358,7 @@
         document.head.appendChild(uiElements.styleSheet);
         updateTheme();
         updateControlLabel();
-        log('Panel created successfully');
+        GM_log('Panel created successfully');
     }
 
     function togglePanelVisibility() {
@@ -266,7 +376,7 @@
             panel.style.width = 'auto';
             toggleButton.style.margin = '0';
         }
-        log(`Panel visibility toggled to: ${state.isPanelVisible ? 'visible' : 'hidden'}`);
+        GM_log(`Panel visibility toggled to: ${state.isPanelVisible ? 'visible' : 'hidden'}`);
     }
 
     function updateControlLabel() {
@@ -277,16 +387,18 @@
 
     function updatePanel() {
         if (!uiElements.label) {
-            log('Label is undefined, cannot update panel');
+            GM_log('Label is undefined, cannot update panel');
             return;
         }
-        uiElements.label.textContent = `Potential Problems (${state.problemLinks.size}):`;
+        uiElements.label.textContent = `Problem Posts (${state.problemLinks.size}):`;
         uiElements.contentWrapper.innerHTML = '';
         state.problemLinks.forEach(href => {
             const linkItem = document.createElement('div');
             linkItem.className = 'link-item';
             const a = Object.assign(document.createElement('a'), {
-                href: `https://x.com${href}`, textContent: `https://x.com${href}`, target: '_blank',
+                href: `https://x.com${href}`,
+                textContent: `${href}`,
+                target: '_blank',
             });
             Object.assign(a.style, { display: 'block', color: '#1DA1F2', textDecoration: 'none', wordBreak: 'break-all' });
             linkItem.appendChild(a);
@@ -296,10 +408,10 @@
     }
 
     function updateTheme() {
-        log('Updating theme...');
+        GM_log('Updating theme...');
         const { panel, toolbar, label, contentWrapper, styleSheet, modeSelector, controlLabel, toggleButton, copyButton, controlRow } = uiElements;
         if (!panel || !toolbar || !label || !contentWrapper || !styleSheet || !modeSelector || !controlLabel || !toggleButton || !copyButton || !controlRow) {
-            log('One or more panel elements are undefined');
+            GM_log('One or more panel elements are undefined');
             return;
         }
 
@@ -334,98 +446,99 @@
     }
 
     // --- Injected Modules ---
-    // Injected from src/utils/articleContainsSystemNotice.js
     // INJECT: articleContainsSystemNotice
-
-    // Injected from src/utils/articleLinksToTargetCommunities.js
     // INJECT: articleLinksToTargetCommunities
-
-    // Injected from src/utils/findReplyingToWithDepth.js
     // INJECT: findReplyingToWithDepth
 
     // --- Core Logic ---
     function highlightPotentialProblems(mutations = []) {
         const isRepliesPage = isProfileRepliesPage();
-        let articlesContainer = document.querySelector('main [role="region"]') || document.body; // Narrow to main content if possible
+        let articlesContainer = document.querySelector('main [role="region"]') || document.body;
         const articles = articlesContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
-        log(`Scanning ${articles.length} articles`);
+        // GM_log(`Scanning ${articles.length} articles`);
 
         for (const article of articles) {
-            if (state.processedArticles.has(article)) continue;
-
-            let shouldHighlight = false;
-            try {
-                if (articleContainsSystemNotice(article) || articleLinksToTargetCommunities(article)) {
-                    shouldHighlight = true;
-                    log('Article flagged by notice or links');
-                } else if (isRepliesPage) {
-                    const replyingToDepths = findReplyingToWithDepth(article);
-                    if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
-                        if (replyingToDepths.some(obj => obj.depth < 10)) {
-                            shouldHighlight = true;
-                            log('Article flagged as reply with depth < 10');
-                        }
-                    }
-                }
-            } catch (e) {
-                log(`Error in highlight conditions: ${e.message}`);
+            if (state.fullyProcessedArticles.has(article)) {
+                // GM_log(`Skipping fully processed article: ${article.textContent.slice(0, 50)}...`);
+                continue;
             }
 
-            if (shouldHighlight) {
-                applyHighlight(article);
-                const timeElement = article.querySelector('.css-146c3p1.r-1loqt21 time');
-                if (timeElement) {
-                    const href = timeElement.parentElement.getAttribute('href');
+            const wasProcessed = state.processedArticles.has(article);
+            if (!wasProcessed) {
+                state.processedArticles.add(article);
+            }
+
+            try {
+                const href = article.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement.getAttribute('href');
+                const hasNotice = articleContainsSystemNotice(article);
+                const hasLinks = articleLinksToTargetCommunities(article);
+                // GM_log(`Article - System Notice: ${hasNotice}, Target Links: ${hasLinks}`);
+
+                if (hasNotice || hasLinks) {
+                    GM_log(`Immediate problem detected for article`);
+                    applyHighlight(article, 'problem');
                     if (href) {
                         state.problemLinks.add(href);
                         replaceMenuButton(article, href);
-                        log(`Processed article with href: ${href}`);
+                        GM_log(`Immediate problem post with href: ${href}`);
+                    }
+                    state.fullyProcessedArticles.add(article);
+                } else {
+                    const replyingToDepths = isRepliesPage ? findReplyingToWithDepth(article) : null;
+                    // GM_log(`Reply depths: ${replyingToDepths ? JSON.stringify(replyingToDepths) : 'none'}`);
+                    if (isRepliesPage && replyingToDepths && Array.isArray(replyingToDepths) && replyingToDepths.length > 0 && replyingToDepths.some(obj => obj.depth < 10)) {
+                        applyHighlight(article, 'potential');
+                        if (href) {
+                            replaceMenuButton(article, href);
+                            // GM_log(`Potential problem post with href: ${href}`);
+                        }
+                    } else if (isRepliesPage && state.isCollapsingEnabled) {
+                        collapseArticle(article);
+                    } else if (!wasProcessed) {
+                        applyHighlight(article, 'none');
                     }
                 }
-                state.processedArticles.add(article);
-            } else if (isRepliesPage && state.isCollapsingEnabled) {
-                collapseArticle(article);
-                state.processedArticles.add(article);
+            } catch (e) {
+                GM_log(`Error in highlight conditions: ${e.message}`);
             }
         }
         try {
             updatePanel();
         } catch (e) {
-            log(`Error updating panel: ${e.message}`);
+            GM_log(`Error updating panel: ${e.message}`);
         }
     }
 
     // --- Initialization ---
     function setupMonitoring() {
-        log('Setting up monitoring...');
+        GM_log('Setting up monitoring...');
         function tryHighlighting(attempt = 1, maxAttempts = 3) {
-            log(`Attempt ${attempt} to highlight articles`);
+            GM_log(`Attempt ${attempt} to highlight articles`);
             highlightPotentialProblems();
             if (document.getElementsByTagName('article').length === 0 && attempt < maxAttempts) {
-                log('No articles found, retrying...');
-                setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000); // Slower retry
+                GM_log('No articles found, retrying...');
+                setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000);
             } else {
-                log(`Found ${document.getElementsByTagName('article').length} articles, proceeding with monitoring`);
+                GM_log(`Found ${document.getElementsByTagName('article').length} articles, proceeding with monitoring`);
             }
         }
 
         tryHighlighting();
         const debouncedHighlight = debounce(highlightPotentialProblems, CONFIG.CHECK_DELAY);
-        const observerTarget = document.querySelector('main [role="region"]') || document.body; // Narrow observation scope
+        const observerTarget = document.querySelector('main [role="region"]') || document.body;
         new MutationObserver(mutations => {
-            log(`DOM changed (${mutations.length} mutations)`);
+            // GM_log(`DOM changed (${mutations.length} mutations)`);
             debouncedHighlight(mutations);
         }).observe(observerTarget, { childList: true, subtree: true, attributes: true });
-        // Removed setInterval to rely solely on MutationObserver
     }
 
     function init() {
-        log('Script starting...');
+        GM_log('Script starting...');
         try {
             createPanel();
             setupMonitoring();
         } catch (e) {
-            log(`Error in script execution: ${e.message}`);
+            GM_log(`Error in script execution: ${e.message}`);
         }
     }
 
