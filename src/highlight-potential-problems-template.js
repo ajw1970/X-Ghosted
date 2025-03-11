@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.6.3
+// @version      0.6.4
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -43,12 +43,13 @@
         processedArticles: new WeakSet(),
         fullyProcessedArticles: new Set(),
         problemLinks: new Set(),
-        allPosts: new Map(), // Tracks all posts with their status
+        allPosts: new Map(),
         isDarkMode: true,
         isPanelVisible: true,
         isCollapsingEnabled: false,
         isCollapsingRunning: false,
         isRateLimited: false,
+        storageAvailable: true,
     };
 
     // --- UI Elements ---
@@ -67,18 +68,30 @@
         };
     }
 
-    // Load and save allPosts persistently
     function loadAllPosts() {
-        const savedPosts = GM_getValue('allPosts', '{}');
-        const parsedPosts = JSON.parse(savedPosts);
-        state.allPosts = new Map(Object.entries(parsedPosts));
-        GM_log(`Loaded ${state.allPosts.size} posts from storage`);
+        try {
+            const savedPosts = GM_getValue('allPosts', '{}');
+            const parsedPosts = JSON.parse(savedPosts);
+            state.allPosts = new Map(Object.entries(parsedPosts));
+            GM_log(`Loaded ${state.allPosts.size} posts from storage`);
+        } catch (e) {
+            GM_log(`Failed to load posts from storage: ${e.message}. Using in-memory storage.`);
+            state.storageAvailable = false;
+            state.allPosts = new Map();
+        }
     }
 
     function saveAllPosts() {
-        const postsObj = Object.fromEntries(state.allPosts);
-        GM_setValue('allPosts', JSON.stringify(postsObj));
-        GM_log(`Saved ${state.allPosts.size} posts to storage`);
+        if (state.storageAvailable) {
+            try {
+                const postsObj = Object.fromEntries(state.allPosts);
+                GM_setValue('allPosts', JSON.stringify(postsObj));
+                GM_log(`Saved ${state.allPosts.size} posts to storage`);
+            } catch (e) {
+                GM_log(`Failed to save posts to storage: ${e.message}. Data will be lost on page reload.`);
+                state.storageAvailable = false;
+            }
+        }
     }
 
     // --- Detection Functions ---
@@ -110,11 +123,14 @@
             'none': { background: '', border: '' }
         };
         const style = styles[status] || styles['none'];
-        article.style.backgroundColor = style.background;
-        article.style.border = style.border;
+        if (article && article.style) {
+            article.style.backgroundColor = style.background;
+            article.style.border = style.border;
+        } else {
+            GM_log('Error: Article element or style property is null');
+        }
 
-        // Update allPosts with current status
-        const href = article.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement?.getAttribute('href');
+        const href = article?.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement?.getAttribute('href');
         if (href && status !== 'none') {
             state.allPosts.set(href, status);
             saveAllPosts();
@@ -122,11 +138,11 @@
     }
 
     function collapseArticle(article) {
-        article.classList.add(CONFIG.COLLAPSE_STYLE);
+        if (article) article.classList.add(CONFIG.COLLAPSE_STYLE);
     }
 
     function expandArticle(article) {
-        article.classList.remove(CONFIG.COLLAPSE_STYLE);
+        if (article) article.classList.remove(CONFIG.COLLAPSE_STYLE);
     }
 
     function collapseArticlesWithDelay(articles) {
@@ -134,19 +150,30 @@
         const interval = setInterval(() => {
             if (index >= articles.length || !state.isCollapsingEnabled || state.isRateLimited) {
                 clearInterval(interval);
+                state.isCollapsingRunning = false; // Ensure running state is updated
                 GM_log('Collapsing completed or stopped');
                 return;
             }
             const article = articles[index];
-            if (state.processedArticles.has(article) && !state.fullyProcessedArticles.has(article) && 
-                !state.problemLinks.has(article.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement?.getAttribute('href'))) {
-                collapseArticle(article);
+            const timeElement = article.querySelector('.css-146c3p1.r-1loqt21 time');
+            const href = timeElement?.parentElement?.getAttribute('href');
+            if (article && state.processedArticles.has(article) && !state.fullyProcessedArticles.has(article)) {
+                GM_log(`Evaluating article for collapse: href=${href}, problemLink=${state.problemLinks.has(href)}`);
+                if (href && !state.problemLinks.has(href)) {
+                    collapseArticle(article);
+                    GM_log(`Collapsed article with href: ${href}`);
+                } else {
+                    GM_log(`Skipped collapsing article with href: ${href} (problem link or fully processed)`);
+                }
+            } else {
+                GM_log(`Skipped article at index ${index} (not processed or fully processed)`);
             }
             index++;
         }, CONFIG.COLLAPSE_DELAY);
     }
 
     function replaceMenuButton(article, href) {
+        if (!article) return;
         const button = article.querySelector('button[aria-label="Share post"]');
         if (button && !button.nextSibling?.textContent.includes('👀')) {
             const newLink = Object.assign(document.createElement('a'), {
@@ -324,94 +351,77 @@
     }
 
     // --- Panel Management ---
-    function createButton(text, mode, onClick) {
+    function createButton(text, iconSvg, mode, onClick) {
         const button = document.createElement('button');
-        button.textContent = text;
+        button.innerHTML = iconSvg ? `${iconSvg}<span>${text}</span>` : text;
         Object.assign(button.style, {
-            background: CONFIG.THEMES[mode].button, color: CONFIG.THEMES[mode].text, border: 'none',
-            padding: text === 'Start' || text === 'Stop' || text === 'Reset' ? '4px 8px' : '6px 12px',
-            borderRadius: '9999px', cursor: 'pointer',
-            fontSize: text === 'Start' || text === 'Stop' || text === 'Reset' ? '12px' : '13px',
-            fontWeight: '500', transition: 'background 0.2s ease',
-            marginRight: text === 'Copy' || text === 'Hide' || text === 'Import' ? '8px' : '0',
+            background: CONFIG.THEMES[mode].button,
+            color: CONFIG.THEMES[mode].text,
+            border: 'none',
+            padding: '6px 10px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: '500',
+            transition: 'background 0.2s ease, transform 0.1s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
         });
-        button.addEventListener('mouseover', () => button.style.background = CONFIG.THEMES[mode].hover);
-        button.addEventListener('mouseout', () => button.style.background = CONFIG.THEMES[mode].button);
+        button.addEventListener('mouseover', () => {
+            button.style.background = CONFIG.THEMES[mode].hover;
+            button.style.transform = 'translateY(-1px)';
+        });
+        button.addEventListener('mouseout', () => {
+            button.style.background = CONFIG.THEMES[mode].button;
+            button.style.transform = 'translateY(0)';
+        });
         button.addEventListener('click', onClick);
         return button;
     }
 
-    function createPanel() {
-        GM_log('Creating panel...');
-        const mode = detectTheme();
-        state.isDarkMode = mode !== 'light';
-
-        uiElements.panel = document.createElement('div');
-        Object.assign(uiElements.panel.style, {
-            position: 'fixed', top: CONFIG.PANEL.TOP, right: CONFIG.PANEL.RIGHT,
-            width: CONFIG.PANEL.WIDTH, maxHeight: CONFIG.PANEL.MAX_HEIGHT, zIndex: CONFIG.PANEL.Z_INDEX,
-            background: CONFIG.THEMES[mode].bg, color: CONFIG.THEMES[mode].text,
-            border: `1px solid ${CONFIG.THEMES[mode].border}`, borderRadius: '12px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)', fontFamily: CONFIG.PANEL.FONT,
-            padding: '12px', transition: 'all 0.2s ease',
+    function createModal() {
+        const modal = document.createElement('div');
+        Object.assign(modal.style, {
+            display: 'none',
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: CONFIG.THEMES[detectTheme()].bg,
+            color: CONFIG.THEMES[detectTheme()].text,
+            border: `1px solid ${CONFIG.THEMES[detectTheme()].border}`,
+            borderRadius: '8px',
+            padding: '20px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+            zIndex: '10000',
+            width: '300px',
         });
 
-        uiElements.toolbar = document.createElement('div');
-        Object.assign(uiElements.toolbar.style, {
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            paddingBottom: '8px', borderBottom: `1px solid ${CONFIG.THEMES[mode].border}`, marginBottom: '8px',
+        const content = document.createElement('div');
+        const textarea = document.createElement('textarea');
+        Object.assign(textarea.style, {
+            width: '100%',
+            height: '100px',
+            marginBottom: '15px',
+            background: CONFIG.THEMES[detectTheme()].bg,
+            color: CONFIG.THEMES[detectTheme()].text,
+            border: `1px solid ${CONFIG.THEMES[detectTheme()].border}`,
+            borderRadius: '4px',
+            padding: '4px',
+            resize: 'none',
         });
 
-        uiElements.label = document.createElement('span');
-        uiElements.label.textContent = 'Posts (0):';
-        Object.assign(uiElements.label.style, { fontSize: '15px', fontWeight: '700', color: CONFIG.THEMES[mode].text });
-
-        uiElements.copyButton = createButton('Copy', mode, () => {
-            const csvContent = Array.from(state.allPosts)
-                .map(([href, status]) => {
-                    const statusWord = status === 'potential' ? 'unverified' : 
-                                     status === 'problem' ? 'problem' : 'good';
-                    return `"${statusWord}","https://x.com${href}"`;
-                })
-                .join('\n');
-            const header = '"Status","URL"\n';
-            navigator.clipboard.writeText(header + csvContent)
-                .then(() => { GM_log('CSV copied'); alert('CSV copied to clipboard!'); })
-                .catch(err => { GM_log(`Copy failed: ${err}`); alert('Failed to copy CSV.'); });
+        const buttonContainer = document.createElement('div');
+        Object.assign(buttonContainer.style, {
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '15px',
         });
 
-        uiElements.importButton = createButton('Import', mode, () => {
-            uiElements.importRow.style.display = uiElements.importRow.style.display === 'none' ? 'block' : 'none';
-        });
-
-        uiElements.modeSelector = document.createElement('select');
-        uiElements.modeSelector.innerHTML = '<option value="dark">Dark</option><option value="dim">Dim</option><option value="light">Light</option>';
-        uiElements.modeSelector.value = mode;
-        Object.assign(uiElements.modeSelector.style, {
-            background: CONFIG.THEMES[mode].button, color: CONFIG.THEMES[mode].text, border: 'none',
-            padding: '6px 24px 6px 12px', borderRadius: '9999px', cursor: 'pointer', fontSize: '13px', fontWeight: '500',
-            marginRight: '8px', minWidth: '80px', appearance: 'none', outline: 'none',
-        });
-        uiElements.modeSelector.addEventListener('change', () => {
-            state.isDarkMode = uiElements.modeSelector.value !== 'light';
-            updateTheme();
-        });
-
-        uiElements.toggleButton = createButton('Hide', mode, togglePanelVisibility);
-
-        uiElements.importRow = document.createElement('div');
-        Object.assign(uiElements.importRow.style, {
-            display: 'none', padding: '8px 0', borderBottom: `1px solid ${CONFIG.THEMES[mode].border}`, marginBottom: '8px',
-        });
-
-        uiElements.importTextarea = document.createElement('textarea');
-        Object.assign(uiElements.importTextarea.style, {
-            width: '100%', height: '60px', marginBottom: '8px', background: CONFIG.THEMES[mode].bg, color: CONFIG.THEMES[mode].text,
-            border: `1px solid ${CONFIG.THEMES[mode].border}`, borderRadius: '4px', padding: '4px', resize: 'none',
-        });
-
-        uiElements.importSubmitButton = createButton('Submit', mode, () => {
-            const csvText = uiElements.importTextarea.value.trim();
+        const submitButton = createButton('Submit', getSvgIcon('check'), detectTheme(), () => {
+            const csvText = textarea.value.trim();
             if (!csvText) {
                 alert('Please paste CSV data to import.');
                 return;
@@ -423,7 +433,6 @@
                     return;
                 }
 
-                // Skip header row if present
                 const startIndex = lines[0].startsWith('"Status","URL"') ? 1 : 0;
                 let importedCount = 0;
                 for (let i = startIndex; i < lines.length; i++) {
@@ -447,8 +456,8 @@
                 }
                 saveAllPosts();
                 updatePanel();
-                uiElements.importTextarea.value = '';
-                uiElements.importRow.style.display = 'none';
+                modal.style.display = 'none';
+                textarea.value = '';
                 alert(`Successfully imported ${importedCount} posts.`);
                 GM_log(`Imported ${importedCount} posts from CSV`);
             } catch (e) {
@@ -457,105 +466,275 @@
             }
         });
 
-        uiElements.importRow.append(uiElements.importTextarea, uiElements.importSubmitButton);
-
-        uiElements.controlRow = document.createElement('div');
-        Object.assign(uiElements.controlRow.style, {
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', marginBottom: '8px',
+        const closeButton = createButton('Close', getSvgIcon('close'), detectTheme(), () => {
+            modal.style.display = 'none';
+            textarea.value = '';
         });
 
-        uiElements.controlLabel = document.createElement('span');
-        uiElements.controlLabel.textContent = 'Auto Collapse Off';
-        Object.assign(uiElements.controlLabel.style, { fontSize: '13px', fontWeight: '500', color: CONFIG.THEMES[mode].text });
+        buttonContainer.append(submitButton, closeButton);
+        content.append(textarea, buttonContainer);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        return { modal, textarea };
+    }
 
-        const buttonContainer = document.createElement('div');
-        Object.assign(buttonContainer.style, { display: 'flex', gap: '6px' });
+    function getSvgIcon(name) {
+        const icons = {
+            copy: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>',
+            import: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>',
+            check: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2l-3.5-3.5-1.4 1.4 4.9 4.9 10-10-1.4-1.4z"/></svg>',
+            close: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41l-1.41-1.41-5.59 5.59-5.59-5.59-1.41 1.41 5.59 5.59-5.59 5.59 1.41 1.41 5.59-5.59 5.59 5.59 1.41-1.41-5.59-5.59z"/></svg>',
+            play: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
+            pause: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>',
+            reset: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>',
+            eye: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>',
+            'chevron-down': '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="chevron-down"><path d="M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6-6-6z"/></svg>',
+        };
+        return icons[name] || '';
+    }
 
-        buttonContainer.append(
-            createButton('Start', mode, () => {
-                if (state.isRateLimited) {
-                    GM_log('Collapsing skipped due to rate limit pause');
-                    return;
-                }
-                state.isCollapsingEnabled = true;
-                state.isCollapsingRunning = true;
-                GM_log('Collapsing started');
-                updateControlLabel();
-                const articles = document.querySelectorAll('div[data-testid="cellInnerDiv"]');
-                collapseArticlesWithDelay(articles);
-                highlightPotentialProblems();
-            }),
-            createButton('Stop', mode, () => {
-                state.isCollapsingEnabled = false;
-                GM_log('Collapsing stopped');
-                updateControlLabel();
-                highlightPotentialProblems();
-            }),
-            createButton('Reset', mode, () => {
-                state.isCollapsingEnabled = false;
-                state.isCollapsingRunning = false;
-                GM_log('Collapsing reset');
-                document.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(expandArticle);
-                state.processedArticles = new WeakSet();
-                state.fullyProcessedArticles.clear();
-                state.allPosts.clear();
-                state.problemLinks.clear();
-                GM_setValue('allPosts', '{}'); // Clear persistent storage
-                updateControlLabel();
-                highlightPotentialProblems();
-            })
-        );
+    function createPanel() {
+        GM_log('Creating panel...');
+        const mode = detectTheme();
+        state.isDarkMode = mode !== 'light';
 
-        uiElements.contentWrapper = document.createElement('div');
-        uiElements.contentWrapper.className = 'problem-links-wrapper';
-        Object.assign(uiElements.contentWrapper.style, {
-            maxHeight: 'calc(100vh - 150px)', overflowY: 'auto', fontSize: '14px', lineHeight: '1.4',
-            scrollbarWidth: 'thin', scrollbarColor: `${CONFIG.THEMES[mode].scroll} ${CONFIG.THEMES[mode].bg}`,
-        });
+        try {
+            uiElements.panel = document.createElement('div');
+            if (!uiElements.panel) throw new Error('Failed to create panel element');
+            Object.assign(uiElements.panel.style, {
+                position: 'fixed',
+                top: CONFIG.PANEL.TOP,
+                right: CONFIG.PANEL.RIGHT,
+                width: CONFIG.PANEL.WIDTH,
+                maxHeight: CONFIG.PANEL.MAX_HEIGHT,
+                zIndex: CONFIG.PANEL.Z_INDEX,
+                background: CONFIG.THEMES[mode].bg,
+                color: CONFIG.THEMES[mode].text,
+                border: `1px solid ${CONFIG.THEMES[mode].border}`,
+                borderRadius: '12px',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                fontFamily: CONFIG.PANEL.FONT,
+                padding: '12px',
+                transition: 'all 0.2s ease',
+            });
 
-        uiElements.toolbar.append(uiElements.label, uiElements.copyButton, uiElements.importButton, uiElements.modeSelector, uiElements.toggleButton);
-        uiElements.controlRow.append(uiElements.controlLabel, buttonContainer);
-        uiElements.panel.append(uiElements.toolbar, uiElements.importRow, uiElements.controlRow, uiElements.contentWrapper);
-        document.body.appendChild(uiElements.panel);
+            uiElements.toolbar = document.createElement('div');
+            if (!uiElements.toolbar) throw new Error('Failed to create toolbar element');
+            Object.assign(uiElements.toolbar.style, {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingBottom: '12px',
+                borderBottom: `1px solid ${CONFIG.THEMES[mode].border}`,
+                marginBottom: '12px',
+            });
 
-        uiElements.styleSheet = document.createElement('style');
-        uiElements.styleSheet.textContent = `
-            .${CONFIG.HIGHLIGHT_STYLE} { background-color: rgba(255, 255, 0, 0.3); border: 2px solid yellow; }
-            .${CONFIG.COLLAPSE_STYLE} { height: 0; overflow: hidden; margin: 0; padding: 0; transition: height 0.2s ease; }
-            .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
-            .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${CONFIG.THEMES[mode].scroll}; border-radius: 3px; }
-            .problem-links-wrapper::-webkit-scrollbar-track { background: ${CONFIG.THEMES[mode].bg}; }
-            select { background-repeat: no-repeat; background-position: right 8px center; }
-            select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-            select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-            select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-            select:focus { outline: none; box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3); }
-            .link-item { padding: 4px 0; }
-            .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
-            .status-potential { background-color: yellow; }
-            .status-problem { background-color: red; }
-            .status-safe { background-color: green; }
-            .link-row { display: flex; align-items: center; padding: 4px 0; }
-            .link-row > div { flex: 1; }
-        `;
-        document.head.appendChild(uiElements.styleSheet);
-        updateTheme();
-        updateControlLabel();
-        GM_log('Panel created successfully');
+            uiElements.label = document.createElement('span');
+            if (!uiElements.label) throw new Error('Failed to create label element');
+            uiElements.label.textContent = 'Posts (0):';
+            Object.assign(uiElements.label.style, { fontSize: '15px', fontWeight: '700', color: CONFIG.THEMES[mode].text });
+
+            uiElements.toolsSection = document.createElement('div');
+            if (!uiElements.toolsSection) throw new Error('Failed to create toolsSection element');
+            uiElements.toolsSection.style.display = 'none';
+            Object.assign(uiElements.toolsSection.style, {
+                padding: '12px 0',
+                borderBottom: `1px solid ${CONFIG.THEMES[mode].border}`,
+                marginBottom: '12px',
+                background: `${CONFIG.THEMES[mode].bg}CC`,
+                borderRadius: '8px',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                transition: 'all 0.3s ease',
+            });
+
+            uiElements.toolsToggle = createButton('Tools', getSvgIcon('chevron-down'), mode, () => {
+                const isExpanded = uiElements.toolsSection.style.display === 'block';
+                uiElements.toolsSection.style.display = isExpanded ? 'none' : 'block';
+                uiElements.toolsToggle.querySelector('svg').style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
+            });
+            uiElements.toolsToggle.querySelector('svg').style.transition = 'transform 0.3s ease';
+
+            const toolsButtonContainer = document.createElement('div');
+            Object.assign(toolsButtonContainer.style, {
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '15px',
+                padding: '0 10px',
+            });
+
+            uiElements.copyButton = createButton('Copy', getSvgIcon('copy'), mode, () => {
+                const csvContent = Array.from(state.allPosts)
+                    .map(([href, status]) => {
+                        const statusWord = status === 'potential' ? 'unverified' : 
+                                         status === 'problem' ? 'problem' : 'good';
+                        return `"${statusWord}","https://x.com${href}"`;
+                    })
+                    .join('\n');
+                const header = '"Status","URL"\n';
+                navigator.clipboard.writeText(header + csvContent)
+                    .then(() => { GM_log('CSV copied'); alert('CSV copied to clipboard!'); })
+                    .catch(err => { GM_log(`Copy failed: ${err}`); alert('Failed to copy CSV.'); });
+            });
+
+            const { modal, textarea } = createModal();
+            uiElements.importButton = createButton('Import', getSvgIcon('import'), mode, () => {
+                modal.style.display = 'block';
+                textarea.focus();
+            });
+
+            toolsButtonContainer.append(uiElements.copyButton, uiElements.importButton);
+            uiElements.toolsSection.append(toolsButtonContainer);
+
+            uiElements.modeSelector = document.createElement('select');
+            if (!uiElements.modeSelector) throw new Error('Failed to create modeSelector element');
+            uiElements.modeSelector.innerHTML = '<option value="dark">Dark</option><option value="dim">Dim</option><option value="light">Light</option>';
+            uiElements.modeSelector.value = mode;
+            Object.assign(uiElements.modeSelector.style, {
+                background: CONFIG.THEMES[mode].button,
+                color: CONFIG.THEMES[mode].text,
+                border: 'none',
+                padding: '6px 24px 6px 12px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: '500',
+                marginRight: '8px',
+                minWidth: '80px',
+                appearance: 'none',
+                outline: 'none',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            });
+            uiElements.modeSelector.addEventListener('change', () => {
+                state.isDarkMode = uiElements.modeSelector.value !== 'light';
+                updateTheme();
+            });
+
+            uiElements.toggleButton = createButton('Hide', getSvgIcon('eye'), mode, togglePanelVisibility);
+
+            uiElements.controlRow = document.createElement('div');
+            if (!uiElements.controlRow) throw new Error('Failed to create controlRow element');
+            Object.assign(uiElements.controlRow.style, {
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingBottom: '8px',
+                marginBottom: '12px',
+            });
+
+            uiElements.controlLabel = document.createElement('span');
+            if (!uiElements.controlLabel) throw new Error('Failed to create controlLabel element');
+            uiElements.controlLabel.textContent = 'Auto Collapse Off';
+            Object.assign(uiElements.controlLabel.style, { fontSize: '13px', fontWeight: '500', color: CONFIG.THEMES[mode].text });
+
+            const buttonContainer = document.createElement('div');
+            if (!buttonContainer) throw new Error('Failed to create buttonContainer element');
+            Object.assign(buttonContainer.style, { display: 'flex', gap: '8px' });
+
+            buttonContainer.append(
+                createButton('Start', getSvgIcon('play'), mode, () => {
+                    if (state.isRateLimited) {
+                        GM_log('Collapsing skipped due to rate limit pause');
+                        return;
+                    }
+                    state.isCollapsingEnabled = true;
+                    state.isCollapsingRunning = true;
+                    GM_log('Collapsing started');
+                    updateControlLabel();
+                    const articles = document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+                    collapseArticlesWithDelay(articles);
+                    highlightPotentialProblems();
+                }),
+                createButton('Stop', getSvgIcon('pause'), mode, () => {
+                    state.isCollapsingEnabled = false;
+                    GM_log('Collapsing stopped');
+                    updateControlLabel();
+                    highlightPotentialProblems();
+                }),
+                createButton('Reset', getSvgIcon('reset'), mode, () => {
+                    state.isCollapsingEnabled = false;
+                    state.isCollapsingRunning = false;
+                    GM_log('Collapsing reset');
+                    document.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(expandArticle);
+                    state.processedArticles = new WeakSet();
+                    state.fullyProcessedArticles.clear();
+                    state.allPosts.clear();
+                    state.problemLinks.clear();
+                    if (state.storageAvailable) {
+                        GM_setValue('allPosts', '{}');
+                    }
+                    updateControlLabel();
+                    highlightPotentialProblems();
+                })
+            );
+
+            uiElements.contentWrapper = document.createElement('div');
+            if (!uiElements.contentWrapper) throw new Error('Failed to create contentWrapper element');
+            uiElements.contentWrapper.className = 'problem-links-wrapper';
+            Object.assign(uiElements.contentWrapper.style, {
+                maxHeight: 'calc(100vh - 150px)',
+                overflowY: 'auto',
+                fontSize: '14px',
+                lineHeight: '1.4',
+                scrollbarWidth: 'thin',
+                scrollbarColor: `${CONFIG.THEMES[mode].scroll} ${CONFIG.THEMES[mode].bg}`,
+            });
+
+            uiElements.toolbar.append(uiElements.label, uiElements.toolsToggle, uiElements.modeSelector, uiElements.toggleButton);
+            uiElements.controlRow.append(uiElements.controlLabel, buttonContainer);
+            uiElements.panel.append(uiElements.toolbar, uiElements.toolsSection, uiElements.controlRow, uiElements.contentWrapper);
+            document.body.appendChild(uiElements.panel);
+            document.body.appendChild(modal);
+
+            uiElements.styleSheet = document.createElement('style');
+            if (!uiElements.styleSheet) throw new Error('Failed to create styleSheet element');
+            uiElements.styleSheet.textContent = `
+                .${CONFIG.HIGHLIGHT_STYLE} { background-color: rgba(255, 255, 0, 0.3); border: 2px solid yellow; }
+                .${CONFIG.COLLAPSE_STYLE} { height: 0; overflow: hidden; margin: 0; padding: 0; transition: height 0.2s ease; }
+                .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
+                .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${CONFIG.THEMES[mode].scroll}; border-radius: 3px; }
+                .problem-links-wrapper::-webkit-scrollbar-track { background: ${CONFIG.THEMES[mode].bg}; }
+                select { background-repeat: no-repeat; background-position: right 8px center; }
+                select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+                select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+                select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+                select:focus { outline: none; box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3); }
+                .link-item { padding: 4px 0; }
+                .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+                .status-potential { background-color: yellow; }
+                .status-problem { background-color: red; }
+                .status-safe { background-color: green; }
+                .link-row { display: flex; align-items: center; padding: 4px 0; }
+                .link-row > div { flex: 1; }
+                button span { margin-left: 4px; }
+                button svg { width: 12px; height: 12px; }
+                .chevron-down { transform: rotate(0deg); }
+                .chevron-up { transform: rotate(180deg); }
+            `;
+            document.head.appendChild(uiElements.styleSheet);
+            updateTheme();
+            updateControlLabel();
+            GM_log('Panel created successfully');
+        } catch (e) {
+            GM_log(`Error creating panel: ${e.message}`);
+        }
     }
 
     function togglePanelVisibility() {
         state.isPanelVisible = !state.isPanelVisible;
-        const { label, copyButton, importButton, modeSelector, toggleButton, importRow, controlRow, contentWrapper, panel } = uiElements;
+        const { label, toolsToggle, modeSelector, toggleButton, toolsSection, controlRow, contentWrapper, panel } = uiElements;
+        if (!panel || !label || !toolsToggle || !modeSelector || !toggleButton || !toolsSection || !controlRow || !contentWrapper) {
+            GM_log('Error: One or more panel elements are undefined in togglePanelVisibility');
+            return;
+        }
         if (state.isPanelVisible) {
-            label.style.display = copyButton.style.display = importButton.style.display = modeSelector.style.display = 'inline-block';
+            label.style.display = toolsToggle.style.display = modeSelector.style.display = 'inline-block';
             controlRow.style.display = 'flex';
             contentWrapper.style.display = 'block';
-            toggleButton.textContent = 'Hide';
+            toggleButton.querySelector('span').textContent = 'Hide';
             panel.style.width = CONFIG.PANEL.WIDTH;
         } else {
-            label.style.display = copyButton.style.display = importButton.style.display = modeSelector.style.display = controlRow.style.display = importRow.style.display = contentWrapper.style.display = 'none';
-            toggleButton.textContent = 'Show';
+            label.style.display = toolsToggle.style.display = modeSelector.style.display = controlRow.style.display = toolsSection.style.display = contentWrapper.style.display = 'none';
+            toggleButton.querySelector('span').textContent = 'Show';
             panel.style.width = 'auto';
             toggleButton.style.margin = '0';
         }
@@ -563,7 +742,10 @@
     }
 
     function updateControlLabel() {
-        if (!uiElements.controlLabel) return;
+        if (!uiElements.controlLabel) {
+            GM_log('Error: controlLabel is undefined in updateControlLabel');
+            return;
+        }
         uiElements.controlLabel.textContent = state.isRateLimited ? 'Paused (Rate Limit)' :
             state.isCollapsingEnabled ? 'Auto Collapse Running' :
             state.isCollapsingRunning ? 'Auto Collapse Paused' : 'Auto Collapse Off';
@@ -575,6 +757,10 @@
             return;
         }
         uiElements.label.textContent = `Posts (${state.allPosts.size}):`;
+        if (!uiElements.contentWrapper) {
+            GM_log('Error: contentWrapper is undefined in updatePanel');
+            return;
+        }
         uiElements.contentWrapper.innerHTML = '';
 
         state.allPosts.forEach((status, href) => {
@@ -602,9 +788,9 @@
 
     function updateTheme() {
         GM_log('Updating theme...');
-        const { panel, toolbar, label, contentWrapper, styleSheet, modeSelector, controlLabel, toggleButton, copyButton, importButton, importRow, importTextarea, importSubmitButton, controlRow } = uiElements;
-        if (!panel || !toolbar || !label || !contentWrapper || !styleSheet || !modeSelector || !controlLabel || !toggleButton || !copyButton || !importButton || !importRow || !importTextarea || !importSubmitButton || !controlRow) {
-            GM_log('One or more panel elements are undefined');
+        const { panel, toolbar, label, contentWrapper, styleSheet, modeSelector, controlLabel, toggleButton, toolsToggle, copyButton, importButton, controlRow, toolsSection } = uiElements;
+        if (!panel || !toolbar || !label || !contentWrapper || !styleSheet || !modeSelector || !controlLabel || !toggleButton || !toolsToggle || !copyButton || !importButton || !controlRow || !toolsSection) {
+            GM_log('Error: One or more panel elements are undefined in updateTheme');
             return;
         }
 
@@ -612,16 +798,20 @@
         const theme = CONFIG.THEMES[mode];
         Object.assign(panel.style, { background: theme.bg, color: theme.text, border: `1px solid ${theme.border}` });
         toolbar.style.borderBottom = `1px solid ${theme.border}`;
-        importRow.style.borderBottom = `1px solid ${theme.border}`;
+        toolsSection.style.borderBottom = `1px solid ${theme.border}`;
+        toolsSection.style.background = `${theme.bg}CC`;
         label.style.color = controlLabel.style.color = theme.text;
-        importTextarea.style.background = theme.bg;
-        importTextarea.style.color = theme.text;
-        importTextarea.style.border = `1px solid ${theme.border}`;
-        [toggleButton, copyButton, importButton, importSubmitButton, ...controlRow.querySelectorAll('button')].forEach(btn => {
+        [toggleButton, toolsToggle, copyButton, importButton, ...controlRow.querySelectorAll('button')].forEach(btn => {
             btn.style.background = theme.button;
             btn.style.color = theme.text;
-            btn.onmouseover = () => btn.style.background = theme.hover;
-            btn.onmouseout = () => btn.style.background = theme.button;
+            btn.onmouseover = () => {
+                btn.style.background = theme.hover;
+                btn.style.transform = 'translateY(-1px)';
+            };
+            btn.onmouseout = () => {
+                btn.style.background = theme.button;
+                btn.style.transform = 'translateY(0)';
+            };
         });
         modeSelector.style.background = theme.button;
         modeSelector.style.color = theme.text;
@@ -645,6 +835,10 @@
             .status-safe { background-color: green; }
             .link-row { display: flex; align-items: center; padding: 4px 0; }
             .link-row > div { flex: 1; }
+            button span { margin-left: 4px; }
+            button svg { width: 12px; height: 12px; }
+            .chevron-down { transform: rotate(0deg); }
+            .chevron-up { transform: rotate(180deg); }
         `;
     }
 
@@ -670,7 +864,6 @@
                 const href = article.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement?.getAttribute('href');
                 if (href && state.allPosts.has(href)) {
                     const status = state.allPosts.get(href);
-                    // Skip rechecking if the post has a verified status (problem or safe)
                     if (status === 'problem' || status === 'safe') {
                         GM_log(`Skipping already verified post: ${href} (status: ${status})`);
                         applyHighlight(article, status);
