@@ -1,13 +1,12 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.5.12
+// @version      0.6.0
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=x.com
 // @grant        GM_log
-// @grant        GM.xmlHttpRequest
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -221,8 +220,11 @@
           applyHighlight(article, isProblem ? 'problem' : 'safe');
           if (isProblem) {
             state.problemLinks.add(href);
-            GM_log(`Problem confirmed for ${href} - should leave window open`);
-            window.focus();
+            GM_log(`Problem confirmed for ${href} - leaving window open`);
+            setTimeout(() => {
+              GM_log('Executing scroll to the top of problem conversation');
+              newWindow.scrollTo(0, 0); // Scroll to the top of the page
+            }, 500);
           } else {
             state.problemLinks.delete(href);
             GM_log(`No problems found for ${href} - closing window`);
@@ -276,9 +278,8 @@
         if (isProblem) {
           state.problemLinks.add(link);
           GM_log(
-            `Problem confirmed in delayed check for ${link} - should leave window open`,
+            `Problem confirmed in delayed check for ${link} - leaving window open`,
           );
-          window.focus();
         } else {
           state.problemLinks.delete(link);
           GM_log(
