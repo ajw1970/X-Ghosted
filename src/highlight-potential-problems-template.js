@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.6.4
+// @version      0.6.5
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -78,6 +78,16 @@
             GM_log(`Failed to load posts from storage: ${e.message}. Using in-memory storage.`);
             state.storageAvailable = false;
             state.allPosts = new Map();
+            if (!uiElements.storageWarning) {
+                uiElements.storageWarning = document.createElement('div');
+                Object.assign(uiElements.storageWarning.style, {
+                    color: 'yellow',
+                    fontSize: '12px',
+                    marginBottom: '8px',
+                });
+                uiElements.storageWarning.textContent = 'Warning: Storage is unavailable (e.g., InPrivate mode). Data will not persist.';
+                uiElements.panel?.insertBefore(uiElements.storageWarning, uiElements.toolsSection);
+            }
         }
     }
 
@@ -138,7 +148,9 @@
     }
 
     function collapseArticle(article) {
-        if (article) article.classList.add(CONFIG.COLLAPSE_STYLE);
+        if (article && !article.classList.contains(CONFIG.COLLAPSE_STYLE)) {
+            article.classList.add(CONFIG.COLLAPSE_STYLE);
+        }
     }
 
     function expandArticle(article) {
@@ -150,7 +162,7 @@
         const interval = setInterval(() => {
             if (index >= articles.length || !state.isCollapsingEnabled || state.isRateLimited) {
                 clearInterval(interval);
-                state.isCollapsingRunning = false; // Ensure running state is updated
+                state.isCollapsingRunning = false;
                 GM_log('Collapsing completed or stopped');
                 return;
             }
@@ -489,6 +501,7 @@
             reset: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>',
             eye: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>',
             'chevron-down': '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="chevron-down"><path d="M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6-6-6z"/></svg>',
+            clear: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41l-1.41-1.41-5.59 5.59-5.59-5.59-1.41 1.41 5.59 5.59-5.59 5.59 1.41 1.41 5.59-5.59 5.59 5.59 1.41-1.41-5.59-5.59z"/></svg>',
         };
         return icons[name] || '';
     }
@@ -582,7 +595,24 @@
                 textarea.focus();
             });
 
-            toolsButtonContainer.append(uiElements.copyButton, uiElements.importButton);
+            uiElements.clearListButton = createButton('Clear List', getSvgIcon('clear'), mode, () => {
+                if (confirm('Are you sure you want to clear the list of all tracked posts? This cannot be undone.')) {
+                    state.allPosts.clear();
+                    state.fullyProcessedArticles.clear();
+                    state.problemLinks.clear();
+                    state.processedArticles = new WeakSet();
+                    if (state.storageAvailable) {
+                        GM_setValue('allPosts', '{}');
+                        GM_log('Cleared persistent storage');
+                    }
+                    GM_log('Cleared in-memory list');
+                    updatePanel();
+                    highlightPotentialProblems(); // Refresh highlights
+                    alert('List cleared successfully.');
+                }
+            });
+
+            toolsButtonContainer.append(uiElements.copyButton, uiElements.importButton, uiElements.clearListButton);
             uiElements.toolsSection.append(toolsButtonContainer);
 
             uiElements.modeSelector = document.createElement('select');
@@ -788,8 +818,8 @@
 
     function updateTheme() {
         GM_log('Updating theme...');
-        const { panel, toolbar, label, contentWrapper, styleSheet, modeSelector, controlLabel, toggleButton, toolsToggle, copyButton, importButton, controlRow, toolsSection } = uiElements;
-        if (!panel || !toolbar || !label || !contentWrapper || !styleSheet || !modeSelector || !controlLabel || !toggleButton || !toolsToggle || !copyButton || !importButton || !controlRow || !toolsSection) {
+        const { panel, toolbar, label, contentWrapper, styleSheet, modeSelector, controlLabel, toggleButton, toolsToggle, copyButton, importButton, clearListButton, controlRow, toolsSection } = uiElements;
+        if (!panel || !toolbar || !label || !contentWrapper || !styleSheet || !modeSelector || !controlLabel || !toggleButton || !toolsToggle || !copyButton || !importButton || !clearListButton || !controlRow || !toolsSection) {
             GM_log('Error: One or more panel elements are undefined in updateTheme');
             return;
         }
@@ -801,7 +831,7 @@
         toolsSection.style.borderBottom = `1px solid ${theme.border}`;
         toolsSection.style.background = `${theme.bg}CC`;
         label.style.color = controlLabel.style.color = theme.text;
-        [toggleButton, toolsToggle, copyButton, importButton, ...controlRow.querySelectorAll('button')].forEach(btn => {
+        [toggleButton, toolsToggle, copyButton, importButton, clearListButton, ...controlRow.querySelectorAll('button')].forEach(btn => {
             btn.style.background = theme.button;
             btn.style.color = theme.text;
             btn.onmouseover = () => {
@@ -875,28 +905,35 @@
                     }
                 }
 
-                const hasNotice = articleContainsSystemNotice(article);
-                const hasLinks = articleLinksToTargetCommunities(article);
+                if (typeof articleContainsSystemNotice === 'function' && typeof articleLinksToTargetCommunities === 'function') {
+                    const hasNotice = articleContainsSystemNotice(article);
+                    const hasLinks = articleLinksToTargetCommunities(article);
 
-                if (hasNotice || hasLinks) {
-                    GM_log(`Immediate problem detected for article`);
-                    applyHighlight(article, 'problem');
-                    if (href) {
-                        state.problemLinks.add(href);
-                        replaceMenuButton(article, href);
+                    if (hasNotice || hasLinks) {
+                        GM_log(`Immediate problem detected for article`);
+                        applyHighlight(article, 'problem');
+                        if (href) {
+                            state.problemLinks.add(href);
+                            replaceMenuButton(article, href);
+                        }
+                        state.fullyProcessedArticles.add(article);
+                    } else {
+                        if (isRepliesPage && typeof findReplyingToWithDepth === 'function') {
+                            const replyingToDepths = findReplyingToWithDepth(article);
+                            if (replyingToDepths && Array.isArray(replyingToDepths) && replyingToDepths.length > 0 && replyingToDepths.some(obj => obj.depth < 10)) {
+                                GM_log(`Potential problem detected for article on replies page with depth < 10`);
+                                applyHighlight(article, 'potential');
+                                if (href) replaceMenuButton(article, href);
+                            } else if (!wasProcessed) {
+                                applyHighlight(article, 'none');
+                            }
+                        } else if (!wasProcessed) {
+                            applyHighlight(article, 'none');
+                        }
                     }
-                    state.fullyProcessedArticles.add(article);
-                } else {
-                    const replyingToDepths = isRepliesPage ? findReplyingToWithDepth(article) : null;
-                    if (isRepliesPage && replyingToDepths && Array.isArray(replyingToDepths) && replyingToDepths.length > 0 && replyingToDepths.some(obj => obj.depth < 10)) {
-                        GM_log(`Potential problem detected for article on replies page with depth < 10`);
-                        applyHighlight(article, 'potential');
-                        if (href) replaceMenuButton(article, href);
-                    } else if (isRepliesPage && state.isCollapsingEnabled) {
-                        collapseArticle(article);
-                    } else if (!wasProcessed) {
-                        applyHighlight(article, 'none');
-                    }
+                } else if (!wasProcessed) {
+                    GM_log('Warning: Required injected functions are missing. Defaulting to no highlight.');
+                    applyHighlight(article, 'none');
                 }
             } catch (e) {
                 GM_log(`Error in highlight conditions: ${e.message}`);
@@ -914,7 +951,17 @@
         GM_log('Setting up monitoring...');
         function tryHighlighting(attempt = 1, maxAttempts = 3) {
             GM_log(`Attempt ${attempt} to highlight articles`);
-            const articles = document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+            const region = document.querySelector('main [role="region"]');
+            if (!region) {
+                GM_log('Main region not found, retrying...');
+                if (attempt < maxAttempts) {
+                    setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000);
+                } else {
+                    GM_log('Main region still not found after max attempts, monitoring body instead');
+                }
+                return;
+            }
+            const articles = region.querySelectorAll('div[data-testid="cellInnerDiv"]');
             highlightPotentialProblems();
             if (articles.length === 0 && attempt < maxAttempts) {
                 GM_log('No articles found, retrying...');
@@ -923,7 +970,7 @@
                 GM_log(`Found ${articles.length} articles, proceeding with monitoring`);
             }
         }
-
+    
         tryHighlighting();
         const debouncedHighlight = debounce(highlightPotentialProblems, CONFIG.CHECK_DELAY);
         const observerTarget = document.querySelector('main [role="region"]') || document.body;
@@ -934,6 +981,14 @@
 
     function init() {
         GM_log('Script starting...');
+        // Add runtime check
+        if (typeof articleContainsSystemNotice !== 'function' || 
+            typeof articleLinksToTargetCommunities !== 'function' || 
+            typeof findReplyingToWithDepth !== 'function') {
+            GM_log('Critical error: One or more injected utility functions are missing.');
+            alert('Script failed to start: Missing utility functions. Please check installation.');
+            return;
+        }
         try {
             loadAllPosts();
             createPanel();
