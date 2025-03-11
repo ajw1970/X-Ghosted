@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.6.5
+// @version      0.6.6
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -229,7 +229,7 @@
             callback?.();
             return;
         }
-
+    
         let attempts = 0;
         const maxAttempts = 10;
         let emptyCount = 0;
@@ -243,11 +243,28 @@
                     callback?.();
                     return;
                 }
-
+    
                 if (newWindow.document.readyState === 'complete') {
                     clearInterval(checkInterval);
                     const doc = newWindow.document;
-                    if (doc.body.textContent.includes('Rate limit exceeded')) {
+    
+                    // Enhanced rate limit check
+                    if (doc.status === 429 || doc.body.textContent.includes('Too Many Requests')) {
+                        GM_log('429 Rate limit detected in tab, pausing operations');
+                        alert('Rate limit (429) exceeded by X. Pausing all operations for 10 minutes.');
+                        state.isRateLimited = true;
+                        state.isCollapsingEnabled = false;
+                        updateControlLabel();
+                        setTimeout(() => {
+                            GM_log('Resuming after rate limit pause');
+                            state.isRateLimited = false;
+                            state.isCollapsingEnabled = true;
+                            highlightPotentialProblems();
+                        }, CONFIG.RATE_LIMIT_PAUSE);
+                        newWindow.close();
+                        callback?.();
+                        return;
+                    } else if (doc.body.textContent.includes('Rate limit exceeded')) {
                         GM_log('Rate limit detected in tab, pausing operations');
                         alert('Rate limit exceeded by X. Pausing all operations for 10 minutes.');
                         state.isRateLimited = true;
@@ -263,10 +280,10 @@
                         callback?.();
                         return;
                     }
-
+    
                     const threadArticles = doc.querySelectorAll('div[data-testid="cellInnerDiv"]');
                     GM_log(`Found ${threadArticles.length} articles in new tab for ${fullUrl}`);
-
+    
                     if (threadArticles.length === 0) {
                         emptyCount++;
                         if (emptyCount >= 3) {
@@ -289,7 +306,7 @@
                         setTimeout(() => checkDom(newWindow, article, href, checkInterval, callback), 1000);
                         return;
                     }
-
+    
                     let isProblem = false;
                     for (let threadArticle of threadArticles) {
                         const hasNotice = articleContainsSystemNotice(threadArticle);
@@ -301,7 +318,7 @@
                             break;
                         }
                     }
-
+    
                     GM_log(`Main check completed - isProblem: ${isProblem}`);
                     applyHighlight(article, isProblem ? 'problem' : 'safe');
                     if (isProblem) {
@@ -313,7 +330,7 @@
                         GM_log(`No problems found for ${href} - closing window`);
                         setTimeout(() => newWindow.close(), 500);
                     }
-
+    
                     state.fullyProcessedArticles.add(article);
                     updatePanel();
                     callback?.();
@@ -329,7 +346,7 @@
                 }
             }
         }, 500);
-
+    
         function checkDom(win, art, link, interval, cb) {
             const articles = win.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
             if (articles.length > 0) {

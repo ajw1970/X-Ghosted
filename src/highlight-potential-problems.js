@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.6.5
+// @version      0.6.6
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -307,7 +307,29 @@
         if (newWindow.document.readyState === 'complete') {
           clearInterval(checkInterval);
           const doc = newWindow.document;
-          if (doc.body.textContent.includes('Rate limit exceeded')) {
+
+          // Enhanced rate limit check
+          if (
+            doc.status === 429 ||
+            doc.body.textContent.includes('Too Many Requests')
+          ) {
+            GM_log('429 Rate limit detected in tab, pausing operations');
+            alert(
+              'Rate limit (429) exceeded by X. Pausing all operations for 10 minutes.',
+            );
+            state.isRateLimited = true;
+            state.isCollapsingEnabled = false;
+            updateControlLabel();
+            setTimeout(() => {
+              GM_log('Resuming after rate limit pause');
+              state.isRateLimited = false;
+              state.isCollapsingEnabled = true;
+              highlightPotentialProblems();
+            }, CONFIG.RATE_LIMIT_PAUSE);
+            newWindow.close();
+            callback?.();
+            return;
+          } else if (doc.body.textContent.includes('Rate limit exceeded')) {
             GM_log('Rate limit detected in tab, pausing operations');
             alert(
               'Rate limit exceeded by X. Pausing all operations for 10 minutes.',
