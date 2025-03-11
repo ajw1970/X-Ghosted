@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.6.1
+// @version      0.6.2
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -15,7 +15,7 @@
 
     // --- Configuration ---
     const CONFIG = {
-        CHECK_DELAY: 1000, // Increased debounce delay for Mutation Observer
+        CHECK_DELAY: 1000,
         HIGHLIGHT_STYLE: 'highlight-post',
         COLLAPSE_STYLE: 'collapse-post',
         PANEL: {
@@ -31,9 +31,9 @@
             dim: { bg: '#15202B', text: '#D9D9D9', border: '#38444D', button: '#38444D', hover: '#4A5C6D', scroll: '#4A5C6D' },
             dark: { bg: '#000000', text: '#D9D9D9', border: '#333333', button: '#333333', hover: '#444444', scroll: '#666666' },
         },
-        COLLAPSE_DELAY: 200, // Slower collapsing to reduce DOM strain
-        TAB_DELAY: 3000, // Increased delay between tab openings
-        RATE_LIMIT_PAUSE: 10 * 60 * 1000, // 10-minute pause on rate limit
+        COLLAPSE_DELAY: 200,
+        TAB_DELAY: 3000,
+        RATE_LIMIT_PAUSE: 10 * 60 * 1000,
     };
 
     // --- State ---
@@ -41,6 +41,7 @@
         processedArticles: new WeakSet(),
         fullyProcessedArticles: new Set(),
         problemLinks: new Set(),
+        allPosts: new Map(), // Tracks all posts with their status
         isDarkMode: true,
         isPanelVisible: true,
         isCollapsingEnabled: false,
@@ -95,6 +96,12 @@
         const style = styles[status] || styles['none'];
         article.style.backgroundColor = style.background;
         article.style.border = style.border;
+
+        // Update allPosts with current status
+        const href = article.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement?.getAttribute('href');
+        if (href && status !== 'none') { // Only track posts that are potential, problem, or safe
+            state.allPosts.set(href, status);
+        }
     }
 
     function collapseArticle(article) {
@@ -339,14 +346,21 @@
         });
 
         uiElements.label = document.createElement('span');
-        uiElements.label.textContent = 'Problem Posts (0):';
+        uiElements.label.textContent = 'Posts (0):';
         Object.assign(uiElements.label.style, { fontSize: '15px', fontWeight: '700', color: CONFIG.THEMES[mode].text });
 
         uiElements.copyButton = createButton('Copy', mode, () => {
-            const linksText = Array.from(state.problemLinks).map(href => `https://x.com${href}`).join('\n');
-            navigator.clipboard.writeText(linksText)
-                .then(() => { GM_log('Links copied'); alert('Links copied to clipboard!'); })
-                .catch(err => { GM_log(`Copy failed: ${err}`); alert('Failed to copy links.'); });
+            const csvContent = Array.from(state.allPosts)
+                .map(([href, status]) => {
+                    const statusWord = status === 'potential' ? 'unverified' : 
+                                     status === 'problem' ? 'problem' : 'good';
+                    return `"${statusWord}","https://x.com${href}"`;
+                })
+                .join('\n');
+            const header = '"Status","URL"\n';
+            navigator.clipboard.writeText(header + csvContent)
+                .then(() => { GM_log('CSV copied'); alert('CSV copied to clipboard!'); })
+                .catch(err => { GM_log(`Copy failed: ${err}`); alert('Failed to copy CSV.'); });
         });
 
         uiElements.modeSelector = document.createElement('select');
@@ -403,6 +417,8 @@
                 document.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(expandArticle);
                 state.processedArticles = new WeakSet();
                 state.fullyProcessedArticles.clear();
+                state.allPosts.clear(); // Clear allPosts on reset
+                state.problemLinks.clear();
                 updateControlLabel();
                 highlightPotentialProblems();
             })
@@ -433,6 +449,12 @@
             select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
             select:focus { outline: none; box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3); }
             .link-item { padding: 4px 0; }
+            .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+            .status-potential { background-color: yellow; }
+            .status-problem { background-color: red; }
+            .status-safe { background-color: green; }
+            .link-row { display: flex; align-items: center; padding: 4px 0; }
+            .link-row > div { flex: 1; }
         `;
         document.head.appendChild(uiElements.styleSheet);
         updateTheme();
@@ -470,19 +492,28 @@
             GM_log('Label is undefined, cannot update panel');
             return;
         }
-        uiElements.label.textContent = `Problem Posts (${state.problemLinks.size}):`;
+        uiElements.label.textContent = `Posts (${state.allPosts.size}):`;
         uiElements.contentWrapper.innerHTML = '';
-        state.problemLinks.forEach(href => {
+
+        state.allPosts.forEach((status, href) => {
+            const row = document.createElement('div');
+            row.className = 'link-row';
+
+            const dot = document.createElement('span');
+            dot.className = `status-dot status-${status}`;
+            row.appendChild(dot);
+
             const linkItem = document.createElement('div');
-            linkItem.className = 'link-item';
             const a = Object.assign(document.createElement('a'), {
                 href: `https://x.com${href}`,
-                textContent: `${href}`,
+                textContent: `https://x.com${href}`,
                 target: '_blank',
             });
-            Object.assign(a.style, { display: 'block', color: '#1DA1F2', textDecoration: 'none', wordBreak: 'break-all' });
+            Object.assign(a.style, { color: '#1DA1F2', textDecoration: 'none', wordBreak: 'break-all' });
             linkItem.appendChild(a);
-            uiElements.contentWrapper.appendChild(linkItem);
+            row.appendChild(linkItem);
+
+            uiElements.contentWrapper.appendChild(row);
         });
         uiElements.contentWrapper.scrollTop = uiElements.contentWrapper.scrollHeight;
     }
@@ -522,6 +553,12 @@
             select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
             select:focus { outline: none; box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3); }
             .link-item { padding: 4px 0; }
+            .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+            .status-potential { background-color: yellow; }
+            .status-problem { background-color: red; }
+            .status-safe { background-color: green; }
+            .link-row { display: flex; align-items: center; padding: 4px 0; }
+            .link-row > div { flex: 1; }
         `;
     }
 
@@ -559,6 +596,7 @@
                 } else {
                     const replyingToDepths = isRepliesPage ? findReplyingToWithDepth(article) : null;
                     if (isRepliesPage && replyingToDepths && Array.isArray(replyingToDepths) && replyingToDepths.length > 0 && replyingToDepths.some(obj => obj.depth < 10)) {
+                        GM_log(`Potential problem detected for article on replies page with depth < 10`);
                         applyHighlight(article, 'potential');
                         if (href) replaceMenuButton(article, href);
                     } else if (isRepliesPage && state.isCollapsingEnabled) {
