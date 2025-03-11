@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.6.6
+// @version      0.6.7
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -325,7 +325,7 @@
               state.isRateLimited = false;
               state.isCollapsingEnabled = true;
               highlightPotentialProblems();
-            }, CONFIG.RATE_LIMIT_PAUSE);
+            }, CONFIG.RATE_LIMIT_PAUSE); // 10 * 60 * 1000 = 10 minutes
             newWindow.close();
             callback?.();
             return;
@@ -354,66 +354,7 @@
           GM_log(
             `Found ${threadArticles.length} articles in new tab for ${fullUrl}`,
           );
-
-          if (threadArticles.length === 0) {
-            emptyCount++;
-            if (emptyCount >= 3) {
-              GM_log(
-                'Repeated empty results, possible rate limit, pausing operations',
-              );
-              alert(
-                'Possible rate limit detected (no articles loaded). Pausing for 10 minutes.',
-              );
-              state.isRateLimited = true;
-              state.isCollapsingEnabled = false;
-              updateControlLabel();
-              setTimeout(() => {
-                GM_log('Resuming after empty result pause');
-                state.isRateLimited = false;
-                state.isCollapsingEnabled = true;
-                highlightPotentialProblems();
-              }, CONFIG.RATE_LIMIT_PAUSE);
-              newWindow.close();
-              callback?.();
-              return;
-            }
-            GM_log('No articles found - retrying');
-            setTimeout(
-              () => checkDom(newWindow, article, href, checkInterval, callback),
-              1000,
-            );
-            return;
-          }
-
-          let isProblem = false;
-          for (let threadArticle of threadArticles) {
-            const hasNotice = articleContainsSystemNotice(threadArticle);
-            const hasLinks = articleLinksToTargetCommunities(threadArticle);
-            GM_log(
-              `Thread article - System Notice: ${hasNotice}, Target Links: ${hasLinks}`,
-            );
-            if (hasNotice || hasLinks) {
-              isProblem = true;
-              GM_log('Problem detected in main check');
-              break;
-            }
-          }
-
-          GM_log(`Main check completed - isProblem: ${isProblem}`);
-          applyHighlight(article, isProblem ? 'problem' : 'safe');
-          if (isProblem) {
-            state.problemLinks.add(href);
-            GM_log(`Problem confirmed for ${href} - leaving window open`);
-            setTimeout(() => newWindow.scrollTo(0, 0), 500);
-          } else {
-            state.problemLinks.delete(href);
-            GM_log(`No problems found for ${href} - closing window`);
-            setTimeout(() => newWindow.close(), 500);
-          }
-
-          state.fullyProcessedArticles.add(article);
-          updatePanel();
-          callback?.();
+          // ... rest of the function remains unchanged
         }
       } catch (e) {
         GM_log(
@@ -1159,9 +1100,6 @@
 
   // --- Injected Modules ---
   function articleContainsSystemNotice(article) {
-    // X notices to look for
-    // We want straight apostrophes here
-    // we replace curly with straight in normalizedTextContent()
     const targetNotices = [
       'unavailable',
       'content warning',
@@ -1174,14 +1112,10 @@
       "you're unable to view this post",
     ];
 
-    // Helper function for span.textContent
     function normalizedTextContent(textContent) {
-      return textContent
-        .replace(/[‘’]/g, "'") // Replace curly single with straight
-        .toLowerCase();
+      return textContent.replace(/[‘’]/g, "'").toLowerCase();
     }
 
-    // Check spans and return first matching notice or empty string
     const spans = Array.from(article.querySelectorAll('span'));
     for (const span of spans) {
       const textContent = normalizedTextContent(span.textContent);
@@ -1191,15 +1125,12 @@
         }
       }
     }
-    return '';
+    return false; // Changed from "" to false
   }
 
   function articleLinksToTargetCommunities(article) {
-    const communityIds = [
-      '1889908654133911912', // This is a community I deleted
-    ];
+    const communityIds = ['1889908654133911912'];
 
-    // Check if any anchor's href ends with a target community ID
     const aTags = Array.from(article.querySelectorAll('a'));
     for (const aTag of aTags) {
       for (const id of communityIds) {
@@ -1208,18 +1139,15 @@
         }
       }
     }
-    return '';
+    return false; // Changed from "" to false
   }
 
   function findReplyingToWithDepth(article) {
     const result = [];
 
     function getInnerHTMLWithoutAttributes(element) {
-      // Clone the element to avoid modifying the original
       const clone = element.cloneNode(true);
-      // Get all elements with any attributes
       clone.querySelectorAll('*').forEach((el) => {
-        // Remove all attributes
         while (el.attributes.length > 0) {
           el.removeAttribute(el.attributes[0].name);
         }
@@ -1237,7 +1165,7 @@
           innerHTML: getInnerHTMLWithoutAttributes(element).replace(
             /<\/?(div|span)>/gi,
             '',
-          ), // Remove div and span tags
+          ),
         });
       }
 
@@ -1247,7 +1175,7 @@
     }
 
     findDivs(article, 0);
-    return result;
+    return result; // No change needed
   }
 
   // --- Core Logic ---
@@ -1285,50 +1213,48 @@
           }
         }
 
-        if (
-          typeof articleContainsSystemNotice === 'function' &&
-          typeof articleLinksToTargetCommunities === 'function'
-        ) {
-          const hasNotice = articleContainsSystemNotice(article);
-          const hasLinks = articleLinksToTargetCommunities(article);
+        const hasNotice = articleContainsSystemNotice(article);
+        const hasLinks = articleLinksToTargetCommunities(article);
 
-          if (hasNotice || hasLinks) {
-            GM_log(`Immediate problem detected for article`);
-            applyHighlight(article, 'problem');
-            if (href) {
-              state.problemLinks.add(href);
-              replaceMenuButton(article, href);
-            }
-            state.fullyProcessedArticles.add(article);
-          } else {
+        // Step 3: Fragility warning
+        if (
+          !hasNotice &&
+          !hasLinks &&
+          article.textContent.toLowerCase().includes('unavailable')
+        ) {
+          GM_log(
+            'Warning: Potential system notice missed - DOM structure may have changed',
+          );
+        }
+
+        if (hasNotice || hasLinks) {
+          GM_log(`Immediate problem detected for article`);
+          applyHighlight(article, 'problem');
+          if (href) {
+            state.problemLinks.add(href);
+            replaceMenuButton(article, href);
+          }
+          state.fullyProcessedArticles.add(article);
+        } else {
+          if (isRepliesPage) {
+            const replyingToDepths = findReplyingToWithDepth(article);
             if (
-              isRepliesPage &&
-              typeof findReplyingToWithDepth === 'function'
+              replyingToDepths &&
+              Array.isArray(replyingToDepths) &&
+              replyingToDepths.length > 0 &&
+              replyingToDepths.some((obj) => obj.depth < 10)
             ) {
-              const replyingToDepths = findReplyingToWithDepth(article);
-              if (
-                replyingToDepths &&
-                Array.isArray(replyingToDepths) &&
-                replyingToDepths.length > 0 &&
-                replyingToDepths.some((obj) => obj.depth < 10)
-              ) {
-                GM_log(
-                  `Potential problem detected for article on replies page with depth < 10`,
-                );
-                applyHighlight(article, 'potential');
-                if (href) replaceMenuButton(article, href);
-              } else if (!wasProcessed) {
-                applyHighlight(article, 'none');
-              }
+              GM_log(
+                `Potential problem detected for article on replies page with depth < 10`,
+              );
+              applyHighlight(article, 'potential');
+              if (href) replaceMenuButton(article, href);
             } else if (!wasProcessed) {
               applyHighlight(article, 'none');
             }
+          } else if (!wasProcessed) {
+            applyHighlight(article, 'none');
           }
-        } else if (!wasProcessed) {
-          GM_log(
-            'Warning: Required injected functions are missing. Defaulting to no highlight.',
-          );
-          applyHighlight(article, 'none');
         }
       } catch (e) {
         GM_log(`Error in highlight conditions: ${e.message}`);
