@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.5.11
+// @version      0.5.12
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -170,7 +170,7 @@
     }
 
     let attempts = 0;
-    const maxAttempts = 10; // Try for 5 seconds total
+    const maxAttempts = 10;
     const checkInterval = setInterval(() => {
       attempts++;
       try {
@@ -195,7 +195,6 @@
 
           if (threadArticles.length === 0) {
             GM_log('No articles found - page might not have loaded correctly');
-            // Wait a bit longer in case of slow loading
             if (attempts < maxAttempts) {
               setTimeout(
                 () => checkDom(newWindow, article, href, checkInterval),
@@ -213,22 +212,29 @@
             );
             if (hasNotice || hasLinks) {
               isProblem = true;
+              GM_log('Problem detected in main check');
               break;
             }
           }
 
+          GM_log(`Main check completed - isProblem: ${isProblem}`);
           applyHighlight(article, isProblem ? 'problem' : 'safe');
           if (isProblem) {
             state.problemLinks.add(href);
-            GM_log(`Problem confirmed for ${href}`);
+            GM_log(`Problem confirmed for ${href} - should leave window open`);
+            window.focus();
           } else {
             state.problemLinks.delete(href);
-            GM_log(`No problems found for ${href}`);
+            GM_log(`No problems found for ${href} - closing window`);
+            setTimeout(() => {
+              GM_log('Executing scheduled close for non-problem case');
+              newWindow.close();
+            }, 500);
           }
 
           state.fullyProcessedArticles.add(article);
           updatePanel();
-          setTimeout(() => newWindow.close(), 500); // Give time for visual confirmation
+          GM_log(`Post-check state - Window closed? ${newWindow.closed}`);
         }
       } catch (e) {
         GM_log(
@@ -238,6 +244,9 @@
           clearInterval(checkInterval);
           applyHighlight(article, 'potential');
           GM_log('Max attempts reached, marking as potential');
+          alert(
+            'Could not verify post - possible security restriction or slow loading',
+          );
           newWindow.close();
         }
       }
@@ -258,15 +267,33 @@
           );
           if (hasNotice || hasLinks) {
             isProblem = true;
+            GM_log('Problem detected in delayed check');
             break;
           }
         }
+        GM_log(`Delayed check completed - isProblem: ${isProblem}`);
         applyHighlight(art, isProblem ? 'problem' : 'safe');
-        if (isProblem) state.problemLinks.add(link);
-        else state.problemLinks.delete(link);
+        if (isProblem) {
+          state.problemLinks.add(link);
+          GM_log(
+            `Problem confirmed in delayed check for ${link} - should leave window open`,
+          );
+          window.focus();
+        } else {
+          state.problemLinks.delete(link);
+          GM_log(
+            `No problems found in delayed check for ${link} - closing window`,
+          );
+          setTimeout(() => {
+            GM_log(
+              'Executing scheduled close for non-problem case in delayed check',
+            );
+            win.close();
+          }, 500);
+        }
         state.fullyProcessedArticles.add(art);
         updatePanel();
-        setTimeout(() => win.close(), 500);
+        GM_log(`Post-delayed-check state - Window closed? ${win.closed}`);
       }
     }
   }
