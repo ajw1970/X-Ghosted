@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.6.7
+// @version      0.6.8
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -229,10 +229,9 @@
             callback?.();
             return;
         }
-
+    
         let attempts = 0;
         const maxAttempts = 10;
-        let emptyCount = 0;
         const checkInterval = setInterval(() => {
             attempts++;
             try {
@@ -243,11 +242,11 @@
                     callback?.();
                     return;
                 }
-
+    
                 if (newWindow.document.readyState === 'complete') {
                     clearInterval(checkInterval);
                     const doc = newWindow.document;
-
+    
                     // Enhanced rate limit check
                     if (doc.status === 429 || doc.body.textContent.includes('Too Many Requests')) {
                         GM_log('429 Rate limit detected in tab, pausing operations');
@@ -280,10 +279,35 @@
                         callback?.();
                         return;
                     }
-
+    
                     const threadArticles = doc.querySelectorAll('div[data-testid="cellInnerDiv"]');
                     GM_log(`Found ${threadArticles.length} articles in new tab for ${fullUrl}`);
-                    // ... rest of the function remains unchanged
+    
+                    let isProblem = false;
+                    for (let threadArticle of threadArticles) {
+                        const hasNotice = articleContainsSystemNotice(threadArticle);
+                        const hasLinks = articleLinksToTargetCommunities(threadArticle);
+                        GM_log(`Delayed check - System Notice: ${hasNotice}, Target Links: ${hasLinks}`);
+                        if (hasNotice || hasLinks) {
+                            isProblem = true;
+                            GM_log('Problem detected in delayed check');
+                            break;
+                        }
+                    }
+    
+                    GM_log(`Delayed check completed - isProblem: ${isProblem}`);
+                    applyHighlight(article, isProblem ? 'problem' : 'safe');
+                    if (isProblem) {
+                        state.problemLinks.add(href);
+                        GM_log(`Problem confirmed in delayed check for ${href}`);
+                    } else {
+                        state.problemLinks.delete(href);
+                        GM_log(`No problems found in delayed check for ${href}`);
+                        setTimeout(() => newWindow.close(), 500);
+                    }
+                    state.fullyProcessedArticles.add(article);
+                    updatePanel();
+                    callback?.();
                 }
             } catch (e) {
                 GM_log(`Error accessing new tab DOM (attempt ${attempts}): ${e.message}`);
@@ -296,37 +320,6 @@
                 }
             }
         }, 500);
-
-        function checkDom(win, art, link, interval, cb) {
-            const articles = win.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
-            if (articles.length > 0) {
-                clearInterval(interval);
-                let isProblem = false;
-                for (let threadArticle of articles) {
-                    const hasNotice = articleContainsSystemNotice(threadArticle);
-                    const hasLinks = articleLinksToTargetCommunities(threadArticle);
-                    GM_log(`Delayed check - System Notice: ${hasNotice}, Target Links: ${hasLinks}`);
-                    if (hasNotice || hasLinks) {
-                        isProblem = true;
-                        GM_log('Problem detected in delayed check');
-                        break;
-                    }
-                }
-                GM_log(`Delayed check completed - isProblem: ${isProblem}`);
-                applyHighlight(art, isProblem ? 'problem' : 'safe');
-                if (isProblem) {
-                    state.problemLinks.add(link);
-                    GM_log(`Problem confirmed in delayed check for ${link}`);
-                } else {
-                    state.problemLinks.delete(link);
-                    GM_log(`No problems found in delayed check for ${link}`);
-                    setTimeout(() => win.close(), 500);
-                }
-                state.fullyProcessedArticles.add(art);
-                updatePanel();
-                cb?.();
-            }
-        }
     }
 
     // --- Panel Management ---
@@ -918,17 +911,29 @@
         GM_log('Setting up monitoring...');
         function tryHighlighting(attempt = 1, maxAttempts = 3) {
             GM_log(`Attempt ${attempt} to highlight articles`);
-            const region = document.querySelector('main [role="region"]');
-            if (!region) {
-                GM_log('Main region not found, retrying...');
+            const mainElement = document.querySelector('main[role="main"]');
+            if (!mainElement) {
+                GM_log('Main element not found, retrying...');
                 if (attempt < maxAttempts) {
                     setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000);
                 } else {
-                    GM_log('Main region still not found after max attempts, monitoring body instead');
+                    GM_log('Main element still not found after max attempts, monitoring body instead');
                 }
                 return;
             }
-            const articles = region.querySelectorAll('div[data-testid="cellInnerDiv"]');
+
+            const articlesContainer = mainElement.querySelector('section > div > div');
+            if (!articlesContainer) {
+                GM_log('Articles container not found, retrying...');
+                if (attempt < maxAttempts) {
+                    setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000);
+                } else {
+                    GM_log('Articles container still not found after max attempts');
+                }
+                return;
+            }
+
+            const articles = articlesContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
             highlightPotentialProblems();
             if (articles.length === 0 && attempt < maxAttempts) {
                 GM_log('No articles found, retrying...');
@@ -940,7 +945,7 @@
 
         tryHighlighting();
         const debouncedHighlight = debounce(highlightPotentialProblems, CONFIG.CHECK_DELAY);
-        const observerTarget = document.querySelector('main [role="region"]') || document.body;
+        const observerTarget = document.querySelector('main[role="main"] section > div > div') || document.body;
         new MutationObserver(mutations => {
             debouncedHighlight(mutations);
         }).observe(observerTarget, { childList: true, subtree: true });
