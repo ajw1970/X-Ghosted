@@ -256,7 +256,6 @@
                     clearInterval(checkInterval);
                     const doc = newWindow.document;
     
-                    // Enhanced rate limit check
                     if (doc.status === 429 || doc.body.textContent.includes('Too Many Requests')) {
                         GM_log('429 Rate limit detected in tab, pausing operations');
                         alert('Rate limit (429) exceeded by X. Pausing all operations for 10 minutes.');
@@ -268,7 +267,7 @@
                             state.isRateLimited = false;
                             state.isCollapsingEnabled = true;
                             highlightPotentialProblems();
-                        }, CONFIG.RATE_LIMIT_PAUSE); // 10 * 60 * 1000 = 10 minutes
+                        }, CONFIG.RATE_LIMIT_PAUSE);
                         newWindow.close();
                         callback?.();
                         return;
