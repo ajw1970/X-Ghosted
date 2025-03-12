@@ -850,7 +850,7 @@
     function highlightPotentialProblems(mutations = []) {
         if (state.isRateLimited) return;
         const isRepliesPage = isProfileRepliesPage();
-        let articlesContainer = document.querySelector('main [role="region"]') || document.body;
+        let articlesContainer = document.querySelector('main[role="main"] section > div > div') || document.body;
         const articles = articlesContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
     
         for (const article of articles) {
