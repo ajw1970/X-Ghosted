@@ -69,6 +69,12 @@
     }
 
     function loadAllPosts() {
+        if (!state.storageAvailable) {
+            GM_log('Storage is unavailable, using in-memory storage.');
+            state.allPosts = new Map();
+            return;
+        }
+
         try {
             const savedPosts = GM_getValue('allPosts', '{}');
             const parsedPosts = JSON.parse(savedPosts);
@@ -92,15 +98,18 @@
     }
 
     function saveAllPosts() {
-        if (state.storageAvailable) {
-            try {
-                const postsObj = Object.fromEntries(state.allPosts);
-                GM_setValue('allPosts', JSON.stringify(postsObj));
-                GM_log(`Saved ${state.allPosts.size} posts to storage`);
-            } catch (e) {
-                GM_log(`Failed to save posts to storage: ${e.message}. Data will be lost on page reload.`);
-                state.storageAvailable = false;
-            }
+        if (!state.storageAvailable) {
+            GM_log('Storage is unavailable, skipping save.');
+            return;
+        }
+
+        try {
+            const postsObj = Object.fromEntries(state.allPosts);
+            GM_setValue('allPosts', JSON.stringify(postsObj));
+            GM_log(`Saved ${state.allPosts.size} posts to storage`);
+        } catch (e) {
+            GM_log(`Failed to save posts to storage: ${e.message}. Data will be lost on page reload.`);
+            state.storageAvailable = false;
         }
     }
 
