@@ -33,8 +33,8 @@
             dim: { bg: '#15202B', text: '#D9D9D9', border: '#38444D', button: '#38444D', hover: '#4A5C6D', scroll: '#4A5C6D' },
             dark: { bg: '#000000', text: '#D9D9D9', border: '#333333', button: '#333333', hover: '#444444', scroll: '#666666' },
         },
-        COLLAPSE_DELAY: 200,
-        TAB_DELAY: 3000,
+        COLLAPSE_DELAY: 1000, // Increased delay
+        TAB_DELAY: 5000, // Increased delay
         RATE_LIMIT_PAUSE: 10 * 60 * 1000,
     };
 
