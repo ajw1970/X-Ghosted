@@ -3,6 +3,7 @@
   "version": "0.6.7",
   "description": "= 𝕏 Ghostban Prevention or Cleanup",
   "main": "index.js",
+  "type": "commonjs", 
   "scripts": {
     "test": "jest --coverage"
   },
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0"
+    "jest-environment-jsdom": "^29.7.0",
+    "prettier": "^3.5.3"
   }
 }
