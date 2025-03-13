@@ -64,21 +64,7 @@
 
     const loadAllPosts = require('./dom/loadAllPosts');
 
-    function saveAllPosts() {
-        if (!state.storageAvailable) {
-            GM_log('Storage is unavailable, skipping save.');
-            return;
-        }
-
-        try {
-            const postsObj = Object.fromEntries(state.allPosts);
-            GM_setValue('allPosts', JSON.stringify(postsObj));
-            GM_log(`Saved ${state.allPosts.size} posts to storage`);
-        } catch (e) {
-            GM_log(`Failed to save posts to storage: ${e.message}. Data will be lost on page reload.`);
-            state.storageAvailable = false;
-        }
-    }
+    const saveAllPosts = require('./dom/saveAllPosts');
 
     // --- Detection Functions ---
     const detectTheme = require('./dom/detectTheme');
@@ -104,7 +90,7 @@
         const href = article?.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement?.getAttribute('href');
         if (href && status !== 'none') {
             state.allPosts.set(href, status);
-            saveAllPosts();
+            saveAllPosts(state, GM_setValue, GM_log);
         }
     }
 
@@ -507,7 +493,7 @@
                         }
                     }
                 }
-                saveAllPosts();
+                saveAllPosts(state, GM_setValue, GM_log);
                 updatePanel();
                 modal.style.display = 'none';
                 textarea.value = '';

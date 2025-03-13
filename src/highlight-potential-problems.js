@@ -130,18 +130,18 @@
     }
   }
 
-  function saveAllPosts() {
+  function saveAllPosts(state, gm_setValueFn, gm_logFn) {
     if (!state.storageAvailable) {
-      GM_log('Storage is unavailable, skipping save.');
+      gm_logFn('Storage is unavailable, skipping save.');
       return;
     }
 
     try {
       const postsObj = Object.fromEntries(state.allPosts);
-      GM_setValue('allPosts', JSON.stringify(postsObj));
-      GM_log(`Saved ${state.allPosts.size} posts to storage`);
+      gm_setValueFn('allPosts', JSON.stringify(postsObj));
+      gm_logFn(`Saved ${state.allPosts.size} posts to storage`);
     } catch (e) {
-      GM_log(
+      gm_logFn(
         `Failed to save posts to storage: ${e.message}. Data will be lost on page reload.`
       );
       state.storageAvailable = false;
@@ -207,7 +207,7 @@
       ?.parentElement?.getAttribute('href');
     if (href && status !== 'none') {
       state.allPosts.set(href, status);
-      saveAllPosts();
+      saveAllPosts(state, GM_setValue, GM_log);
     }
   }
 
@@ -754,7 +754,7 @@
               }
             }
           }
-          saveAllPosts();
+          saveAllPosts(state, GM_setValue, GM_log);
           updatePanel();
           modal.style.display = 'none';
           textarea.value = '';
