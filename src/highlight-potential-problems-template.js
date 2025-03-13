@@ -108,19 +108,7 @@
     }
 
     // --- Detection Functions ---
-    function detectTheme() {
-        const dataTheme = document.body.getAttribute('data-theme') || '';
-        const bodyClasses = document.body.classList;
-        const bgColor = window.getComputedStyle(document.body).backgroundColor;
-
-        if (dataTheme.includes('lights-out') || dataTheme.includes('dark') || bodyClasses.contains('dark') || bgColor === 'rgb(0, 0, 0)') {
-            return 'dark';
-        } else if (dataTheme.includes('dim') || bodyClasses.contains('dim') || bgColor === 'rgb(21, 32, 43)') {
-            return 'dim';
-        } else {
-            return 'light';
-        }
-    }
+    const detectTheme = require('./dom/detectTheme');
 
     function isProfileRepliesPage() {
         const url = window.location.href;
