@@ -60,13 +60,7 @@
     let isProcessingTab = false;
 
     // --- Utility Functions ---
-    function debounce(func, wait) {
-        let timeout;
-        return (...args) => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func(...args), wait);
-        };
-    }
+    const debounce = require('./dom/debounce');
 
     function loadAllPosts() {
         if (!state.storageAvailable) {
