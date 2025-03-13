@@ -193,41 +193,6 @@
         }, CONFIG.COLLAPSE_DELAY);
     }
 
-    function replaceMenuButton(article, href) {
-        if (!article) return;
-        const button = article.querySelector('button[aria-label="Share post"]');
-        if (button && !button.nextSibling?.textContent.includes('👀')) {
-            const newLink = Object.assign(document.createElement('a'), {
-                textContent: '👀',
-                href: '#',
-            });
-            Object.assign(newLink.style, {
-                color: 'rgb(29, 155, 240)', textDecoration: 'none', padding: '8px', cursor: 'pointer',
-            });
-            newLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (!state.isRateLimited) {
-                    tabQueue.push({ article, href });
-                    processTabQueue();
-                } else {
-                    GM_log('Tab check skipped due to rate limit pause');
-                }
-            });
-            button.parentElement.insertBefore(newLink, button.nextSibling);
-            GM_log(`Added eyeball link next to share button for href: ${href}`);
-        }
-    }
-
-    function processTabQueue() {
-        if (isProcessingTab || tabQueue.length === 0 || state.isRateLimited) return;
-        isProcessingTab = true;
-        const { article, href } = tabQueue.shift();
-        checkPostInNewTab(article, href, () => {
-            isProcessingTab = false;
-            setTimeout(processTabQueue, CONFIG.TAB_DELAY);
-        });
-    }
-
     function checkPostInNewTab(article, href, callback) {
         const fullUrl = `https://x.com${href}`;
         GM_log(`Opening new tab to check: ${fullUrl}`);
@@ -328,6 +293,160 @@
                 }
             }
         }, 500);
+    }
+
+    function replaceMenuButton(article, href) {
+        if (!article) return;
+        const button = article.querySelector('button[aria-label="Share post"]');
+        if (button && !button.nextSibling?.textContent.includes('👀')) {
+            const newLink = Object.assign(document.createElement('a'), {
+                textContent: '👀',
+                href: '#',
+            });
+            Object.assign(newLink.style, {
+                color: 'rgb(29, 155, 240)', textDecoration: 'none', padding: '8px', cursor: 'pointer',
+            });
+            newLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (!state.isRateLimited) {
+                    tabQueue.push({ article, href });
+                    processTabQueue();
+                } else {
+                    GM_log('Tab check skipped due to rate limit pause');
+                }
+            });
+            button.parentElement.insertBefore(newLink, button.nextSibling);
+            GM_log(`Added eyeball link next to share button for href: ${href}`);
+        }
+    }
+
+    function processTabQueue() {
+        if (isProcessingTab || tabQueue.length === 0 || state.isRateLimited) return;
+        isProcessingTab = true;
+        const { article, href } = tabQueue.shift();
+        checkPostInNewTab(article, href, () => {
+            isProcessingTab = false;
+            setTimeout(processTabQueue, CONFIG.TAB_DELAY);
+        });
+    }
+
+    function updateControlLabel() {
+        if (!uiElements.controlLabel) {
+            GM_log('Error: controlLabel is undefined in updateControlLabel');
+            return;
+        }
+        uiElements.controlLabel.textContent = state.isRateLimited ? 'Paused (Rate Limit)' :
+            state.isCollapsingEnabled ? 'Auto Collapse Running' :
+                state.isCollapsingRunning ? 'Auto Collapse Paused' : 'Auto Collapse Off';
+    }
+
+    function updatePanel() {
+        if (!uiElements.label) {
+            GM_log('Label is undefined, cannot update panel');
+            return;
+        }
+        uiElements.label.textContent = `Posts (${state.allPosts.size}):`;
+        if (!uiElements.contentWrapper) {
+            GM_log('Error: contentWrapper is undefined in updatePanel');
+            return;
+        }
+        uiElements.contentWrapper.innerHTML = '';
+
+        state.allPosts.forEach((status, href) => {
+            const row = document.createElement('div');
+            row.className = 'link-row';
+
+            const dot = document.createElement('span');
+            dot.className = `status-dot status-${status}`;
+            row.appendChild(dot);
+
+            const linkItem = document.createElement('div');
+            const a = Object.assign(document.createElement('a'), {
+                href: `https://x.com${href}`,
+                textContent: `https://x.com${href}`,
+                target: '_blank',
+            });
+            Object.assign(a.style, { color: '#1DA1F2', textDecoration: 'none', wordBreak: 'break-all' });
+            linkItem.appendChild(a);
+            row.appendChild(linkItem);
+
+            uiElements.contentWrapper.appendChild(row);
+        });
+        uiElements.contentWrapper.scrollTop = uiElements.contentWrapper.scrollHeight;
+    }
+
+    // --- Injected Modules ---
+    // INJECT: articleContainsSystemNotice
+    // INJECT: articleLinksToTargetCommunities
+    // INJECT: findReplyingToWithDepth
+
+    // --- Core Logic ---
+    function highlightPotentialProblems(mutations = []) {
+        if (state.isRateLimited) return;
+        const isRepliesPage = isProfileRepliesPage();
+        let articlesContainer = document.querySelector('main[role="main"] section > div > div') || document.body;
+        const articles = articlesContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
+    
+        for (const article of articles) {
+            if (state.fullyProcessedArticles.has(article)) continue;
+    
+            const wasProcessed = state.processedArticles.has(article);
+            if (!wasProcessed) state.processedArticles.add(article);
+    
+            try {
+                const href = article.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement?.getAttribute('href');
+                if (href && state.allPosts.has(href)) {
+                    const status = state.allPosts.get(href);
+                    if (status === 'problem' || status === 'safe') {
+                        GM_log(`Skipping already verified post: ${href} (status: ${status})`);
+                        applyHighlight(article, status);
+                        state.fullyProcessedArticles.add(article);
+                        if (status === 'problem') {
+                            state.problemLinks.add(href);
+                        }
+                        continue;
+                    }
+                }
+    
+                const hasNotice = articleContainsSystemNotice(article);
+                const hasLinks = articleLinksToTargetCommunities(article);
+    
+                // Step 3: Fragility warning
+                if (!hasNotice && !hasLinks && article.textContent.toLowerCase().includes('unavailable')) {
+                    GM_log('Warning: Potential system notice missed - DOM structure may have changed');
+                }
+    
+                if (hasNotice || hasLinks) {
+                    GM_log(`Immediate problem detected for article`);
+                    applyHighlight(article, 'problem');
+                    if (href) {
+                        state.problemLinks.add(href);
+                        replaceMenuButton(article, href);
+                    }
+                    state.fullyProcessedArticles.add(article);
+                } else {
+                    if (isRepliesPage) {
+                        const replyingToDepths = findReplyingToWithDepth(article);
+                        if (replyingToDepths && Array.isArray(replyingToDepths) && replyingToDepths.length > 0 && replyingToDepths.some(obj => obj.depth < 10)) {
+                            GM_log(`Potential problem detected for article on replies page with depth < 10`);
+                            applyHighlight(article, 'potential');
+                            if (href) replaceMenuButton(article, href);
+                        } else if (!wasProcessed) {
+                            applyHighlight(article, 'none');
+                        }
+                    } else if (!wasProcessed) {
+                        applyHighlight(article, 'none');
+                    }
+                }
+            } catch (e) {
+                GM_log(`Error in highlight conditions: ${e.message}`);
+            }
+        }
+        try {
+            updatePanel();
+        } catch (e) {
+            GM_log(`Error updating panel: ${e.message}`);
+        }
     }
 
     // --- Panel Management ---
@@ -739,51 +858,6 @@
         GM_log(`Panel visibility toggled to: ${state.isPanelVisible ? 'visible' : 'hidden'}`);
     }
 
-    function updateControlLabel() {
-        if (!uiElements.controlLabel) {
-            GM_log('Error: controlLabel is undefined in updateControlLabel');
-            return;
-        }
-        uiElements.controlLabel.textContent = state.isRateLimited ? 'Paused (Rate Limit)' :
-            state.isCollapsingEnabled ? 'Auto Collapse Running' :
-                state.isCollapsingRunning ? 'Auto Collapse Paused' : 'Auto Collapse Off';
-    }
-
-    function updatePanel() {
-        if (!uiElements.label) {
-            GM_log('Label is undefined, cannot update panel');
-            return;
-        }
-        uiElements.label.textContent = `Posts (${state.allPosts.size}):`;
-        if (!uiElements.contentWrapper) {
-            GM_log('Error: contentWrapper is undefined in updatePanel');
-            return;
-        }
-        uiElements.contentWrapper.innerHTML = '';
-
-        state.allPosts.forEach((status, href) => {
-            const row = document.createElement('div');
-            row.className = 'link-row';
-
-            const dot = document.createElement('span');
-            dot.className = `status-dot status-${status}`;
-            row.appendChild(dot);
-
-            const linkItem = document.createElement('div');
-            const a = Object.assign(document.createElement('a'), {
-                href: `https://x.com${href}`,
-                textContent: `https://x.com${href}`,
-                target: '_blank',
-            });
-            Object.assign(a.style, { color: '#1DA1F2', textDecoration: 'none', wordBreak: 'break-all' });
-            linkItem.appendChild(a);
-            row.appendChild(linkItem);
-
-            uiElements.contentWrapper.appendChild(row);
-        });
-        uiElements.contentWrapper.scrollTop = uiElements.contentWrapper.scrollHeight;
-    }
-
     function updateTheme() {
         GM_log('Updating theme...');
         const { panel, toolbar, label, contentWrapper, styleSheet, modeSelector, controlLabel, toggleButton, toolsToggle, copyButton, importButton, clearListButton, controlRow, toolsSection } = uiElements;
@@ -838,80 +912,6 @@
             .chevron-down { transform: rotate(0deg); }
             .chevron-up { transform: rotate(180deg); }
         `;
-    }
-
-    // --- Injected Modules ---
-    // INJECT: articleContainsSystemNotice
-    // INJECT: articleLinksToTargetCommunities
-    // INJECT: findReplyingToWithDepth
-
-    // --- Core Logic ---
-    function highlightPotentialProblems(mutations = []) {
-        if (state.isRateLimited) return;
-        const isRepliesPage = isProfileRepliesPage();
-        let articlesContainer = document.querySelector('main[role="main"] section > div > div') || document.body;
-        const articles = articlesContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
-    
-        for (const article of articles) {
-            if (state.fullyProcessedArticles.has(article)) continue;
-    
-            const wasProcessed = state.processedArticles.has(article);
-            if (!wasProcessed) state.processedArticles.add(article);
-    
-            try {
-                const href = article.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement?.getAttribute('href');
-                if (href && state.allPosts.has(href)) {
-                    const status = state.allPosts.get(href);
-                    if (status === 'problem' || status === 'safe') {
-                        GM_log(`Skipping already verified post: ${href} (status: ${status})`);
-                        applyHighlight(article, status);
-                        state.fullyProcessedArticles.add(article);
-                        if (status === 'problem') {
-                            state.problemLinks.add(href);
-                        }
-                        continue;
-                    }
-                }
-    
-                const hasNotice = articleContainsSystemNotice(article);
-                const hasLinks = articleLinksToTargetCommunities(article);
-    
-                // Step 3: Fragility warning
-                if (!hasNotice && !hasLinks && article.textContent.toLowerCase().includes('unavailable')) {
-                    GM_log('Warning: Potential system notice missed - DOM structure may have changed');
-                }
-    
-                if (hasNotice || hasLinks) {
-                    GM_log(`Immediate problem detected for article`);
-                    applyHighlight(article, 'problem');
-                    if (href) {
-                        state.problemLinks.add(href);
-                        replaceMenuButton(article, href);
-                    }
-                    state.fullyProcessedArticles.add(article);
-                } else {
-                    if (isRepliesPage) {
-                        const replyingToDepths = findReplyingToWithDepth(article);
-                        if (replyingToDepths && Array.isArray(replyingToDepths) && replyingToDepths.length > 0 && replyingToDepths.some(obj => obj.depth < 10)) {
-                            GM_log(`Potential problem detected for article on replies page with depth < 10`);
-                            applyHighlight(article, 'potential');
-                            if (href) replaceMenuButton(article, href);
-                        } else if (!wasProcessed) {
-                            applyHighlight(article, 'none');
-                        }
-                    } else if (!wasProcessed) {
-                        applyHighlight(article, 'none');
-                    }
-                }
-            } catch (e) {
-                GM_log(`Error in highlight conditions: ${e.message}`);
-            }
-        }
-        try {
-            updatePanel();
-        } catch (e) {
-            GM_log(`Error updating panel: ${e.message}`);
-        }
     }
 
     // --- Initialization ---
