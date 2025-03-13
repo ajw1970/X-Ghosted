@@ -62,34 +62,7 @@
     // --- Utility Functions ---
     const debounce = require('./dom/debounce');
 
-    function loadAllPosts() {
-        if (!state.storageAvailable) {
-            GM_log('Storage is unavailable, using in-memory storage.');
-            state.allPosts = new Map();
-            return;
-        }
-
-        try {
-            const savedPosts = GM_getValue('allPosts', '{}');
-            const parsedPosts = JSON.parse(savedPosts);
-            state.allPosts = new Map(Object.entries(parsedPosts));
-            GM_log(`Loaded ${state.allPosts.size} posts from storage`);
-        } catch (e) {
-            GM_log(`Failed to load posts from storage: ${e.message}. Using in-memory storage.`);
-            state.storageAvailable = false;
-            state.allPosts = new Map();
-            if (!uiElements.storageWarning) {
-                uiElements.storageWarning = document.createElement('div');
-                Object.assign(uiElements.storageWarning.style, {
-                    color: 'yellow',
-                    fontSize: '12px',
-                    marginBottom: '8px',
-                });
-                uiElements.storageWarning.textContent = 'Warning: Storage is unavailable (e.g., InPrivate mode). Data will not persist.';
-                uiElements.panel?.insertBefore(uiElements.storageWarning, uiElements.toolsSection);
-            }
-        }
-    }
+    const loadAllPosts = require('./dom/loadAllPosts');
 
     function saveAllPosts() {
         if (!state.storageAvailable) {
@@ -951,7 +924,7 @@
             return;
         }
         try {
-            loadAllPosts();
+            loadAllPosts(gmGetValue, gmLog, state, uiElements, document);
             createPanel();
             updatePanel();
             setupMonitoring();

@@ -93,20 +93,20 @@
     };
   }
 
-  function loadAllPosts() {
+  function loadAllPosts(gmGetValue, gmLog, state, uiElements, document) {
     if (!state.storageAvailable) {
-      GM_log('Storage is unavailable, using in-memory storage.');
+      gmLog('Storage is unavailable, using in-memory storage.');
       state.allPosts = new Map();
       return;
     }
 
     try {
-      const savedPosts = GM_getValue('allPosts', '{}');
+      const savedPosts = gmGetValue('allPosts', '{}');
       const parsedPosts = JSON.parse(savedPosts);
       state.allPosts = new Map(Object.entries(parsedPosts));
-      GM_log(`Loaded ${state.allPosts.size} posts from storage`);
+      gmLog(`Loaded ${state.allPosts.size} posts from storage`);
     } catch (e) {
-      GM_log(
+      gmLog(
         `Failed to load posts from storage: ${e.message}. Using in-memory storage.`
       );
       state.storageAvailable = false;
@@ -120,10 +120,12 @@
         });
         uiElements.storageWarning.textContent =
           'Warning: Storage is unavailable (e.g., InPrivate mode). Data will not persist.';
-        uiElements.panel?.insertBefore(
-          uiElements.storageWarning,
-          uiElements.toolsSection
-        );
+        if (uiElements.panel && uiElements.toolsSection) {
+          uiElements.panel.insertBefore(
+            uiElements.storageWarning,
+            uiElements.toolsSection
+          );
+        }
       }
     }
   }
@@ -1350,7 +1352,7 @@
       return;
     }
     try {
-      loadAllPosts();
+      loadAllPosts(gmGetValue, gmLog, state, uiElements, document);
       createPanel();
       updatePanel();
       setupMonitoring();
