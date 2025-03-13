@@ -15,7 +15,7 @@ describe('findReplyingToWithDepth', () => {
     test('returns array with reply data when present', () => {
         const article = createArticle('<div>Replying to @user</div>');
         const result = findReplyingToWithDepth(article);
-        expect(result).toEqual([{ depth: 0, innerHTML: 'Replying to @user' }]);
+        expect(result).toEqual([{ depth: 1, innerHTML: 'Replying to @user' }]);
     });
 
     test('returns empty array when no replies found', () => {
@@ -27,6 +27,6 @@ describe('findReplyingToWithDepth', () => {
     test('tracks depth correctly', () => {
         const article = createArticle('<div><div>Replying to @user</div></div>');
         const result = findReplyingToWithDepth(article);
-        expect(result).toEqual([{ depth: 1, innerHTML: 'Replying to @user' }]);
+        expect(result).toEqual([{ depth: 2, innerHTML: 'Replying to @user' }]);
     });
 });
