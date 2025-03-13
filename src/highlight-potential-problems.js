@@ -17,7 +17,7 @@
 
   // --- Configuration ---
   const CONFIG = {
-    CHECK_DELAY: 1000,
+    CHECK_DELAY: 3000, // Increased from 1000
     HIGHLIGHT_STYLE: 'highlight-post',
     COLLAPSE_STYLE: 'collapse-post',
     PANEL: {
@@ -54,8 +54,8 @@
         scroll: '#666666',
       },
     },
-    COLLAPSE_DELAY: 1000, // Increased delay
-    TAB_DELAY: 5000, // Increased delay
+    COLLAPSE_DELAY: 5000, // Increased delay from 1000
+    TAB_DELAY: 15000, // Increased delay from 5000
     RATE_LIMIT_PAUSE: 10 * 60 * 1000,
   };
 
