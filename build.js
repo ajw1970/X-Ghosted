@@ -9,7 +9,7 @@ const OUTPUT_FILE = path.resolve(SRC_DIR, 'highlight-potential-problems.js');
 
 // Read the input file
 let content = fs.readFileSync(INPUT_FILE, 'utf8');
-console.log('Input content:', content);
+// console.log('Input content:', content);
 
 // Function to recursively find all .js files in a directory
 function findJsFiles(dir, baseDir = dir) {
@@ -30,7 +30,7 @@ function findJsFiles(dir, baseDir = dir) {
 
 // Dynamically discover modules in ./src/
 const modulePaths = findJsFiles(SRC_DIR);
-console.log('Discovered modules:', modulePaths);
+// console.log('Discovered', Object.keys(modulePaths).length, 'modules');
 
 // Function to extract the code from a module file
 function getModuleCode(modulePath) {
@@ -53,7 +53,7 @@ for (const [requirePath, filePath] of Object.entries(modulePaths)) {
     
     try {
         const moduleCode = getModuleCode(filePath);
-        console.log(`Replacing ${requirePath} with:`, moduleCode);
+        // console.log(`Replacing ${requirePath} with:`, moduleCode);
         content = content.replace(requireRegex, moduleCode);
     } catch (err) {
         console.error(`Error processing ${requirePath}:`, err.message);
