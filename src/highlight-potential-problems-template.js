@@ -376,9 +376,11 @@
     }
 
     // --- Injected Modules ---
-    // INJECT: articleContainsSystemNotice
-    // INJECT: articleLinksToTargetCommunities
-    // INJECT: findReplyingToWithDepth
+    const articleContainsSystemNotice = require('./utils/articleContainsSystemNotice');
+    
+    const articleLinksToTargetCommunities = require('./utils/articleLinksToTargetCommunities');
+    
+    const findReplyingToWithDepth = require('./utils/findReplyingToWithDepth');
 
     // --- Core Logic ---
     function highlightPotentialProblems(mutations = []) {
