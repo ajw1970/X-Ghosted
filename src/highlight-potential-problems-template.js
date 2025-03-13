@@ -110,10 +110,7 @@
     // --- Detection Functions ---
     const detectTheme = require('./dom/detectTheme');
 
-    function isProfileRepliesPage() {
-        const url = window.location.href;
-        return url.startsWith('https://x.com/') && url.endsWith('/with_replies');
-    }
+    const isProfileRepliesPage = require('./utils/isProfileRepliesPage');
 
     // --- UI Manipulation Functions ---
     function applyHighlight(article, status = 'potential') {
