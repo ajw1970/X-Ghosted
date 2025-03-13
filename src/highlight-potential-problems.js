@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
-// @version      0.6.7
+// @version      0.6.8
 // @description  Highlight potentially problematic posts and their parent articles on X.com
 // @author       John Welty
 // @match        https://x.com/*
@@ -54,8 +54,8 @@
         scroll: '#666666',
       },
     },
-    COLLAPSE_DELAY: 200,
-    TAB_DELAY: 3000,
+    COLLAPSE_DELAY: 1000, // Increased delay
+    TAB_DELAY: 5000, // Increased delay
     RATE_LIMIT_PAUSE: 10 * 60 * 1000,
   };
 
@@ -90,6 +90,12 @@
   }
 
   function loadAllPosts() {
+    if (!state.storageAvailable) {
+      GM_log('Storage is unavailable, using in-memory storage.');
+      state.allPosts = new Map();
+      return;
+    }
+
     try {
       const savedPosts = GM_getValue('allPosts', '{}');
       const parsedPosts = JSON.parse(savedPosts);
@@ -97,7 +103,7 @@
       GM_log(`Loaded ${state.allPosts.size} posts from storage`);
     } catch (e) {
       GM_log(
-        `Failed to load posts from storage: ${e.message}. Using in-memory storage.`,
+        `Failed to load posts from storage: ${e.message}. Using in-memory storage.`
       );
       state.storageAvailable = false;
       state.allPosts = new Map();
@@ -112,24 +118,27 @@
           'Warning: Storage is unavailable (e.g., InPrivate mode). Data will not persist.';
         uiElements.panel?.insertBefore(
           uiElements.storageWarning,
-          uiElements.toolsSection,
+          uiElements.toolsSection
         );
       }
     }
   }
 
   function saveAllPosts() {
-    if (state.storageAvailable) {
-      try {
-        const postsObj = Object.fromEntries(state.allPosts);
-        GM_setValue('allPosts', JSON.stringify(postsObj));
-        GM_log(`Saved ${state.allPosts.size} posts to storage`);
-      } catch (e) {
-        GM_log(
-          `Failed to save posts to storage: ${e.message}. Data will be lost on page reload.`,
-        );
-        state.storageAvailable = false;
-      }
+    if (!state.storageAvailable) {
+      GM_log('Storage is unavailable, skipping save.');
+      return;
+    }
+
+    try {
+      const postsObj = Object.fromEntries(state.allPosts);
+      GM_setValue('allPosts', JSON.stringify(postsObj));
+      GM_log(`Saved ${state.allPosts.size} posts to storage`);
+    } catch (e) {
+      GM_log(
+        `Failed to save posts to storage: ${e.message}. Data will be lost on page reload.`
+      );
+      state.storageAvailable = false;
     }
   }
 
@@ -222,23 +231,140 @@
         !state.fullyProcessedArticles.has(article)
       ) {
         GM_log(
-          `Evaluating article for collapse: href=${href}, problemLink=${state.problemLinks.has(href)}`,
+          `Evaluating article for collapse: href=${href}, problemLink=${state.problemLinks.has(href)}`
         );
         if (href && !state.problemLinks.has(href)) {
           collapseArticle(article);
           GM_log(`Collapsed article with href: ${href}`);
         } else {
           GM_log(
-            `Skipped collapsing article with href: ${href} (problem link or fully processed)`,
+            `Skipped collapsing article with href: ${href} (problem link or fully processed)`
           );
         }
       } else {
         GM_log(
-          `Skipped article at index ${index} (not processed or fully processed)`,
+          `Skipped article at index ${index} (not processed or fully processed)`
         );
       }
       index++;
     }, CONFIG.COLLAPSE_DELAY);
+  }
+
+  function checkPostInNewTab(article, href, callback) {
+    const fullUrl = `https://x.com${href}`;
+    GM_log(`Opening new tab to check: ${fullUrl}`);
+    const newWindow = window.open(fullUrl, '_blank');
+    if (!newWindow) {
+      GM_log('Failed to open new tab; popup blocker may be active');
+      alert('Please allow popups for this site to check the post.');
+      callback?.();
+      return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 10;
+    const checkInterval = setInterval(() => {
+      attempts++;
+      try {
+        if (newWindow.closed) {
+          clearInterval(checkInterval);
+          GM_log('New tab was closed by user');
+          applyHighlight(article, 'potential');
+          callback?.();
+          return;
+        }
+
+        if (newWindow.document.readyState === 'complete') {
+          clearInterval(checkInterval);
+          const doc = newWindow.document;
+
+          if (
+            doc.status === 429 ||
+            doc.body.textContent.includes('Too Many Requests')
+          ) {
+            GM_log('429 Rate limit detected in tab, pausing operations');
+            alert(
+              'Rate limit (429) exceeded by X. Pausing all operations for 10 minutes.'
+            );
+            state.isRateLimited = true;
+            state.isCollapsingEnabled = false;
+            updateControlLabel();
+            setTimeout(() => {
+              GM_log('Resuming after rate limit pause');
+              state.isRateLimited = false;
+              state.isCollapsingEnabled = true;
+              highlightPotentialProblems();
+            }, CONFIG.RATE_LIMIT_PAUSE);
+            newWindow.close();
+            callback?.();
+            return;
+          } else if (doc.body.textContent.includes('Rate limit exceeded')) {
+            GM_log('Rate limit detected in tab, pausing operations');
+            alert(
+              'Rate limit exceeded by X. Pausing all operations for 10 minutes.'
+            );
+            state.isRateLimited = true;
+            state.isCollapsingEnabled = false;
+            updateControlLabel();
+            setTimeout(() => {
+              GM_log('Resuming after rate limit pause');
+              state.isRateLimited = false;
+              state.isCollapsingEnabled = true;
+              highlightPotentialProblems();
+            }, CONFIG.RATE_LIMIT_PAUSE);
+            newWindow.close();
+            callback?.();
+            return;
+          }
+
+          const threadArticles = doc.querySelectorAll(
+            'div[data-testid="cellInnerDiv"]'
+          );
+          GM_log(
+            `Found ${threadArticles.length} articles in new tab for ${fullUrl}`
+          );
+
+          let isProblem = false;
+          for (let threadArticle of threadArticles) {
+            const hasNotice = articleContainsSystemNotice(threadArticle);
+            const hasLinks = articleLinksToTargetCommunities(threadArticle);
+            GM_log(
+              `Delayed check - System Notice: ${hasNotice}, Target Links: ${hasLinks}`
+            );
+            if (hasNotice || hasLinks) {
+              isProblem = true;
+              GM_log('Problem detected in delayed check');
+              break;
+            }
+          }
+
+          GM_log(`Delayed check completed - isProblem: ${isProblem}`);
+          applyHighlight(article, isProblem ? 'problem' : 'safe');
+          if (isProblem) {
+            state.problemLinks.add(href);
+            GM_log(`Problem confirmed in delayed check for ${href}`);
+          } else {
+            state.problemLinks.delete(href);
+            GM_log(`No problems found in delayed check for ${href}`);
+            setTimeout(() => newWindow.close(), 500);
+          }
+          state.fullyProcessedArticles.add(article);
+          updatePanel();
+          callback?.();
+        }
+      } catch (e) {
+        GM_log(
+          `Error accessing new tab DOM (attempt ${attempts}): ${e.message}`
+        );
+        if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          applyHighlight(article, 'potential');
+          GM_log('Max attempts reached, marking as potential');
+          newWindow.close();
+          callback?.();
+        }
+      }
+    }, 500);
   }
 
   function replaceMenuButton(article, href) {
@@ -279,130 +405,227 @@
     });
   }
 
-  function checkPostInNewTab(article, href, callback) {
-    const fullUrl = `https://x.com${href}`;
-    GM_log(`Opening new tab to check: ${fullUrl}`);
-    const newWindow = window.open(fullUrl, '_blank');
-    if (!newWindow) {
-      GM_log('Failed to open new tab; popup blocker may be active');
-      alert('Please allow popups for this site to check the post.');
-      callback?.();
+  function updateControlLabel() {
+    if (!uiElements.controlLabel) {
+      GM_log('Error: controlLabel is undefined in updateControlLabel');
       return;
     }
+    uiElements.controlLabel.textContent = state.isRateLimited
+      ? 'Paused (Rate Limit)'
+      : state.isCollapsingEnabled
+        ? 'Auto Collapse Running'
+        : state.isCollapsingRunning
+          ? 'Auto Collapse Paused'
+          : 'Auto Collapse Off';
+  }
 
-    let attempts = 0;
-    const maxAttempts = 10;
-    let emptyCount = 0;
-    const checkInterval = setInterval(() => {
-      attempts++;
+  function updatePanel() {
+    if (!uiElements.label) {
+      GM_log('Label is undefined, cannot update panel');
+      return;
+    }
+    uiElements.label.textContent = `Posts (${state.allPosts.size}):`;
+    if (!uiElements.contentWrapper) {
+      GM_log('Error: contentWrapper is undefined in updatePanel');
+      return;
+    }
+    uiElements.contentWrapper.innerHTML = '';
+
+    state.allPosts.forEach((status, href) => {
+      const row = document.createElement('div');
+      row.className = 'link-row';
+
+      const dot = document.createElement('span');
+      dot.className = `status-dot status-${status}`;
+      row.appendChild(dot);
+
+      const linkItem = document.createElement('div');
+      const a = Object.assign(document.createElement('a'), {
+        href: `https://x.com${href}`,
+        textContent: `https://x.com${href}`,
+        target: '_blank',
+      });
+      Object.assign(a.style, {
+        color: '#1DA1F2',
+        textDecoration: 'none',
+        wordBreak: 'break-all',
+      });
+      linkItem.appendChild(a);
+      row.appendChild(linkItem);
+
+      uiElements.contentWrapper.appendChild(row);
+    });
+    uiElements.contentWrapper.scrollTop =
+      uiElements.contentWrapper.scrollHeight;
+  }
+
+  // --- Injected Modules ---
+  function articleContainsSystemNotice(article) {
+    const targetNotices = [
+      'unavailable',
+      'content warning',
+      'this post is unavailable',
+      'this post violated the x rules',
+      'this post was deleted by the post author',
+      'this post is from an account that no longer exists',
+      "this post may violate x's rules against hateful conduct",
+      'this media has been disabled in response to a report by the copyright owner',
+      "you're unable to view this post",
+    ];
+
+    function normalizedTextContent(textContent) {
+      return textContent.replace(/[‘’]/g, "'").toLowerCase();
+    }
+
+    const spans = Array.from(article.querySelectorAll('span'));
+    for (const span of spans) {
+      const textContent = normalizedTextContent(span.textContent);
+      for (const notice of targetNotices) {
+        if (textContent.startsWith(notice)) {
+          return notice;
+        }
+      }
+    }
+    return false; // Changed from "" to false
+  }
+
+  function articleLinksToTargetCommunities(article) {
+    const communityIds = ['1889908654133911912'];
+
+    const aTags = Array.from(article.querySelectorAll('a'));
+    for (const aTag of aTags) {
+      for (const id of communityIds) {
+        if (aTag.href.endsWith(`/i/communities/${id}`)) {
+          return id;
+        }
+      }
+    }
+    return false; // Changed from "" to false
+  }
+
+  function findReplyingToWithDepth(article) {
+    const result = [];
+
+    function getInnerHTMLWithoutAttributes(element) {
+      const clone = element.cloneNode(true);
+      clone.querySelectorAll('*').forEach((el) => {
+        while (el.attributes.length > 0) {
+          el.removeAttribute(el.attributes[0].name);
+        }
+      });
+      return clone.innerHTML;
+    }
+
+    function findDivs(element, depth) {
+      if (
+        element.tagName === 'DIV' &&
+        element.innerHTML.startsWith('Replying to')
+      ) {
+        result.push({
+          depth,
+          innerHTML: getInnerHTMLWithoutAttributes(element).replace(
+            /<\/?(div|span)>/gi,
+            ''
+          ),
+        });
+      }
+
+      Array.from(element.children).forEach((child) =>
+        findDivs(child, depth + 1)
+      );
+    }
+
+    findDivs(article, 0);
+    return result; // No change needed
+  }
+
+  // --- Core Logic ---
+  function highlightPotentialProblems(mutations = []) {
+    if (state.isRateLimited) return;
+    const isRepliesPage = isProfileRepliesPage();
+    let articlesContainer =
+      document.querySelector('main[role="main"] section > div > div') ||
+      document.body;
+    const articles = articlesContainer.querySelectorAll(
+      'div[data-testid="cellInnerDiv"]'
+    );
+
+    for (const article of articles) {
+      if (state.fullyProcessedArticles.has(article)) continue;
+
+      const wasProcessed = state.processedArticles.has(article);
+      if (!wasProcessed) state.processedArticles.add(article);
+
       try {
-        if (newWindow.closed) {
-          clearInterval(checkInterval);
-          GM_log('New tab was closed by user');
-          applyHighlight(article, 'potential');
-          callback?.();
-          return;
+        const href = article
+          .querySelector('.css-146c3p1.r-1loqt21 time')
+          ?.parentElement?.getAttribute('href');
+        if (href && state.allPosts.has(href)) {
+          const status = state.allPosts.get(href);
+          if (status === 'problem' || status === 'safe') {
+            GM_log(
+              `Skipping already verified post: ${href} (status: ${status})`
+            );
+            applyHighlight(article, status);
+            state.fullyProcessedArticles.add(article);
+            if (status === 'problem') {
+              state.problemLinks.add(href);
+            }
+            continue;
+          }
         }
 
-        if (newWindow.document.readyState === 'complete') {
-          clearInterval(checkInterval);
-          const doc = newWindow.document;
+        const hasNotice = articleContainsSystemNotice(article);
+        const hasLinks = articleLinksToTargetCommunities(article);
 
-          // Enhanced rate limit check
-          if (
-            doc.status === 429 ||
-            doc.body.textContent.includes('Too Many Requests')
-          ) {
-            GM_log('429 Rate limit detected in tab, pausing operations');
-            alert(
-              'Rate limit (429) exceeded by X. Pausing all operations for 10 minutes.',
-            );
-            state.isRateLimited = true;
-            state.isCollapsingEnabled = false;
-            updateControlLabel();
-            setTimeout(() => {
-              GM_log('Resuming after rate limit pause');
-              state.isRateLimited = false;
-              state.isCollapsingEnabled = true;
-              highlightPotentialProblems();
-            }, CONFIG.RATE_LIMIT_PAUSE); // 10 * 60 * 1000 = 10 minutes
-            newWindow.close();
-            callback?.();
-            return;
-          } else if (doc.body.textContent.includes('Rate limit exceeded')) {
-            GM_log('Rate limit detected in tab, pausing operations');
-            alert(
-              'Rate limit exceeded by X. Pausing all operations for 10 minutes.',
-            );
-            state.isRateLimited = true;
-            state.isCollapsingEnabled = false;
-            updateControlLabel();
-            setTimeout(() => {
-              GM_log('Resuming after rate limit pause');
-              state.isRateLimited = false;
-              state.isCollapsingEnabled = true;
-              highlightPotentialProblems();
-            }, CONFIG.RATE_LIMIT_PAUSE);
-            newWindow.close();
-            callback?.();
-            return;
-          }
-
-          const threadArticles = doc.querySelectorAll(
-            'div[data-testid="cellInnerDiv"]',
-          );
+        // Step 3: Fragility warning
+        if (
+          !hasNotice &&
+          !hasLinks &&
+          article.textContent.toLowerCase().includes('unavailable')
+        ) {
           GM_log(
-            `Found ${threadArticles.length} articles in new tab for ${fullUrl}`,
+            'Warning: Potential system notice missed - DOM structure may have changed'
           );
-          // ... rest of the function remains unchanged
+        }
+
+        if (hasNotice || hasLinks) {
+          GM_log(`Immediate problem detected for article`);
+          applyHighlight(article, 'problem');
+          if (href) {
+            state.problemLinks.add(href);
+            replaceMenuButton(article, href);
+          }
+          state.fullyProcessedArticles.add(article);
+        } else {
+          if (isRepliesPage) {
+            const replyingToDepths = findReplyingToWithDepth(article);
+            if (
+              replyingToDepths &&
+              Array.isArray(replyingToDepths) &&
+              replyingToDepths.length > 0 &&
+              replyingToDepths.some((obj) => obj.depth < 10)
+            ) {
+              GM_log(
+                `Potential problem detected for article on replies page with depth < 10`
+              );
+              applyHighlight(article, 'potential');
+              if (href) replaceMenuButton(article, href);
+            } else if (!wasProcessed) {
+              applyHighlight(article, 'none');
+            }
+          } else if (!wasProcessed) {
+            applyHighlight(article, 'none');
+          }
         }
       } catch (e) {
-        GM_log(
-          `Error accessing new tab DOM (attempt ${attempts}): ${e.message}`,
-        );
-        if (attempts >= maxAttempts) {
-          clearInterval(checkInterval);
-          applyHighlight(article, 'potential');
-          GM_log('Max attempts reached, marking as potential');
-          newWindow.close();
-          callback?.();
-        }
+        GM_log(`Error in highlight conditions: ${e.message}`);
       }
-    }, 500);
-
-    function checkDom(win, art, link, interval, cb) {
-      const articles = win.document.querySelectorAll(
-        'div[data-testid="cellInnerDiv"]',
-      );
-      if (articles.length > 0) {
-        clearInterval(interval);
-        let isProblem = false;
-        for (let threadArticle of articles) {
-          const hasNotice = articleContainsSystemNotice(threadArticle);
-          const hasLinks = articleLinksToTargetCommunities(threadArticle);
-          GM_log(
-            `Delayed check - System Notice: ${hasNotice}, Target Links: ${hasLinks}`,
-          );
-          if (hasNotice || hasLinks) {
-            isProblem = true;
-            GM_log('Problem detected in delayed check');
-            break;
-          }
-        }
-        GM_log(`Delayed check completed - isProblem: ${isProblem}`);
-        applyHighlight(art, isProblem ? 'problem' : 'safe');
-        if (isProblem) {
-          state.problemLinks.add(link);
-          GM_log(`Problem confirmed in delayed check for ${link}`);
-        } else {
-          state.problemLinks.delete(link);
-          GM_log(`No problems found in delayed check for ${link}`);
-          setTimeout(() => win.close(), 500);
-        }
-        state.fullyProcessedArticles.add(art);
-        updatePanel();
-        cb?.();
-      }
+    }
+    try {
+      updatePanel();
+    } catch (e) {
+      GM_log(`Error updating panel: ${e.message}`);
     }
   }
 
@@ -528,10 +751,10 @@
         } catch (e) {
           GM_log(`Error importing CSV: ${e.message}`);
           alert(
-            'Error importing CSV data. Please ensure it matches the expected format.',
+            'Error importing CSV data. Please ensure it matches the expected format.'
           );
         }
-      },
+      }
     );
 
     const closeButton = createButton(
@@ -541,7 +764,7 @@
       () => {
         modal.style.display = 'none';
         textarea.value = '';
-      },
+      }
     );
 
     buttonContainer.append(submitButton, closeButton);
@@ -643,7 +866,7 @@
           uiElements.toolsSection.style.display = isExpanded ? 'none' : 'block';
           uiElements.toolsToggle.querySelector('svg').style.transform =
             isExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
-        },
+        }
       );
       uiElements.toolsToggle.querySelector('svg').style.transition =
         'transform 0.3s ease';
@@ -683,7 +906,7 @@
               GM_log(`Copy failed: ${err}`);
               alert('Failed to copy CSV.');
             });
-        },
+        }
       );
 
       const { modal, textarea } = createModal();
@@ -694,7 +917,7 @@
         () => {
           modal.style.display = 'block';
           textarea.focus();
-        },
+        }
       );
 
       uiElements.clearListButton = createButton(
@@ -704,7 +927,7 @@
         () => {
           if (
             confirm(
-              'Are you sure you want to clear the list of all tracked posts? This cannot be undone.',
+              'Are you sure you want to clear the list of all tracked posts? This cannot be undone.'
             )
           ) {
             state.allPosts.clear();
@@ -720,13 +943,13 @@
             highlightPotentialProblems(); // Refresh highlights
             alert('List cleared successfully.');
           }
-        },
+        }
       );
 
       toolsButtonContainer.append(
         uiElements.copyButton,
         uiElements.importButton,
-        uiElements.clearListButton,
+        uiElements.clearListButton
       );
       uiElements.toolsSection.append(toolsButtonContainer);
 
@@ -760,7 +983,7 @@
         'Hide',
         getSvgIcon('eye'),
         mode,
-        togglePanelVisibility,
+        togglePanelVisibility
       );
 
       uiElements.controlRow = document.createElement('div');
@@ -800,7 +1023,7 @@
           GM_log('Collapsing started');
           updateControlLabel();
           const articles = document.querySelectorAll(
-            'div[data-testid="cellInnerDiv"]',
+            'div[data-testid="cellInnerDiv"]'
           );
           collapseArticlesWithDelay(articles);
           highlightPotentialProblems();
@@ -827,7 +1050,7 @@
           }
           updateControlLabel();
           highlightPotentialProblems();
-        }),
+        })
       );
 
       uiElements.contentWrapper = document.createElement('div');
@@ -847,14 +1070,14 @@
         uiElements.label,
         uiElements.toolsToggle,
         uiElements.modeSelector,
-        uiElements.toggleButton,
+        uiElements.toggleButton
       );
       uiElements.controlRow.append(uiElements.controlLabel, buttonContainer);
       uiElements.panel.append(
         uiElements.toolbar,
         uiElements.toolsSection,
         uiElements.controlRow,
-        uiElements.contentWrapper,
+        uiElements.contentWrapper
       );
       document.body.appendChild(uiElements.panel);
       document.body.appendChild(modal);
@@ -917,7 +1140,7 @@
       !contentWrapper
     ) {
       GM_log(
-        'Error: One or more panel elements are undefined in togglePanelVisibility',
+        'Error: One or more panel elements are undefined in togglePanelVisibility'
       );
       return;
     }
@@ -943,62 +1166,8 @@
       toggleButton.style.margin = '0';
     }
     GM_log(
-      `Panel visibility toggled to: ${state.isPanelVisible ? 'visible' : 'hidden'}`,
+      `Panel visibility toggled to: ${state.isPanelVisible ? 'visible' : 'hidden'}`
     );
-  }
-
-  function updateControlLabel() {
-    if (!uiElements.controlLabel) {
-      GM_log('Error: controlLabel is undefined in updateControlLabel');
-      return;
-    }
-    uiElements.controlLabel.textContent = state.isRateLimited
-      ? 'Paused (Rate Limit)'
-      : state.isCollapsingEnabled
-        ? 'Auto Collapse Running'
-        : state.isCollapsingRunning
-          ? 'Auto Collapse Paused'
-          : 'Auto Collapse Off';
-  }
-
-  function updatePanel() {
-    if (!uiElements.label) {
-      GM_log('Label is undefined, cannot update panel');
-      return;
-    }
-    uiElements.label.textContent = `Posts (${state.allPosts.size}):`;
-    if (!uiElements.contentWrapper) {
-      GM_log('Error: contentWrapper is undefined in updatePanel');
-      return;
-    }
-    uiElements.contentWrapper.innerHTML = '';
-
-    state.allPosts.forEach((status, href) => {
-      const row = document.createElement('div');
-      row.className = 'link-row';
-
-      const dot = document.createElement('span');
-      dot.className = `status-dot status-${status}`;
-      row.appendChild(dot);
-
-      const linkItem = document.createElement('div');
-      const a = Object.assign(document.createElement('a'), {
-        href: `https://x.com${href}`,
-        textContent: `https://x.com${href}`,
-        target: '_blank',
-      });
-      Object.assign(a.style, {
-        color: '#1DA1F2',
-        textDecoration: 'none',
-        wordBreak: 'break-all',
-      });
-      linkItem.appendChild(a);
-      row.appendChild(linkItem);
-
-      uiElements.contentWrapper.appendChild(row);
-    });
-    uiElements.contentWrapper.scrollTop =
-      uiElements.contentWrapper.scrollHeight;
   }
 
   function updateTheme() {
@@ -1098,194 +1267,39 @@
         `;
   }
 
-  // --- Injected Modules ---
-  function articleContainsSystemNotice(article) {
-    const targetNotices = [
-      'unavailable',
-      'content warning',
-      'this post is unavailable',
-      'this post violated the x rules',
-      'this post was deleted by the post author',
-      'this post is from an account that no longer exists',
-      "this post may violate x's rules against hateful conduct",
-      'this media has been disabled in response to a report by the copyright owner',
-      "you're unable to view this post",
-    ];
-
-    function normalizedTextContent(textContent) {
-      return textContent.replace(/[‘’]/g, "'").toLowerCase();
-    }
-
-    const spans = Array.from(article.querySelectorAll('span'));
-    for (const span of spans) {
-      const textContent = normalizedTextContent(span.textContent);
-      for (const notice of targetNotices) {
-        if (textContent.startsWith(notice)) {
-          return notice;
-        }
-      }
-    }
-    return false; // Changed from "" to false
-  }
-
-  function articleLinksToTargetCommunities(article) {
-    const communityIds = ['1889908654133911912'];
-
-    const aTags = Array.from(article.querySelectorAll('a'));
-    for (const aTag of aTags) {
-      for (const id of communityIds) {
-        if (aTag.href.endsWith(`/i/communities/${id}`)) {
-          return id;
-        }
-      }
-    }
-    return false; // Changed from "" to false
-  }
-
-  function findReplyingToWithDepth(article) {
-    const result = [];
-
-    function getInnerHTMLWithoutAttributes(element) {
-      const clone = element.cloneNode(true);
-      clone.querySelectorAll('*').forEach((el) => {
-        while (el.attributes.length > 0) {
-          el.removeAttribute(el.attributes[0].name);
-        }
-      });
-      return clone.innerHTML;
-    }
-
-    function findDivs(element, depth) {
-      if (
-        element.tagName === 'DIV' &&
-        element.innerHTML.startsWith('Replying to')
-      ) {
-        result.push({
-          depth,
-          innerHTML: getInnerHTMLWithoutAttributes(element).replace(
-            /<\/?(div|span)>/gi,
-            '',
-          ),
-        });
-      }
-
-      Array.from(element.children).forEach((child) =>
-        findDivs(child, depth + 1),
-      );
-    }
-
-    findDivs(article, 0);
-    return result; // No change needed
-  }
-
-  // --- Core Logic ---
-  function highlightPotentialProblems(mutations = []) {
-    if (state.isRateLimited) return;
-    const isRepliesPage = isProfileRepliesPage();
-    let articlesContainer =
-      document.querySelector('main [role="region"]') || document.body;
-    const articles = articlesContainer.querySelectorAll(
-      'div[data-testid="cellInnerDiv"]',
-    );
-
-    for (const article of articles) {
-      if (state.fullyProcessedArticles.has(article)) continue;
-
-      const wasProcessed = state.processedArticles.has(article);
-      if (!wasProcessed) state.processedArticles.add(article);
-
-      try {
-        const href = article
-          .querySelector('.css-146c3p1.r-1loqt21 time')
-          ?.parentElement?.getAttribute('href');
-        if (href && state.allPosts.has(href)) {
-          const status = state.allPosts.get(href);
-          if (status === 'problem' || status === 'safe') {
-            GM_log(
-              `Skipping already verified post: ${href} (status: ${status})`,
-            );
-            applyHighlight(article, status);
-            state.fullyProcessedArticles.add(article);
-            if (status === 'problem') {
-              state.problemLinks.add(href);
-            }
-            continue;
-          }
-        }
-
-        const hasNotice = articleContainsSystemNotice(article);
-        const hasLinks = articleLinksToTargetCommunities(article);
-
-        // Step 3: Fragility warning
-        if (
-          !hasNotice &&
-          !hasLinks &&
-          article.textContent.toLowerCase().includes('unavailable')
-        ) {
-          GM_log(
-            'Warning: Potential system notice missed - DOM structure may have changed',
-          );
-        }
-
-        if (hasNotice || hasLinks) {
-          GM_log(`Immediate problem detected for article`);
-          applyHighlight(article, 'problem');
-          if (href) {
-            state.problemLinks.add(href);
-            replaceMenuButton(article, href);
-          }
-          state.fullyProcessedArticles.add(article);
-        } else {
-          if (isRepliesPage) {
-            const replyingToDepths = findReplyingToWithDepth(article);
-            if (
-              replyingToDepths &&
-              Array.isArray(replyingToDepths) &&
-              replyingToDepths.length > 0 &&
-              replyingToDepths.some((obj) => obj.depth < 10)
-            ) {
-              GM_log(
-                `Potential problem detected for article on replies page with depth < 10`,
-              );
-              applyHighlight(article, 'potential');
-              if (href) replaceMenuButton(article, href);
-            } else if (!wasProcessed) {
-              applyHighlight(article, 'none');
-            }
-          } else if (!wasProcessed) {
-            applyHighlight(article, 'none');
-          }
-        }
-      } catch (e) {
-        GM_log(`Error in highlight conditions: ${e.message}`);
-      }
-    }
-    try {
-      updatePanel();
-    } catch (e) {
-      GM_log(`Error updating panel: ${e.message}`);
-    }
-  }
-
   // --- Initialization ---
   function setupMonitoring() {
     GM_log('Setting up monitoring...');
     function tryHighlighting(attempt = 1, maxAttempts = 3) {
       GM_log(`Attempt ${attempt} to highlight articles`);
-      const region = document.querySelector('main [role="region"]');
-      if (!region) {
-        GM_log('Main region not found, retrying...');
+      const mainElement = document.querySelector('main[role="main"]');
+      if (!mainElement) {
+        GM_log('Main element not found, retrying...');
         if (attempt < maxAttempts) {
           setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000);
         } else {
           GM_log(
-            'Main region still not found after max attempts, monitoring body instead',
+            'Main element still not found after max attempts, monitoring body instead'
           );
         }
         return;
       }
-      const articles = region.querySelectorAll(
-        'div[data-testid="cellInnerDiv"]',
+
+      const articlesContainer = mainElement.querySelector(
+        'section > div > div'
+      );
+      if (!articlesContainer) {
+        GM_log('Articles container not found, retrying...');
+        if (attempt < maxAttempts) {
+          setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000);
+        } else {
+          GM_log('Articles container still not found after max attempts');
+        }
+        return;
+      }
+
+      const articles = articlesContainer.querySelectorAll(
+        'div[data-testid="cellInnerDiv"]'
       );
       highlightPotentialProblems();
       if (articles.length === 0 && attempt < maxAttempts) {
@@ -1299,10 +1313,11 @@
     tryHighlighting();
     const debouncedHighlight = debounce(
       highlightPotentialProblems,
-      CONFIG.CHECK_DELAY,
+      CONFIG.CHECK_DELAY
     );
     const observerTarget =
-      document.querySelector('main [role="region"]') || document.body;
+      document.querySelector('main[role="main"] section > div > div') ||
+      document.body;
     new MutationObserver((mutations) => {
       debouncedHighlight(mutations);
     }).observe(observerTarget, { childList: true, subtree: true });
@@ -1317,10 +1332,10 @@
       typeof findReplyingToWithDepth !== 'function'
     ) {
       GM_log(
-        'Critical error: One or more injected utility functions are missing.',
+        'Critical error: One or more injected utility functions are missing.'
       );
       alert(
-        'Script failed to start: Missing utility functions. Please check installation.',
+        'Script failed to start: Missing utility functions. Please check installation.'
       );
       return;
     }
