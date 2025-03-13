@@ -3,7 +3,7 @@
   "version": "0.6.8",
   "description": "= 𝕏 Ghostban Prevention or Cleanup",
   "main": "index.js",
-  "type": "commonjs", 
+  "type": "commonjs",
   "scripts": {
     "test": "jest --coverage"
   },
