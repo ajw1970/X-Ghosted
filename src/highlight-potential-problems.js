@@ -85,7 +85,11 @@
     let timeout;
     return (...args) => {
       clearTimeout(timeout);
-      timeout = setTimeout(() => func(...args), wait);
+      if (wait === 0) {
+        func(...args); // Call synchronously if wait is 0
+      } else {
+        timeout = setTimeout(() => func(...args), wait);
+      }
     };
   }
 
@@ -143,21 +147,17 @@
   }
 
   // --- Detection Functions ---
-  function detectTheme() {
-    const dataTheme = document.body.getAttribute('data-theme') || '';
-    const bodyClasses = document.body.classList;
-    const bgColor = window.getComputedStyle(document.body).backgroundColor;
-
+  function detectTheme({ dataTheme = '', classList = [], bgColor = '' } = {}) {
     if (
       dataTheme.includes('lights-out') ||
       dataTheme.includes('dark') ||
-      bodyClasses.contains('dark') ||
+      classList.includes('dark') ||
       bgColor === 'rgb(0, 0, 0)'
     ) {
       return 'dark';
     } else if (
       dataTheme.includes('dim') ||
-      bodyClasses.contains('dim') ||
+      classList.includes('dim') ||
       bgColor === 'rgb(21, 32, 43)'
     ) {
       return 'dim';
