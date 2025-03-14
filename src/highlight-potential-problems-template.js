@@ -79,73 +79,7 @@
     const findReplyingToWithDepth = require('./utils/findReplyingToWithDepth');
 
     // --- Core Logic ---
-    function highlightPotentialProblems(mutations = []) {
-        if (state.isRateLimited) return;
-        const isRepliesPage = isProfileRepliesPage();
-        let articlesContainer = document.querySelector('main[role="main"] section > div > div') || document.body;
-        const articles = articlesContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
-    
-        for (const article of articles) {
-            if (state.fullyProcessedArticles.has(article)) continue;
-    
-            const wasProcessed = state.processedArticles.has(article);
-            if (!wasProcessed) state.processedArticles.add(article);
-    
-            try {
-                const href = article.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement?.getAttribute('href');
-                if (href && state.allPosts.has(href)) {
-                    const status = state.allPosts.get(href);
-                    if (status === 'problem' || status === 'safe') {
-                        GM_log(`Skipping already verified post: ${href} (status: ${status})`);
-                        applyHighlight(article, status);
-                        state.fullyProcessedArticles.add(article);
-                        if (status === 'problem') {
-                            state.problemLinks.add(href);
-                        }
-                        continue;
-                    }
-                }
-    
-                const hasNotice = articleContainsSystemNotice(article);
-                const hasLinks = articleLinksToTargetCommunities(article);
-    
-                // Step 3: Fragility warning
-                if (!hasNotice && !hasLinks && article.textContent.toLowerCase().includes('unavailable')) {
-                    GM_log('Warning: Potential system notice missed - DOM structure may have changed');
-                }
-    
-                if (hasNotice || hasLinks) {
-                    GM_log(`Immediate problem detected for article`);
-                    applyHighlight(article, 'problem');
-                    if (href) {
-                        state.problemLinks.add(href);
-                        replaceMenuButton(article, href);
-                    }
-                    state.fullyProcessedArticles.add(article);
-                } else {
-                    if (isRepliesPage) {
-                        const replyingToDepths = findReplyingToWithDepth(article);
-                        if (replyingToDepths && Array.isArray(replyingToDepths) && replyingToDepths.length > 0 && replyingToDepths.some(obj => obj.depth < 10)) {
-                            GM_log(`Potential problem detected for article on replies page with depth < 10`);
-                            applyHighlight(article, 'potential');
-                            if (href) replaceMenuButton(article, href);
-                        } else if (!wasProcessed) {
-                            applyHighlight(article, 'none');
-                        }
-                    } else if (!wasProcessed) {
-                        applyHighlight(article, 'none');
-                    }
-                }
-            } catch (e) {
-                GM_log(`Error in highlight conditions: ${e.message}`);
-            }
-        }
-        try {
-            updatePanel();
-        } catch (e) {
-            GM_log(`Error updating panel: ${e.message}`);
-        }
-    }
+    const identifyPotentialProblems = require('./dom/identifyPotentialProblems');
 
     // --- UI Manipulation Functions ---
     function applyHighlight(article, status = 'potential') {
@@ -245,7 +179,7 @@
                             GM_log('Resuming after rate limit pause');
                             state.isRateLimited = false;
                             state.isCollapsingEnabled = true;
-                            highlightPotentialProblems();
+                            identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, GM_log, []);
                         }, CONFIG.RATE_LIMIT_PAUSE);
                         newWindow.close();
                         callback?.();
@@ -260,7 +194,7 @@
                             GM_log('Resuming after rate limit pause');
                             state.isRateLimited = false;
                             state.isCollapsingEnabled = true;
-                            highlightPotentialProblems();
+                            identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, GM_log, []);
                         }, CONFIG.RATE_LIMIT_PAUSE);
                         newWindow.close();
                         callback?.();
@@ -634,7 +568,7 @@
                     }
                     GM_log('Cleared in-memory list');
                     updatePanel();
-                    highlightPotentialProblems(); // Refresh highlights
+                    identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, GM_log, []); // Refresh highlights
                     alert('List cleared successfully.');
                 }
             });
@@ -699,13 +633,13 @@
                     updateControlLabel();
                     const articles = document.querySelectorAll('div[data-testid="cellInnerDiv"]');
                     collapseArticlesWithDelay(articles);
-                    highlightPotentialProblems();
+                    identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, GM_log, []);
                 }),
                 createButton('Stop', getSvgIcon('pause'), mode, () => {
                     state.isCollapsingEnabled = false;
                     GM_log('Collapsing stopped');
                     updateControlLabel();
-                    highlightPotentialProblems();
+                    identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, GM_log, []);
                 }),
                 createButton('Reset', getSvgIcon('reset'), mode, () => {
                     state.isCollapsingEnabled = false;
@@ -720,7 +654,7 @@
                         GM_setValue('allPosts', '{}');
                     }
                     updateControlLabel();
-                    highlightPotentialProblems();
+                    identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, GM_log, []);
                 })
             );
 
@@ -869,7 +803,7 @@
                 }
                 return;
             }
-
+    
             GM_log('Main element found');
             const articlesContainer = mainElement.querySelector('section > div > div');
             if (!articlesContainer) {
@@ -881,10 +815,10 @@
                 }
                 return;
             }
-
+    
             GM_log('Articles container found');
             const articles = articlesContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
-            highlightPotentialProblems();
+            identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, GM_log, []);
             if (articles.length === 0 && attempt < maxAttempts) {
                 GM_log('No articles found, retrying...');
                 setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000);
@@ -892,21 +826,26 @@
                 GM_log(`Found ${articles.length} articles, proceeding with monitoring`);
             }
         }
-
+    
         tryHighlighting();
-        const debouncedHighlight = debounce(highlightPotentialProblems, CONFIG.CHECK_DELAY);
+        const debouncedHighlight = debounce(
+            (mutations) => identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, GM_log, mutations),
+            CONFIG.CHECK_DELAY
+        );
         const observerTarget = document.querySelector('main[role="main"] section > div > div') || document.body;
-        new MutationObserver(mutations => {
+        new MutationObserver((mutations) => {
             debouncedHighlight(mutations);
         }).observe(observerTarget, { childList: true, subtree: true });
     }
-
+    
     function init() {
         GM_log('Script starting...');
         // Add runtime check
-        if (typeof articleContainsSystemNotice !== 'function' ||
+        if (
+            typeof articleContainsSystemNotice !== 'function' ||
             typeof articleLinksToTargetCommunities !== 'function' ||
-            typeof findReplyingToWithDepth !== 'function') {
+            typeof findReplyingToWithDepth !== 'function'
+        ) {
             GM_log('Critical error: One or more injected utility functions are missing.');
             alert('Script failed to start: Missing utility functions. Please check installation.');
             return;
@@ -920,6 +859,6 @@
             GM_log(`Error in script execution: ${e.message}`);
         }
     }
-
+    
     init();
 })();
