@@ -55,8 +55,12 @@ describe('Highlight Potential Problems Userscript', () => {
     global.document = document; // Global document after jsdom constructed
     global.window = window; // Global window
 
+    console.log('Before eval: ', global.GM_log, global.GM_setValue, global.GM_getValue);
+
     // Evaluate the userscript within the JSDOM context ONCE
     window.eval(userscriptCode);
+
+    console.log('After eval: ', global.GM_log, global.GM_setValue, global.GM_getValue);
 
     // Mock alert
     global.alert = jest.fn();
