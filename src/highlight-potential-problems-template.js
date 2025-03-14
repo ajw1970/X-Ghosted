@@ -71,6 +71,82 @@
 
     const isProfileRepliesPage = require('./utils/isProfileRepliesPage');
 
+    // --- Injected Modules ---
+    const articleContainsSystemNotice = require('./utils/articleContainsSystemNotice');
+    
+    const articleLinksToTargetCommunities = require('./utils/articleLinksToTargetCommunities');
+    
+    const findReplyingToWithDepth = require('./utils/findReplyingToWithDepth');
+
+    // --- Core Logic ---
+    function highlightPotentialProblems(mutations = []) {
+        if (state.isRateLimited) return;
+        const isRepliesPage = isProfileRepliesPage();
+        let articlesContainer = document.querySelector('main[role="main"] section > div > div') || document.body;
+        const articles = articlesContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
+    
+        for (const article of articles) {
+            if (state.fullyProcessedArticles.has(article)) continue;
+    
+            const wasProcessed = state.processedArticles.has(article);
+            if (!wasProcessed) state.processedArticles.add(article);
+    
+            try {
+                const href = article.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement?.getAttribute('href');
+                if (href && state.allPosts.has(href)) {
+                    const status = state.allPosts.get(href);
+                    if (status === 'problem' || status === 'safe') {
+                        GM_log(`Skipping already verified post: ${href} (status: ${status})`);
+                        applyHighlight(article, status);
+                        state.fullyProcessedArticles.add(article);
+                        if (status === 'problem') {
+                            state.problemLinks.add(href);
+                        }
+                        continue;
+                    }
+                }
+    
+                const hasNotice = articleContainsSystemNotice(article);
+                const hasLinks = articleLinksToTargetCommunities(article);
+    
+                // Step 3: Fragility warning
+                if (!hasNotice && !hasLinks && article.textContent.toLowerCase().includes('unavailable')) {
+                    GM_log('Warning: Potential system notice missed - DOM structure may have changed');
+                }
+    
+                if (hasNotice || hasLinks) {
+                    GM_log(`Immediate problem detected for article`);
+                    applyHighlight(article, 'problem');
+                    if (href) {
+                        state.problemLinks.add(href);
+                        replaceMenuButton(article, href);
+                    }
+                    state.fullyProcessedArticles.add(article);
+                } else {
+                    if (isRepliesPage) {
+                        const replyingToDepths = findReplyingToWithDepth(article);
+                        if (replyingToDepths && Array.isArray(replyingToDepths) && replyingToDepths.length > 0 && replyingToDepths.some(obj => obj.depth < 10)) {
+                            GM_log(`Potential problem detected for article on replies page with depth < 10`);
+                            applyHighlight(article, 'potential');
+                            if (href) replaceMenuButton(article, href);
+                        } else if (!wasProcessed) {
+                            applyHighlight(article, 'none');
+                        }
+                    } else if (!wasProcessed) {
+                        applyHighlight(article, 'none');
+                    }
+                }
+            } catch (e) {
+                GM_log(`Error in highlight conditions: ${e.message}`);
+            }
+        }
+        try {
+            updatePanel();
+        } catch (e) {
+            GM_log(`Error updating panel: ${e.message}`);
+        }
+    }
+
     // --- UI Manipulation Functions ---
     function applyHighlight(article, status = 'potential') {
         const styles = {
@@ -311,82 +387,6 @@
             uiElements.contentWrapper.appendChild(row);
         });
         uiElements.contentWrapper.scrollTop = uiElements.contentWrapper.scrollHeight;
-    }
-
-    // --- Injected Modules ---
-    const articleContainsSystemNotice = require('./utils/articleContainsSystemNotice');
-    
-    const articleLinksToTargetCommunities = require('./utils/articleLinksToTargetCommunities');
-    
-    const findReplyingToWithDepth = require('./utils/findReplyingToWithDepth');
-
-    // --- Core Logic ---
-    function highlightPotentialProblems(mutations = []) {
-        if (state.isRateLimited) return;
-        const isRepliesPage = isProfileRepliesPage();
-        let articlesContainer = document.querySelector('main[role="main"] section > div > div') || document.body;
-        const articles = articlesContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
-    
-        for (const article of articles) {
-            if (state.fullyProcessedArticles.has(article)) continue;
-    
-            const wasProcessed = state.processedArticles.has(article);
-            if (!wasProcessed) state.processedArticles.add(article);
-    
-            try {
-                const href = article.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement?.getAttribute('href');
-                if (href && state.allPosts.has(href)) {
-                    const status = state.allPosts.get(href);
-                    if (status === 'problem' || status === 'safe') {
-                        GM_log(`Skipping already verified post: ${href} (status: ${status})`);
-                        applyHighlight(article, status);
-                        state.fullyProcessedArticles.add(article);
-                        if (status === 'problem') {
-                            state.problemLinks.add(href);
-                        }
-                        continue;
-                    }
-                }
-    
-                const hasNotice = articleContainsSystemNotice(article);
-                const hasLinks = articleLinksToTargetCommunities(article);
-    
-                // Step 3: Fragility warning
-                if (!hasNotice && !hasLinks && article.textContent.toLowerCase().includes('unavailable')) {
-                    GM_log('Warning: Potential system notice missed - DOM structure may have changed');
-                }
-    
-                if (hasNotice || hasLinks) {
-                    GM_log(`Immediate problem detected for article`);
-                    applyHighlight(article, 'problem');
-                    if (href) {
-                        state.problemLinks.add(href);
-                        replaceMenuButton(article, href);
-                    }
-                    state.fullyProcessedArticles.add(article);
-                } else {
-                    if (isRepliesPage) {
-                        const replyingToDepths = findReplyingToWithDepth(article);
-                        if (replyingToDepths && Array.isArray(replyingToDepths) && replyingToDepths.length > 0 && replyingToDepths.some(obj => obj.depth < 10)) {
-                            GM_log(`Potential problem detected for article on replies page with depth < 10`);
-                            applyHighlight(article, 'potential');
-                            if (href) replaceMenuButton(article, href);
-                        } else if (!wasProcessed) {
-                            applyHighlight(article, 'none');
-                        }
-                    } else if (!wasProcessed) {
-                        applyHighlight(article, 'none');
-                    }
-                }
-            } catch (e) {
-                GM_log(`Error in highlight conditions: ${e.message}`);
-            }
-        }
-        try {
-            updatePanel();
-        } catch (e) {
-            GM_log(`Error updating panel: ${e.message}`);
-        }
     }
 
     // --- Panel Management ---
@@ -858,7 +858,7 @@
     function setupMonitoring() {
         GM_log('Setting up monitoring...');
         function tryHighlighting(attempt = 1, maxAttempts = 3) {
-            GM_log(`Attempt ${attempt} to highlight articles`);
+            GM_log(`Attempt #${attempt} to find articles`);
             const mainElement = document.querySelector('main[role="main"]');
             if (!mainElement) {
                 GM_log('Main element not found, retrying...');
@@ -870,6 +870,7 @@
                 return;
             }
 
+            GM_log('Main element found');
             const articlesContainer = mainElement.querySelector('section > div > div');
             if (!articlesContainer) {
                 GM_log('Articles container not found, retrying...');
@@ -881,6 +882,7 @@
                 return;
             }
 
+            GM_log('Articles container found');
             const articles = articlesContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
             highlightPotentialProblems();
             if (articles.length === 0 && attempt < maxAttempts) {
@@ -910,7 +912,7 @@
             return;
         }
         try {
-            loadAllPosts(gmGetValue, gmLog, state, uiElements, document);
+            loadAllPosts(GM_getValue, GM_log, state, uiElements, document);
             createPanel();
             updatePanel();
             setupMonitoring();
