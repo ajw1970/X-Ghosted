@@ -828,6 +828,7 @@
         }
     
         lookForProblems();
+        GM_log('Call debounce to identifyPotentialProblems');
         const debouncedHighlight = debounce(
             (mutations) => identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, GM_log, mutations),
             CONFIG.CHECK_DELAY

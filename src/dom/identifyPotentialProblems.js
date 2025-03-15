@@ -10,6 +10,7 @@ function identifyPotentialProblems(
     GM_log,
     mutations
 ) {
+    GM_log('identifyPotentialProblems starting...');
     if (state.isRateLimited) return;
     const isRepliesPage = isProfileRepliesPage();
     let articlesContainer = document.querySelector('main[role="main"] section > div > div') || document.body;

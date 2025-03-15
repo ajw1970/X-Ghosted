@@ -276,6 +276,7 @@
     GM_log,
     mutations
   ) {
+    GM_log('identifyPotentialProblems starting...');
     if (state.isRateLimited) return;
     const isRepliesPage = isProfileRepliesPage();
     let articlesContainer =
@@ -1405,6 +1406,7 @@
     }
 
     lookForProblems();
+    GM_log('Call debounce to identifyPotentialProblems');
     const debouncedHighlight = debounce(
       (mutations) =>
         identifyPotentialProblems(
