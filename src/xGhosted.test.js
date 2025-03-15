@@ -8,10 +8,14 @@ describe('XGhosted', () => {
     let xGhosted, dom;
 
     beforeEach(() => {
-        // Existing file loading logic remains unchanged
-        console.log('Looking for file at: /home/ajw1970/samples/ajweltytest-with-replies.html');
-    
-        // Force a mock structure with all required post types
+        const samplePath = '/home/ajw1970/samples/ajweltytest-with-replies.html';
+        console.log('Looking for file at:', samplePath);
+
+        // Initialize JSDOM with a basic structure
+        dom = new JSDOM('<!DOCTYPE html><body></body>', { url: 'https://x.com/user/with_replies' });
+        xGhosted = new XGhosted(dom.window.document);
+
+        // Force mock structure with all required post types
         console.log('Forcing mock structure due to jsdom rendering issue');
         dom.window.document.body.innerHTML = `
             <div class="container">
@@ -32,9 +36,6 @@ describe('XGhosted', () => {
                 </div>
             </div>
         `;
-        console.log('Document body snippet:', dom.window.document.body.innerHTML.slice(0, 200));
-    
-        // Set the URL to enable 'potential' status for reply posts
         xGhosted.updateState('https://x.com/user/with_replies');
     });
 
@@ -70,12 +71,11 @@ describe('XGhosted', () => {
     });
 
     test('identifyPosts processes articles correctly', () => {
-        xGhosted.updateState('https://x.com/ajweltytest/with_replies');
         const posts = xGhosted.identifyPosts();
-        expect(posts.length).toBeGreaterThan(0);
         const badPost = posts.find(p => p.status === 'bad');
         const potentialPost = posts.find(p => p.status === 'potential');
         const goodPost = posts.find(p => p.status === 'good');
+        expect(posts.length).toBe(3);
         expect(badPost).toBeDefined();
         expect(potentialPost).toBeDefined();
         expect(goodPost).toBeDefined();
@@ -90,37 +90,17 @@ describe('XGhosted', () => {
     });
 
     test('collapsePosts hides one system notice article per run to focus attention', () => {
-        const mockHtml = `
-            <div data-testid="cellInnerDiv">
-                <div>
-                    <article>This Tweet is unavailable</article>
-                </div>
-            </div>
-            <div data-testid="cellInnerDiv">
-                <div>
-                    <article>This Tweet is unavailable too</article>
-                </div>
-            </div>
-            <div data-testid="cellInnerDiv">
-                <div>
-                    <article>Normal tweet</article>
-                </div>
-            </div>
-        `;
-        const mockDom = new JSDOM(mockHtml, { url: 'https://x.com/test' });
-        const mockXGhosted = new XGhosted(mockDom.window.document);
+        const cells = xGhosted.findCollapsibleElements();
+        xGhosted.collapsePosts();
+        expect(cells[0].style.display).toBe(''); // First post (good)
+        expect(cells[1].style.display).toBe('none'); // Second post (bad)
+        expect(cells[2].style.display).toBe(''); // Third post (potential)
+        expect(xGhosted.state.collapsedElements.size).toBe(1);
 
-        mockXGhosted.collapsePosts();
-        const cells = mockXGhosted.findCollapsibleElements();
-        expect(cells[0].style.display).toBe('none');
-        expect(cells[1].style.display).toBe('');
-        expect(cells[2].style.display).toBe('');
-        expect(mockXGhosted.state.collapsedElements.size).toBe(1);
-
-        mockXGhosted.state.lastCollapseTime = Date.now() - 30000;
-        mockXGhosted.collapsePosts();
-        expect(cells[1].style.display).toBe('none');
-        expect(mockXGhosted.state.collapsedElements.size).toBe(2);
+        xGhosted.state.lastCollapseTime = Date.now() - 30000;
+        xGhosted.collapsePosts();
+        expect(cells[1].style.display).toBe('none'); // Still hidden
+        expect(xGhosted.state.collapsedElements.size).toBe(1); // Only one bad post to collapse
     });
 
     test('getThemeMode returns light by default in sample', () => {

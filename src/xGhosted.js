@@ -1,4 +1,5 @@
 // src/xGhosted.js
+
 function detectTheme(doc) {
     const htmlElement = doc.documentElement;
     const bodyElement = doc.body;
@@ -58,8 +59,7 @@ XGhosted.prototype.findCollapsibleElements = function() {
 };
 
 XGhosted.prototype.articleContainsSystemNotice = function(article) {
-    const text = (article.textContent || '').toLowerCase().trim();
-    return text.includes('this tweet is unavailable');
+    return (article.textContent || '').toLowerCase().trim().includes('this tweet is unavailable');
 };
 
 XGhosted.prototype.articleLinksToTargetCommunities = function(article) {
@@ -68,7 +68,7 @@ XGhosted.prototype.articleLinksToTargetCommunities = function(article) {
 
 XGhosted.prototype.findReplyingToWithDepth = function(article) {
     const replyIndicator = article.querySelector('span[data-testid="reply"]');
-    return replyIndicator ? parseInt(replyIndicator.innerText, 10) || 1 : null;
+    return replyIndicator ? parseInt(replyIndicator.textContent, 10) || 1 : null;
 };
 
 XGhosted.prototype.processArticle = function(article) {
@@ -101,14 +101,18 @@ XGhosted.prototype.identifyPosts = function() {
 
 XGhosted.prototype.collapsePosts = function() {
     const now = Date.now();
-    if (now - this.state.lastCollapseTime < 30000) return; // Throttle to 30 seconds
+    const minInterval = 30000; // 30 seconds
+    if (now - this.state.lastCollapseTime < minInterval) return;
+
     const elements = this.findCollapsibleElements();
     let collapseCount = 0;
+    const maxCollapsesPerRun = 1;
 
     for (const cell of elements) {
-        if (collapseCount >= 1) break; // Collapse only one post per call
+        if (collapseCount >= maxCollapsesPerRun) break;
+
         const cellId = cell.dataset.testid + ((cell.textContent || '').slice(0, 50) || '');
-        if (this.state.collapsedElements.has(cellId)) continue; // Skip already collapsed posts
+        if (this.state.collapsedElements.has(cellId)) continue;
 
         const article = cell.querySelector('article');
         if (article && this.articleContainsSystemNotice(article)) {
