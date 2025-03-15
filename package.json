@@ -18,12 +18,6 @@
     "url": "https://github.com/ajw1970/X-Ghosted/issues"
   },
   "homepage": "https://github.com/ajw1970/X-Ghosted#readme",
-  "jest": {
-    "testEnvironment": "jsdom",
-    "setupFiles": [
-      "./test/setup.js"
-    ]
-  },
   "directories": {
     "test": "test"
   },

@@ -11,3 +11,8 @@ global.loadHTML = (filePath) => {
 // Add TextEncoder and TextDecoder to the global scope
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
+
+module.exports = {
+  testEnvironment: 'jsdom',
+  setupFiles: [],
+};
