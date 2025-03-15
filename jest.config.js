@@ -14,5 +14,8 @@ global.TextDecoder = TextDecoder;
 
 module.exports = {
   testEnvironment: 'jsdom',
-  setupFiles: [],
+  roots: ['<rootDir>/src'],
+  testMatch: ['**/?(*.)+(test).[jt]s?(x)'],
+  moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json', 'node'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
 };
