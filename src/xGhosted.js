@@ -1,6 +1,4 @@
 // src/xGhosted.js
-
-// Inline detectTheme (adjusted for CommonJS and document parameter)
 function detectTheme(doc) {
     const htmlElement = doc.documentElement;
     const bodyElement = doc.body;
@@ -26,41 +24,53 @@ function XGhosted(doc) {
         isWithReplies: false,
         postContainer: null,
         lastUrl: '',
-        processedArticles: new Map(), // Key: post URL, Value: { status, checked, element, text, links }
+        processedArticles: new Map(),
+        collapsedElements: new Set(),
+        lastCollapseTime: 0,
     };
     this.document = doc;
 }
 
-XGhosted.prototype.updateState = function (url) {
+XGhosted.prototype.updateState = function(url) {
     this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(url);
     if (this.state.lastUrl !== url) {
         this.state.postContainer = null;
         this.state.processedArticles.clear();
+        this.state.collapsedElements.clear();
         this.state.lastUrl = url;
     }
 };
 
-XGhosted.prototype.findPostContainer = function () {
+XGhosted.prototype.findPostContainer = function() {
     if (this.state.postContainer) return this.state.postContainer;
     const cells = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
     if (cells.length === 0) return null;
     const container = cells[0].parentElement;
-    if (container.querySelector('div[data-testid="cellInnerDiv"] > div > article')) {
+    if (container.querySelector('div[data-testid="cellInnerDiv"] article')) {
         this.state.postContainer = container;
         return container;
     }
     return null;
 };
 
-const articleContainsSystemNotice = require('./utils/articleContainsSystemNotice').articleContainsSystemNotice;
-const articleLinksToTargetCommunities = require('./utils/articleLinksToTargetCommunities').articleLinksToTargetCommunities;
-const findReplyingToWithDepth = require('./utils/findReplyingToWithDepth').findReplyingToWithDepth;
+XGhosted.prototype.findCollapsibleElements = function() {
+    return Array.from(this.document.querySelectorAll('div[data-testid="cellInnerDiv"]'));
+};
 
-XGhosted.prototype.articleContainsSystemNotice = articleContainsSystemNotice;
-XGhosted.prototype.articleLinksToTargetCommunities = articleLinksToTargetCommunities;
-XGhosted.prototype.findReplyingToWithDepth = findReplyingToWithDepth;
+XGhosted.prototype.articleContainsSystemNotice = function(article) {
+    return article.innerText.includes('This Tweet is unavailable');
+};
 
-XGhosted.prototype.processArticle = function (article) {
+XGhosted.prototype.articleLinksToTargetCommunities = function(article) {
+    return Array.from(article.querySelectorAll('a')).some(a => a.href.includes('t.co'));
+};
+
+XGhosted.prototype.findReplyingToWithDepth = function(article) {
+    const replyIndicator = article.querySelector('span[data-testid="reply"]');
+    return replyIndicator ? parseInt(replyIndicator.innerText, 10) || 1 : null;
+};
+
+XGhosted.prototype.processArticle = function(article) {
     const postUrl = Array.from(article.querySelectorAll('a'))
         .map(a => a.href)
         .find(href => href.startsWith('https://x.com/')) || '';
@@ -81,14 +91,41 @@ XGhosted.prototype.processArticle = function (article) {
     return postData;
 };
 
-XGhosted.prototype.identifyPosts = function () {
+XGhosted.prototype.identifyPosts = function() {
     const container = this.findPostContainer();
     if (!container) return [];
     const articles = container.querySelectorAll('article');
     return Array.from(articles).map(article => this.processArticle(article));
 };
 
-XGhosted.prototype.getThemeMode = function () {
+XGhosted.prototype.collapsePosts = function() {
+    const now = Date.now();
+    const minInterval = 30000; // 30 seconds
+    if (now - this.state.lastCollapseTime < minInterval) return;
+
+    const elements = this.findCollapsibleElements();
+    let collapseCount = 0;
+    const maxCollapsesPerRun = 1;
+
+    for (const cell of elements) {
+        if (collapseCount >= maxCollapsesPerRun) break;
+
+        const cellId = cell.dataset.testid + ((cell.textContent || '').slice(0, 50) || '');
+        if (this.state.collapsedElements.has(cellId)) continue;
+
+        const article = cell.querySelector('article');
+        if (article && this.articleContainsSystemNotice(article)) {
+            cell.style.display = 'none';
+            this.state.collapsedElements.add(cellId);
+            collapseCount++;
+            break;
+        }
+    }
+
+    if (collapseCount > 0) this.state.lastCollapseTime = now;
+};
+
+XGhosted.prototype.getThemeMode = function() {
     return detectTheme(this.document);
 };
 

@@ -1,0 +1,79 @@
+= Let Me Describe How I Expect This Script to Work
+
+Date: March 15, 2025  
+Author: ajw1970  
+Status: In Progress
+
+This document outlines the expected behavior of the `X-Ghosted` Tampermonkey userscript, designed to assist with identifying and managing posts on `x.com`. The script has evolved from a working `pre-release/0.6.0` state, where some features (like theme detection and post collapsing) functioned well but triggered excessive server activity. Current efforts focus on making it conservative, testable, and aligned with normal user behavior.
+
+== Scope
+- The script only operates on the `x.com` domain, enforced by the Tampermonkey header:
+
+----
+// @match        https://x.com/*
+----
+
+
+== Post Identification and Checking
+- **Goal**: Identify posts needing attention (tweets/replies) for further processing.
+- **Container**: The script identifies a post container as the parent element of any `div[data-testid="cellInnerDiv"]` that contains at least one `<article>` element nested under two `<div>`s. This ensures focus on actual posts, not other content.
+- If no such container is found, it retries every 30 seconds (configurable) until posts load, with no fallback to generic selectors.
+- Once found, the container is cached and reused unless the URL changes (e.g., via `popstate`).
+- **Special Handling**: URLs matching `https://x.com/*/with_replies*` are flagged early in a `state.isWithReplies` variable for conditional logic (e.g., reply depth checks).
+- **Process**:
+1. Posts are `<article>` elements within the container.
+2. Each post is checked with utility functions:
+   - `articleContainsSystemNotice`: Returns `true` if the post is a system notice (e.g., "This Tweet is unavailable"), marking it `bad`.
+   - `articleLinksToTargetCommunities`: Returns `true` if it links to specific communities (e.g., via `t.co`), marking it `bad`.
+   - If `isWithReplies` is `true`, `findReplyingToWithDepth` checks reply depth; if `< 10`, marks it `potential`.
+3. Posts are tracked by URL in `state.processedArticles` (a `Map`) to avoid rechecking:
+   - `{ status: 'good'|'bad'|'potential', checked: boolean, element, text, links }`
+   - `checked: true` for `good`/`bad`, `false` for `potential` until manually verified.
+4. Visual highlighting uses a red/yellow/green border system:
+   - Red: `bad` (system notice or target link).
+   - Yellow: `potential` (reply depth < 10).
+   - Green: `good`.
+- **Context Menu**: On `/with_replies` pages, `potential` posts get their context menu button replaced with "👀" (eyeballs), throttled to 1 action every 5 seconds, opening the post in a new tab for thread review.
+
+== Post Collapsing
+- **Goal**: Hide system notices to focus attention on checkable posts and gently trigger X to load more content, mimicking user scrolling.
+- **Scope**: Targets all `div[data-testid="cellInnerDiv"]` elements, not just those with articles, but only collapses if a contained `<article>` is a system notice.
+- **Behavior**:
+- Collapses 1 notice every 30 seconds (throttled to mimic a user hiding a notice while scrolling).
+- Uses `style.display = 'none'` on the `cellInnerDiv`.
+- Tracks collapsed elements in `state.collapsedElements` (a `Set`) by a unique ID (e.g., `dataset.testid + text snippet`) to prevent reprocessing.
+- **Conservatism**: Limited to 1 collapse per cycle to minimize DOM activity and server load, avoiding the rapid-fire collapsing that rate-limited `pre-release/0.6.0`.
+
+== UI Panel
+- **Display**: A fixed panel shows a list of posts marked `bad` or `potential`:
+- Each entry includes a color icon (🔴 for `bad`, 🟡 for `potential`) and a clickable URL (first `https://x.com/*` link).
+- Matches X’s theme mode (`light` or `dark`), detected via `detectTheme`.
+- **Updates**: After a `potential` post is verified (e.g., via eyeball click) and marked `good`, it’s removed from the panel but retained in `processedArticles` as checked.
+- **State**: Built and tested but needs reintegration from earlier commits where it worked.
+
+== Theme Detection
+- **Function**: `detectTheme` (from `src/dom/detectTheme.js`) checks:
+1. `data-theme` attribute on `<html>` (`dark` → `dark`, else `light`).
+2. `lights-out` class on `<body>` (`dark`).
+3. `r-1tl8opc` class on `<body>` (`dark`).
+4. Defaults to `light`.
+- **Status**: Worked in `pre-release/0.6.0` and is restored with tests confirming all cases.
+
+== CSV Data Handling
+- **Features**: Load, save, and clear CSV data with URL awareness (root URL, e.g., `https://x.com/ajweltytest/with_replies` without query params).
+- **Storage**: Uses `localStorage` with keys like `xGhostedData_<rootUrl>`.
+- **Status**: Worked previously but needs reintegration and testing.
+
+== Dynamic Updates
+- **Mechanism**: A `MutationObserver` on the post container (once found) or `document.body` (initially) triggers `identifyPosts` and `collapsePosts` on DOM changes.
+- **Throttling**: Collapsing is separately throttled (30s), while post checking runs per mutation to catch new content without delay.
+
+== Testing
+- **Approach**: Built with CommonJS (`require`/`module.exports`) and tested using Jest with `jsdom` against `samples/ajweltytest-with-replies.html`.
+- **Current Tests**:
+- `updateState`: Detects `/with_replies`.
+- `findPostContainer`: Finds article-containing container.
+- `identifyPosts`: Processes articles into `good`/`bad`/`potential`.
+- `processArticle`: Avoids rechecking.
+- `collapsePosts`: Collapses 1 notice per 30s.
+- `getThemeMode`: Detects theme states.
