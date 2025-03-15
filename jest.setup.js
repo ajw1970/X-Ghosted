@@ -5,8 +5,7 @@ const { TextEncoder, TextDecoder } = require('util');
 
 // Function to load HTML file into JSDOM
 global.loadHTML = (filePath) => {
-  const projectRoot = path.resolve(__dirname, '..');
-  const absolutePath = path.resolve(projectRoot, filePath);
+  const absolutePath = path.resolve(__dirname, filePath);
   const html = fs.readFileSync(absolutePath, 'utf8');
   document.documentElement.innerHTML = html;
 };
