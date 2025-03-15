@@ -10,9 +10,13 @@ function identifyPotentialProblems(
     GM_log,
     mutations
 ) {
-    if (state.isRateLimited) return;
+    if (state.isRateLimited) return false;
     const isRepliesPage = isProfileRepliesPage();
-    let articlesContainer = document.querySelector('main[role="main"] section > div > div') || document.body;
+    let articlesContainer = document.querySelector('main[role="main"] section > div > div');
+    if (!articlesContainer) {
+        GM_log('No articles container found, trying to find another one');
+        return false;
+    }
     const articles = articlesContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
 
     for (const article of articles) {
