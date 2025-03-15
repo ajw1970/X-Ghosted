@@ -17,6 +17,7 @@
 
     // --- Configuration ---
     const CONFIG = {
+        OBSERVE_MUTATIONS: false,
         CHECK_DELAY: 3000, // Increased from 1000
         HIGHLIGHT_STYLE: 'highlight-post',
         COLLAPSE_STYLE: 'collapse-post',
@@ -896,6 +897,11 @@
         tryHighlighting();
         const debouncedHighlight = debounce(highlightPotentialProblems, CONFIG.CHECK_DELAY);
         const observerTarget = document.querySelector('main[role="main"] section > div > div') || document.body;
+
+        if (!CONFIG.OBSERVE_MUTATIONS) {
+            GM_log('Skipping mutation observer setup');
+            return;
+        }
         new MutationObserver(mutations => {
             debouncedHighlight(mutations);
         }).observe(observerTarget, { childList: true, subtree: true });
