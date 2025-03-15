@@ -276,8 +276,6 @@
     GM_log,
     mutations
   ) {
-    GM_log('identifyPotentialProblems starting...');
-    GM_log(`isRateLimited: ${state.isRateLimited}`);
     if (state.isRateLimited) return;
     const isRepliesPage = isProfileRepliesPage();
     let articlesContainer =
@@ -287,7 +285,6 @@
       'div[data-testid="cellInnerDiv"]'
     );
 
-    GM_log(`found (${articles.length}) wrapped articles`);
     for (const article of articles) {
       const hrefTop = article.getHref
         ? article.getHref()
