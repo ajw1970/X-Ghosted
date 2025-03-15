@@ -60,7 +60,7 @@
     let isProcessingTab = false;
 
     // --- Utility Functions ---
-    const debounce = require('./dom/debounce');
+    const debounce = require('./utils/debounce');
 
     const loadAllPosts = require('./dom/loadAllPosts');
 
