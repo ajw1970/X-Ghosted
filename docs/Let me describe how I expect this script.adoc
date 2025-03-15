@@ -1,0 +1,35 @@
+Let me describe how I expect this script to be working. At the moment, it has broken pieces.
+
+1. It only works with the x.com domain. This is covered by the /`/ @match        https://x.com/*` in the Tampermonkey header
+
+2. We only care about posts and so our first goal for a given URL is to identify the post container. We can do special handling if the URL matches this pattern: https://x.com/*/with_replies*, so we want to identify that early and store that in the state, maybe. The next step is to identify the container for posts. A post is an article element nested under two divs with the top-level div matching this selector: 'div[data-testid="cellInnerDiv"]'The post container would be the parent element to any one of those. We would not want to fallback to anything if that selector identified no posts. We want to quit or wait for the loading to finish and try again. Once we find the post container, we'll want to retain that, as there is no need to look for it again unless the URL changes.
+
+3. Assuming we have found some posts, we'll build and display a panel for UI/UX. That is looking good but we need to make sure it still correctly identifies the current theme mode from x.com to select a matching mode for our panel. This was working in previous commits but looks to have broken at some point. 
+
+4. The panel is expected to include a list of full URL links to posts that have been identified as problems or potential problems. Each entry will have a color icon indicating the status of the post.
+
+5. We have (or at least had) the ability to load csv data from user input and also to obtain gathered csv data from local storage. The user was also able to clear that data if need but ideally that data would have URL awareness so that the data we store, load, and consider is for that current root of the URL (without selectors being taken into consideration.
+
+6. The post identification process is fairly straightforward. I have 3 tested utility functions.
+a. Every post would first be checked with these two functions:
+https://github.com/ajw1970/X-Ghosted/blob/fcb1378b3027158ec2e2b79fe0d008172eca823d/src/utils/articleContainsSystemNotice.js
+https://github.com/ajw1970/X-Ghosted/blob/fcb1378b3027158ec2e2b79fe0d008172eca823d/src/utils/articleLinksToTargetCommunities.js
+
+If either of those return true, the post is bad and doesn't need to be check again. 
+
+if not, and if we are on a page matching the "with_replies" url signature, we'd also go on to check the post with this function:
+https://github.com/ajw1970/X-Ghosted/blob/fcb1378b3027158ec2e2b79fe0d008172eca823d/src/utils/findReplyingToWithDepth.js
+
+if that finds a match with a level less than 10, we identify that post as being a potential problem. We won't know for sure until it gets opened in a new tab so we can scan the resulting conversation thread.
+
+To that end, when we are on a with_replies url and we identify potential problem posts, we also replace the existing context menu button on that post with a pair of eyeballs that allow the user to ask us to open a new tab/window for them. We need to be sure we don't do this too fast or two often so we're careful about making sure we limit that.
+
+We always want to visually highlight identified posts with a color coded feature uses a red/yellow/green system. 
+
+We need to make sure that our highlighting of those posts and subsequent changes after a post is checked in a new tab, doesn't trigger a rechecking of checked posts.
+
+An internal list of checked posts should helps us identify posts we've seen already and never need to check again. 
+
+The UI list of checked posts should only ever show known problems or potential problems. After a potential problem is identified as being good, we would remove that from the UI list but retain the fact that we now know it's a good post. 
+
+Is that what you see this userscript doing and if not, what steps should we take to get it back on track?
