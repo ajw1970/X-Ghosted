@@ -58,7 +58,8 @@ XGhosted.prototype.findCollapsibleElements = function() {
 };
 
 XGhosted.prototype.articleContainsSystemNotice = function(article) {
-    return (article.textContent || '').includes('This Tweet is unavailable');
+    const text = (article.textContent || '').toLowerCase().trim();
+    return text.includes('this tweet is unavailable');
 };
 
 XGhosted.prototype.articleLinksToTargetCommunities = function(article) {
@@ -100,18 +101,14 @@ XGhosted.prototype.identifyPosts = function() {
 
 XGhosted.prototype.collapsePosts = function() {
     const now = Date.now();
-    const minInterval = 30000; // 30 seconds
-    if (now - this.state.lastCollapseTime < minInterval) return;
-
+    if (now - this.state.lastCollapseTime < 30000) return; // Throttle to 30 seconds
     const elements = this.findCollapsibleElements();
     let collapseCount = 0;
-    const maxCollapsesPerRun = 1;
 
     for (const cell of elements) {
-        if (collapseCount >= maxCollapsesPerRun) break;
-
+        if (collapseCount >= 1) break; // Collapse only one post per call
         const cellId = cell.dataset.testid + ((cell.textContent || '').slice(0, 50) || '');
-        if (this.state.collapsedElements.has(cellId)) continue;
+        if (this.state.collapsedElements.has(cellId)) continue; // Skip already collapsed posts
 
         const article = cell.querySelector('article');
         if (article && this.articleContainsSystemNotice(article)) {
