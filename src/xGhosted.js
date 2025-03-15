@@ -95,7 +95,7 @@ XGhosted.prototype.identifyPosts = function() {
     const container = this.findPostContainer();
     if (!container) return [];
     const articles = container.querySelectorAll('article');
-    return_MIXIN(articles).map(article => this.processArticle(article));
+    return Array.from(articles).map(article => this.processArticle(article));
 };
 
 XGhosted.prototype.collapsePosts = function() {
@@ -118,7 +118,6 @@ XGhosted.prototype.collapsePosts = function() {
             cell.style.display = 'none';
             this.state.collapsedElements.add(cellId);
             collapseCount++;
-            break;
         }
     }
 
