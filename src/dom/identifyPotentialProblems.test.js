@@ -97,30 +97,6 @@ const updatePanel = jest.fn();
 const replaceMenuButton = jest.fn();
 window.replaceMenuButton = replaceMenuButton;
 
-// Wrapper to inject href and ensure iteration
-function identifyWithHref(article, href) {
-    const wrappedArticle = {
-        ...article,
-        getHref: () => href, // Inject href
-        querySelectorAll: article.querySelectorAll.bind(article), // Preserve original querySelectorAll
-        querySelector: article.querySelector.bind(article) // Preserve original querySelector
-    };
-    const args = [
-        state,
-        isProfileRepliesPage,
-        articleContainsSystemNotice,
-        articleLinksToTargetCommunities,
-        findReplyingToWithDepth,
-        applyHighlight,
-        updatePanel,
-        window.GM_log,
-        undefined // Define mutations as undefined since it's not used
-    ];
-    // Pass wrappedArticle as an array to match function's expectation
-    args[args.indexOf(article)] = [wrappedArticle];
-    return identifyPotentialProblems(...args);
-}
-
 // Test suite
 describe('identifyPotentialProblems', () => {
     let articlesContainer;
@@ -167,7 +143,11 @@ describe('identifyPotentialProblems', () => {
         `;
         const article = articlesContainer.querySelector('div[data-testid="cellInnerDiv"]');
         state.isRateLimited = true;
-        identifyWithHref(article, '/user/status/123');
+        const wrappedArticle = { ...article, getHref: () => '/user/status/123' };
+        document.querySelector = jest.fn((selector) => ({
+            querySelectorAll: jest.fn(() => [wrappedArticle])
+        }));
+        identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
         expect(window.GM_log).not.toHaveBeenCalled();
         expect(applyHighlight).not.toHaveBeenCalled();
         expect(updatePanel).not.toHaveBeenCalled();
@@ -189,7 +169,11 @@ describe('identifyPotentialProblems', () => {
         const article = articlesContainer.querySelector('div[data-testid="cellInnerDiv"]');
         state.fullyProcessedArticles.add('/user/status/123');
         findReplyingToWithDepth.mockReturnValue([]);
-        identifyWithHref(article, '/user/status/123');
+        const wrappedArticle = { ...article, getHref: () => '/user/status/123' };
+        document.querySelector = jest.fn((selector) => ({
+            querySelectorAll: jest.fn(() => [wrappedArticle])
+        }));
+        identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
         expect(applyHighlight).not.toHaveBeenCalled();
         expect(updatePanel).toHaveBeenCalled();
     });
@@ -210,9 +194,13 @@ describe('identifyPotentialProblems', () => {
         const article = articlesContainer.querySelector('div[data-testid="cellInnerDiv"]');
         const href = '/user/status/123';
         state.allPosts.set(href, 'problem');
-        identifyWithHref(article, href);
+        const wrappedArticle = { ...article, getHref: () => href };
+        document.querySelector = jest.fn((selector) => ({
+            querySelectorAll: jest.fn(() => [wrappedArticle])
+        }));
+        identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
         expect(window.GM_log).toHaveBeenCalledWith(`Skipping already verified post: ${href} (status: problem)`);
-        expect(applyHighlight).toHaveBeenCalledWith(article, 'problem');
+        expect(applyHighlight).toHaveBeenCalledWith(wrappedArticle, 'problem');
         expect(state.problemLinks.has(href)).toBe(true);
         expect(state.fullyProcessedArticles.has(href)).toBe(true);
     });
@@ -240,9 +228,13 @@ describe('identifyPotentialProblems', () => {
             `;
             const article = articlesContainer.querySelector('div[data-testid="cellInnerDiv"]');
             articleContainsSystemNotice.mockReturnValue(notice);
-            identifyWithHref(article, '/user/status/123');
+            const wrappedArticle = { ...article, getHref: () => '/user/status/123' };
+            document.querySelector = jest.fn((selector) => ({
+                querySelectorAll: jest.fn(() => [wrappedArticle])
+            }));
+            identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
             expect(window.GM_log).toHaveBeenCalledWith('Immediate problem detected for article');
-            expect(applyHighlight).toHaveBeenCalledWith(article, 'problem');
+            expect(applyHighlight).toHaveBeenCalledWith(wrappedArticle, 'problem');
             expect(state.problemLinks.has('/user/status/123')).toBe(true);
             jest.clearAllMocks();
         });
@@ -259,9 +251,13 @@ describe('identifyPotentialProblems', () => {
         `;
         const article = articlesContainer.querySelector('div[data-testid="cellInnerDiv"]');
         articleLinksToTargetCommunities.mockReturnValue('1889908654133911912');
-        identifyWithHref(article, '/user/status/123');
+        const wrappedArticle = { ...article, getHref: () => '/user/status/123' };
+        document.querySelector = jest.fn((selector) => ({
+            querySelectorAll: jest.fn(() => [wrappedArticle])
+        }));
+        identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
         expect(window.GM_log).toHaveBeenCalledWith('Immediate problem detected for article');
-        expect(applyHighlight).toHaveBeenCalledWith(article, 'problem');
+        expect(applyHighlight).toHaveBeenCalledWith(wrappedArticle, 'problem');
         expect(state.problemLinks.has('/user/status/123')).toBe(true);
     });
 
@@ -275,8 +271,12 @@ describe('identifyPotentialProblems', () => {
         articleLinksToTargetCommunities.mockReturnValue(false);
         articleContainsSystemNotice.mockReturnValue(false);
         findReplyingToWithDepth.mockReturnValue([]);
-        identifyWithHref(article, null);
-        expect(applyHighlight).toHaveBeenCalledWith(article, 'none');
+        const wrappedArticle = { ...article, getHref: () => null };
+        document.querySelector = jest.fn((selector) => ({
+            querySelectorAll: jest.fn(() => [wrappedArticle])
+        }));
+        identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
+        expect(applyHighlight).toHaveBeenCalledWith(wrappedArticle, 'none');
     });
 
     it('should warn about missed system notices', () => {
@@ -288,9 +288,13 @@ describe('identifyPotentialProblems', () => {
         const article = articlesContainer.querySelector('div[data-testid="cellInnerDiv"]');
         articleContainsSystemNotice.mockReturnValue(false);
         findReplyingToWithDepth.mockReturnValue([]);
-        identifyWithHref(article, null);
+        const wrappedArticle = { ...article, getHref: () => null };
+        document.querySelector = jest.fn((selector) => ({
+            querySelectorAll: jest.fn(() => [wrappedArticle])
+        }));
+        identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
         expect(window.GM_log).toHaveBeenCalledWith('Warning: Potential system notice missed - DOM structure may have changed');
-        expect(applyHighlight).toHaveBeenCalledWith(article, 'none');
+        expect(applyHighlight).toHaveBeenCalledWith(wrappedArticle, 'none');
     });
 
     it('should highlight replies with varying depths on replies page', () => {
@@ -304,9 +308,13 @@ describe('identifyPotentialProblems', () => {
         `;
         const article = articlesContainer.querySelector('div[data-testid="cellInnerDiv"]');
         findReplyingToWithDepth.mockReturnValue([{ depth: 0 }, { depth: 1 }]);
-        identifyWithHref(article, null);
+        const wrappedArticle = { ...article, getHref: () => null };
+        document.querySelector = jest.fn((selector) => ({
+            querySelectorAll: jest.fn(() => [wrappedArticle])
+        }));
+        identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
         expect(window.GM_log).toHaveBeenCalledWith('Potential problem detected for article on replies page with depth < 10');
-        expect(applyHighlight).toHaveBeenCalledWith(article, 'potential');
+        expect(applyHighlight).toHaveBeenCalledWith(wrappedArticle, 'potential');
     });
 
     it('should apply "none" to original tweets on replies page', () => {
@@ -317,8 +325,12 @@ describe('identifyPotentialProblems', () => {
         `;
         const article = articlesContainer.querySelector('div[data-testid="cellInnerDiv"]');
         findReplyingToWithDepth.mockReturnValue([]);
-        identifyWithHref(article, null);
-        expect(applyHighlight).toHaveBeenCalledWith(article, 'none');
+        const wrappedArticle = { ...article, getHref: () => null };
+        document.querySelector = jest.fn((selector) => ({
+            querySelectorAll: jest.fn(() => [wrappedArticle])
+        }));
+        identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
+        expect(applyHighlight).toHaveBeenCalledWith(wrappedArticle, 'none');
         expect(window.GM_log).not.toHaveBeenCalledWith('Potential problem detected...');
     });
 
@@ -329,8 +341,12 @@ describe('identifyPotentialProblems', () => {
             </div>
         `;
         const article = articlesContainer.querySelector('div[data-testid="cellInnerDiv"]');
-        identifyWithHref(article, null);
-        expect(applyHighlight).toHaveBeenCalledWith(article, 'none');
+        const wrappedArticle = { ...article, getHref: () => null };
+        document.querySelector = jest.fn((selector) => ({
+            querySelectorAll: jest.fn(() => [wrappedArticle])
+        }));
+        identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
+        expect(applyHighlight).toHaveBeenCalledWith(wrappedArticle, 'none');
         expect(state.problemLinks.size).toBe(0);
     });
 
@@ -341,9 +357,13 @@ describe('identifyPotentialProblems', () => {
             </div>
         `;
         const article = articlesContainer.querySelector('div[data-testid="cellInnerDiv"]');
-        identifyWithHref(article, null);
+        const wrappedArticle = { ...article, getHref: () => null };
+        document.querySelector = jest.fn((selector) => ({
+            querySelectorAll: jest.fn(() => [wrappedArticle])
+        }));
+        identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
         expect(window.GM_log).not.toHaveBeenCalledWith(expect.stringMatching(/Error in highlight conditions/));
-        expect(applyHighlight).toHaveBeenCalledWith(article, 'none');
+        expect(applyHighlight).toHaveBeenCalledWith(wrappedArticle, 'none');
     });
 
     it('should track processed articles across multiple calls', () => {
@@ -360,11 +380,15 @@ describe('identifyPotentialProblems', () => {
         const article = articlesContainer.querySelector('div[data-testid="cellInnerDiv"]');
         const href = '/user/status/123';
         findReplyingToWithDepth.mockReturnValue([]);
-        identifyWithHref(article, href);
-        expect(state.processedArticles.has(article)).toBe(true);
+        const wrappedArticle = { ...article, getHref: () => href };
+        document.querySelector = jest.fn((selector) => ({
+            querySelectorAll: jest.fn(() => [wrappedArticle])
+        }));
+        identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
+        expect(state.processedArticles.has(wrappedArticle)).toBe(true);
         expect(state.fullyProcessedArticles.has(href)).toBe(true);
         applyHighlight.mockClear();
-        identifyWithHref(article, href);
+        identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
         expect(applyHighlight).not.toHaveBeenCalled();
     });
 
@@ -387,10 +411,19 @@ describe('identifyPotentialProblems', () => {
             return 'this post is unavailable';
         });
         findReplyingToWithDepth.mockReturnValue([]);
-        identifyWithHref(article, href);
+        const wrappedArticle = { 
+            ...article, 
+            getHref: () => href,
+            querySelectorAll: article.querySelectorAll.bind(article),
+            querySelector: article.querySelector.bind(article)
+        };
+        document.querySelector = jest.fn((selector) => ({
+            querySelectorAll: jest.fn(() => [wrappedArticle])
+        }));
+        identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, window.GM_log, undefined);
         console.log('replaceMenuButton calls:', window.replaceMenuButton.mock.calls);
         expect(window.GM_log).toHaveBeenCalledWith('Immediate problem detected for article');
-        expect(applyHighlight).toHaveBeenCalledWith(article, 'problem');
-        expect(window.replaceMenuButton).toHaveBeenCalledWith(article, '/user/status/123');
+        expect(applyHighlight).toHaveBeenCalledWith(wrappedArticle, 'problem');
+        expect(window.replaceMenuButton).toHaveBeenCalledWith(wrappedArticle, '/user/status/123');
     });
 });
