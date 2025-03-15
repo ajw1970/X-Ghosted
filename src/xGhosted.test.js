@@ -1,39 +1,33 @@
 // src/xGhosted.test.js
 const { JSDOM } = require('jsdom');
-const fs = require('fs');
-const path = require('path');
 const XGhosted = require('./xGhosted');
 
 describe('XGhosted', () => {
     let xGhosted, dom;
 
     beforeEach(() => {
-        const samplePath = path.resolve(__dirname, '../samples/ajweltytest-with-replies.html');
-        console.log('Looking for file at:', samplePath);
-
         dom = new JSDOM('<!DOCTYPE html><body></body>', { url: 'https://x.com/user/with_replies' });
         xGhosted = new XGhosted(dom.window.document);
 
-        console.log('Forcing mock structure due to jsdom rendering issue');
         dom.window.document.body.innerHTML = `
-        <div class="container">
-            <div data-testid="cellInnerDiv">
-                <div>
-                    <article><a href="https://x.com/test/1">Test tweet</a></article>
+            <div class="container">
+                <div data-testid="cellInnerDiv">
+                    <div>
+                        <article><a href="https://x.com/test/1">Test tweet</a></article>
+                    </div>
+                </div>
+                <div data-testid="cellInnerDiv">
+                    <div>
+                        <article><span>This post is unavailable</span></article>
+                    </div>
+                </div>
+                <div data-testid="cellInnerDiv">
+                    <div>
+                        <article><div>Replying to @user</div> Reply post</article>
+                    </div>
                 </div>
             </div>
-            <div data-testid="cellInnerDiv">
-                <div>
-                    <article><span>This post is unavailable</span></article>
-                </div>
-            </div>
-            <div data-testid="cellInnerDiv">
-                <div>
-                    <article><div>Replying to @user</div> Reply post</article>
-                </div>
-            </div>
-        </div>
-    `;
+        `;
         xGhosted.updateState('https://x.com/user/with_replies');
     });
 
@@ -46,9 +40,8 @@ describe('XGhosted', () => {
 
     test('findPostContainer identifies correct container', () => {
         const cells = xGhosted.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
-        console.log('Cells found:', cells.length);
+        expect(cells.length).toBe(3);
         const container = xGhosted.findPostContainer();
-        console.log('Container:', container);
         expect(container).not.toBeNull();
         expect(container.tagName).toBe('DIV');
         expect(container.querySelectorAll('div[data-testid="cellInnerDiv"]').length).toBeGreaterThan(0);

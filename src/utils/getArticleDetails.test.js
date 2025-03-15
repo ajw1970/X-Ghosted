@@ -2,7 +2,7 @@ const getArticleDetails = require('./getArticleDetails');
 
 test('We can get posts from sample data', () => {
     // Load sample into DOM document
-    loadHTML('../samples/community-posts.html');
+    loadHTML('samples/community-posts.html');
 
     const articles = document.querySelectorAll('article');
     expect(articles.length).toBe(4);

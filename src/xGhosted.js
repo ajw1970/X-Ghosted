@@ -79,7 +79,7 @@ XGhosted.prototype.processArticle = function(article) {
         status = 'bad';
     } else if (this.state.isWithReplies) {
         const replies = this.findReplyingToWithDepth(article);
-        if (replies.length > 0 && replies.some(r => r.depth < 10)) { // Check array length and depth
+        if (replies.length > 0 && replies.some(r => r.depth < 10)) {
             status = 'potential';
         }
     }
