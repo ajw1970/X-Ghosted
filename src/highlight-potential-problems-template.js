@@ -17,6 +17,7 @@
 
     // --- Configuration ---
     const CONFIG = {
+        MONITOR_MUTATIONS: false,
         CHECK_DELAY: 3000, // Increased from 1000
         HIGHLIGHT_STYLE: 'highlight-post',
         COLLAPSE_STYLE: 'collapse-post',
@@ -73,9 +74,9 @@
 
     // --- Injected Modules ---
     const articleContainsSystemNotice = require('./utils/articleContainsSystemNotice');
-    
+
     const articleLinksToTargetCommunities = require('./utils/articleLinksToTargetCommunities');
-    
+
     const findReplyingToWithDepth = require('./utils/findReplyingToWithDepth');
 
     // --- Core Logic ---
@@ -151,7 +152,7 @@
             callback?.();
             return;
         }
-    
+
         let attempts = 0;
         const maxAttempts = 10;
         const checkInterval = setInterval(() => {
@@ -164,11 +165,11 @@
                     callback?.();
                     return;
                 }
-    
+
                 if (newWindow.document.readyState === 'complete') {
                     clearInterval(checkInterval);
                     const doc = newWindow.document;
-    
+
                     if (doc.status === 429 || doc.body.textContent.includes('Too Many Requests')) {
                         GM_log('429 Rate limit detected in tab, pausing operations');
                         alert('Rate limit (429) exceeded by X. Pausing all operations for 10 minutes.');
@@ -200,10 +201,10 @@
                         callback?.();
                         return;
                     }
-    
+
                     const threadArticles = doc.querySelectorAll('div[data-testid="cellInnerDiv"]');
                     GM_log(`Found ${threadArticles.length} articles in new tab for ${fullUrl}`);
-    
+
                     let isProblem = false;
                     for (let threadArticle of threadArticles) {
                         const hasNotice = articleContainsSystemNotice(threadArticle);
@@ -215,7 +216,7 @@
                             break;
                         }
                     }
-    
+
                     GM_log(`Delayed check completed - isProblem: ${isProblem}`);
                     applyHighlight(article, isProblem ? 'problem' : 'safe');
                     if (isProblem) {
@@ -803,7 +804,7 @@
                 }
                 return;
             }
-    
+
             GM_log('Main element found');
             const articlesContainer = mainElement.querySelector('section > div > div');
             if (!articlesContainer) {
@@ -815,7 +816,7 @@
                 }
                 return;
             }
-    
+
             GM_log('Articles container found');
             const articles = articlesContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
             identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, GM_log, []);
@@ -826,7 +827,7 @@
                 GM_log(`Found ${articles.length} articles, proceeding with monitoring`);
             }
         }
-    
+
         lookForProblems();
         GM_log('Call debounce to identifyPotentialProblems');
         const debouncedHighlight = debounce(
@@ -834,13 +835,15 @@
             CONFIG.CHECK_DELAY
         );
         const observerTarget = document.querySelector('main[role="main"] section > div > div') || document.body;
-        
-        // // Monitor for new articles
-        // new MutationObserver((mutations) => {
-        //     debouncedHighlight(mutations);
-        // }).observe(observerTarget, { childList: true, subtree: true });
+
+        if (CONFIG.setupMonitoring) {
+            // Monitor for new articles
+            new MutationObserver((mutations) => {
+                debouncedHighlight(mutations);
+            }).observe(observerTarget, { childList: true, subtree: true });
+        }
     }
-    
+
     function init() {
         GM_log('Script starting...');
         // Add runtime check
@@ -862,6 +865,6 @@
             GM_log(`Error in script execution: ${e.message}`);
         }
     }
-    
+
     init();
 })();

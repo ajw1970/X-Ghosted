@@ -17,6 +17,7 @@
 
   // --- Configuration ---
   const CONFIG = {
+    MONITOR_MUTATIONS: false,
     CHECK_DELAY: 3000, // Increased from 1000
     HIGHLIGHT_STYLE: 'highlight-post',
     COLLAPSE_STYLE: 'collapse-post',
@@ -276,11 +277,15 @@
     GM_log,
     mutations
   ) {
-    if (state.isRateLimited) return;
+    if (state.isRateLimited) return false;
     const isRepliesPage = isProfileRepliesPage();
-    let articlesContainer =
-      document.querySelector('main[role="main"] section > div > div') ||
-      document.body;
+    let articlesContainer = document.querySelector(
+      'main[role="main"] section > div > div'
+    );
+    if (!articlesContainer) {
+      GM_log('No articles container found, trying to find another one');
+      return false;
+    }
     const articles = articlesContainer.querySelectorAll(
       'div[data-testid="cellInnerDiv"]'
     );
@@ -1426,10 +1431,12 @@
       document.querySelector('main[role="main"] section > div > div') ||
       document.body;
 
-    // // Monitor for new articles
-    // new MutationObserver((mutations) => {
-    //     debouncedHighlight(mutations);
-    // }).observe(observerTarget, { childList: true, subtree: true });
+    if (CONFIG.setupMonitoring) {
+      // Monitor for new articles
+      new MutationObserver((mutations) => {
+        debouncedHighlight(mutations);
+      }).observe(observerTarget, { childList: true, subtree: true });
+    }
   }
 
   function init() {
