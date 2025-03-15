@@ -858,13 +858,13 @@
     // --- Initialization ---
     function setupMonitoring() {
         GM_log('Setting up monitoring...');
-        function tryHighlighting(attempt = 1, maxAttempts = 3) {
+        function identifyPosts(attempt = 1, maxAttempts = 3) {
             GM_log(`Attempt #${attempt} to find articles`);
             const mainElement = document.querySelector('main[role="main"]');
             if (!mainElement) {
                 GM_log('Main element not found, retrying...');
                 if (attempt < maxAttempts) {
-                    setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000);
+                    setTimeout(() => identifyPosts(attempt + 1, maxAttempts), 2000);
                 } else {
                     GM_log('Main element still not found after max attempts, monitoring body instead');
                 }
@@ -876,7 +876,7 @@
             if (!articlesContainer) {
                 GM_log('Articles container not found, retrying...');
                 if (attempt < maxAttempts) {
-                    setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000);
+                    setTimeout(() => identifyPosts(attempt + 1, maxAttempts), 2000);
                 } else {
                     GM_log('Articles container still not found after max attempts');
                 }
@@ -888,13 +888,13 @@
             highlightPotentialProblems();
             if (articles.length === 0 && attempt < maxAttempts) {
                 GM_log('No articles found, retrying...');
-                setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000);
+                setTimeout(() => identifyPosts(attempt + 1, maxAttempts), 2000);
             } else {
                 GM_log(`Found ${articles.length} articles, proceeding with monitoring`);
             }
         }
 
-        tryHighlighting();
+        identifyPosts();
         const debouncedHighlight = debounce(highlightPotentialProblems, CONFIG.CHECK_DELAY);
         const observerTarget = document.querySelector('main[role="main"] section > div > div') || document.body;
 
