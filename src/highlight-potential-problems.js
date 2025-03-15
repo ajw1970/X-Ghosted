@@ -277,6 +277,7 @@
     mutations
   ) {
     GM_log('identifyPotentialProblems starting...');
+    GM_log(`isRateLimited: ${state.isRateLimited}`);
     if (state.isRateLimited) return;
     const isRepliesPage = isProfileRepliesPage();
     let articlesContainer =
@@ -286,10 +287,12 @@
       'div[data-testid="cellInnerDiv"]'
     );
 
+    GM_log(`found (${articles.length}) wrapped articles`);
     for (const article of articles) {
       const hrefTop = article.getHref
         ? article.getHref()
         : article.querySelector('time')?.parentElement?.getAttribute('href');
+      GM_log(`processing article: ${hrefTop}`);
       if (hrefTop && state.fullyProcessedArticles.has(hrefTop)) continue;
 
       const wasProcessed = state.processedArticles.has(article);
@@ -1425,9 +1428,11 @@
     const observerTarget =
       document.querySelector('main[role="main"] section > div > div') ||
       document.body;
-    new MutationObserver((mutations) => {
-      debouncedHighlight(mutations);
-    }).observe(observerTarget, { childList: true, subtree: true });
+
+    // // Monitor for new articles
+    // new MutationObserver((mutations) => {
+    //     debouncedHighlight(mutations);
+    // }).observe(observerTarget, { childList: true, subtree: true });
   }
 
   function init() {

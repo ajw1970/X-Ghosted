@@ -834,9 +834,11 @@
             CONFIG.CHECK_DELAY
         );
         const observerTarget = document.querySelector('main[role="main"] section > div > div') || document.body;
-        new MutationObserver((mutations) => {
-            debouncedHighlight(mutations);
-        }).observe(observerTarget, { childList: true, subtree: true });
+        
+        // // Monitor for new articles
+        // new MutationObserver((mutations) => {
+        //     debouncedHighlight(mutations);
+        // }).observe(observerTarget, { childList: true, subtree: true });
     }
     
     function init() {
