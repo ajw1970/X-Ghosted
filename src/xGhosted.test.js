@@ -11,11 +11,9 @@ describe('XGhosted', () => {
         const samplePath = path.resolve(__dirname, '../samples/ajweltytest-with-replies.html');
         console.log('Looking for file at:', samplePath);
 
-        // Initialize JSDOM with a basic structure
         dom = new JSDOM('<!DOCTYPE html><body></body>', { url: 'https://x.com/user/with_replies' });
         xGhosted = new XGhosted(dom.window.document);
 
-        // Force mock structure with all required post types
         console.log('Forcing mock structure due to jsdom rendering issue');
         dom.window.document.body.innerHTML = `
             <div class="container">
@@ -26,7 +24,7 @@ describe('XGhosted', () => {
                 </div>
                 <div data-testid="cellInnerDiv">
                     <div>
-                        <article>This Tweet is unavailable</article>
+                        <article><span>This Tweet is unavailable</span></article>
                     </div>
                 </div>
                 <div data-testid="cellInnerDiv">

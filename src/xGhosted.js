@@ -1,4 +1,7 @@
 // src/xGhosted.js
+const articleContainsSystemNotice = require('./utils/articleContainsSystemNotice');
+const articleLinksToTargetCommunities = require('./utils/articleLinksToTargetCommunities');
+const findReplyingToWithDepth = require('./utils/findReplyingToWithDepth');
 
 function detectTheme(doc) {
     const htmlElement = doc.documentElement;
@@ -30,6 +33,10 @@ function XGhosted(doc) {
         lastCollapseTime: 0,
     };
     this.document = doc;
+
+    this.articleContainsSystemNotice = articleContainsSystemNotice.bind(this);
+    this.articleLinksToTargetCommunities = articleLinksToTargetCommunities.bind(this);
+    this.findReplyingToWithDepth = findReplyingToWithDepth.bind(this);
 }
 
 XGhosted.prototype.updateState = function(url) {
@@ -58,19 +65,6 @@ XGhosted.prototype.findCollapsibleElements = function() {
     return Array.from(this.document.querySelectorAll('div[data-testid="cellInnerDiv"]'));
 };
 
-XGhosted.prototype.articleContainsSystemNotice = function(article) {
-    return (article.textContent || '').toLowerCase().trim().includes('this tweet is unavailable');
-};
-
-XGhosted.prototype.articleLinksToTargetCommunities = function(article) {
-    return Array.from(article.querySelectorAll('a')).some(a => a.href.includes('t.co'));
-};
-
-XGhosted.prototype.findReplyingToWithDepth = function(article) {
-    const replyIndicator = article.querySelector('span[data-testid="reply"]');
-    return replyIndicator ? parseInt(replyIndicator.textContent, 10) || 1 : null;
-};
-
 XGhosted.prototype.processArticle = function(article) {
     const postUrl = Array.from(article.querySelectorAll('a'))
         .map(a => a.href)
@@ -80,7 +74,8 @@ XGhosted.prototype.processArticle = function(article) {
     const text = (article.textContent || '').toLowerCase();
     const links = Array.from(article.querySelectorAll('a')).map(a => a.href);
     let status = 'good';
-    if (this.articleContainsSystemNotice(article) || this.articleLinksToTargetCommunities(article)) {
+    const notice = this.articleContainsSystemNotice(article);
+    if (notice || this.articleLinksToTargetCommunities(article)) {
         status = 'bad';
     } else if (this.state.isWithReplies) {
         const depth = this.findReplyingToWithDepth(article);
