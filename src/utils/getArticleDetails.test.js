@@ -40,7 +40,7 @@ test('We can get posts from sample data', () => {
 
 test('We can get replies from sample data', () => {
     // Load sample into DOM document
-    loadHTML('../samples//community-replies.html');
+    loadHTML('samples/community-replies.html');
 
     const articles = document.querySelectorAll('article');
     expect(articles.length).toBe(4);
