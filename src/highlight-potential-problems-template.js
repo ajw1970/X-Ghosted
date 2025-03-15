@@ -791,13 +791,13 @@
     // --- Initialization ---
     function setupMonitoring() {
         GM_log('Setting up monitoring...');
-        function tryHighlighting(attempt = 1, maxAttempts = 3) {
+        function lookForProblems(attempt = 1, maxAttempts = 3) {
             GM_log(`Attempt #${attempt} to find articles`);
             const mainElement = document.querySelector('main[role="main"]');
             if (!mainElement) {
                 GM_log('Main element not found, retrying...');
                 if (attempt < maxAttempts) {
-                    setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000);
+                    setTimeout(() => lookForProblems(attempt + 1, maxAttempts), 2000);
                 } else {
                     GM_log('Main element still not found after max attempts, monitoring body instead');
                 }
@@ -809,7 +809,7 @@
             if (!articlesContainer) {
                 GM_log('Articles container not found, retrying...');
                 if (attempt < maxAttempts) {
-                    setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000);
+                    setTimeout(() => lookForProblems(attempt + 1, maxAttempts), 2000);
                 } else {
                     GM_log('Articles container still not found after max attempts');
                 }
@@ -821,13 +821,13 @@
             identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, GM_log, []);
             if (articles.length === 0 && attempt < maxAttempts) {
                 GM_log('No articles found, retrying...');
-                setTimeout(() => tryHighlighting(attempt + 1, maxAttempts), 2000);
+                setTimeout(() => lookForProblems(attempt + 1, maxAttempts), 2000);
             } else {
                 GM_log(`Found ${articles.length} articles, proceeding with monitoring`);
             }
         }
     
-        tryHighlighting();
+        lookForProblems();
         const debouncedHighlight = debounce(
             (mutations) => identifyPotentialProblems(state, isProfileRepliesPage, articleContainsSystemNotice, articleLinksToTargetCommunities, findReplyingToWithDepth, applyHighlight, updatePanel, GM_log, mutations),
             CONFIG.CHECK_DELAY
