@@ -1,3 +1,4 @@
+// src/utils/articleContainsSystemNotice.js
 function articleContainsSystemNotice(article) {
     const targetNotices = [
         "unavailable",
@@ -17,16 +18,22 @@ function articleContainsSystemNotice(article) {
             .toLowerCase();
     }
 
+    console.log('Article:', article.outerHTML); // Log the full article HTML
     const spans = Array.from(article.querySelectorAll('span'));
+    console.log('Spans found:', spans.length);
     for (const span of spans) {
         const textContent = normalizedTextContent(span.textContent);
+        console.log('Span text:', JSON.stringify(textContent));
         for (const notice of targetNotices) {
+            console.log('Checking notice:', notice, 'Starts with:', textContent.startsWith(notice));
             if (textContent.startsWith(notice)) {
+                console.log('Match found:', notice);
                 return notice;
             }
         }
     }
-    return false; // Changed from "" to false
+    console.log('No match found, returning false');
+    return false;
 }
 
 module.exports = articleContainsSystemNotice;

@@ -16,24 +16,24 @@ describe('XGhosted', () => {
 
         console.log('Forcing mock structure due to jsdom rendering issue');
         dom.window.document.body.innerHTML = `
-            <div class="container">
-                <div data-testid="cellInnerDiv">
-                    <div>
-                        <article><a href="https://x.com/test/1">Test tweet</a></article>
-                    </div>
-                </div>
-                <div data-testid="cellInnerDiv">
-                    <div>
-                        <article><span>This Tweet is unavailable</span></article>
-                    </div>
-                </div>
-                <div data-testid="cellInnerDiv">
-                    <div>
-                        <article><span data-testid="reply">5</span> Reply post</article>
-                    </div>
+        <div class="container">
+            <div data-testid="cellInnerDiv">
+                <div>
+                    <article><a href="https://x.com/test/1">Test tweet</a></article>
                 </div>
             </div>
-        `;
+            <div data-testid="cellInnerDiv">
+                <div>
+                    <article><span>This post is unavailable</span></article>
+                </div>
+            </div>
+            <div data-testid="cellInnerDiv">
+                <div>
+                    <article><div>Replying to @user</div> Reply post</article>
+                </div>
+            </div>
+        </div>
+    `;
         xGhosted.updateState('https://x.com/user/with_replies');
     });
 

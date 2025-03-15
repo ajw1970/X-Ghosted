@@ -78,8 +78,10 @@ XGhosted.prototype.processArticle = function(article) {
     if (notice || this.articleLinksToTargetCommunities(article)) {
         status = 'bad';
     } else if (this.state.isWithReplies) {
-        const depth = this.findReplyingToWithDepth(article);
-        if (depth !== null && depth < 10) status = 'potential';
+        const replies = this.findReplyingToWithDepth(article);
+        if (replies.length > 0 && replies.some(r => r.depth < 10)) { // Check array length and depth
+            status = 'potential';
+        }
     }
 
     const postData = { status, checked: status !== 'potential', element: article, text, links };
@@ -110,7 +112,8 @@ XGhosted.prototype.collapsePosts = function() {
         if (this.state.collapsedElements.has(cellId)) continue;
 
         const article = cell.querySelector('article');
-        if (article && this.articleContainsSystemNotice(article)) {
+        const notice = this.articleContainsSystemNotice(article);
+        if (article && notice) {
             cell.style.display = 'none';
             this.state.collapsedElements.add(cellId);
             collapseCount++;

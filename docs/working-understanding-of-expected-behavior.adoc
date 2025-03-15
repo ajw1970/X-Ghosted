@@ -9,9 +9,7 @@ This document outlines the expected behavior of the `X-Ghosted` Tampermonkey use
 == Scope
 - Operates only on `x.com`:
 
-----
-// @match        https://x.com/*
-----
+ // @match        https://x.com/*
 
 
 == Post Identification and Checking

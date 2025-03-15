@@ -1,3 +1,4 @@
+// src/utils/findReplyingToWithDepth.js
 function findReplyingToWithDepth(article) {
     const result = [];
 
@@ -24,7 +25,7 @@ function findReplyingToWithDepth(article) {
     }
 
     findDivs(article, 0);
-    return result; // No change needed
+    return result;
 }
 
 module.exports = findReplyingToWithDepth;
