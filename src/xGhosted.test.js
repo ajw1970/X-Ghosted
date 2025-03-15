@@ -8,7 +8,7 @@ describe('XGhosted', () => {
     let xGhosted, dom;
 
     beforeEach(() => {
-        const samplePath = '../samples/ajweltytest-with-replies.html';
+        const samplePath = path.resolve(__dirname, '../samples/ajweltytest-with-replies.html');
         console.log('Looking for file at:', samplePath);
 
         // Initialize JSDOM with a basic structure
