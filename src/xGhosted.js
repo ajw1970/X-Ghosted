@@ -58,7 +58,7 @@ XGhosted.prototype.findCollapsibleElements = function() {
 };
 
 XGhosted.prototype.articleContainsSystemNotice = function(article) {
-    return article.innerText.includes('This Tweet is unavailable');
+    return (article.textContent || '').includes('This Tweet is unavailable');
 };
 
 XGhosted.prototype.articleLinksToTargetCommunities = function(article) {
@@ -76,7 +76,7 @@ XGhosted.prototype.processArticle = function(article) {
         .find(href => href.startsWith('https://x.com/')) || '';
     if (this.state.processedArticles.has(postUrl)) return this.state.processedArticles.get(postUrl);
 
-    const text = article.innerText.toLowerCase();
+    const text = (article.textContent || '').toLowerCase();
     const links = Array.from(article.querySelectorAll('a')).map(a => a.href);
     let status = 'good';
     if (this.articleContainsSystemNotice(article) || this.articleLinksToTargetCommunities(article)) {
@@ -95,7 +95,7 @@ XGhosted.prototype.identifyPosts = function() {
     const container = this.findPostContainer();
     if (!container) return [];
     const articles = container.querySelectorAll('article');
-    return Array.from(articles).map(article => this.processArticle(article));
+    return_MIXIN(articles).map(article => this.processArticle(article));
 };
 
 XGhosted.prototype.collapsePosts = function() {
