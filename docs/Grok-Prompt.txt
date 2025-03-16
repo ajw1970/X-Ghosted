@@ -1,0 +1,34 @@
+I have a repo with a dev branch:
+https://github.com/ajw1970/X-Ghosted/tree/better-testing
+
+My last stable release was:
+https://github.com/ajw1970/X-Ghosted/releases/tag/stable%2F0.5.5
+
+Since then, I began adding many new features:
+https://github.com/ajw1970/X-Ghosted/releases/tag/pre-release%2F0.6.0
+
+Those new features worked pretty well but the Tampermonkey userscript was much too aggressive and my x.com account ended up getting locally rate limited for a while.
+
+In order to avoid that, I began working on changes to make it much less aggressive. I don't need it to be faster than normal human use, I only it to be a human helper. 
+
+To that end, I made changes but ended up breaking some of the features that had been working in https://github.com/ajw1970/X-Ghosted/releases/tag/pre-release%2F0.6.0
+
+You can see the current state of my userscript here:
+https://github.com/ajw1970/X-Ghosted/blob/cddb6f49412db806155df7bf0ed8ae9d8a0951c5/src/highlight-potential-problems.js
+
+I build that using this:
+https://github.com/ajw1970/X-Ghosted/blob/5ec70ac55982288d980675e84fba12740a3afda2/build.js
+
+As you can see, that script uses this source template file:
+https://github.com/ajw1970/X-Ghosted/blob/fcb1378b3027158ec2e2b79fe0d008172eca823d/src/highlight-potential-problems-template.js
+
+I'm now focused on producing a unit testable version of the userscript to verify as much behavior as possible before attempting to test on live x.com servers again. 
+
+To that end, you helped me create these two programs:
+https://github.com/ajw1970/X-Ghosted/blob/75723991838e326598753b73f6d563aa84d09072/src/xGhosted.js
+https://github.com/ajw1970/X-Ghosted/blob/673d19e6e23bf4d3c93f72305dc3c06a6d75548f/src/xGhosted.test.js
+
+While doing so, you helped me build this asciidoc file as a working understanding of expected behavior:
+https://github.com/ajw1970/X-Ghosted/blob/d769b53d6ce071af0ff03f636f8c48e4bd809476/docs/working-understanding-of-expected-behavior.adoc
+
+How best can we progress with this work while making sure we can quickly regain synchronized understanding of were we left off in the future?
