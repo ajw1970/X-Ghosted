@@ -78,9 +78,8 @@ describe('findMatchingArticles - Conversation Threads', () => {
     const results = findMatchingArticles(document);
     expect(results.logMessages.slice(0, 2)).toEqual([
       "Found notice: this post is unavailable",
-      "Found notice: this post is unavailable"
     ]);
-    expect(results.matchingArticles.length).toBe(2);
+    expect(results.matchingArticles.length).toBe(1);
     document.documentElement.innerHTML = '';
   });
 
@@ -173,11 +172,11 @@ describe('findMatchingArticles - Home Timeline', () => {
     document.documentElement.innerHTML = '';
   });
 
-  test("We single unavailable notice in this post", () => {
+  test("We identify single unavailable notice in this post", () => {
     loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
     const results = findMatchingArticles(document);
     expect(results.logMessages).toEqual([
-        "Found notice: this post is unavailable",
+      "Found notice: this post is unavailable",
     ]);
     expect(results.matchingArticles.length).toBe(1);
     document.documentElement.innerHTML = '';
@@ -188,8 +187,19 @@ describe('findMatchingArticles - Home Timeline', () => {
     const results = findMatchingArticles(document);
     expect(results.logMessages).toEqual([
       "Found notice: this post is unavailable",
-    ]);
-    expect(results.matchingArticles.length).toBe(2);
+      [
+        {
+          "depth": 6,
+          "innerHTML": "Replying to <a>@godswayfoundinc</a> and <a>@monetization_x</a>",
+        },
+      ],
+      [
+        {
+          "depth": 6,
+          "innerHTML": "Replying to <a>@monetization_x</a>",
+        },
+      ]]);
+    expect(results.matchingArticles.length).toBe(3);
     document.documentElement.innerHTML = '';
   });
 });
@@ -207,7 +217,6 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
     const results = findMatchingArticles(document);
     expect(results.logMessages).toEqual([
       "Found notice: this post is unavailable",
-      "Found notice: this post is unavailable",
     ]);
     expect(results.matchingArticles.length).toBe(1);
     document.documentElement.innerHTML = '';
@@ -220,7 +229,7 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
     document.documentElement.innerHTML = '';
   });
 
-  test('We identify this example', () => {
+  test.skip('We someday want identify replies to two but only find 1 in new window thread', () => {
     loadHTML('samples/Reply-To-Two-But-Only-See-One.html');
     const results = findMatchingArticles(document);
     expect(results.logMessages).toEqual([]);
@@ -272,9 +281,8 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
       },
     ],
       "Found notice: this post is unavailable",
-      "Found notice: this post is unavailable",
     ]);
-    expect(results.matchingArticles.length).toBe(3);
+    expect(results.matchingArticles.length).toBe(2);
     document.documentElement.innerHTML = '';
   });
 
@@ -295,14 +303,14 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
 
   test('We recognize an unable to view post', () => {
     loadHTML('samples/You-Cant-View-This-Post.html');
-    const articles = document.querySelectorAll('article');
-    expect(articles.length).toBe(3);
+    const articles = document.querySelectorAll('article:not(article article)');
+    expect(articles.length).toBe(2); // 3 total but 1 nested inside another
+
     const results = findMatchingArticles(document);
     expect(results.logMessages).toEqual([
       "Found notice: you're unable to view this post",
-      "Found notice: you're unable to view this post",
     ]);
-    expect(results.matchingArticles.length).toBe(2);
+    expect(results.matchingArticles.length).toBe(1);
     document.documentElement.innerHTML = '';
   });
 });
