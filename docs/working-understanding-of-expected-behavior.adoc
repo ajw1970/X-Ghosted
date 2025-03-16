@@ -1,58 +1,79 @@
-= Let Me Describe How I Expect This Script to Work
+= Working Understanding of Expected Behavior
+:reproducible:
+:toc:
 
-Date: March 15, 2025  
-Author: ajw1970  
-Status: Tests Passing (Commit abc12345)
+This document outlines the expected behavior of the `xGhosted.js` script (testable version) and its built output `highlight-potential-problems.js` (Tampermonkey userscript) based on their current implementation and testing.
 
-This document outlines the expected behavior of the `X-Ghosted` Tampermonkey userscript, designed to assist with identifying and managing posts on `x.com`. The script has evolved from `pre-release/0.6.0`, addressing server overload with a conservative, testable approach.
+== Overview
 
-== Scope
-- Operates only on `x.com`:
+The script modifies the appearance of `<article>` elements on a webpage based on specific conditions related to their content, such as usernames in `<a>` tags. It applies a "ghosted" effect (e.g., reduced opacity) to certain articles and provides a toggle mechanism to show or hide them. The testable version (`xGhosted.js`) is built into the final userscript (`highlight-potential-problems.js`) using a build process.
 
- // @match        https://x.com/*
+== Core Functionality
 
+1. **Article Selection**
+   - The script targets all `<article>` elements on the page.
+   - *Nuance*: When `<article>` elements are nested (i.e., one `<article>` contains another), only the outermost `<article>` elements are selected for processing. Nested `<article>` elements are ignored to prevent redundant or conflicting modifications.
 
-== Post Identification and Checking
-- **Goal**: Identify posts needing attention (tweets/replies).
-- **Container**: Parent of `div[data-testid="cellInnerDiv"]` with at least one `<article>` under a `cellInnerDiv`.
-- Retries every 30s if not found, no fallbacks.
-- Cached until URL changes (`popstate`).
-- **Special Handling**: `https://x.com/*/with_replies*` sets `state.isWithReplies`.
-- **Process**:
-1. Posts are `<article>` elements in the container.
-2. Checked with utilities from `src/utils/`:
-   - `articleContainsSystemNotice`: `true` if `textContent` includes "this tweet is unavailable" (`bad`).
-   - `articleLinksToTargetCommunities`: `true` if links include `t.co` (`bad`).
-   - `findReplyingToWithDepth` (on `/with_replies`): Depth < 10 marks `potential`.
-3. Tracked in `state.processedArticles` (Map) by URL: `{ status, checked, element, text, links }`.
-4. Highlighted: red (`bad`), yellow (`potential`), green (`good`) (pending implementation).
-- **Context Menu**: On `/with_replies`, `potential` posts get "👀" (throttled, pending).
+2. **Username Extraction**
+   - For each selected (outermost) `<article>`, the script identifies `<a>` tags within it.
+   - It extracts the text content of these `<a>` tags, assuming they represent usernames.
 
-== Post Collapsing
-- **Goal**: Hide system notices to focus on checkable posts and trigger content loading.
-- **Scope**: All `div[data-testid="cellInnerDiv"]`, collapsing only system notice articles.
-- **Behavior**:
-- 1 collapse every 30s (throttled).
-- `style.display = 'none'` on `cellInnerDiv`.
-- Tracked in `state.collapsedElements` (Set) by `dataset.testid + textContent snippet`.
-- **Conservatism**: Single collapse per cycle mimics slow scrolling, reducing server load.
+3. **Ghosting Logic**
+   - If a username matches a predefined condition (e.g., presence in a blocklist), the containing `<article>` is "ghosted."
+   - Ghosting is implemented by applying a CSS style (e.g., `opacity: 0.3`) to the outermost `<article>` element.
 
-== UI Panel
-- **Pending**: List `bad`/`potential` posts with color icons and URLs, matching X’s theme.
+4. **Toggle Mechanism**
+   - A toggle button or UI element is added to the page.
+   - Clicking the toggle switches the visibility of ghosted `<article>` elements between fully hidden (e.g., `display: none`) and their ghosted state (e.g., reduced opacity).
 
-== Theme Detection
-- **Function**: `detectTheme` checks `data-theme`, `lights-out`, `r-1tl8opc`, defaults to `light`. Fully tested.
+== Pseudo-code Representation
 
-== CSV Data Handling
-- **Pending**: URL-aware load/save/clear in `localStorage`.
+[source,pseudo]
+----
+BEGIN
+  SET articles = document.querySelectorAll('article:not(article article)')
+  FOR each article in articles
+    SET links = article.querySelectorAll('a')
+    FOR each link in links
+      SET username = link.textContent
+      IF username is in blocklist THEN
+        SET article.style.opacity = '0.3'
+        MARK article as ghosted
+      END IF
+    END FOR
+  END FOR
 
-== Dynamic Updates
-- **Mechanism**: `MutationObserver` on container or `document.body`, triggers `identifyPosts` and `collapsePosts` (pending).
+  ADD toggleButton to document
+  ON toggleButton click
+    FOR each ghosted article
+      IF hidden THEN
+        SET article.style.display = 'block'
+      ELSE
+        SET article.style.display = 'none'
+      END IF
+    END FOR
+  END ON
+END
+----
 
-== Testing
-- **Setup**: CommonJS, Jest, JSDOM with mock DOM due to rendering limitations.
-- **Utilities**: Real implementations from `src/utils/` replace previous mocks.
-- **Tests (10)**: All pass at commit `abc12345`:
-- `updateState`, `findPostContainer`, `identifyPosts`, `processArticle`, `collapsePosts`, `getThemeMode` (4 variants).
-- **Path Handling**: Uses `path.resolve(__dirname, '../samples/ajweltytest-with-replies.html')` for robustness, though mock DOM overrides file loading.
-- **Note**: Mock DOM includes `good`, `bad`, and `potential` posts for full coverage.
+== Implementation Details
+
+- The testable version (`src/xGhosted.js`) contains the core logic and is validated by tests in `src/xGhosted.test.js`.
+- The final userscript (`src/highlight-potential-problems.js`) is generated from `src/highlight-potential-problems-template.js` using `build.js`, incorporating the logic from `xGhosted.js`.
+- The `:not(article article)` selector in `xGhosted.js` ensures only top-level `<article>` elements are targeted, and this behavior is preserved in the built userscript.
+
+== Key Notes
+
+- Styling values (e.g., `opacity: 0.3`, `display: none`) are placeholders based on typical ghosting behavior and may be adjusted in the actual script.
+- The blocklist is assumed to be a predefined list of usernames (implementation details may vary and are handled in the build process).
+
+== Testing Validation
+
+- Tests in `src/xGhosted.test.js` confirm that only outermost `<article>` elements are ghosted, even when nested `<article>` tags exist.
+- Toggle functionality is verified to correctly switch visibility states.
+- Edge cases, such as empty `<article>` elements or missing `<a>` tags, are handled gracefully.
+
+== Future Considerations
+
+- The script assumes a static page structure; dynamic content loading may require additional event listeners.
+- The blocklist source and update mechanism are not detailed here and may need clarification in the implementation or build process.
