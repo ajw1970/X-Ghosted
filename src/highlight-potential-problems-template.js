@@ -80,6 +80,8 @@
     const findReplyingToWithDepth = require('./utils/findReplyingToWithDepth');
 
     // --- Core Logic ---
+    const getRelativeLinkToPost = require('./utils/getRelativeLinkToPost');
+
     function highlightPotentialProblems(mutations = []) {
         if (state.isRateLimited) return;
         const isRepliesPage = isProfileRepliesPage();
@@ -93,7 +95,7 @@
             if (!wasProcessed) state.processedArticles.add(article);
     
             try {
-                const href = article.querySelector('.css-146c3p1.r-1loqt21 time')?.parentElement?.getAttribute('href');
+                const href = getRelativeLinkToPost(article);
                 if (href && state.allPosts.has(href)) {
                     const status = state.allPosts.get(href);
                     if (status === 'problem' || status === 'safe') {

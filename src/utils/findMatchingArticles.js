@@ -1,6 +1,7 @@
 const articleLinksToTargetCommunities = require('./articleLinksToTargetCommunities');
 const articleContainsSystemNotice = require('./articleContainsSystemNotice');
 const findReplyingToWithDepth = require('./findReplyingToWithDepth');
+const getRelativeLinkToPost = require('./getRelativeLinkToPost');
 
 //Find divs containing text starting with 'Replying to '
 //Find parent article container of each
@@ -23,14 +24,14 @@ function findMatchingArticles(document) {
         const noticeFound = articleContainsSystemNotice(article);
         if (noticeFound) {
             results.logMessages.push(`Found notice: ${noticeFound}`);
-            results.matchingArticles.push(article);
+            results.matchingArticles.push(getRelativeLinkToPost(article));
             return; // Continue forEach
         }
 
         const communityFound = articleLinksToTargetCommunities(article);
         if (communityFound) {
             results.logMessages.push(`Found community: ${noticeFound}`);
-            results.matchingArticles.push(article);
+            results.matchingArticles.push(getRelativeLinkToPost(article));
             return; // Continue forEach  
         }
 
@@ -39,7 +40,7 @@ function findMatchingArticles(document) {
             results.logMessages.push(replyingToDepths);
         
             if (replyingToDepths.some(object => object.depth < 10)) {
-                results.matchingArticles.push(article);
+                results.matchingArticles.push(getRelativeLinkToPost(article));
                 return; // Continue forEach
             }
         }
