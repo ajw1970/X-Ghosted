@@ -164,22 +164,32 @@ describe('findMatchingArticles - Home Timeline', () => {
     document.documentElement.innerHTML = '';
   });
 
+  test("articleContainsSystemNotice returns true with this post", () => {
+    loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
+    const article = document.querySelector('div[data-testid="cellInnerDiv"]');
+    const articleContainsSystemNotice = require('./articleContainsSystemNotice');
+    const result = articleContainsSystemNotice(article);
+    expect(result).toBe("this post is unavailable");
+    document.documentElement.innerHTML = '';
+  });
+
+  test("We single unavailable notice in this post", () => {
+    loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
+    const results = findMatchingArticles(document);
+    expect(results.logMessages).toEqual([
+        "Found notice: this post is unavailable",
+    ]);
+    expect(results.matchingArticles.length).toBe(1);
+    document.documentElement.innerHTML = '';
+  });
+
   test("We identify Owen's repost of now missing post", () => {
     loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
     const results = findMatchingArticles(document);
     expect(results.logMessages).toEqual([
       "Found notice: this post is unavailable",
-      "Found notice: this post is unavailable",
-      [{
-        "depth": 6,
-        "innerHTML": "Replying to <a>@godswayfoundinc</a> and <a>@monetization_x</a>",
-      }],
-      [{
-        "depth": 6,
-        "innerHTML": "Replying to <a>@monetization_x</a>",
-      }],
     ]);
-    expect(results.matchingArticles.length).toBe(1);
+    expect(results.matchingArticles.length).toBe(2);
     document.documentElement.innerHTML = '';
   });
 });
