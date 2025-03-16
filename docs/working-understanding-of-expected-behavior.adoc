@@ -1,79 +1,39 @@
-= Working Understanding of Expected Behavior
-:reproducible:
-:toc:
-
-This document outlines the expected behavior of the `xGhosted.js` script (testable version) and its built output `highlight-potential-problems.js` (Tampermonkey userscript) based on their current implementation and testing.
+= Working Understanding of Expected Behavior for X-Ghosted
+:author: ajw1970
+:date: March 16, 2025
+:revdate: March 16, 2025
 
 == Overview
+X-Ghosted is a userscript to enhance X.com by flagging problematic and potential-problem posts with visual cues, aiming for a testable version with UI/UX. This doc outlines the expected behavior as of the latest collaboration with Grok 3.
 
-The script modifies the appearance of `<article>` elements on a webpage based on specific conditions related to their content, such as usernames in `<a>` tags. It applies a "ghosted" effect (e.g., reduced opacity) to certain articles and provides a toggle mechanism to show or hide them. The testable version (`xGhosted.js`) is built into the final userscript (`highlight-potential-problems.js`) using a build process.
+== Detection Logic
+- *Problems*: Identified if either returns a match:
+  - `articleContainsSystemNotice.js`: Detects system-generated notices.
+  - `articleLinksToTargetCommunities.js`: Flags links to target communities.
+- *Potential Problems*: Identified if a problem post has a reply chain with depth < 10, per `findReplyingToWithDepth.js`.
+- *Implementation*: Handled by `findMatchingArticles.js`, tested with `findMatchingArticles.test.js` using real samples from `samples/`.
 
-== Core Functionality
+== User Experience
+- *Visual Cues*:
+  - Problems: Red border (e.g., `3px solid red`).
+  - Potential Problems: Yellow-green border (e.g., `3px solid #d4e157`), as seen in recent screenshots.
+- *Dynamic Updates*: Uses `MutationObserver` to reapply highlights on page changes.
+- *Future UI*: Toggle to enable/disable, counter for flagged posts (split by problem/potential), tooltip with reasons.
 
-1. **Article Selection**
-   - The script targets all `<article>` elements on the page.
-   - *Nuance*: When `<article>` elements are nested (i.e., one `<article>` contains another), only the outermost `<article>` elements are selected for processing. Nested `<article>` elements are ignored to prevent redundant or conflicting modifications.
+== Testing & Validation
+- Tests in `findMatchingArticles.test.js` to be updated to distinctly validate:
+  - Problem posts (system notices, community links).
+  - Potential problem posts (problems + shallow replies).
+- Samples in `samples/` provide real-world data for testing.
 
-2. **Username Extraction**
-   - For each selected (outermost) `<article>`, the script identifies `<a>` tags within it.
-   - It extracts the text content of these `<a>` tags, assuming they represent usernames.
+== Next Steps
+- Refine `findMatchingArticles.test.js` to clarify distinctions.
+- Integrate with `highlight-potential-problems.js` for visualization.
+- Add minimal UI (toggle, counter, tooltip) for testing.
 
-3. **Ghosting Logic**
-   - If a username matches a predefined condition (e.g., presence in a blocklist), the containing `<article>` is "ghosted."
-   - Ghosting is implemented by applying a CSS style (e.g., `opacity: 0.3`) to the outermost `<article>` element.
+== Notes
+- Resume collaboration via: [Grok-Prompt.txt](https://github.com/ajw1970/X-Ghosted/blob/61af2d333b503520dddbcb8857fdf2bd35103e7f/docs/Grok-Prompt.txt)
+- Update this doc after each session to reflect progress.
 
-4. **Toggle Mechanism**
-   - A toggle button or UI element is added to the page.
-   - Clicking the toggle switches the visibility of ghosted `<article>` elements between fully hidden (e.g., `display: none`) and their ghosted state (e.g., reduced opacity).
-
-== Pseudo-code Representation
-
-[source,pseudo]
-----
-BEGIN
-  SET articles = document.querySelectorAll('article:not(article article)')
-  FOR each article in articles
-    SET links = article.querySelectorAll('a')
-    FOR each link in links
-      SET username = link.textContent
-      IF username is in blocklist THEN
-        SET article.style.opacity = '0.3'
-        MARK article as ghosted
-      END IF
-    END FOR
-  END FOR
-
-  ADD toggleButton to document
-  ON toggleButton click
-    FOR each ghosted article
-      IF hidden THEN
-        SET article.style.display = 'block'
-      ELSE
-        SET article.style.display = 'none'
-      END IF
-    END FOR
-  END ON
-END
-----
-
-== Implementation Details
-
-- The testable version (`src/xGhosted.js`) contains the core logic and is validated by tests in `src/xGhosted.test.js`.
-- The final userscript (`src/highlight-potential-problems.js`) is generated from `src/highlight-potential-problems-template.js` using `build.js`, incorporating the logic from `xGhosted.js`.
-- The `:not(article article)` selector in `xGhosted.js` ensures only top-level `<article>` elements are targeted, and this behavior is preserved in the built userscript.
-
-== Key Notes
-
-- Styling values (e.g., `opacity: 0.3`, `display: none`) are placeholders based on typical ghosting behavior and may be adjusted in the actual script.
-- The blocklist is assumed to be a predefined list of usernames (implementation details may vary and are handled in the build process).
-
-== Testing Validation
-
-- Tests in `src/xGhosted.test.js` confirm that only outermost `<article>` elements are ghosted, even when nested `<article>` tags exist.
-- Toggle functionality is verified to correctly switch visibility states.
-- Edge cases, such as empty `<article>` elements or missing `<a>` tags, are handled gracefully.
-
-== Future Considerations
-
-- The script assumes a static page structure; dynamic content loading may require additional event listeners.
-- The blocklist source and update mechanism are not detailed here and may need clarification in the implementation or build process.
+== Revision History
+- March 16, 2025: Added detection details, visual cues, and next steps based on latest Grok session.
