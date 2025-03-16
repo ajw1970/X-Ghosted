@@ -54,7 +54,7 @@ XGhosted.prototype.findPostContainer = function() {
     const cells = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
     if (cells.length === 0) return null;
     const container = cells[0].parentElement;
-    if (container.querySelector('div[data-testid="cellInnerDiv"] article')) {
+    if (container.querySelector('div[data-testid="cellInnerDiv"] article:not(article article)')) {
         this.state.postContainer = container;
         return container;
     }
@@ -92,7 +92,7 @@ XGhosted.prototype.processArticle = function(article) {
 XGhosted.prototype.identifyPosts = function() {
     const container = this.findPostContainer();
     if (!container) return [];
-    const articles = container.querySelectorAll('article');
+    const articles = container.querySelectorAll('article:not(article article)');
     return Array.from(articles).map(article => this.processArticle(article));
 };
 
@@ -111,7 +111,7 @@ XGhosted.prototype.collapsePosts = function() {
         const cellId = cell.dataset.testid + ((cell.textContent || '').slice(0, 50) || '');
         if (this.state.collapsedElements.has(cellId)) continue;
 
-        const article = cell.querySelector('article');
+        const article = cell.querySelector('article:not(article article)');
         const notice = this.articleContainsSystemNotice(article);
         if (article && notice) {
             cell.style.display = 'none';

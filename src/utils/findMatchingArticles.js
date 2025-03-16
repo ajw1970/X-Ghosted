@@ -11,7 +11,7 @@ const findReplyingToWithDepth = require('./findReplyingToWithDepth');
 
 function findMatchingArticles(document) {
     // Select all <article> elements (or adjust selector for your structure)
-    const articles = document.querySelectorAll('article');
+    const articles = document.querySelectorAll('article:not(article article)');
     const results = {
         matchingArticles: [],
         logMessages: []
