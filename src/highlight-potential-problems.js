@@ -185,6 +185,7 @@
   }
 
   // --- Injected Modules ---
+  // src/utils/articleContainsSystemNotice.js
   function articleContainsSystemNotice(article) {
     const targetNotices = [
       'unavailable',
@@ -211,7 +212,7 @@
         }
       }
     }
-    return false; // Changed from "" to false
+    return false;
   }
 
   function articleLinksToTargetCommunities(article) {
@@ -228,6 +229,7 @@
     return false; // Changed from "" to false
   }
 
+  // src/utils/findReplyingToWithDepth.js
   function findReplyingToWithDepth(article) {
     const result = [];
 
@@ -261,7 +263,7 @@
     }
 
     findDivs(article, 0);
-    return result; // No change needed
+    return result;
   }
 
   // --- Core Logic ---
