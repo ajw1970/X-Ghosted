@@ -25,7 +25,7 @@ function getSampleStats(document) {
   }
 }
 
-describe('findMatchingArticles - Community Posts', () => {
+describe('identifyPosts - Community Posts', () => {
   test('This community post uses deleted community id', () => {
     loadHTML('samples/CommunityPost-TargetCommunity.html');
     expect(getSampleStats(document)).toEqual({
@@ -115,7 +115,7 @@ describe('findMatchingArticles - Community Posts', () => {
   });
 });
 
-describe('findMatchingArticles - Conversation Threads', () => {
+describe('identifyPosts - Conversation Threads', () => {
   test('We highlight a deleted post in this conversation thread', () => {
     loadHTML('samples/Conversation-with-Deleted-Post.html');
     expect(getSampleStats(document)).toEqual({
@@ -745,7 +745,7 @@ describe('findMatchingArticles - Conversation Threads', () => {
   });
 });
 
-describe('findMatchingArticles - Home Timeline', () => {
+describe('identifyPosts - Home Timeline', () => {
   test('We should find suspicious posts to identify in this single example', () => {
     loadHTML('samples/Home-Timeline-SingleExample.html');
     expect(getSampleStats(document)).toEqual({
@@ -1549,7 +1549,7 @@ describe('findMatchingArticles - Home Timeline', () => {
   });
 });
 
-describe('findMatchingArticles - Miscellaneous Cases', () => {
+describe('identifyPosts - Miscellaneous Cases', () => {
   test('We can highlight multiple problems in a conversation thread', () => {
     loadHTML('samples/Multiple-Deleted-Posts-Conversation-Thread.html');
     expect(getSampleStats(document)).toEqual({
