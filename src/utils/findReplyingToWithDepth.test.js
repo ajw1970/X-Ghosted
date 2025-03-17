@@ -13,19 +13,19 @@ describe('findReplyingToWithDepth', () => {
     }
     
     test('returns array with reply data when present', () => {
-        const article = createArticle('<div>Replying to @user</div>');
+        const article = createArticle('<article><div>Replying to @user</div></article>');
         const result = findReplyingToWithDepth(article);
         expect(result).toEqual([{ depth: 1, innerHTML: 'Replying to @user' }]);
     });
 
     test('returns empty array when no replies found', () => {
-        const article = createArticle('<div>Hello world</div>');
+        const article = createArticle('<article><div>Hello world</div></article>');
         const result = findReplyingToWithDepth(article);
         expect(result).toEqual([]);
     });
 
     test('tracks depth correctly', () => {
-        const article = createArticle('<div><div>Replying to @user</div></div>');
+        const article = createArticle('<article><div><div>Replying to @user</div></div></article>');
         const result = findReplyingToWithDepth(article);
         expect(result).toEqual([{ depth: 2, innerHTML: 'Replying to @user' }]);
     });
