@@ -10,42 +10,104 @@ const getRelativeLinkToPost = require('./getRelativeLinkToPost');
 //TODO: add configuration argument to drive what we check for
 //TODO: consider limiting nested depth like this: https://x.com/i/grok/share/2lwRYfwWMP7uguNodbpXhfd3K
 
+const postQuality = Object.freeze({
+    UNDEFINED: Object.freeze({ name: 'Undefined', value: 0 }),
+    PROBLEM: Object.freeze({ name: 'Problem', value: 1 }),
+    POTENTIAL_PROBLEM: Object.freeze({ name: 'Potential Problem', value: 2 }),
+    GOOD: Object.freeze({ name: 'Good', value: 3 }),
+});
+
 function findMatchingArticles(document) {
     // Select all <article> elements (or adjust selector for your structure)
-    const articles = document.querySelectorAll('article:not(article article)');
+    let posts = document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+    if (!posts) {
+        // Some samples didn't include the outer div wrappers
+        // In that case, we'll use the article selector instead (making sure we only get one per post)
+        posts = document.querySelectorAll('article:not(article article)');
+    }
+
     const results = {
-        matchingArticles: [],
-        logMessages: []
-    };    
+        ratedPosts: []
+    };
 
     // Iterate through each article
-    articles.forEach(article => {
+    posts.forEach(post => {
 
-        const noticeFound = articleContainsSystemNotice(article);
+        // Posts with system notices are problems
+        const noticeFound = articleContainsSystemNotice(post);
         if (noticeFound) {
-            results.logMessages.push(`Found notice: ${noticeFound}`);
-            results.matchingArticles.push(getRelativeLinkToPost(article));
-            return; // Continue forEach
+            results.ratedPosts.push({
+                analysis: {
+                    quality: postQuality.PROBLEM,
+                    reason: `Found notice: ${noticeFound}`,
+                    link: getRelativeLinkToPost(post),
+                },
+                post: post,
+            });
+
+            return; // Move on to next post
         }
 
-        const communityFound = articleLinksToTargetCommunities(article);
+        // Posts with target communities are problems
+        const communityFound = articleLinksToTargetCommunities(post);
         if (communityFound) {
-            results.logMessages.push(`Found community: ${noticeFound}`);
-            results.matchingArticles.push(getRelativeLinkToPost(article));
-            return; // Continue forEach  
+            results.ratedPosts.push({
+                analysis: {
+                    quality: postQuality.PROBLEM,
+                    reason: `Found community: ${communityFound}`,
+                    link: getRelativeLinkToPost(post),
+                },
+                post: post,
+            });
+
+            return; // Move on to next post
         }
 
-        const replyingToDepths = findReplyingToWithDepth(article);
+        // Posts with "Replying to" might be potential problems when found on with_replies page
+        const replyingToDepths = findReplyingToWithDepth(post);
         if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
-            results.logMessages.push(replyingToDepths);
-        
-            if (replyingToDepths.some(object => object.depth < 10)) {
-                results.matchingArticles.push(getRelativeLinkToPost(article));
-                return; // Continue forEach
+            // Posts with replying to found at a depth < 10 are potential problems
+            // console.log(replyingToDepths);
+            const replyingTo = replyingToDepths.find(object => object.depth < 10);
+            if (replyingTo) {
+
+                results.ratedPosts.push({
+                    analysis: {
+                        quality: postQuality.POTENTIAL_PROBLEM,
+                        reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
+                        link: getRelativeLinkToPost(post),
+                    },
+                    post: post,
+                });
+
+                return; // Move on to next post
             }
         }
 
-        // return; // Let's see how giving up works
+        // By process of elimination, this is either good or undefined (likely filler info like "Click to see more replies").
+        const link = getRelativeLinkToPost(post);
+        if (link) {
+            results.ratedPosts.push({
+                analysis: {
+                    quality: postQuality.GOOD,
+                    reason: "Looks good",
+                    link: link,
+                },
+                post: post,
+            });
+            return; // Move on to next post
+        }
+
+        results.ratedPosts.push({
+            analysis: {
+                quality: postQuality.UNDEFINED,
+                reason: "Nothing to measure",
+                link: false,
+            },
+            post: post,
+        });
+
+        return; // Move on to next post
 
         // results.logMessages.push("Get all divs within the current article");
 
@@ -74,4 +136,4 @@ function findMatchingArticles(document) {
     return results;
 }
 
-module.exports = findMatchingArticles;
+module.exports = { findMatchingArticles, postQuality };
