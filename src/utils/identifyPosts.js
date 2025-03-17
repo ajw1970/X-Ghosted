@@ -1,5 +1,5 @@
 const articleLinksToTargetCommunities = require('./articleLinksToTargetCommunities');
-const articleContainsSystemNotice = require('./articleContainsSystemNotice');
+const postHasProblemSystemNotice = require('./postHasProblemSystemNotice');
 const findReplyingToWithDepth = require('./findReplyingToWithDepth');
 const getRelativeLinkToPost = require('./getRelativeLinkToPost');
 
@@ -34,7 +34,7 @@ function identifyPosts(document) {
     posts.forEach(post => {
 
         // Posts with system notices are problems
-        const noticeFound = articleContainsSystemNotice(post);
+        const noticeFound = postHasProblemSystemNotice(post);
         if (noticeFound) {
             results.ratedPosts.push({
                 analysis: {

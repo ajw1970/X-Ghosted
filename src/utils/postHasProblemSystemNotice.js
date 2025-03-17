@@ -1,5 +1,4 @@
-// src/utils/articleContainsSystemNotice.js
-function articleContainsSystemNotice(article) {
+function postHasProblemSystemNotice(article) {
     const targetNotices = [
         "unavailable",
         "content warning",
@@ -30,4 +29,4 @@ function articleContainsSystemNotice(article) {
     return false;
 }
 
-module.exports = articleContainsSystemNotice;
+module.exports = postHasProblemSystemNotice;

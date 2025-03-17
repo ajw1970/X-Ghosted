@@ -9,7 +9,7 @@
 - Assisting with X-Ghosted, a userscript to flag problematic and potential-problem posts on X.com.
 - Current goal: Build a testable version of highlight-potential-problems.js with UI/UX, based on pre-release 2ecaf8f49.
 - Detection logic is defined and tested:
-  - Problems: articleContainsSystemNotice.js, articleLinksToTargetCommunities.js
+  - Problems: postHasProblemSystemNotice.js, articleLinksToTargetCommunities.js
   - Potential Problems: findReplyingToWithDepth.js (depth < 10) if above pass
   - Tested via findMatchingArticles.js and findMatchingArticles.test.js with samples
 

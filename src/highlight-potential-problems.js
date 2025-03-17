@@ -185,8 +185,7 @@
   }
 
   // --- Injected Modules ---
-  // src/utils/articleContainsSystemNotice.js
-  function articleContainsSystemNotice(article) {
+  function postHasProblemSystemNotice(article) {
     const targetNotices = [
       'unavailable',
       'content warning',
@@ -332,7 +331,7 @@
           }
         }
 
-        const hasNotice = articleContainsSystemNotice(article);
+        const hasNotice = postHasProblemSystemNotice(article);
         const hasLinks = articleLinksToTargetCommunities(article);
 
         // Step 3: Fragility warning
@@ -541,7 +540,7 @@
 
           let isProblem = false;
           for (let threadArticle of threadArticles) {
-            const hasNotice = articleContainsSystemNotice(threadArticle);
+            const hasNotice = postHasProblemSystemNotice(threadArticle);
             const hasLinks = articleLinksToTargetCommunities(threadArticle);
             GM_log(
               `Delayed check - System Notice: ${hasNotice}, Target Links: ${hasLinks}`
@@ -1379,7 +1378,7 @@
     GM_log('Script starting...');
     // Add runtime check
     if (
-      typeof articleContainsSystemNotice !== 'function' ||
+      typeof postHasProblemSystemNotice !== 'function' ||
       typeof articleLinksToTargetCommunities !== 'function' ||
       typeof findReplyingToWithDepth !== 'function'
     ) {

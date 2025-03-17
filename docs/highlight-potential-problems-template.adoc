@@ -144,7 +144,7 @@ init();
 The script relies on several injected utility functions for detecting system notices and target communities.
 
 ```javascript
-// INJECT: articleContainsSystemNotice
+// INJECT: postHasProblemSystemNotice
 // INJECT: articleLinksToTargetCommunities
 // INJECT: findReplyingToWithDepth
 ```

@@ -1290,7 +1290,7 @@ describe('findMatchingArticles - Home Timeline', () => {
     document.documentElement.innerHTML = '';
   });
 
-  test("articleContainsSystemNotice returns true with this post", () => {
+  test("postHasProblemSystemNotice returns true with this post", () => {
     loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
     expect(getSampleStats(document)).toEqual({
       posts: 1,
@@ -1308,8 +1308,8 @@ describe('findMatchingArticles - Home Timeline', () => {
     });
 
     const article = document.querySelector('div[data-testid="cellInnerDiv"]');
-    const articleContainsSystemNotice = require('./articleContainsSystemNotice');
-    const result = articleContainsSystemNotice(article);
+    const postHasProblemSystemNotice = require('./postHasProblemSystemNotice');
+    const result = postHasProblemSystemNotice(article);
     expect(result).toBe("this post is unavailable");
 
     document.documentElement.innerHTML = '';

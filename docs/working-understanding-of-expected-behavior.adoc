@@ -8,7 +8,7 @@ X-Ghosted is a userscript to enhance X.com by flagging problematic and potential
 
 == Detection Logic
 - *Problems*: Identified if either returns a match:
-  - `articleContainsSystemNotice.js`: Detects system-generated notices.
+  - `postHasProblemSystemNotice.js`: Detects system-generated notices.
   - `articleLinksToTargetCommunities.js`: Flags links to target communities.
 - *Potential Problems*: Identified if a problem post has a reply chain with depth < 10, per `findReplyingToWithDepth.js`.
 - *Implementation*: Handled by `findMatchingArticles.js`, tested with `findMatchingArticles.test.js` using real samples from `samples/`.

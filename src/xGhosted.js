@@ -1,5 +1,5 @@
 // src/xGhosted.js
-const articleContainsSystemNotice = require('./utils/articleContainsSystemNotice');
+const postHasProblemSystemNotice = require('./utils/postHasProblemSystemNotice');
 const articleLinksToTargetCommunities = require('./utils/articleLinksToTargetCommunities');
 const findReplyingToWithDepth = require('./utils/findReplyingToWithDepth');
 
@@ -34,7 +34,7 @@ function XGhosted(doc) {
     };
     this.document = doc;
 
-    this.articleContainsSystemNotice = articleContainsSystemNotice.bind(this);
+    this.postHasProblemSystemNotice = postHasProblemSystemNotice.bind(this);
     this.articleLinksToTargetCommunities = articleLinksToTargetCommunities.bind(this);
     this.findReplyingToWithDepth = findReplyingToWithDepth.bind(this);
 }
@@ -74,7 +74,7 @@ XGhosted.prototype.processArticle = function(article) {
     const text = (article.textContent || '').toLowerCase();
     const links = Array.from(article.querySelectorAll('a')).map(a => a.href);
     let status = 'good';
-    const notice = this.articleContainsSystemNotice(article);
+    const notice = this.postHasProblemSystemNotice(article);
     if (notice || this.articleLinksToTargetCommunities(article)) {
         status = 'bad';
     } else if (this.state.isWithReplies) {
@@ -112,7 +112,7 @@ XGhosted.prototype.collapsePosts = function() {
         if (this.state.collapsedElements.has(cellId)) continue;
 
         const article = cell.querySelector('article:not(article article)');
-        const notice = this.articleContainsSystemNotice(article);
+        const notice = this.postHasProblemSystemNotice(article);
         if (article && notice) {
             cell.style.display = 'none';
             this.state.collapsedElements.add(cellId);
