@@ -1,6 +1,6 @@
 // src/xGhosted.js
 const postHasProblemSystemNotice = require('./utils/postHasProblemSystemNotice');
-const articleLinksToTargetCommunities = require('./utils/articleLinksToTargetCommunities');
+const postHasProblemCommunity = require('./utils/postHasProblemCommunity');
 const findReplyingToWithDepth = require('./utils/findReplyingToWithDepth');
 
 function detectTheme(doc) {
@@ -35,7 +35,7 @@ function XGhosted(doc) {
     this.document = doc;
 
     this.postHasProblemSystemNotice = postHasProblemSystemNotice.bind(this);
-    this.articleLinksToTargetCommunities = articleLinksToTargetCommunities.bind(this);
+    this.postHasProblemCommunity = postHasProblemCommunity.bind(this);
     this.findReplyingToWithDepth = findReplyingToWithDepth.bind(this);
 }
 
@@ -75,7 +75,7 @@ XGhosted.prototype.processArticle = function(article) {
     const links = Array.from(article.querySelectorAll('a')).map(a => a.href);
     let status = 'good';
     const notice = this.postHasProblemSystemNotice(article);
-    if (notice || this.articleLinksToTargetCommunities(article)) {
+    if (notice || this.postHasProblemCommunity(article)) {
         status = 'bad';
     } else if (this.state.isWithReplies) {
         const replies = this.findReplyingToWithDepth(article);

@@ -214,7 +214,7 @@
     return false;
   }
 
-  function articleLinksToTargetCommunities(article) {
+  function postHasProblemCommunity(article) {
     const communityIds = ['1889908654133911912'];
 
     const aTags = Array.from(article.querySelectorAll('a'));
@@ -332,7 +332,7 @@
         }
 
         const hasNotice = postHasProblemSystemNotice(article);
-        const hasLinks = articleLinksToTargetCommunities(article);
+        const hasLinks = postHasProblemCommunity(article);
 
         // Step 3: Fragility warning
         if (
@@ -541,7 +541,7 @@
           let isProblem = false;
           for (let threadArticle of threadArticles) {
             const hasNotice = postHasProblemSystemNotice(threadArticle);
-            const hasLinks = articleLinksToTargetCommunities(threadArticle);
+            const hasLinks = postHasProblemCommunity(threadArticle);
             GM_log(
               `Delayed check - System Notice: ${hasNotice}, Target Links: ${hasLinks}`
             );
@@ -1379,7 +1379,7 @@
     // Add runtime check
     if (
       typeof postHasProblemSystemNotice !== 'function' ||
-      typeof articleLinksToTargetCommunities !== 'function' ||
+      typeof postHasProblemCommunity !== 'function' ||
       typeof findReplyingToWithDepth !== 'function'
     ) {
       GM_log(

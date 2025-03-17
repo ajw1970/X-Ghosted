@@ -145,7 +145,7 @@ The script relies on several injected utility functions for detecting system not
 
 ```javascript
 // INJECT: postHasProblemSystemNotice
-// INJECT: articleLinksToTargetCommunities
+// INJECT: postHasProblemCommunity
 // INJECT: findReplyingToWithDepth
 ```
 

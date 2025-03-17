@@ -75,7 +75,7 @@
     // --- Injected Modules ---
     const postHasProblemSystemNotice = require('./utils/postHasProblemSystemNotice');
     
-    const articleLinksToTargetCommunities = require('./utils/articleLinksToTargetCommunities');
+    const postHasProblemCommunity = require('./utils/postHasProblemCommunity');
     
     const findReplyingToWithDepth = require('./utils/findReplyingToWithDepth');
 
@@ -110,7 +110,7 @@
                 }
     
                 const hasNotice = postHasProblemSystemNotice(article);
-                const hasLinks = articleLinksToTargetCommunities(article);
+                const hasLinks = postHasProblemCommunity(article);
     
                 // Step 3: Fragility warning
                 if (!hasNotice && !hasLinks && article.textContent.toLowerCase().includes('unavailable')) {
@@ -276,7 +276,7 @@
                     let isProblem = false;
                     for (let threadArticle of threadArticles) {
                         const hasNotice = postHasProblemSystemNotice(threadArticle);
-                        const hasLinks = articleLinksToTargetCommunities(threadArticle);
+                        const hasLinks = postHasProblemCommunity(threadArticle);
                         GM_log(`Delayed check - System Notice: ${hasNotice}, Target Links: ${hasLinks}`);
                         if (hasNotice || hasLinks) {
                             isProblem = true;
@@ -913,7 +913,7 @@
         GM_log('Script starting...');
         // Add runtime check
         if (typeof postHasProblemSystemNotice !== 'function' ||
-            typeof articleLinksToTargetCommunities !== 'function' ||
+            typeof postHasProblemCommunity !== 'function' ||
             typeof findReplyingToWithDepth !== 'function') {
             GM_log('Critical error: One or more injected utility functions are missing.');
             alert('Script failed to start: Missing utility functions. Please check installation.');

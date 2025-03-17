@@ -1,4 +1,4 @@
-const articleLinksToTargetCommunities = require('./articleLinksToTargetCommunities');
+const postHasProblemCommunity = require('./postHasProblemCommunity');
 const postHasProblemSystemNotice = require('./postHasProblemSystemNotice');
 const findReplyingToWithDepth = require('./findReplyingToWithDepth');
 const getRelativeLinkToPost = require('./getRelativeLinkToPost');
@@ -49,7 +49,7 @@ function identifyPosts(document) {
         }
 
         // Posts with target communities are problems
-        const communityFound = articleLinksToTargetCommunities(post);
+        const communityFound = postHasProblemCommunity(post);
         if (communityFound) {
             results.ratedPosts.push({
                 analysis: {

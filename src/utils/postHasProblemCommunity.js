@@ -1,4 +1,4 @@
-function articleLinksToTargetCommunities(article) {
+function postHasProblemCommunity(article) {
     const communityIds = [
         "1889908654133911912"
     ];
@@ -14,4 +14,4 @@ function articleLinksToTargetCommunities(article) {
     return false; // Changed from "" to false
 }
 
-module.exports = articleLinksToTargetCommunities;
+module.exports = postHasProblemCommunity;
