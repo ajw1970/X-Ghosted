@@ -17,7 +17,7 @@ const postQuality = Object.freeze({
     GOOD: Object.freeze({ name: 'Good', value: 3 }),
 });
 
-function findMatchingArticles(document) {
+function identifyPosts(document) {
     // Select all <article> elements (or adjust selector for your structure)
     let posts = document.querySelectorAll('div[data-testid="cellInnerDiv"]');
     if (!posts) {
@@ -136,4 +136,4 @@ function findMatchingArticles(document) {
     return results;
 }
 
-module.exports = { findMatchingArticles, postQuality };
+module.exports = { identifyPosts, postQuality };

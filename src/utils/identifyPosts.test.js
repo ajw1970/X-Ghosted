@@ -1,4 +1,4 @@
-const { findMatchingArticles, postQuality } = require('./findMatchingArticles');
+const { identifyPosts, postQuality } = require('./identifyPosts');
 
 function getPostQualitySummary(posts) {
   // Initialize counters object using the enum values
@@ -34,7 +34,7 @@ describe('findMatchingArticles - Community Posts', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 1,
@@ -78,7 +78,7 @@ describe('findMatchingArticles - Community Posts', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 4,
@@ -124,7 +124,7 @@ describe('findMatchingArticles - Conversation Threads', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 2,
@@ -168,7 +168,7 @@ describe('findMatchingArticles - Conversation Threads', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 0,
@@ -207,7 +207,7 @@ describe('findMatchingArticles - Conversation Threads', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 9,
@@ -331,7 +331,7 @@ describe('findMatchingArticles - Conversation Threads', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 0,
@@ -370,7 +370,7 @@ describe('findMatchingArticles - Conversation Threads', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 1,
@@ -424,7 +424,7 @@ describe('findMatchingArticles - Conversation Threads', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 0,
@@ -473,7 +473,7 @@ describe('findMatchingArticles - Conversation Threads', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 2,
@@ -517,7 +517,7 @@ describe('findMatchingArticles - Conversation Threads', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 2,
@@ -561,7 +561,7 @@ describe('findMatchingArticles - Conversation Threads', () => {
       nestedArticles: 1
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 0,
@@ -600,7 +600,7 @@ describe('findMatchingArticles - Conversation Threads', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 2,
@@ -644,7 +644,7 @@ describe('findMatchingArticles - Conversation Threads', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 4,
@@ -698,7 +698,7 @@ describe('findMatchingArticles - Conversation Threads', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 2,
@@ -754,7 +754,7 @@ describe('findMatchingArticles - Home Timeline', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 0,
@@ -783,7 +783,7 @@ describe('findMatchingArticles - Home Timeline', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 15,
@@ -922,7 +922,7 @@ describe('findMatchingArticles - Home Timeline', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 4,
@@ -986,7 +986,7 @@ describe('findMatchingArticles - Home Timeline', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 6,
@@ -1055,7 +1055,7 @@ describe('findMatchingArticles - Home Timeline', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 17,
@@ -1219,7 +1219,7 @@ describe('findMatchingArticles - Home Timeline', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 8,
@@ -1298,7 +1298,7 @@ describe('findMatchingArticles - Home Timeline', () => {
       nestedArticles: 1
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 0,
@@ -1323,7 +1323,7 @@ describe('findMatchingArticles - Home Timeline', () => {
       nestedArticles: 1
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 0,
@@ -1352,7 +1352,7 @@ describe('findMatchingArticles - Home Timeline', () => {
       nestedArticles: 1
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 21,
@@ -1558,7 +1558,7 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 3,
@@ -1627,7 +1627,7 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
       nestedArticles: 1
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 1,
@@ -1666,7 +1666,7 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 1,
@@ -1715,7 +1715,7 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 1,
@@ -1740,7 +1740,7 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 1,
@@ -1769,7 +1769,7 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 1,
@@ -1798,7 +1798,7 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 0,
@@ -1827,7 +1827,7 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 0,
@@ -1856,7 +1856,7 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
       nestedArticles: 1
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 4,
@@ -1911,7 +1911,7 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 3,
@@ -1970,7 +1970,7 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
       nestedArticles: 0
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 1,
@@ -1999,7 +1999,7 @@ describe('findMatchingArticles - Miscellaneous Cases', () => {
       nestedArticles: 1
     });
 
-    const results = findMatchingArticles(document);
+    const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
     expect(getPostQualitySummary(analyses)).toEqual({
       "Good": 1,
