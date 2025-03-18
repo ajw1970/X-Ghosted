@@ -3,22 +3,24 @@ const identifyPosts = require('./identifyPosts');
 const describeSampleAnalyses = require('./describeSampleAnalyses');
 
 describe('identifyPosts - Community Posts', () => {
-  test('This community post uses deleted community id', () => {
+
+  it('should find a problem with postHasProblemCommunity out of this sample size of 4', () => {
     loadHTML('samples/CommunityPost-TargetCommunity.html');
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   4 Posts
-   2 Articles
-   0 Nested Articles
-
-Rated Post Quality (4 Total):
-   1 Good
-   0 Potential Problem
-   1 Problem
-   2 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   4 Posts",
+      "   2 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (4 Total):",
+      "   1 Good",
+      "   0 Potential Problem",
+      "   1 Problem",
+      "   2 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -46,23 +48,23 @@ Rated Post Quality (4 Total):
     document.documentElement.innerHTML = '';
   });
 
-  test('This community post is ok', () => {
+  it('should find no problems with the community post in this sample size of 4', () => {
     loadHTML('samples/CommunityPost.html');
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   4 Posts
-   4 Articles
-   0 Nested Articles
-
-Rated Post Quality (4 Total):
-   4 Good
-   0 Potential Problem
-   0 Problem
-   0 Undefined`
-);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   4 Posts",
+      "   4 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (4 Total):",
+      "   4 Good",
+      "   0 Potential Problem",
+      "   0 Problem",
+      "   0 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -92,249 +94,255 @@ Rated Post Quality (4 Total):
 });
 
 describe('identifyPosts - Conversation Threads', () => {
-  test('We highlight a deleted post in this conversation thread', () => {
-    loadHTML('samples/Conversation-with-Deleted-Post.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   4 Posts
-   4 Articles
-   0 Nested Articles
+  describe('problem posts identified with postHasProblemSystemNotice', () => {
 
-Rated Post Quality (4 Total):
-   2 Good
-   0 Potential Problem
-   1 Problem
-   1 Undefined`
-);
+    it('should identify a deleted post problem in this sample size of 4', () => {
+      loadHTML('samples/Conversation-with-Deleted-Post.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/Breaking911/status/1884691881587523595"
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post was deleted by the post author",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/WarPumpkin22/status/1884794131643314464"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      }
-    ]);
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   4 Posts",
+        "   4 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (4 Total):",
+        "   2 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   1 Undefined"
+      ].join("\n"));
 
-    document.documentElement.innerHTML = '';
-  });
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/Breaking911/status/1884691881587523595"
+        },
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post was deleted by the post author",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/WarPumpkin22/status/1884794131643314464"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        }
+      ]);
 
-  test('We identify reply to now unavailable account in this conversation', () => {
-    loadHTML('samples/Conversation-with-account-no-longer-available.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
+      document.documentElement.innerHTML = '';
+    });
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   3 Posts
-   2 Articles
-   0 Nested Articles
+    it('should identify an unavailable account problem in this sample size of 3', () => {
+      loadHTML('samples/Conversation-with-account-no-longer-available.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
 
-Rated Post Quality (3 Total):
-   0 Good
-   0 Potential Problem
-   1 Problem
-   2 Undefined`
-);
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   3 Posts",
+        "   2 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (3 Total):",
+        "   0 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   2 Undefined"
+      ].join("\n"));
 
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post is from an account that no longer exists",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      }
-    ]);
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post is from an account that no longer exists",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        }
+      ]);
 
-    document.documentElement.innerHTML = '';
-  });
+      document.documentElement.innerHTML = '';
+    });
 
-  test('We identify copyright violation in this conversation', () => {
-    loadHTML('samples/Conversation-with-copyright-violating-quote-repost.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
+    it('should identify a copyright violation in this sample size of 20', () => {
+      loadHTML('samples/Conversation-with-copyright-violating-quote-repost.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+  
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "  20 Posts",
+        "  11 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (20 Total):",
+        "   9 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "  10 Undefined"
+      ].join("\n"));
+  
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this media has been disabled in response to a report by the copyright owner",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1894812853124706554"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/MyBasicFinance/status/1894819472562651293"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/MattZeeMiller/status/1894849813050740802"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/DaytonDan55/status/1894837596963951054"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/YHfLNQEzT942049/status/1894948247187403259"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/daz1985/status/1894834410198835673"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/Harry_Bdict/status/1894810993449955580"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/Harry_Bdict/status/1894810900009201975"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/smokedandsalted/status/1894811105706271142"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        }
+      ]);
+  
+      document.documentElement.innerHTML = '';
+    });
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-  20 Posts
-  11 Articles
-   0 Nested Articles
+    it('should identify no longer available without a subscription in this sample size of 3', () => {
+      loadHTML('samples/Conversation-with-expired-subscription.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+  
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   3 Posts",
+        "   2 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (3 Total):",
+        "   0 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   2 Undefined"
+      ].join("\n"));
+  
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: you're unable to view this post",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        }
+      ]);
+  
+      document.documentElement.innerHTML = '';
+    });
 
-Rated Post Quality (20 Total):
-   9 Good
-   0 Potential Problem
-   1 Problem
-  10 Undefined`
-);
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this media has been disabled in response to a report by the copyright owner",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1894812853124706554"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/MyBasicFinance/status/1894819472562651293"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/MattZeeMiller/status/1894849813050740802"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/DaytonDan55/status/1894837596963951054"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/YHfLNQEzT942049/status/1894948247187403259"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/daz1985/status/1894834410198835673"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/Harry_Bdict/status/1894810993449955580"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/Harry_Bdict/status/1894810900009201975"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/smokedandsalted/status/1894811105706271142"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test('We identify post no longer available without a subscription', () => {
-    loadHTML('samples/Conversation-with-expired-subscription.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   3 Posts
-   2 Articles
-   0 Nested Articles
-
-Rated Post Quality (3 Total):
-   0 Good
-   0 Potential Problem
-   1 Problem
-   2 Undefined`);
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: you're unable to view this post",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
   });
 
   test('We identify the unable to view this Post message', () => {
@@ -342,17 +350,18 @@ Rated Post Quality (3 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   6 Posts
-   4 Articles
-   0 Nested Articles
-
-Rated Post Quality (6 Total):
-   1 Good
-   0 Potential Problem
-   2 Problem
-   3 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   6 Posts",
+      "   4 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (6 Total):",
+      "   1 Good",
+      "   0 Potential Problem",
+      "   2 Problem",
+      "   3 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
