@@ -11,7 +11,7 @@ describe('findReplyingToWithDepth', () => {
         div.innerHTML = html;
         return div;
     }
-    
+
     test('returns array with reply data when present', () => {
         const article = createArticle('<article><div>Replying to @user</div></article>');
         const result = findReplyingToWithDepth(article);

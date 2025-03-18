@@ -11,7 +11,7 @@ describe('postHasProblemCommunity', () => {
         div.innerHTML = html;
         return div;
     }
-    
+
     test('returns ID when community link found', () => {
         const article = createArticle('<a href="https://x.com/i/communities/1889908654133911912">Link</a>');
         const result = postHasProblemCommunity(article);

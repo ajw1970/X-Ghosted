@@ -1,49 +1,25 @@
-const { identifyPosts, postQuality } = require('./identifyPosts');
-
-function getPostQualitySummary(posts) {
-  // Initialize counters object using the enum values
-  const summary = {
-    [postQuality.UNDEFINED.name]: 0,
-    [postQuality.PROBLEM.name]: 0,
-    [postQuality.POTENTIAL_PROBLEM.name]: 0,
-    [postQuality.GOOD.name]: 0
-  };
-
-  // Count each occurrence
-  posts.forEach(post => {
-    summary[post.quality.name]++;
-  });
-
-  return summary;
-}
-
-function getSampleStats(document) {
-  return {
-    posts: document.querySelectorAll('div[data-testid="cellInnerDiv"]').length,
-    articles: document.querySelectorAll('article:not(article article)').length,
-    nestedArticles: document.querySelectorAll('article article').length,
-  }
-}
+const postQuality = require('./postQuality');
+const identifyPosts = require('./identifyPosts');
+const describeSampleAnalyses = require('./describeSampleAnalyses');
 
 describe('identifyPosts - Community Posts', () => {
   test('This community post uses deleted community id', () => {
     loadHTML('samples/CommunityPost-TargetCommunity.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 4,
-      articles: 2,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 1,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 2
-    });
-    
-    expect(results.ratedPosts.length).toBe(4);
+
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   4 Posts
+   2 Articles
+   0 Nested Articles
+
+Rated Post Quality (4 Total):
+   1 Good
+   0 Potential Problem
+   1 Problem
+   2 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.PROBLEM,
@@ -72,22 +48,22 @@ describe('identifyPosts - Community Posts', () => {
 
   test('This community post is ok', () => {
     loadHTML('samples/CommunityPost.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 4,
-      articles: 4,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 4,
-      "Potential Problem": 0,
-      "Problem": 0,
-      "Undefined": 0
-    });
 
-    expect(results.ratedPosts.length).toBe(4);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   4 Posts
+   4 Articles
+   0 Nested Articles
+
+Rated Post Quality (4 Total):
+   4 Good
+   0 Potential Problem
+   0 Problem
+   0 Undefined`
+);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -118,22 +94,22 @@ describe('identifyPosts - Community Posts', () => {
 describe('identifyPosts - Conversation Threads', () => {
   test('We highlight a deleted post in this conversation thread', () => {
     loadHTML('samples/Conversation-with-Deleted-Post.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 4,
-      articles: 4,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 2,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 1
-    });
 
-    expect(results.ratedPosts.length).toBe(4);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   4 Posts
+   4 Articles
+   0 Nested Articles
+
+Rated Post Quality (4 Total):
+   2 Good
+   0 Potential Problem
+   1 Problem
+   1 Undefined`
+);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -162,22 +138,22 @@ describe('identifyPosts - Conversation Threads', () => {
 
   test('We identify reply to now unavailable account in this conversation', () => {
     loadHTML('samples/Conversation-with-account-no-longer-available.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 3,
-      articles: 2,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 0,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 2
-    });
 
-    expect(results.ratedPosts.length).toBe(3);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   3 Posts
+   2 Articles
+   0 Nested Articles
+
+Rated Post Quality (3 Total):
+   0 Good
+   0 Potential Problem
+   1 Problem
+   2 Undefined`
+);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.PROBLEM,
@@ -201,22 +177,22 @@ describe('identifyPosts - Conversation Threads', () => {
 
   test('We identify copyright violation in this conversation', () => {
     loadHTML('samples/Conversation-with-copyright-violating-quote-repost.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 20,
-      articles: 11,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 9,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 10
-    });
 
-    expect(results.ratedPosts.length).toBe(20);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+  20 Posts
+  11 Articles
+   0 Nested Articles
+
+Rated Post Quality (20 Total):
+   9 Good
+   0 Potential Problem
+   1 Problem
+  10 Undefined`
+);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.PROBLEM,
@@ -325,22 +301,21 @@ describe('identifyPosts - Conversation Threads', () => {
 
   test('We identify post no longer available without a subscription', () => {
     loadHTML('samples/Conversation-with-expired-subscription.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 3,
-      articles: 2,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 0,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 2
-    });
 
-    expect(results.ratedPosts.length).toBe(3);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   3 Posts
+   2 Articles
+   0 Nested Articles
+
+Rated Post Quality (3 Total):
+   0 Good
+   0 Potential Problem
+   1 Problem
+   2 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.PROBLEM,
@@ -364,22 +339,21 @@ describe('identifyPosts - Conversation Threads', () => {
 
   test('We identify the unable to view this Post message', () => {
     loadHTML('samples/Conversation-with-limited-visibility.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 6,
-      articles: 4,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 1,
-      "Potential Problem": 0,
-      "Problem": 2,
-      "Undefined": 3
-    });
 
-    expect(results.ratedPosts.length).toBe(6);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   6 Posts
+   4 Articles
+   0 Nested Articles
+
+Rated Post Quality (6 Total):
+   1 Good
+   0 Potential Problem
+   2 Problem
+   3 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.PROBLEM,
@@ -418,22 +392,21 @@ describe('identifyPosts - Conversation Threads', () => {
 
   test('We identify all three problem posts in this conversation', () => {
     loadHTML('samples/Conversation-with-multiple-problem-posts.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 5,
-      articles: 4,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 0,
-      "Potential Problem": 0,
-      "Problem": 3,
-      "Undefined": 2
-    });
 
-    expect(results.ratedPosts.length).toBe(5);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   5 Posts
+   4 Articles
+   0 Nested Articles
+
+Rated Post Quality (5 Total):
+   0 Good
+   0 Potential Problem
+   3 Problem
+   2 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.PROBLEM,
@@ -467,22 +440,21 @@ describe('identifyPosts - Conversation Threads', () => {
 
   test('We identify the deleted post in this conversation thread', () => {
     loadHTML('samples/Conversation-with-now-deleted-post.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 4,
-      articles: 4,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 2,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 1
-    });
 
-    expect(results.ratedPosts.length).toBe(4);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   4 Posts
+   4 Articles
+   0 Nested Articles
+
+Rated Post Quality (4 Total):
+   2 Good
+   0 Potential Problem
+   1 Problem
+   1 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -511,22 +483,21 @@ describe('identifyPosts - Conversation Threads', () => {
 
   test('We identify the unavailable post in this conversation thread', () => {
     loadHTML('samples/Conversation-with-now-unavailable-post-included.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 4,
-      articles: 4,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 2,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 1
-    });
 
-    expect(results.ratedPosts.length).toBe(4);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   4 Posts
+   4 Articles
+   0 Nested Articles
+
+Rated Post Quality (4 Total):
+   2 Good
+   0 Potential Problem
+   1 Problem
+   1 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -555,22 +526,21 @@ describe('identifyPosts - Conversation Threads', () => {
 
   test('We identify the unavailable quoted post in this conversation thread', () => {
     loadHTML('samples/Conversation-with-quoted-post-unavailable.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 3,
-      articles: 2,
-      nestedArticles: 1
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 0,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 2
-    });
 
-    expect(results.ratedPosts.length).toBe(3);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   3 Posts
+   2 Articles
+   1 Nested Articles
+
+Rated Post Quality (3 Total):
+   0 Good
+   0 Potential Problem
+   1 Problem
+   2 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.PROBLEM,
@@ -594,22 +564,21 @@ describe('identifyPosts - Conversation Threads', () => {
 
   test('We identify two problems in this conversation', () => {
     loadHTML('samples/Conversation-with-two-problem-posts.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 4,
-      articles: 4,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 2,
-      "Potential Problem": 0,
-      "Problem": 2,
-      "Undefined": 0
-    });
 
-    expect(results.ratedPosts.length).toBe(4);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   4 Posts
+   4 Articles
+   0 Nested Articles
+
+Rated Post Quality (4 Total):
+   2 Good
+   0 Potential Problem
+   2 Problem
+   0 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -638,22 +607,21 @@ describe('identifyPosts - Conversation Threads', () => {
 
   test('We identify the unavailable post in this conversation thread', () => {
     loadHTML('samples/Conversation-with-unavailable-post.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 6,
-      articles: 6,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 4,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 1
-    });
 
-    expect(results.ratedPosts.length).toBe(6);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   6 Posts
+   6 Articles
+   0 Nested Articles
+
+Rated Post Quality (6 Total):
+   4 Good
+   0 Potential Problem
+   1 Problem
+   1 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -692,22 +660,21 @@ describe('identifyPosts - Conversation Threads', () => {
 
   test('We should find nothing to identify in this conversation', () => {
     loadHTML('samples/Conversation-without-problems.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 6,
-      articles: 3,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 2,
-      "Potential Problem": 0,
-      "Problem": 0,
-      "Undefined": 4
-    });
 
-    expect(results.ratedPosts.length).toBe(6);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   6 Posts
+   3 Articles
+   0 Nested Articles
+
+Rated Post Quality (6 Total):
+   2 Good
+   0 Potential Problem
+   0 Problem
+   4 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -748,22 +715,21 @@ describe('identifyPosts - Conversation Threads', () => {
 describe('identifyPosts - Home Timeline', () => {
   test('We should find suspicious posts to identify in this single example', () => {
     loadHTML('samples/Home-Timeline-SingleExample.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 1,
-      articles: 1,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 0,
-      "Potential Problem": 1,
-      "Problem": 0,
-      "Undefined": 0
-    });
 
-    expect(results.ratedPosts.length).toBe(1);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   1 Posts
+   1 Articles
+   0 Nested Articles
+
+Rated Post Quality (1 Total):
+   0 Good
+   1 Potential Problem
+   0 Problem
+   0 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.POTENTIAL_PROBLEM,
@@ -777,22 +743,21 @@ describe('identifyPosts - Home Timeline', () => {
 
   test('We should find suspicious posts to identify in this conversation', () => {
     loadHTML('samples/Home-Timeline-With-Replies-SeparateButRelated.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 23,
-      articles: 16,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 15,
-      "Potential Problem": 1,
-      "Problem": 0,
-      "Undefined": 7
-    });
 
-    expect(results.ratedPosts.length).toBe(23);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+  23 Posts
+  16 Articles
+   0 Nested Articles
+
+Rated Post Quality (23 Total):
+  15 Good
+   1 Potential Problem
+   0 Problem
+   7 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -916,22 +881,21 @@ describe('identifyPosts - Home Timeline', () => {
 
   test('We can find reply to @DOGE', () => {
     loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply-To-DOGE.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 8,
-      articles: 5,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 4,
-      "Potential Problem": 1,
-      "Problem": 0,
-      "Undefined": 3
-    });
 
-    expect(results.ratedPosts.length).toBe(8);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   8 Posts
+   5 Articles
+   0 Nested Articles
+
+Rated Post Quality (8 Total):
+   4 Good
+   1 Potential Problem
+   0 Problem
+   3 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -980,22 +944,21 @@ describe('identifyPosts - Home Timeline', () => {
 
   test('We can find reply to @TheRabbitHole84', () => {
     loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply-To-TheRabbitHole84.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 9,
-      articles: 7,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 6,
-      "Potential Problem": 1,
-      "Problem": 0,
-      "Undefined": 2
-    });
 
-    expect(results.ratedPosts.length).toBe(9);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   9 Posts
+   7 Articles
+   0 Nested Articles
+
+Rated Post Quality (9 Total):
+   6 Good
+   1 Potential Problem
+   0 Problem
+   2 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -1049,22 +1012,21 @@ describe('identifyPosts - Home Timeline', () => {
 
   test('We can find reply suspect reply in this sample', () => {
     loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 28,
-      articles: 18,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 17,
-      "Potential Problem": 1,
-      "Problem": 0,
-      "Undefined": 10
-    });
 
-    expect(results.ratedPosts.length).toBe(28);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+  28 Posts
+  18 Articles
+   0 Nested Articles
+
+Rated Post Quality (28 Total):
+  17 Good
+   1 Potential Problem
+   0 Problem
+  10 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -1213,22 +1175,21 @@ describe('identifyPosts - Home Timeline', () => {
 
   test('We find no unlinked reply to handles in this sample', () => {
     loadHTML('samples/Home-Timeline-With-Replies.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 11,
-      articles: 8,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 8,
-      "Potential Problem": 0,
-      "Problem": 0,
-      "Undefined": 3
-    });
 
-    expect(results.ratedPosts.length).toBe(11);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+  11 Posts
+   8 Articles
+   0 Nested Articles
+
+Rated Post Quality (11 Total):
+   8 Good
+   0 Potential Problem
+   0 Problem
+   3 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -1292,20 +1253,20 @@ describe('identifyPosts - Home Timeline', () => {
 
   test("postHasProblemSystemNotice returns true with this post", () => {
     loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 1,
-      articles: 1,
-      nestedArticles: 1
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 0,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 0
-    });
+
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   1 Posts
+   1 Articles
+   1 Nested Articles
+
+Rated Post Quality (1 Total):
+   0 Good
+   0 Potential Problem
+   1 Problem
+   0 Undefined`);
 
     const article = document.querySelector('div[data-testid="cellInnerDiv"]');
     const postHasProblemSystemNotice = require('./postHasProblemSystemNotice');
@@ -1317,22 +1278,21 @@ describe('identifyPosts - Home Timeline', () => {
 
   test("We identify single unavailable notice in this post", () => {
     loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 1,
-      articles: 1,
-      nestedArticles: 1
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 0,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 0
-    });
 
-    expect(results.ratedPosts.length).toBe(1);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   1 Posts
+   1 Articles
+   1 Nested Articles
+
+Rated Post Quality (1 Total):
+   0 Good
+   0 Potential Problem
+   1 Problem
+   0 Undefined`);
+  
     expect(analyses).toEqual([
       {
         quality: postQuality.PROBLEM,
@@ -1346,22 +1306,21 @@ describe('identifyPosts - Home Timeline', () => {
 
   test("We identify Owen's repost of now missing post", () => {
     loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 36,
-      articles: 24,
-      nestedArticles: 1
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 21,
-      "Potential Problem": 2,
-      "Problem": 1,
-      "Undefined": 12
-    });
 
-    expect(results.ratedPosts.length).toBe(36);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+  36 Posts
+  24 Articles
+   1 Nested Articles
+
+Rated Post Quality (36 Total):
+  21 Good
+   2 Potential Problem
+   1 Problem
+  12 Undefined`);
+    
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -1552,22 +1511,21 @@ describe('identifyPosts - Home Timeline', () => {
 describe('identifyPosts - Miscellaneous Cases', () => {
   test('We can highlight multiple problems in a conversation thread', () => {
     loadHTML('samples/Multiple-Deleted-Posts-Conversation-Thread.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 9,
-      articles: 8,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 3,
-      "Potential Problem": 0,
-      "Problem": 4,
-      "Undefined": 2
-    });
 
-    expect(results.ratedPosts.length).toBe(9);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   9 Posts
+   8 Articles
+   0 Nested Articles
+
+Rated Post Quality (9 Total):
+   3 Good
+   0 Potential Problem
+   4 Problem
+   2 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -1621,22 +1579,21 @@ describe('identifyPosts - Miscellaneous Cases', () => {
 
   test('We can identify post no longer available', () => {
     loadHTML('samples/Post-No-Longer-Available.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 3,
-      articles: 2,
-      nestedArticles: 1
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 1,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 1
-    });
 
-    expect(results.ratedPosts.length).toBe(3);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   3 Posts
+   2 Articles
+   1 Nested Articles
+
+Rated Post Quality (3 Total):
+   1 Good
+   0 Potential Problem
+   1 Problem
+   1 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.PROBLEM,
@@ -1660,22 +1617,21 @@ describe('identifyPosts - Miscellaneous Cases', () => {
 
   test('We identify the deleted post in this conversation thread', () => {
     loadHTML('samples/Replied-To-Now-Deleted-Post.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 5,
-      articles: 3,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 1,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 3
-    });
 
-    expect(results.ratedPosts.length).toBe(5);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   5 Posts
+   3 Articles
+   0 Nested Articles
+
+Rated Post Quality (5 Total):
+   1 Good
+   0 Potential Problem
+   1 Problem
+   3 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.PROBLEM,
@@ -1709,22 +1665,21 @@ describe('identifyPosts - Miscellaneous Cases', () => {
 
   test.skip('We someday want identify replies to two but only find 1 in new window thread', () => {
     loadHTML('samples/Reply-To-Two-But-Only-See-One.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 3,
-      articles: 3,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 1,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 2
-    });
 
-    expect(results.ratedPosts.length).toBe(3);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   3 Posts
+   3 Articles
+   0 Nested Articles
+
+Rated Post Quality (3 Total):
+   1 Good
+   0 Potential Problem
+   1 Problem
+   2 Undefined`);
+
     expect(analyses).toEqual([]);
 
     expect(results.logMessages).toEqual([]);
@@ -1734,22 +1689,21 @@ describe('identifyPosts - Miscellaneous Cases', () => {
 
   test('We skip this embedded "Replying to" example', () => {
     loadHTML('samples/Replying-To-Embedded-Example.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 1,
-      articles: 1,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 1,
-      "Potential Problem": 0,
-      "Problem": 0,
-      "Undefined": 0
-    });
 
-    expect(results.ratedPosts.length).toBe(1);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   1 Posts
+   1 Articles
+   0 Nested Articles
+
+Rated Post Quality (1 Total):
+   1 Good
+   0 Potential Problem
+   0 Problem
+   0 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -1763,20 +1717,20 @@ describe('identifyPosts - Miscellaneous Cases', () => {
 
   test('We skip this healthy example', () => {
     loadHTML('samples/Replying-To-Healthy-Example.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 1,
-      articles: 1,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 1,
-      "Potential Problem": 0,
-      "Problem": 0,
-      "Undefined": 0
-    });
+
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   1 Posts
+   1 Articles
+   0 Nested Articles
+
+Rated Post Quality (1 Total):
+   1 Good
+   0 Potential Problem
+   0 Problem
+   0 Undefined`);
 
     expect(results.ratedPosts.length).toBe(1);
     expect(analyses).toEqual([
@@ -1792,22 +1746,21 @@ describe('identifyPosts - Miscellaneous Cases', () => {
 
   test('We can identify this problem (2)', () => {
     loadHTML('samples/Replying-To-Suspicious-Example (2).html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 1,
-      articles: 1,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 0,
-      "Potential Problem": 1,
-      "Problem": 0,
-      "Undefined": 0
-    });
 
-    expect(results.ratedPosts.length).toBe(1);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   1 Posts
+   1 Articles
+   0 Nested Articles
+
+Rated Post Quality (1 Total):
+   0 Good
+   1 Potential Problem
+   0 Problem
+   0 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.POTENTIAL_PROBLEM,
@@ -1821,22 +1774,21 @@ describe('identifyPosts - Miscellaneous Cases', () => {
 
   test('We can identify this problem', () => {
     loadHTML('samples/Replying-To-Suspicious-Example.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 1,
-      articles: 1,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 0,
-      "Potential Problem": 1,
-      "Problem": 0,
-      "Undefined": 0
-    });
 
-    expect(results.ratedPosts.length).toBe(1);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   1 Posts
+   1 Articles
+   0 Nested Articles
+
+Rated Post Quality (1 Total):
+   0 Good
+   1 Potential Problem
+   0 Problem
+   0 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.POTENTIAL_PROBLEM,
@@ -1848,24 +1800,23 @@ describe('identifyPosts - Miscellaneous Cases', () => {
     document.documentElement.innerHTML = '';
   });
 
-  test('We can identify this example of post no longer available', () => {
+  test('We can identify this lowercase variant example of post no longer available', () => {
     loadHTML('samples/Search-Including-Post-No-Longer-Available.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 6,
-      articles: 6,
-      nestedArticles: 1
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 4,
-      "Potential Problem": 1,
-      "Problem": 1,
-      "Undefined": 0
-    });
 
-    expect(results.ratedPosts.length).toBe(6);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   6 Posts
+   6 Articles
+   1 Nested Articles
+
+Rated Post Quality (6 Total):
+   4 Good
+   1 Potential Problem
+   1 Problem
+   0 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -1905,22 +1856,21 @@ describe('identifyPosts - Miscellaneous Cases', () => {
 
   test('We recognize unlinked reply to handles', () => {
     loadHTML('samples/Search-With-Unlinked-Replying-To-Handle.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 7,
-      articles: 7,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 3,
-      "Potential Problem": 4,
-      "Problem": 0,
-      "Undefined": 0
-    });
 
-    expect(results.ratedPosts.length).toBe(7);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   7 Posts
+   7 Articles
+   0 Nested Articles
+
+Rated Post Quality (7 Total):
+   3 Good
+   4 Potential Problem
+   0 Problem
+   0 Undefined`);
+
     expect(analyses).toEqual([
       {
         link: "/ApostleJohnW/status/1878550122281185320",
@@ -1964,22 +1914,21 @@ describe('identifyPosts - Miscellaneous Cases', () => {
 
   test('This should not be identified as a problem post', () => {
     loadHTML('samples/This-Quote-Repost-Into-Community-Should-Be-Fine.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 1,
-      articles: 1,
-      nestedArticles: 0
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 1,
-      "Potential Problem": 0,
-      "Problem": 0,
-      "Undefined": 0
-    });
 
-    expect(results.ratedPosts.length).toBe(1);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   1 Posts
+   1 Articles
+   0 Nested Articles
+
+Rated Post Quality (1 Total):
+   1 Good
+   0 Potential Problem
+   0 Problem
+   0 Undefined`);
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -1993,22 +1942,20 @@ describe('identifyPosts - Miscellaneous Cases', () => {
 
   test('We recognize an unable to view post', () => {
     loadHTML('samples/You-Cant-View-This-Post.html');
-    expect(getSampleStats(document)).toEqual({
-      posts: 3,
-      articles: 2,
-      nestedArticles: 1
-    });
-
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
-    expect(getPostQualitySummary(analyses)).toEqual({
-      "Good": 1,
-      "Potential Problem": 0,
-      "Problem": 1,
-      "Undefined": 1
-    });
 
-    expect(results.ratedPosts.length).toBe(3);
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+`Structure Summary Totals:
+   3 Posts
+   2 Articles
+   1 Nested Articles
+
+Rated Post Quality (3 Total):
+   1 Good
+   0 Potential Problem
+   1 Problem
+   1 Undefined`);
 
     // Extract analysis from each rated post
     expect(analyses).toEqual([

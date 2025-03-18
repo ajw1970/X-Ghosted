@@ -1,22 +1,27 @@
-// src/utils/findReplyingToWithDepth.js
+//Find divs containing text starting with 'Replying to '
+//Find parent article container of each
+//Return if vertical line is present: div class .r-1bnu78o
+//TODO: add configuration argument to drive what we check for
+//TODO: consider limiting nested depth like this: https://x.com/i/grok/share/2lwRYfwWMP7uguNodbpXhfd3K
+
 function findReplyingToWithDepth(article) {
 
     function getArticleElement(element) {
         if (!element || !(element instanceof Element)) {
             return null;
         }
-        
+
         // Check if element itself is an article
         if (element.tagName.toLowerCase() === 'article') {
             return element;
         }
-        
+
         // Check for article in children
         const childArticle = element.querySelector('article');
         if (childArticle) {
             return childArticle;
         }
-        
+
         // Check for parent article
         return element.closest('article');
     }
@@ -49,7 +54,7 @@ function findReplyingToWithDepth(article) {
     if (!article) {
         return result;
     }
-    
+
     findDivs(article, 0);
     return result;
 }

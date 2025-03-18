@@ -2,20 +2,7 @@ const postHasProblemCommunity = require('./postHasProblemCommunity');
 const postHasProblemSystemNotice = require('./postHasProblemSystemNotice');
 const findReplyingToWithDepth = require('./findReplyingToWithDepth');
 const getRelativeLinkToPost = require('./getRelativeLinkToPost');
-
-//Find divs containing text starting with 'Replying to '
-//Find parent article container of each
-//Return if vertical line is present: div class .r-1bnu78o
-
-//TODO: add configuration argument to drive what we check for
-//TODO: consider limiting nested depth like this: https://x.com/i/grok/share/2lwRYfwWMP7uguNodbpXhfd3K
-
-const postQuality = Object.freeze({
-    UNDEFINED: Object.freeze({ name: 'Undefined', value: 0 }),
-    PROBLEM: Object.freeze({ name: 'Problem', value: 1 }),
-    POTENTIAL_PROBLEM: Object.freeze({ name: 'Potential Problem', value: 2 }),
-    GOOD: Object.freeze({ name: 'Good', value: 3 }),
-});
+const postQuality = require('./postQuality');
 
 function identifyPosts(document) {
     // Select all <article> elements (or adjust selector for your structure)
@@ -136,4 +123,4 @@ function identifyPosts(document) {
     return results;
 }
 
-module.exports = { identifyPosts, postQuality };
+module.exports = identifyPosts;
