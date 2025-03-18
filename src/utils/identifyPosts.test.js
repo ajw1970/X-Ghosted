@@ -397,55 +397,55 @@ describe('identifyPosts - Conversation Threads', () => {
       document.documentElement.innerHTML = '';
     });
 
-  });
+    it('should identify three problems in this sample size of 5', () => {
+      loadHTML('samples/Conversation-with-multiple-problem-posts.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+  
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   5 Posts",
+        "   4 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (5 Total):",
+        "   0 Good",
+        "   0 Potential Problem",
+        "   3 Problem",
+        "   2 Undefined"
+      ].join("\n"));
+  
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: you're unable to view this post",
+          link: false
+        },
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post was deleted by the post author",
+          link: false
+        },
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: you're unable to view this post",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        }
+      ]);
+  
+      document.documentElement.innerHTML = '';
+    });
 
-  test('We identify all three problem posts in this conversation', () => {
-    loadHTML('samples/Conversation-with-multiple-problem-posts.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   5 Posts",
-      "   4 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (5 Total):",
-      "   0 Good",
-      "   0 Potential Problem",
-      "   3 Problem",
-      "   2 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: you're unable to view this post",
-        link: false
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post was deleted by the post author",
-        link: false
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: you're unable to view this post",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
   });
 
   test('We identify the deleted post in this conversation thread', () => {
@@ -536,7 +536,7 @@ describe('identifyPosts - Conversation Threads', () => {
     document.documentElement.innerHTML = '';
   });
 
-  test('We identify the unavailable quoted post in this conversation thread', () => {
+  test('Nested-We identify the unavailable quoted post in this conversation thread', () => {
     loadHTML('samples/Conversation-with-quoted-post-unavailable.html');
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
@@ -1273,7 +1273,7 @@ describe('identifyPosts - Home Timeline', () => {
     document.documentElement.innerHTML = '';
   });
 
-  test("postHasProblemSystemNotice returns true with this post", () => {
+  test("Nested-postHasProblemSystemNotice returns true with this post", () => {
     loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
@@ -1299,7 +1299,7 @@ describe('identifyPosts - Home Timeline', () => {
     document.documentElement.innerHTML = '';
   });
 
-  test("We identify single unavailable notice in this post", () => {
+  test("Nested-We identify single unavailable notice in this post", () => {
     loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
@@ -1328,7 +1328,7 @@ describe('identifyPosts - Home Timeline', () => {
     document.documentElement.innerHTML = '';
   });
 
-  test("We identify Owen's repost of now missing post", () => {
+  test("Nested-We identify Owen's repost of now missing post", () => {
     loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
@@ -1603,7 +1603,7 @@ describe('identifyPosts - Miscellaneous Cases', () => {
     document.documentElement.innerHTML = '';
   });
 
-  test('We can identify post no longer available', () => {
+  test('Nested-We can identify post no longer available', () => {
     loadHTML('samples/Post-No-Longer-Available.html');
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
@@ -1833,7 +1833,7 @@ describe('identifyPosts - Miscellaneous Cases', () => {
     document.documentElement.innerHTML = '';
   });
 
-  test('We can identify this lowercase variant example of post no longer available', () => {
+  test('Nested-We can identify this lowercase variant example of post no longer available', () => {
     loadHTML('samples/Search-Including-Post-No-Longer-Available.html');
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
@@ -1976,7 +1976,7 @@ describe('identifyPosts - Miscellaneous Cases', () => {
     document.documentElement.innerHTML = '';
   });
 
-  test('We recognize an unable to view post', () => {
+  test('Nested-We recognize an unable to view post', () => {
     loadHTML('samples/You-Cant-View-This-Post.html');
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
