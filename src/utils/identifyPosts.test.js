@@ -343,60 +343,60 @@ describe('identifyPosts - Conversation Threads', () => {
       document.documentElement.innerHTML = '';
     });
 
-  });
+    it('should identify two unable to view post problems in this sample size of 6', () => {
+      loadHTML('samples/Conversation-with-limited-visibility.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+  
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   6 Posts",
+        "   4 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (6 Total):",
+        "   1 Good",
+        "   0 Potential Problem",
+        "   2 Problem",
+        "   3 Undefined"
+      ].join("\n"));
+  
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: you're unable to view this post",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: you're unable to view this post",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1883293430052430332"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        }
+      ]);
+  
+      document.documentElement.innerHTML = '';
+    });
 
-  test('We identify the unable to view this Post message', () => {
-    loadHTML('samples/Conversation-with-limited-visibility.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   6 Posts",
-      "   4 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (6 Total):",
-      "   1 Good",
-      "   0 Potential Problem",
-      "   2 Problem",
-      "   3 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: you're unable to view this post",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: you're unable to view this post",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1883293430052430332"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
   });
 
   test('We identify all three problem posts in this conversation', () => {
@@ -404,17 +404,18 @@ describe('identifyPosts - Conversation Threads', () => {
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   5 Posts
-   4 Articles
-   0 Nested Articles
-
-Rated Post Quality (5 Total):
-   0 Good
-   0 Potential Problem
-   3 Problem
-   2 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   5 Posts",
+      "   4 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (5 Total):",
+      "   0 Good",
+      "   0 Potential Problem",
+      "   3 Problem",
+      "   2 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -452,17 +453,18 @@ Rated Post Quality (5 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   4 Posts
-   4 Articles
-   0 Nested Articles
-
-Rated Post Quality (4 Total):
-   2 Good
-   0 Potential Problem
-   1 Problem
-   1 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   4 Posts",
+      "   4 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (4 Total):",
+      "   2 Good",
+      "   0 Potential Problem",
+      "   1 Problem",
+      "   1 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -495,17 +497,18 @@ Rated Post Quality (4 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   4 Posts
-   4 Articles
-   0 Nested Articles
-
-Rated Post Quality (4 Total):
-   2 Good
-   0 Potential Problem
-   1 Problem
-   1 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   4 Posts",
+      "   4 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (4 Total):",
+      "   2 Good",
+      "   0 Potential Problem",
+      "   1 Problem",
+      "   1 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -538,17 +541,18 @@ Rated Post Quality (4 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   3 Posts
-   2 Articles
-   1 Nested Articles
-
-Rated Post Quality (3 Total):
-   0 Good
-   0 Potential Problem
-   1 Problem
-   2 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   3 Posts",
+      "   2 Articles",
+      "   1 Nested Articles",
+      "",
+      "Rated Post Quality (3 Total):",
+      "   0 Good",
+      "   0 Potential Problem",
+      "   1 Problem",
+      "   2 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -576,17 +580,18 @@ Rated Post Quality (3 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   4 Posts
-   4 Articles
-   0 Nested Articles
-
-Rated Post Quality (4 Total):
-   2 Good
-   0 Potential Problem
-   2 Problem
-   0 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   4 Posts",
+      "   4 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (4 Total):",
+      "   2 Good",
+      "   0 Potential Problem",
+      "   2 Problem",
+      "   0 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -619,17 +624,18 @@ Rated Post Quality (4 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   6 Posts
-   6 Articles
-   0 Nested Articles
-
-Rated Post Quality (6 Total):
-   4 Good
-   0 Potential Problem
-   1 Problem
-   1 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   6 Posts",
+      "   6 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (6 Total):",
+      "   4 Good",
+      "   0 Potential Problem",
+      "   1 Problem",
+      "   1 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -672,17 +678,18 @@ Rated Post Quality (6 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   6 Posts
-   3 Articles
-   0 Nested Articles
-
-Rated Post Quality (6 Total):
-   2 Good
-   0 Potential Problem
-   0 Problem
-   4 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   6 Posts",
+      "   3 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (6 Total):",
+      "   2 Good",
+      "   0 Potential Problem",
+      "   0 Problem",
+      "   4 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -727,17 +734,18 @@ describe('identifyPosts - Home Timeline', () => {
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   1 Posts
-   1 Articles
-   0 Nested Articles
-
-Rated Post Quality (1 Total):
-   0 Good
-   1 Potential Problem
-   0 Problem
-   0 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   1 Posts",
+      "   1 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (1 Total):",
+      "   0 Good",
+      "   1 Potential Problem",
+      "   0 Problem",
+      "   0 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -755,17 +763,18 @@ Rated Post Quality (1 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-  23 Posts
-  16 Articles
-   0 Nested Articles
-
-Rated Post Quality (23 Total):
-  15 Good
-   1 Potential Problem
-   0 Problem
-   7 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "  23 Posts",
+      "  16 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (23 Total):",
+      "  15 Good",
+      "   1 Potential Problem",
+      "   0 Problem",
+      "   7 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -893,17 +902,18 @@ Rated Post Quality (23 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   8 Posts
-   5 Articles
-   0 Nested Articles
-
-Rated Post Quality (8 Total):
-   4 Good
-   1 Potential Problem
-   0 Problem
-   3 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   8 Posts",
+      "   5 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (8 Total):",
+      "   4 Good",
+      "   1 Potential Problem",
+      "   0 Problem",
+      "   3 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -956,17 +966,18 @@ Rated Post Quality (8 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   9 Posts
-   7 Articles
-   0 Nested Articles
-
-Rated Post Quality (9 Total):
-   6 Good
-   1 Potential Problem
-   0 Problem
-   2 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   9 Posts",
+      "   7 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (9 Total):",
+      "   6 Good",
+      "   1 Potential Problem",
+      "   0 Problem",
+      "   2 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -1024,17 +1035,18 @@ Rated Post Quality (9 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-  28 Posts
-  18 Articles
-   0 Nested Articles
-
-Rated Post Quality (28 Total):
-  17 Good
-   1 Potential Problem
-   0 Problem
-  10 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "  28 Posts",
+      "  18 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (28 Total):",
+      "  17 Good",
+      "   1 Potential Problem",
+      "   0 Problem",
+      "  10 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -1187,17 +1199,18 @@ Rated Post Quality (28 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-  11 Posts
-   8 Articles
-   0 Nested Articles
-
-Rated Post Quality (11 Total):
-   8 Good
-   0 Potential Problem
-   0 Problem
-   3 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "  11 Posts",
+      "   8 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (11 Total):",
+      "   8 Good",
+      "   0 Potential Problem",
+      "   0 Problem",
+      "   3 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -1265,17 +1278,18 @@ Rated Post Quality (11 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   1 Posts
-   1 Articles
-   1 Nested Articles
-
-Rated Post Quality (1 Total):
-   0 Good
-   0 Potential Problem
-   1 Problem
-   0 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   1 Posts",
+      "   1 Articles",
+      "   1 Nested Articles",
+      "",
+      "Rated Post Quality (1 Total):",
+      "   0 Good",
+      "   0 Potential Problem",
+      "   1 Problem",
+      "   0 Undefined"
+    ].join("\n"));
 
     const article = document.querySelector('div[data-testid="cellInnerDiv"]');
     const postHasProblemSystemNotice = require('./postHasProblemSystemNotice');
@@ -1290,17 +1304,18 @@ Rated Post Quality (1 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   1 Posts
-   1 Articles
-   1 Nested Articles
-
-Rated Post Quality (1 Total):
-   0 Good
-   0 Potential Problem
-   1 Problem
-   0 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   1 Posts",
+      "   1 Articles",
+      "   1 Nested Articles",
+      "",
+      "Rated Post Quality (1 Total):",
+      "   0 Good",
+      "   0 Potential Problem",
+      "   1 Problem",
+      "   0 Undefined"
+    ].join("\n"));
   
     expect(analyses).toEqual([
       {
@@ -1318,17 +1333,18 @@ Rated Post Quality (1 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-  36 Posts
-  24 Articles
-   1 Nested Articles
-
-Rated Post Quality (36 Total):
-  21 Good
-   2 Potential Problem
-   1 Problem
-  12 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "  36 Posts",
+      "  24 Articles",
+      "   1 Nested Articles",
+      "",
+      "Rated Post Quality (36 Total):",
+      "  21 Good",
+      "   2 Potential Problem",
+      "   1 Problem",
+      "  12 Undefined"
+    ].join("\n"));
     
     expect(analyses).toEqual([
       {
@@ -1523,17 +1539,18 @@ describe('identifyPosts - Miscellaneous Cases', () => {
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   9 Posts
-   8 Articles
-   0 Nested Articles
-
-Rated Post Quality (9 Total):
-   3 Good
-   0 Potential Problem
-   4 Problem
-   2 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   9 Posts",
+      "   8 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (9 Total):",
+      "   3 Good",
+      "   0 Potential Problem",
+      "   4 Problem",
+      "   2 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -1591,17 +1608,18 @@ Rated Post Quality (9 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   3 Posts
-   2 Articles
-   1 Nested Articles
-
-Rated Post Quality (3 Total):
-   1 Good
-   0 Potential Problem
-   1 Problem
-   1 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   3 Posts",
+      "   2 Articles",
+      "   1 Nested Articles",
+      "",
+      "Rated Post Quality (3 Total):",
+      "   1 Good",
+      "   0 Potential Problem",
+      "   1 Problem",
+      "   1 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -1629,17 +1647,18 @@ Rated Post Quality (3 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   5 Posts
-   3 Articles
-   0 Nested Articles
-
-Rated Post Quality (5 Total):
-   1 Good
-   0 Potential Problem
-   1 Problem
-   3 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   5 Posts",
+      "   3 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (5 Total):",
+      "   1 Good",
+      "   0 Potential Problem",
+      "   1 Problem",
+      "   3 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -1677,17 +1696,18 @@ Rated Post Quality (5 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   3 Posts
-   3 Articles
-   0 Nested Articles
-
-Rated Post Quality (3 Total):
-   1 Good
-   0 Potential Problem
-   1 Problem
-   2 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   3 Posts",
+      "   3 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (3 Total):",
+      "   1 Good",
+      "   0 Potential Problem",
+      "   1 Problem",
+      "   2 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([]);
 
@@ -1701,17 +1721,18 @@ Rated Post Quality (3 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   1 Posts
-   1 Articles
-   0 Nested Articles
-
-Rated Post Quality (1 Total):
-   1 Good
-   0 Potential Problem
-   0 Problem
-   0 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   1 Posts",
+      "   1 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (1 Total):",
+      "   1 Good",
+      "   0 Potential Problem",
+      "   0 Problem",
+      "   0 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -1729,17 +1750,18 @@ Rated Post Quality (1 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   1 Posts
-   1 Articles
-   0 Nested Articles
-
-Rated Post Quality (1 Total):
-   1 Good
-   0 Potential Problem
-   0 Problem
-   0 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   1 Posts",
+      "   1 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (1 Total):",
+      "   1 Good",
+      "   0 Potential Problem",
+      "   0 Problem",
+      "   0 Undefined"
+    ].join("\n"));
 
     expect(results.ratedPosts.length).toBe(1);
     expect(analyses).toEqual([
@@ -1758,17 +1780,18 @@ Rated Post Quality (1 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   1 Posts
-   1 Articles
-   0 Nested Articles
-
-Rated Post Quality (1 Total):
-   0 Good
-   1 Potential Problem
-   0 Problem
-   0 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   1 Posts",
+      "   1 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (1 Total):",
+      "   0 Good",
+      "   1 Potential Problem",
+      "   0 Problem",
+      "   0 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -1786,17 +1809,18 @@ Rated Post Quality (1 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   1 Posts
-   1 Articles
-   0 Nested Articles
-
-Rated Post Quality (1 Total):
-   0 Good
-   1 Potential Problem
-   0 Problem
-   0 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   1 Posts",
+      "   1 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (1 Total):",
+      "   0 Good",
+      "   1 Potential Problem",
+      "   0 Problem",
+      "   0 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -1814,17 +1838,18 @@ Rated Post Quality (1 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   6 Posts
-   6 Articles
-   1 Nested Articles
-
-Rated Post Quality (6 Total):
-   4 Good
-   1 Potential Problem
-   1 Problem
-   0 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   6 Posts",
+      "   6 Articles",
+      "   1 Nested Articles",
+      "",
+      "Rated Post Quality (6 Total):",
+      "   4 Good",
+      "   1 Potential Problem",
+      "   1 Problem",
+      "   0 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -1868,17 +1893,18 @@ Rated Post Quality (6 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   7 Posts
-   7 Articles
-   0 Nested Articles
-
-Rated Post Quality (7 Total):
-   3 Good
-   4 Potential Problem
-   0 Problem
-   0 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   7 Posts",
+      "   7 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (7 Total):",
+      "   3 Good",
+      "   4 Potential Problem",
+      "   0 Problem",
+      "   0 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -1926,17 +1952,18 @@ Rated Post Quality (7 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   1 Posts
-   1 Articles
-   0 Nested Articles
-
-Rated Post Quality (1 Total):
-   1 Good
-   0 Potential Problem
-   0 Problem
-   0 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   1 Posts",
+      "   1 Articles",
+      "   0 Nested Articles",
+      "",
+      "Rated Post Quality (1 Total):",
+      "   1 Good",
+      "   0 Potential Problem",
+      "   0 Problem",
+      "   0 Undefined"
+    ].join("\n"));
 
     expect(analyses).toEqual([
       {
@@ -1954,17 +1981,18 @@ Rated Post Quality (1 Total):
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
 
-    expect(describeSampleAnalyses(document, analyses)).toBe(
-`Structure Summary Totals:
-   3 Posts
-   2 Articles
-   1 Nested Articles
-
-Rated Post Quality (3 Total):
-   1 Good
-   0 Potential Problem
-   1 Problem
-   1 Undefined`);
+    expect(describeSampleAnalyses(document, analyses)).toBe([
+      "Structure Summary Totals:",
+      "   3 Posts",
+      "   2 Articles",
+      "   1 Nested Articles",
+      "",
+      "Rated Post Quality (3 Total):",
+      "   1 Good",
+      "   0 Potential Problem",
+      "   1 Problem",
+      "   1 Undefined"
+    ].join("\n"));
 
     // Extract analysis from each rated post
     expect(analyses).toEqual([
