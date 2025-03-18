@@ -2,7 +2,7 @@ const postQuality = require('./postQuality');
 const identifyPosts = require('./identifyPosts');
 const describeSampleAnalyses = require('./describeSampleAnalyses');
 
-describe('identifyPosts - Conversation Threads', () => {
+describe('identifyPosts - Problems', () => {
 
   describe('problem posts identified with postHasProblemCommunity', () => {
 
@@ -681,7 +681,7 @@ describe('identifyPosts - Conversation Threads', () => {
       loadHTML('samples/Conversation-without-problems.html');
       const results = identifyPosts(document);
       const analyses = results.ratedPosts.map(post => post.analysis);
-  
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   6 Posts",
@@ -694,7 +694,7 @@ describe('identifyPosts - Conversation Threads', () => {
         "   0 Problem",
         "   4 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           quality: postQuality.GOOD,
@@ -727,6 +727,223 @@ describe('identifyPosts - Conversation Threads', () => {
           link: false
         }
       ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    // Problem found in nested article
+    it("should identify the unavailable post problem in this nested article", () => {
+      loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+  
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   1 Posts",
+        "   1 Articles",
+        "   1 Nested Articles",
+        "",
+        "Rated Post Quality (1 Total):",
+        "   0 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   0 Undefined"
+      ].join("\n"));
+  
+      const article = document.querySelector('div[data-testid="cellInnerDiv"]');
+      const postHasProblemSystemNotice = require('./postHasProblemSystemNotice');
+      const result = postHasProblemSystemNotice(article);
+      expect(result).toBe("this post is unavailable");
+  
+      document.documentElement.innerHTML = '';
+    });
+
+    // Problem found in nested article
+    it("should identify the unavailable post problem in this nested article", () => {
+      loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+  
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   1 Posts",
+        "   1 Articles",
+        "   1 Nested Articles",
+        "",
+        "Rated Post Quality (1 Total):",
+        "   0 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   0 Undefined"
+      ].join("\n"));
+  
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post is unavailable",
+          link: "/OwenGregorian/status/1896977661144260900"
+        }
+      ]);
+  
+      document.documentElement.innerHTML = '';
+    });
+
+    // Redundant test
+    it.skip('should identify 4 deleted post problems in this sample size of 9', () => {
+      loadHTML('samples/Multiple-Deleted-Posts-Conversation-Thread.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+  
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   9 Posts",
+        "   8 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (9 Total):",
+        "   3 Good",
+        "   0 Potential Problem",
+        "   4 Problem",
+        "   2 Undefined"
+      ].join("\n"));
+  
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/Geiger_Capital/status/1885443814124384411",
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1885520432637632752",
+        },
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post was deleted by the post author",
+          link: false,
+        },
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post was deleted by the post author",
+          link: false,
+        },
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post was deleted by the post author",
+          link: false,
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1885725312790491278",
+        },
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post was deleted by the post author",
+          link: false,
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false,
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false,
+        }
+      ]);
+  
+      document.documentElement.innerHTML = '';
+    });
+
+    // Problem found in tested article
+    it('should find the unavailable post problem in this nested article', () => {
+      loadHTML('samples/Post-No-Longer-Available.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+  
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   3 Posts",
+        "   2 Articles",
+        "   1 Nested Articles",
+        "",
+        "Rated Post Quality (3 Total):",
+        "   1 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   1 Undefined"
+      ].join("\n"));
+  
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post is unavailable",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/BarbieTrueBlue/status/1886211137961680919"
+        }
+      ]);
+  
+      document.documentElement.innerHTML = '';
+    });
+
+    // Redundant test
+    it.skip('should identify the deleted post in this sample size of 5', () => {
+      loadHTML('samples/Replied-To-Now-Deleted-Post.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+  
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   5 Posts",
+        "   3 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (5 Total):",
+        "   1 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   3 Undefined"
+      ].join("\n"));
+  
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post was deleted by the post author",
+          link: false,
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false,
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false,
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/AkifBhamani/status/1884634628226478349",
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false,
+        }
+      ]);
   
       document.documentElement.innerHTML = '';
     });
@@ -735,607 +952,562 @@ describe('identifyPosts - Conversation Threads', () => {
 
 });
 
-describe('identifyPosts - Home Timeline', () => {
-  test('We should find suspicious posts to identify in this single example', () => {
-    loadHTML('samples/Home-Timeline-SingleExample.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
+describe('identifyPosts - Potential Problems', () => {
 
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   1 Posts",
-      "   1 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (1 Total):",
-      "   0 Good",
-      "   1 Potential Problem",
-      "   0 Problem",
-      "   0 Undefined"
-    ].join("\n"));
+  describe('potential problem posts identified with findReplyingToWithDepth', () => {
 
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.POTENTIAL_PROBLEM,
-        reason: "Found: 'Replying to <a>@KanekoaTheGreat</a>' at a depth of 6",
-        link: "/ApostleJohnW/status/1890213085878845626"
-      }
-    ]);
+    it('should identify one potential problem reply in this single post', () => {
+      loadHTML('samples/Home-Timeline-SingleExample.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
 
-    document.documentElement.innerHTML = '';
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   1 Posts",
+        "   1 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (1 Total):",
+        "   0 Good",
+        "   1 Potential Problem",
+        "   0 Problem",
+        "   0 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.POTENTIAL_PROBLEM,
+          reason: "Found: 'Replying to <a>@KanekoaTheGreat</a>' at a depth of 6",
+          link: "/ApostleJohnW/status/1890213085878845626"
+        }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    it('should identify one potential problem reply in this sample size of 23', () => {
+      loadHTML('samples/Home-Timeline-With-Replies-SeparateButRelated.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "  23 Posts",
+        "  16 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (23 Total):",
+        "  15 Good",
+        "   1 Potential Problem",
+        "   0 Problem",
+        "   7 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/Polymarket/status/1890150272015692285"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890268189273256429"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/joerogan/status/1890256988065747120"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890267922888831056"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/elonmusk/status/1890267219021689066"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890267836297408744"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/fasc1nate/status/1890159112966529049"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890266335059538298"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890226210656968925"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/KanekoaTheGreat/status/1890210084158103579"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890213612868063403"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.POTENTIAL_PROBLEM,
+          reason: "Found: 'Replying to <a>@KanekoaTheGreat</a>' at a depth of 6",
+          link: "/ApostleJohnW/status/1890213085878845626"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890201310458216496"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/amuse/status/1890188509212021011"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890197334828470528"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/GuntherEagleman/status/1890193877270737033"
+        }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    it('should identify one potential problem reply in this sample size of 8', () => {
+      loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply-To-DOGE.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   8 Posts",
+        "   5 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (8 Total):",
+        "   4 Good",
+        "   1 Potential Problem",
+        "   0 Problem",
+        "   3 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890582770079928347"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/realchrisrufo/status/1890461003453972704"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890582075989737603"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.POTENTIAL_PROBLEM,
+          reason: "Found: 'Replying to <a>@DOGE</a>' at a depth of 6",
+          link: "/ApostleJohnW/status/1890581864882065729"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/Starlink/status/1890556777910981087"
+        }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    it('should identify one potential problem reply in this sample size of 9', () => {
+      loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply-To-TheRabbitHole84.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   9 Posts",
+        "   7 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (9 Total):",
+        "   6 Good",
+        "   1 Potential Problem",
+        "   0 Problem",
+        "   2 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/TomHoman_/status/1890264842021531908"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890492039311114515"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/TRHLofficial/status/1890488779200135602"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890489017642127402"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.POTENTIAL_PROBLEM,
+          reason: "Found: 'Replying to <a>@TheRabbitHole84</a>' at a depth of 6",
+          link: "/ApostleJohnW/status/1890483565499932926"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890477786164318696"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1890477475659927947"
+        }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    it('should identify one potential problem reply in this sample size of 28', () => {
+      loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "  28 Posts",
+        "  18 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (28 Total):",
+        "  17 Good",
+        "   1 Potential Problem",
+        "   0 Problem",
+        "  10 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1897284088387535306"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ArthurMacwaters/status/1897070572934439349"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ArthurMacwaters/status/1897274644358693224"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1897277949675733193"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/cgallaty/status/1897270300171231704"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/cgallaty/status/1897274689350729929"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1897274953936117962"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.POTENTIAL_PROBLEM,
+          reason: "Found: 'Replying to <a>@cgallaty</a>' at a depth of 6",
+          link: "/ApostleJohnW/status/1897274769164431494"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ArthurMacwaters/status/1897267322261528696"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1897274123841090000"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/BasedMikeLee/status/1897263908613971994"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1897267944742384013"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/BreannaMorello/status/1897264239783633229"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1897266164189040752"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/piersmorgan/status/1897261181653627162"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/DrEtiquette/status/1897264279868596522"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1897265836777513106"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/Gutfeldfox/status/1896996720460095926"
+        }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    // Happy path
+    it('should identify no potential problems in this sample size of 11', () => {
+      loadHTML('samples/Home-Timeline-With-Replies.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "  11 Posts",
+        "   8 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (11 Total):",
+        "   8 Good",
+        "   0 Potential Problem",
+        "   0 Problem",
+        "   3 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1895111411140907450"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1895174358902956217"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/buymeacoffee/status/1895088351235187111"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1895172905203589591"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/monetization_x/status/1894962473914298538"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/tahreem57/status/1894971735172149613"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1895169898252509372"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1895168899793994232"
+        }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
   });
 
-  test('We should find suspicious posts to identify in this conversation', () => {
-    loadHTML('samples/Home-Timeline-With-Replies-SeparateButRelated.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
+});
 
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "  23 Posts",
-      "  16 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (23 Total):",
-      "  15 Good",
-      "   1 Potential Problem",
-      "   0 Problem",
-      "   7 Undefined"
-    ].join("\n"));
+describe('identifyPosts - Problems and Potential Problems', () => {
 
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/Polymarket/status/1890150272015692285"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890268189273256429"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/joerogan/status/1890256988065747120"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890267922888831056"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/elonmusk/status/1890267219021689066"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890267836297408744"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/fasc1nate/status/1890159112966529049"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890266335059538298"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890226210656968925"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/KanekoaTheGreat/status/1890210084158103579"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890213612868063403"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.POTENTIAL_PROBLEM,
-        reason: "Found: 'Replying to <a>@KanekoaTheGreat</a>' at a depth of 6",
-        link: "/ApostleJohnW/status/1890213085878845626"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890201310458216496"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/amuse/status/1890188509212021011"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890197334828470528"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/GuntherEagleman/status/1890193877270737033"
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test('We can find reply to @DOGE', () => {
-    loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply-To-DOGE.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   8 Posts",
-      "   5 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (8 Total):",
-      "   4 Good",
-      "   1 Potential Problem",
-      "   0 Problem",
-      "   3 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890582770079928347"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/realchrisrufo/status/1890461003453972704"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890582075989737603"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.POTENTIAL_PROBLEM,
-        reason: "Found: 'Replying to <a>@DOGE</a>' at a depth of 6",
-        link: "/ApostleJohnW/status/1890581864882065729"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/Starlink/status/1890556777910981087"
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test('We can find reply to @TheRabbitHole84', () => {
-    loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply-To-TheRabbitHole84.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   9 Posts",
-      "   7 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (9 Total):",
-      "   6 Good",
-      "   1 Potential Problem",
-      "   0 Problem",
-      "   2 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/TomHoman_/status/1890264842021531908"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890492039311114515"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/TRHLofficial/status/1890488779200135602"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890489017642127402"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.POTENTIAL_PROBLEM,
-        reason: "Found: 'Replying to <a>@TheRabbitHole84</a>' at a depth of 6",
-        link: "/ApostleJohnW/status/1890483565499932926"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890477786164318696"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1890477475659927947"
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test('We can find reply suspect reply in this sample', () => {
-    loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "  28 Posts",
-      "  18 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (28 Total):",
-      "  17 Good",
-      "   1 Potential Problem",
-      "   0 Problem",
-      "  10 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897284088387535306"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ArthurMacwaters/status/1897070572934439349"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ArthurMacwaters/status/1897274644358693224"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897277949675733193"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/cgallaty/status/1897270300171231704"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/cgallaty/status/1897274689350729929"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897274953936117962"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.POTENTIAL_PROBLEM,
-        reason: "Found: 'Replying to <a>@cgallaty</a>' at a depth of 6",
-        link: "/ApostleJohnW/status/1897274769164431494"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ArthurMacwaters/status/1897267322261528696"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897274123841090000"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/BasedMikeLee/status/1897263908613971994"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897267944742384013"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/BreannaMorello/status/1897264239783633229"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897266164189040752"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/piersmorgan/status/1897261181653627162"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/DrEtiquette/status/1897264279868596522"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897265836777513106"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/Gutfeldfox/status/1896996720460095926"
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test('We find no unlinked reply to handles in this sample', () => {
-    loadHTML('samples/Home-Timeline-With-Replies.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "  11 Posts",
-      "   8 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (11 Total):",
-      "   8 Good",
-      "   0 Potential Problem",
-      "   0 Problem",
-      "   3 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1895111411140907450"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1895174358902956217"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/buymeacoffee/status/1895088351235187111"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1895172905203589591"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/monetization_x/status/1894962473914298538"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/tahreem57/status/1894971735172149613"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1895169898252509372"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1895168899793994232"
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test("Nested-postHasProblemSystemNotice returns true with this post", () => {
-    loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   1 Posts",
-      "   1 Articles",
-      "   1 Nested Articles",
-      "",
-      "Rated Post Quality (1 Total):",
-      "   0 Good",
-      "   0 Potential Problem",
-      "   1 Problem",
-      "   0 Undefined"
-    ].join("\n"));
-
-    const article = document.querySelector('div[data-testid="cellInnerDiv"]');
-    const postHasProblemSystemNotice = require('./postHasProblemSystemNotice');
-    const result = postHasProblemSystemNotice(article);
-    expect(result).toBe("this post is unavailable");
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test("Nested-We identify single unavailable notice in this post", () => {
-    loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   1 Posts",
-      "   1 Articles",
-      "   1 Nested Articles",
-      "",
-      "Rated Post Quality (1 Total):",
-      "   0 Good",
-      "   0 Potential Problem",
-      "   1 Problem",
-      "   0 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post is unavailable",
-        link: "/OwenGregorian/status/1896977661144260900"
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test("Nested-We identify Owen's repost of now missing post", () => {
+  it("should identify 1 problem and 2 potential problems in this sample size of 36 including 1 nested article", () => {
     loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
     const results = identifyPosts(document);
     const analyses = results.ratedPosts.map(post => post.analysis);
@@ -1538,165 +1710,10 @@ describe('identifyPosts - Home Timeline', () => {
 
     document.documentElement.innerHTML = '';
   });
+
 });
 
 describe('identifyPosts - Miscellaneous Cases', () => {
-  test('We can highlight multiple problems in a conversation thread', () => {
-    loadHTML('samples/Multiple-Deleted-Posts-Conversation-Thread.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   9 Posts",
-      "   8 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (9 Total):",
-      "   3 Good",
-      "   0 Potential Problem",
-      "   4 Problem",
-      "   2 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/Geiger_Capital/status/1885443814124384411",
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1885520432637632752",
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post was deleted by the post author",
-        link: false,
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post was deleted by the post author",
-        link: false,
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post was deleted by the post author",
-        link: false,
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1885725312790491278",
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post was deleted by the post author",
-        link: false,
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false,
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false,
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test('Nested-We can identify post no longer available', () => {
-    loadHTML('samples/Post-No-Longer-Available.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   3 Posts",
-      "   2 Articles",
-      "   1 Nested Articles",
-      "",
-      "Rated Post Quality (3 Total):",
-      "   1 Good",
-      "   0 Potential Problem",
-      "   1 Problem",
-      "   1 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post is unavailable",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/BarbieTrueBlue/status/1886211137961680919"
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test('We identify the deleted post in this conversation thread', () => {
-    loadHTML('samples/Replied-To-Now-Deleted-Post.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   5 Posts",
-      "   3 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (5 Total):",
-      "   1 Good",
-      "   0 Potential Problem",
-      "   1 Problem",
-      "   3 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post was deleted by the post author",
-        link: false,
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false,
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false,
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/AkifBhamani/status/1884634628226478349",
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false,
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
 
   test.skip('We someday want identify replies to two but only find 1 in new window thread', () => {
     loadHTML('samples/Reply-To-Two-But-Only-See-One.html');
