@@ -94,26 +94,82 @@ describe('XGhosted', () => {
         expect(xGhosted.state.collapsedElements.size).toBe(1); // Only one bad post to collapse
     });
 
-    test('getThemeMode returns light by default in sample', () => {
-        const theme = xGhosted.getThemeMode();
-        expect(theme).toBe('light');
-    });
+    describe('getThemeMode', () => {
 
-    test('getThemeMode detects dark with data-theme="dark"', () => {
-        dom.window.document.documentElement.setAttribute('data-theme', 'dark');
-        const theme = xGhosted.getThemeMode();
-        expect(theme).toBe('dark');
-    });
+        test('should return "dark" when data-theme includes "lights-out" or "dark"', () => {
+            dom.window.document.body.setAttribute('data-theme', 'lights-out');
+            expect(xGhosted.getThemeMode()).toBe('dark');
 
-    test('getThemeMode detects dark with lights-out class', () => {
-        dom.window.document.body.classList.add('lights-out');
-        const theme = xGhosted.getThemeMode();
-        expect(theme).toBe('dark');
-    });
+            dom.window.document.body.setAttribute('data-theme', 'dark');
+            expect(xGhosted.getThemeMode()).toBe('dark');
+        });
 
-    test('getThemeMode detects dark with r-1tl8opc class', () => {
-        dom.window.document.body.classList.add('r-1tl8opc');
-        const theme = xGhosted.getThemeMode();
-        expect(theme).toBe('dark');
+        test('should return "dim" when data-theme includes "dim"', () => {
+            dom.window.document.body.setAttribute('data-theme', 'dim');
+            expect(xGhosted.getThemeMode()).toBe('dim');
+        });
+
+        test('should return "light" when data-theme includes "light" or "default"', () => {
+            dom.window.document.body.setAttribute('data-theme', 'light');
+            expect(xGhosted.getThemeMode()).toBe('light');
+
+            dom.window.document.body.setAttribute('data-theme', 'default');
+            expect(xGhosted.getThemeMode()).toBe('light');
+        });
+
+        test('should return "dark" when body has classes "dark", "theme-dark", or "theme-lights-out"', () => {
+            dom.window.document.body.classList.add('dark');
+            expect(xGhosted.getThemeMode()).toBe('dark');
+
+            dom.window.document.body.classList.remove('dark');
+            dom.window.document.body.classList.add('theme-dark');
+            expect(xGhosted.getThemeMode()).toBe('dark');
+
+            dom.window.document.body.classList.remove('theme-dark');
+            dom.window.document.body.classList.add('theme-lights-out');
+            expect(xGhosted.getThemeMode()).toBe('dark');
+        });
+
+        test('should return "dim" when body has classes "dim" or "theme-dim"', () => {
+            dom.window.document.body.classList.add('dim');
+            expect(xGhosted.getThemeMode()).toBe('dim');
+
+            dom.window.document.body.classList.remove('dim');
+            dom.window.document.body.classList.add('theme-dim');
+            expect(xGhosted.getThemeMode()).toBe('dim');
+        });
+
+        test('should return "light" when body has classes "light" or "theme-light"', () => {
+            dom.window.document.body.classList.add('light');
+            expect(xGhosted.getThemeMode()).toBe('light');
+
+            dom.window.document.body.classList.remove('light');
+            dom.window.document.body.classList.add('theme-light');
+            expect(xGhosted.getThemeMode()).toBe('light');
+        });
+
+        test('should return "dark" when body background color is rgb(0, 0, 0)', () => {
+            dom.window.document.body.style.backgroundColor = 'rgb(0, 0, 0)';
+            expect(xGhosted.getThemeMode()).toBe('dark');
+        });
+
+        test('should return "dim" when body background color is rgb(21, 32, 43)', () => {
+            dom.window.document.body.style.backgroundColor = 'rgb(21, 32, 43)';
+            expect(xGhosted.getThemeMode()).toBe('dim');
+        });
+
+        test('should return "light" when body background color is rgb(255, 255, 255)', () => {
+            dom.window.document.body.style.backgroundColor = 'rgb(255, 255, 255)';
+            expect(xGhosted.getThemeMode()).toBe('light');
+        });
+
+        test('should return "light" as default when no matching conditions are met', () => {
+            // Reset to default state
+            dom.window.document.body.removeAttribute('data-theme');
+            dom.window.document.body.className = '';
+            dom.window.document.body.style.backgroundColor = '';
+            expect(xGhosted.getThemeMode()).toBe('light');
+        });
+
     });
 });
