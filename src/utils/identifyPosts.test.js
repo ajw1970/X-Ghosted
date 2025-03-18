@@ -10,7 +10,7 @@ describe('identifyPosts - Conversation Threads', () => {
       loadHTML('samples/CommunityPost-TargetCommunity.html');
       const results = identifyPosts(document);
       const analyses = results.ratedPosts.map(post => post.analysis);
-  
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   4 Posts",
@@ -23,7 +23,7 @@ describe('identifyPosts - Conversation Threads', () => {
         "   1 Problem",
         "   2 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           quality: postQuality.PROBLEM,
@@ -46,15 +46,16 @@ describe('identifyPosts - Conversation Threads', () => {
           link: false
         }
       ]);
-  
+
       document.documentElement.innerHTML = '';
     });
-  
+
+    // Happy path
     it('should find no problems with the community post in this sample size of 4', () => {
       loadHTML('samples/CommunityPost.html');
       const results = identifyPosts(document);
       const analyses = results.ratedPosts.map(post => post.analysis);
-  
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   4 Posts",
@@ -67,7 +68,7 @@ describe('identifyPosts - Conversation Threads', () => {
         "   0 Problem",
         "   0 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           quality: postQuality.GOOD,
@@ -90,7 +91,7 @@ describe('identifyPosts - Conversation Threads', () => {
           link: "/ApostleJohnW/status/1888712977848656024"
         }
       ]);
-  
+
       document.documentElement.innerHTML = '';
     });
   });
@@ -184,7 +185,7 @@ describe('identifyPosts - Conversation Threads', () => {
       loadHTML('samples/Conversation-with-copyright-violating-quote-repost.html');
       const results = identifyPosts(document);
       const analyses = results.ratedPosts.map(post => post.analysis);
-  
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "  20 Posts",
@@ -197,7 +198,7 @@ describe('identifyPosts - Conversation Threads', () => {
         "   1 Problem",
         "  10 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           quality: postQuality.PROBLEM,
@@ -300,7 +301,7 @@ describe('identifyPosts - Conversation Threads', () => {
           link: false
         }
       ]);
-  
+
       document.documentElement.innerHTML = '';
     });
 
@@ -308,7 +309,7 @@ describe('identifyPosts - Conversation Threads', () => {
       loadHTML('samples/Conversation-with-expired-subscription.html');
       const results = identifyPosts(document);
       const analyses = results.ratedPosts.map(post => post.analysis);
-  
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   3 Posts",
@@ -321,7 +322,7 @@ describe('identifyPosts - Conversation Threads', () => {
         "   1 Problem",
         "   2 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           quality: postQuality.PROBLEM,
@@ -339,7 +340,7 @@ describe('identifyPosts - Conversation Threads', () => {
           link: false
         }
       ]);
-  
+
       document.documentElement.innerHTML = '';
     });
 
@@ -347,7 +348,7 @@ describe('identifyPosts - Conversation Threads', () => {
       loadHTML('samples/Conversation-with-limited-visibility.html');
       const results = identifyPosts(document);
       const analyses = results.ratedPosts.map(post => post.analysis);
-  
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   6 Posts",
@@ -360,7 +361,7 @@ describe('identifyPosts - Conversation Threads', () => {
         "   2 Problem",
         "   3 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           quality: postQuality.PROBLEM,
@@ -393,7 +394,7 @@ describe('identifyPosts - Conversation Threads', () => {
           link: false
         }
       ]);
-  
+
       document.documentElement.innerHTML = '';
     });
 
@@ -402,7 +403,7 @@ describe('identifyPosts - Conversation Threads', () => {
       loadHTML('samples/Conversation-with-multiple-problem-posts.html');
       const results = identifyPosts(document);
       const analyses = results.ratedPosts.map(post => post.analysis);
-  
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   5 Posts",
@@ -415,7 +416,7 @@ describe('identifyPosts - Conversation Threads', () => {
         "   3 Problem",
         "   2 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           quality: postQuality.PROBLEM,
@@ -443,290 +444,295 @@ describe('identifyPosts - Conversation Threads', () => {
           link: false
         }
       ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    // Redundant test
+    it.skip('should identify the deleted post in this sample size of 4', () => {
+      loadHTML('samples/Conversation-with-now-deleted-post.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   4 Posts",
+        "   4 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (4 Total):",
+        "   2 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   1 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/iam_smx/status/1883977770709258287"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1883978356900913165"
+        },
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post was deleted by the post author",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    it('should identify the unavailable post in this sample size of 4', () => {
+      loadHTML('samples/Conversation-with-now-unavailable-post-included.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   4 Posts",
+        "   4 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (4 Total):",
+        "   2 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   1 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/iam_smx/status/1883977770709258287"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1883978356900913165"
+        },
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post is unavailable",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    it('should identify the unavailable post in this sample size of 3 including 1 nested article', () => {
+      loadHTML('samples/Conversation-with-quoted-post-unavailable.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   3 Posts",
+        "   2 Articles",
+        "   1 Nested Articles",
+        "",
+        "Rated Post Quality (3 Total):",
+        "   0 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   2 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post is unavailable",
+          link: "/RepNancyMace/status/1884565403483218235"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    // Redundant test
+    it.skip('should identify two unable to view post problems in this sample size of 4', () => {
+      loadHTML('samples/Conversation-with-two-problem-posts.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   4 Posts",
+        "   4 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (4 Total):",
+        "   2 Good",
+        "   0 Potential Problem",
+        "   2 Problem",
+        "   0 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ClaudetteGGibs1/status/1880574047844778316"
+        },
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: you're unable to view this post",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1880637222946525225"
+        },
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: you're unable to view this post",
+          link: false
+        }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    // Redundant test
+    it.skip('should identify the unavailable post in this sample size of 6', () => {
+      loadHTML('samples/Conversation-with-unavailable-post.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   6 Posts",
+        "   6 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (6 Total):",
+        "   4 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   1 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/EdKrassen/status/1884666468689723717"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1884666828804210945"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/FionaGritona/status/1884670108078891253"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1884672560505233483"
+        },
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found notice: this post is unavailable",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    // Happy path
+    it('should find 2 good and 4 undefined posts in this sample size of 6', () => {
+      loadHTML('samples/Conversation-without-problems.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+  
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   6 Posts",
+        "   3 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (6 Total):",
+        "   2 Good",
+        "   0 Potential Problem",
+        "   0 Problem",
+        "   4 Undefined"
+      ].join("\n"));
+  
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/Eddie_1X/status/1881836273264103665"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/Eddie_1X/status/1881843269208093033"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        }
+      ]);
   
       document.documentElement.innerHTML = '';
     });
 
   });
 
-  test('We identify the deleted post in this conversation thread', () => {
-    loadHTML('samples/Conversation-with-now-deleted-post.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   4 Posts",
-      "   4 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (4 Total):",
-      "   2 Good",
-      "   0 Potential Problem",
-      "   1 Problem",
-      "   1 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/iam_smx/status/1883977770709258287"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1883978356900913165"
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post was deleted by the post author",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test('We identify the unavailable post in this conversation thread', () => {
-    loadHTML('samples/Conversation-with-now-unavailable-post-included.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   4 Posts",
-      "   4 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (4 Total):",
-      "   2 Good",
-      "   0 Potential Problem",
-      "   1 Problem",
-      "   1 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/iam_smx/status/1883977770709258287"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1883978356900913165"
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post is unavailable",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test('Nested-We identify the unavailable quoted post in this conversation thread', () => {
-    loadHTML('samples/Conversation-with-quoted-post-unavailable.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   3 Posts",
-      "   2 Articles",
-      "   1 Nested Articles",
-      "",
-      "Rated Post Quality (3 Total):",
-      "   0 Good",
-      "   0 Potential Problem",
-      "   1 Problem",
-      "   2 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post is unavailable",
-        link: "/RepNancyMace/status/1884565403483218235"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test('We identify two problems in this conversation', () => {
-    loadHTML('samples/Conversation-with-two-problem-posts.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   4 Posts",
-      "   4 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (4 Total):",
-      "   2 Good",
-      "   0 Potential Problem",
-      "   2 Problem",
-      "   0 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ClaudetteGGibs1/status/1880574047844778316"
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: you're unable to view this post",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1880637222946525225"
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: you're unable to view this post",
-        link: false
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test('We identify the unavailable post in this conversation thread', () => {
-    loadHTML('samples/Conversation-with-unavailable-post.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   6 Posts",
-      "   6 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (6 Total):",
-      "   4 Good",
-      "   0 Potential Problem",
-      "   1 Problem",
-      "   1 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/EdKrassen/status/1884666468689723717"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1884666828804210945"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/FionaGritona/status/1884670108078891253"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1884672560505233483"
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post is unavailable",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  test('We should find nothing to identify in this conversation', () => {
-    loadHTML('samples/Conversation-without-problems.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   6 Posts",
-      "   3 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (6 Total):",
-      "   2 Good",
-      "   0 Potential Problem",
-      "   0 Problem",
-      "   4 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/Eddie_1X/status/1881836273264103665"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/Eddie_1X/status/1881843269208093033"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
 });
 
 describe('identifyPosts - Home Timeline', () => {
@@ -1317,7 +1323,7 @@ describe('identifyPosts - Home Timeline', () => {
       "   1 Problem",
       "   0 Undefined"
     ].join("\n"));
-  
+
     expect(analyses).toEqual([
       {
         quality: postQuality.PROBLEM,
@@ -1346,7 +1352,7 @@ describe('identifyPosts - Home Timeline', () => {
       "   1 Problem",
       "  12 Undefined"
     ].join("\n"));
-    
+
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
