@@ -10,10 +10,12 @@ X-Ghosted is a userscript to enhance X.com by flagging problematic and potential
 - *Problems*: Identified if either returns a match:
   - `postHasProblemSystemNotice.js`: Detects system-generated notices.
   - `postHasProblemCommunity.js`: Flags links to target communities.
-- *Potential Problems*: Identified if a problem post has a reply chain with depth < 10, per `findReplyingToWithDepth.js`.
-- *Implementation*: Handled by `findMatchingArticles.js`, tested with `findMatchingArticles.test.js` using real samples from `samples/`.
+- *Potential Problems*: Identified if a problem post has a reply chain with depth < 10, per `findReplyingToWithDepth.js`. Note that this depth is relative to the posts outermost article element and not the wrapper div which would push the level deeper.
+- *Implementation*: Handled by `identifyPosts.js`, tested with `identifyPosts.test.js` in `src/utils` using real samples from `samples/`.
 
 == User Experience
+- Note that these UI/UX features were working in the src/highlight-potential-problems.js userscript as of this pre-release version: https://raw.githubusercontent.com/ajw1970/X-Ghosted/2ecaf8f49ed0c8ea7b6cc3f6c41d943b9db85df1/src/highlight-potential-problems.js
+ - The problem with that userscript was that it was flooding the x server with activity that resulted in my account being local-rate-limited. I want to keep the UI/UX features but throttle the activity so that it doesn't flood the server.
 - *Visual Cues*:
   - Problems: Red border (e.g., `3px solid red`).
   - Potential Problems: Yellow-green border (e.g., `3px solid #d4e157`), as seen in recent screenshots.
@@ -21,19 +23,24 @@ X-Ghosted is a userscript to enhance X.com by flagging problematic and potential
 - *Future UI*: Toggle to enable/disable, counter for flagged posts (split by problem/potential), tooltip with reasons.
 
 == Testing & Validation
-- Tests in `findMatchingArticles.test.js` to be updated to distinctly validate:
+- Tests in `identifyPosts.test.js` have been organized and updated to distinctly validate:
   - Problem posts (system notices, community links).
   - Potential problem posts (problems + shallow replies).
-- Samples in `samples/` provide real-world data for testing.
+  - Good posts (document.querySelectorAll('div[data-testid="cellInnerDiv"]') with article elements) but no problems or potential problems found.
+  - Undefined posts found with document.querySelectorAll('div[data-testid="cellInnerDiv"]') but containing no article elements.
+- Samples in `samples/` provide real-world data for testing along with sample summary and post quality results in the file header comments.
 
 == Next Steps
-- Refine `findMatchingArticles.test.js` to clarify distinctions.
-- Integrate with `highlight-potential-problems.js` for visualization.
-- Add minimal UI (toggle, counter, tooltip) for testing.
+- Integrate changes to `identifyPosts.js` and `identifyPosts.test.js` into xGhosted.js and xGhosted.test.js
+- Integrate xGhosted.js with UI/UX from `highlight-potential-problems.js` from commit: 2ecaf8f49ed0c8ea7b6cc3f6c41d943b9db85df1
 
 == Notes
-- Resume collaboration via: [Grok-Prompt.txt](https://github.com/ajw1970/X-Ghosted/blob/61af2d333b503520dddbcb8857fdf2bd35103e7f/docs/Grok-Prompt.txt)
-- Update this doc after each session to reflect progress.
+- When I talk about posts, I'm talking about the divs with data-testid="cellInnerDiv"
+- When I talk about articles, I'm talking about selecting from a post with this selector: 'article:not(article article)'
+- Resume collaboration via: [Grok-Prompt.txt](https://github.com/ajw1970/X-Ghosted) using the latest commit to any branch to ensure the most recent version of the file. If you're unsure, ask for a link or commit hash.
+- Provided Updated versions of this doc after each session to reflect progress. 
+- Provide recommended updates to Grok-Prompt.txt if any general prompt refinements would prove helpful.
 
 == Revision History
 - March 16, 2025: Added detection details, visual cues, and next steps based on latest Grok session.
+- March 18, 2025: Updated with testing details and sample summaries.
