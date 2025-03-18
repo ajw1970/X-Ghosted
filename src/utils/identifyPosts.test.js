@@ -2,98 +2,98 @@ const postQuality = require('./postQuality');
 const identifyPosts = require('./identifyPosts');
 const describeSampleAnalyses = require('./describeSampleAnalyses');
 
-describe('identifyPosts - Community Posts', () => {
-
-  it('should find a problem with postHasProblemCommunity out of this sample size of 4', () => {
-    loadHTML('samples/CommunityPost-TargetCommunity.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   4 Posts",
-      "   2 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (4 Total):",
-      "   1 Good",
-      "   0 Potential Problem",
-      "   1 Problem",
-      "   2 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found community: 1889908654133911912",
-        link: false
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/Waqar_sahito01/status/1898023692958843033"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-
-  it('should find no problems with the community post in this sample size of 4', () => {
-    loadHTML('samples/CommunityPost.html');
-    const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   4 Posts",
-      "   4 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (4 Total):",
-      "   4 Good",
-      "   0 Potential Problem",
-      "   0 Problem",
-      "   0 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1888719160592453713"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1888717684822438329"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1888713602850320746"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1888712977848656024"
-      }
-    ]);
-
-    document.documentElement.innerHTML = '';
-  });
-});
-
 describe('identifyPosts - Conversation Threads', () => {
+
+  describe('problem posts identified with postHasProblemCommunity', () => {
+
+    it('should find a problem community referenced in this sample size of 4', () => {
+      loadHTML('samples/CommunityPost-TargetCommunity.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+  
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   4 Posts",
+        "   2 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (4 Total):",
+        "   1 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   2 Undefined"
+      ].join("\n"));
+  
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.PROBLEM,
+          reason: "Found community: 1889908654133911912",
+          link: false
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/Waqar_sahito01/status/1898023692958843033"
+        },
+        {
+          quality: postQuality.UNDEFINED,
+          reason: "Nothing to measure",
+          link: false
+        }
+      ]);
+  
+      document.documentElement.innerHTML = '';
+    });
+  
+    it('should find no problems with the community post in this sample size of 4', () => {
+      loadHTML('samples/CommunityPost.html');
+      const results = identifyPosts(document);
+      const analyses = results.ratedPosts.map(post => post.analysis);
+  
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   4 Posts",
+        "   4 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (4 Total):",
+        "   4 Good",
+        "   0 Potential Problem",
+        "   0 Problem",
+        "   0 Undefined"
+      ].join("\n"));
+  
+      expect(analyses).toEqual([
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1888719160592453713"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1888717684822438329"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1888713602850320746"
+        },
+        {
+          quality: postQuality.GOOD,
+          reason: "Looks good",
+          link: "/ApostleJohnW/status/1888712977848656024"
+        }
+      ]);
+  
+      document.documentElement.innerHTML = '';
+    });
+  });
 
   describe('problem posts identified with postHasProblemSystemNotice', () => {
 
