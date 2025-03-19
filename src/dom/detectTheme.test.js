@@ -1,69 +1,87 @@
-// detectTheme.test.js
+const { JSDOM } = require('jsdom');
 const { detectTheme } = require('./detectTheme');
 
-describe('detectTheme', () => {
-    test('returns "dark" when dataTheme includes "lights-out"', () => {
-        const result = detectTheme({ dataTheme: 'lights-out' });
-        expect(result).toBe('dark');
+describe('getThemeMode', () => {
+    let dom;
+
+    beforeEach(() => {
+        dom = new JSDOM('<!DOCTYPE html><body></body>', { 
+            url: 'https://x.com/user/with_replies',
+            resources: 'usable', // Ensures styles are processed
+            runScripts: 'dangerously' // Allows scripts to manipulate DOM
+        });
     });
 
-    test('returns "dark" when dataTheme includes "dark"', () => {
-        const result = detectTheme({ dataTheme: 'dark-mode' });
-        expect(result).toBe('dark');
+    afterEach(() => {
+        // Fully reset the body
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.className = '';
+        dom.window.document.body.style.backgroundColor = '';
+        dom.window.document.body.innerHTML = '';
     });
 
-    test('returns "dark" when classList includes "dark"', () => {
-        const result = detectTheme({ classList: ['dark'] });
-        expect(result).toBe('dark');
+    test('returns "dark" when data-theme includes "lights-out" or "dark"', () => {
+        dom.window.document.body.setAttribute('data-theme', 'lights-out');
+        expect(detectTheme(dom.window.document)).toBe('dark');
+        dom.window.document.body.setAttribute('data-theme', 'dark');
+        expect(detectTheme(dom.window.document)).toBe('dark');
     });
 
-    test('returns "dark" when bgColor is "rgb(0, 0, 0)"', () => {
-        const result = detectTheme({ bgColor: 'rgb(0, 0, 0)' });
-        expect(result).toBe('dark');
+    test('returns "dim" when data-theme includes "dim"', () => {
+        dom.window.document.body.setAttribute('data-theme', 'dim');
+        expect(detectTheme(dom.window.document)).toBe('dim');
     });
 
-    test('returns "dim" when dataTheme includes "dim"', () => {
-        const result = detectTheme({ dataTheme: 'dim-theme' });
-        expect(result).toBe('dim');
+    test('returns "light" when data-theme includes "light" or "default"', () => {
+        dom.window.document.body.setAttribute('data-theme', 'light');
+        expect(detectTheme(dom.window.document)).toBe('light');
+        dom.window.document.body.setAttribute('data-theme', 'default');
+        expect(detectTheme(dom.window.document)).toBe('light');
     });
 
-    test('returns "dim" when classList includes "dim"', () => {
-        const result = detectTheme({ classList: ['dim'] });
-        expect(result).toBe('dim');
+    test('returns "dark" when body has dark classes', () => {
+        dom.window.document.body.removeAttribute('data-theme'); // Ensure data-theme doesn’t interfere
+        dom.window.document.body.classList.add('dark');
+        expect(detectTheme(dom.window.document)).toBe('dark');
     });
 
-    test('returns "dim" when bgColor is "rgb(21, 32, 43)"', () => {
-        const result = detectTheme({ bgColor: 'rgb(21, 32, 43)' });
-        expect(result).toBe('dim');
+    test('returns "dim" when body has dim classes', () => {
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.classList.add('dim');
+        expect(detectTheme(dom.window.document)).toBe('dim');
     });
 
-    test('returns "light" when no conditions match', () => {
-        const result = detectTheme({ dataTheme: 'other', classList: ['foo'], bgColor: 'rgb(255, 255, 255)' });
-        expect(result).toBe('light');
+    test('returns "light" when body has light classes', () => {
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.classList.add('light');
+        expect(detectTheme(dom.window.document)).toBe('light');
     });
 
-    test('returns "light" with default empty inputs', () => {
-        const result = detectTheme();
-        expect(result).toBe('light');
+    test('returns "dark" when background is rgb(0, 0, 0)', () => {
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.className = '';
+        dom.window.document.body.style.backgroundColor = 'rgb(0, 0, 0)';
+        expect(detectTheme(dom.window.document)).toBe('dark');
     });
 
-    test('prioritizes "dark" over "dim" when both conditions present', () => {
-        const result = detectTheme({ dataTheme: 'dark dim', classList: ['dim', 'dark'], bgColor: 'rgb(0, 0, 0)' });
-        expect(result).toBe('dark');
+    test('returns "dim" when background is rgb(21, 32, 43)', () => {
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.className = '';
+        dom.window.document.body.style.backgroundColor = 'rgb(21, 32, 43)';
+        expect(detectTheme(dom.window.document)).toBe('dim');
     });
 
-    test('handles empty classList and invalid bgColor correctly', () => {
-        const result = detectTheme({ dataTheme: '', classList: [], bgColor: 'invalid' });
-        expect(result).toBe('light');
+    test('returns "light" when background is rgb(255, 255, 255)', () => {
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.className = '';
+        dom.window.document.body.style.backgroundColor = 'rgb(255, 255, 255)';
+        expect(detectTheme(dom.window.document)).toBe('light');
     });
 
-    test('is case-sensitive for dataTheme and classList checks', () => {
-        const result = detectTheme({ dataTheme: 'DARK', classList: ['DARK'] });
-        expect(result).toBe('light'); // Should not match 'dark'
-    });
-
-    test('handles partial matches in dataTheme correctly', () => {
-        const result = detectTheme({ dataTheme: 'darkish lights-outside' });
-        expect(result).toBe('dark'); // Should match 'lights-out'
+    test('returns "light" as default', () => {
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.className = '';
+        dom.window.document.body.style.backgroundColor = '';
+        expect(detectTheme(dom.window.document)).toBe('light');
     });
 });
