@@ -1,5 +1,5 @@
 const { JSDOM } = require('jsdom');
-const { detectTheme } = require('./detectTheme');
+const detectTheme = require('./detectTheme');
 
 describe('getThemeMode', () => {
     let dom;
