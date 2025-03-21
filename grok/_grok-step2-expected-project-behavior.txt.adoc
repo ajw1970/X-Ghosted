@@ -1,46 +1,29 @@
-= Working Understanding of Expected Behavior for X-Ghosted
+= Grok Step 2: Working Understanding of X-Ghosted Project
 :author: ajw1970
 :date: March 16, 2025
-:revdate: March 16, 2025
+:revdate: March 21, 2025
 
 == Overview
-X-Ghosted is a userscript to enhance X.com by flagging problematic and potential-problem posts with visual cues, aiming for a testable version with UI/UX. This doc outlines the expected behavior as of the latest collaboration with Grok 3.
+X-Ghosted is a Tampermonkey userscript that flags dodgy posts on X.com with visual markers, making the replies feed less of a minefield. Version 0.6.1 aims to refine 0.6.0 (commit 2ecaf8f49) with better throttling and polish.
 
-== Detection Logic
-- *Problems*: Identified if either returns a match:
-  - `postHasProblemSystemNotice.js`: Detects system-generated notices.
-  - `postHasProblemCommunity.js`: Flags links to target communities.
-- *Potential Problems*: Identified if a problem post has a reply chain with depth < 10, per `findReplyingToWithDepth.js`. Note that this depth is relative to the posts outermost article element and not the wrapper div which would push the level deeper.
-- *Implementation*: Handled by `identifyPosts.js`, tested with `identifyPosts.test.js` in `src/utils` using real samples from `samples/`.
-
-== User Experience
-- Note that these UI/UX features were working in the src/highlight-potential-problems.js userscript as of this pre-release version: https://raw.githubusercontent.com/ajw1970/X-Ghosted/2ecaf8f49ed0c8ea7b6cc3f6c41d943b9db85df1/src/highlight-potential-problems.js
- - The problem with that userscript was that it was flooding the x server with activity that resulted in my account being local-rate-limited. I want to keep the UI/UX features but throttle the activity so that it doesn't flood the server.
-- *Visual Cues*:
-  - Problems: Red border (e.g., `3px solid red`).
-  - Potential Problems: Yellow-green border (e.g., `3px solid #d4e157`), as seen in recent screenshots.
-- *Dynamic Updates*: Uses `MutationObserver` to reapply highlights on page changes.
-- *Future UI*: Toggle to enable/disable, counter for flagged posts (split by problem/potential), tooltip with reasons.
-
-== Testing & Validation
-- Tests in `identifyPosts.test.js` have been organized and updated to distinctly validate:
-  - Problem posts (system notices, community links).
-  - Potential problem posts (problems + shallow replies).
-  - Good posts (document.querySelectorAll('div[data-testid="cellInnerDiv"]') with article elements) but no problems or potential problems found.
-  - Undefined posts found with document.querySelectorAll('div[data-testid="cellInnerDiv"]') but containing no article elements.
-- Samples in `samples/` provide real-world data for testing along with sample summary and post quality results in the file header comments.
+== Core Features
+- *Detection*: Tags posts as:
+  - *Problems*: System notices or target community links (red).
+  - *Potential Problems*: Replies to problems, shallow depth (yellow).
+  - *Good*: Clean posts (green, post-check).
+  - *Undefined*: Filler (collapsible, neutral).
+- *UI*: Dynamic highlights and a control panel for flagged links and toggles.
+- *Testing*: Unit tests in `identifyPosts.test.js` use real samples from `samples/`.
 
 == Next Steps
-- Integrate changes to `identifyPosts.js` and `identifyPosts.test.js` into xGhosted.js and xGhosted.test.js
-- Integrate xGhosted.js with UI/UX from `highlight-potential-problems.js` from commit: 2ecaf8f49ed0c8ea7b6cc3f6c41d943b9db85df1
+- Craft `xGhosted.js` as the 0.6.1 core, driving `highlight-potential-problems.js`.
+- Throttle tab checks and DOM updates (e.g., debounce), maybe with user prompts.
+- Streamline to a slick userscript with a polished panel and auto-collapsing.
 
 == Notes
-- When I talk about posts, I'm talking about the divs with data-testid="cellInnerDiv"
-- When I talk about articles, I'm talking about selecting from a post with this selector: 'article:not(article article)'
-- Resume collaboration via: [Grok-Prompt.txt](https://github.com/ajw1970/X-Ghosted) using the latest commit to any branch to ensure the most recent version of the file. If you're unsure, ask for a link or commit hash.
-- Provided Updated versions of this doc after each session to reflect progress. 
-- Provide recommended updates to Grok-Prompt.txt if any general prompt refinements would prove helpful.
+- Pick up from link:https://github.com/ajw1970/X-Ghosted[Grok-Prompt.txt] and latest commit.
+- Details in Step 3—keep this lean.
 
 == Revision History
-- March 16, 2025: Added detection details, visual cues, and next steps based on latest Grok session.
-- March 18, 2025: Updated with testing details and sample summaries.
+- March 16, 2025: Initial project sketch.
+- March 21, 2025: Aligned with 0.6.1, trimmed to essentials.

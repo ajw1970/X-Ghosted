@@ -1,97 +1,74 @@
-# Highlight Potential Problems Userscript
+= Grok Step 3: Detailed Description of X-Ghosted Userscript
+:author: ajw1970
+:date: March 16, 2025
+:revdate: March 21, 2025
 
-This program is a Tampermonkey userscript designed to enhance the browsing experience on X.com by identifying and highlighting potentially problematic posts and their parent articles.
+== Overview
+- *Name*: Highlight Potential Problems
+- *Purpose*: Flags X.com posts with visual cues and a panel for moderation ease.
+- *Version*: Targeting 0.6.1, fixing 0.6.0 rate limits (ref 2ecaf8f49).
+- *Target*: `https://x.com/*`, runs at `document-idle`.
 
-## Overview
-- **Name**: Highlight Potential Problems
-- **Purpose**: To detect and visually mark posts on X.com that might be problematic (e.g., containing system notices or links to specific communities), and provide a control panel for managing these highlights.
-- **Author**: John Welty
-- **Version**: 0.6.0
-- **Target URL**: Runs on `https://x.com/*`
-- **Execution**: Runs when the document is idle (`document-idle`).
+== Current State
+- *Detection* (`src/utils/identifyPost.js`):
+  - *PROBLEM*: System notices or community links.
+  - *POTENTIAL PROBLEM*: Replies to problems, depth < 10.
+  - *GOOD*: Clean on first scan, unhighlighted.
+  - *UNDEFINED*: Filler, no links.
+- *UI*: Red (problems), yellow (potential), green (cleared); panel lists flagged posts.
+- *Tests*: `identifyPosts.test.js` checks all types with `samples/`.
 
-## Key Features
+== End Goal: Version 0.6.1
+- *Core*: `xGhosted.js` powers `highlight-potential-problems.js` (from template).
+- *Features*:
+  - *Theme Sync*: Matches X.com’s light/dim/dark.
+  - *Post ID*: Targets `div[data-testid="cellInnerDiv"] > article:not(article article)`.
+  - *Visuals*:
+    - *PROBLEM*: `2px solid red`, `rgba(255, 0, 0, 0.3)`.
+    - *POTENTIAL PROBLEM*: `2px solid yellow`, `rgba(255, 255, 0, 0.3)`.
+    - *GOOD*: `2px solid green`, `rgba(0, 255, 0, 0.3)` (post-check).
+    - *UNDEFINED*: Collapsible, no highlight.
+  - *Panel*: Fixed right-side:
+    - Lists PROBLEM/POTENTIAL PROBLEM links (CSV, 5s throttled writes).
+    - Toggles: visibility, theme, auto-collapse (Start/Stop/Reset).
+    - Buttons: Copy, clear, load links.
+  - *Checks*: Eye icon (`👀`) on potential posts; 2s-debounced tab check updates status.
+  - *Collapsing*: 1s-batched GOOD/UNDEFINED collapses via `MutationObserver`.
+  - *Throttling*: 2s (tabs), 250ms (highlights), 1s (collapses).
+  - *Debug*: Optional “Manual Check Mode” with user prompt, logged via `GM_log`.
 
-### Post Highlighting
-- **Detection**: Scans posts (articles) within `div[data-testid="cellInnerDiv"]` elements on X.com.
-- **Categories**:
-  - *Problematic*: Posts with system notices (e.g., "This post violated the X rules") or links to specific community IDs (e.g., `1889908654133911912`). Highlighted with a red background and border.
-  - *Potential*: Posts replying to others on a profile's "with_replies" page with a reply depth less than 10. Highlighted with a yellow background and border.
-  - *Safe*: Posts that pass detailed checks without issues. Highlighted with a green background and border.
-  - *None*: Default state with no highlighting.
-- **Visual Feedback**: Applies CSS styles to indicate the status of each post.
+== How It Works
+- *Init*: Sets theme, panel, and `MutationObserver` on posts.
+- *Logic*: `xGhosted.js` scans, highlights, and updates panel; skips processed posts with `WeakSet`/`Set`.
+- *State*: Persists panel, collapsing, and links across URL shifts.
 
-### Post Collapsing
-- Option to collapse non-problematic posts on the replies page when enabled, reducing clutter.
+== Technical Details
+- *Files*:
+  - `xGhosted.js`: Core logic.
+  - `highlight-potential-problems-template.js`: Userscript shell.
+  - Utils: `identifyPost.js`, `postQuality.js`, `isProfileRepliesPage.js`, `debounce.js`, `detectTheme.js`.
+- *Styles* (`applyHighlight`):
++
+[source,javascript]
+----
+function applyHighlight(article, status = 'potential') {
+  const styles = {
+    problem: { background: 'rgba(255, 0, 0, 0.3)', border: '2px solid red' },
+    potential: { background: 'rgba(255, 255, 0, 0.3)', border: '2px solid yellow' },
+    good: { background: 'rgba(0, 255, 0, 0.3)', border: '2px solid green' },
+    none: { background: '', border: '' }
+  };
+  const style = styles[status] || styles.none;
+  article.style.backgroundColor = style.background;
+  article.style.border = style.border;
+}
+----
+- *Depends*: Tampermonkey (`GM_log`), X.com DOM.
 
-### Interactive Panel
-- **Location**: A fixed panel on the right side of the screen.
-- **Features**:
-  - Displays a list of problematic post links.
-  - Buttons to copy links to the clipboard, toggle panel visibility, and control collapsing (Start, Stop, Reset).
-  - Theme selector (light, dim, dark) that adapts to the page’s theme or user preference.
-- **Dynamic Updates**: Reflects the current count and list of problematic posts.
+== Notes
+- Adapt to X.com DOM changes.
+- Resume via link:https://github.com/ajw1970/X-Ghosted[Grok-Prompt.txt], latest commit.
 
-### Detailed Post Checking
-- Replaces the "Share post" button with an eye icon (`👀`) for potential problems.
-- Clicking the icon opens the post in a new tab to check its thread for system notices or target community links.
-- Updates the post’s highlight based on findings (problematic or safe) and manages the new tab accordingly (keeps open for problems, closes for safe).
-
-### Theme Detection and Adaptation
-- Automatically detects the X.com theme (light, dim, dark) based on `data-theme`, classes, or background color.
-- Adjusts the panel’s appearance to match the detected theme.
-
-### Monitoring and Debouncing
-- Uses a `MutationObserver` to watch for DOM changes in the main content area, triggering checks with a debounce delay (250ms) to optimize performance.
-
-## How It Works
-
-### Initialization
-- Creates the control panel and sets up monitoring when the script starts.
-- Logs actions using `GM_log` for debugging (available in Tampermonkey).
-
-### Core Logic (`highlightPotentialProblems`)
-- Scans all articles on the page.
-- Skips fully processed articles to avoid redundant checks.
-- Immediately marks posts with notices or target links as problematic.
-- On the replies page, identifies potential issues based on reply depth and enables collapsing if configured.
-- Updates the panel with new problematic links.
-
-### State Management
-- Tracks processed articles (`WeakSet`), fully processed articles (`Set`), and problematic links (`Set`).
-- Manages collapsing state and panel visibility.
-
-### UI Manipulation
-- Applies highlights and collapses posts using CSS.
-- Dynamically builds and styles the panel with buttons and a scrollable link list.
-
-### Error Handling
-- Logs errors during execution and DOM access attempts, ensuring the script doesn’t crash if elements are missing or access is restricted.
-
-## Technical Details
-
-### Configuration
-- Defines delays, styles, and theme properties in `CONFIG`.
-- Customizable panel dimensions and positioning.
-
-### Utilities
-- `debounce`: Limits the frequency of highlight checks.
-- `detectTheme`: Infers the current theme for UI consistency.
-- `articleContainsSystemNotice` and `articleLinksToTargetCommunities`: Check for specific content issues.
-
-### Dependencies
-- Requires Tampermonkey (uses `GM_log`).
-- Relies on X.com’s DOM structure (e.g., `data-testid="cellInnerDiv"`, specific class names).
-
-## Usage Example
-- On visiting `https://x.com/username/with_replies`, the script:
-  1. Highlights posts with system notices in red.
-  2. Marks shallow replies in yellow and offers a clickable icon to verify them.
-  3. Shows a panel listing problematic post URLs, with options to copy or hide it.
-  4. Allows collapsing non-problematic posts with a "Start" button.
-
-## Notes
-- The script is tailored to X.com’s current structure (as of the code’s last update) and may need adjustments if the site’s DOM changes.
-- It respects popup blockers by alerting users if new tabs can’t open for verification.
-
-This userscript enhances moderation and content review on X.com by visually flagging issues and providing tools to manage them efficiently.
+== Revision History
+- March 16, 2025: Detailed 0.6.1 plan.
+- March 21, 2025: Streamlined, synced terms (good, not safe), added throttling/debug.
