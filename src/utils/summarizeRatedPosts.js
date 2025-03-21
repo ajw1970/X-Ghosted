@@ -1,6 +1,6 @@
 const postQuality = require('./postQuality');
 
-function summarizeRatedPosts(analysis) {
+function summarizeRatedPosts(analyses) {
   // Initialize counters object using the enum values
   const summary = {
     [postQuality.UNDEFINED.name]: 0,
@@ -10,14 +10,14 @@ function summarizeRatedPosts(analysis) {
   };
 
   // Check if posts is valid and iterable
-  if (!Array.isArray(analysis)) {
+  if (!Array.isArray(analyses)) {
     return summary; // Return empty summary if posts is invalid
   }
 
   // Count each occurrence
-  analysis.forEach(post => {
-    if (post && post.quality && post.quality.name) {
-      summary[post.quality.name]++;
+  analyses.forEach(analysis => {
+    if (analysis && analysis.quality && analysis.quality.name) {
+      summary[analysis.quality.name]++;
     }
   });
 

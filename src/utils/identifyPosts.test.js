@@ -7,7 +7,7 @@ describe('identifyPosts - Good', () => {
   it('should identify 8 good and 3 undefined in this sample size of 11', () => {
     loadHTML('samples/Home-Timeline-With-Replies.html');
     const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
+    const analyses = results.map(result => result.analysis);
 
     expect(describeSampleAnalyses(document, analyses)).toBe([
       "Structure Summary Totals:",
@@ -35,7 +35,7 @@ describe('identifyPosts - Good', () => {
       },
       {
         quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
+        reason: "No article found",
         link: false
       },
       {
@@ -50,7 +50,7 @@ describe('identifyPosts - Good', () => {
       },
       {
         quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
+        reason: "No article found",
         link: false
       },
       {
@@ -60,7 +60,7 @@ describe('identifyPosts - Good', () => {
       },
       {
         quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
+        reason: "No article found",
         link: false
       },
       {
@@ -86,7 +86,7 @@ describe('identifyPosts - Good', () => {
   it('should find 2 good and 4 undefined posts in this sample size of 6', () => {
     loadHTML('samples/Conversation-without-problems.html');
     const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
+    const analyses = results.map(result => result.analysis);
 
     expect(describeSampleAnalyses(document, analyses)).toBe([
       "Structure Summary Totals:",
@@ -114,7 +114,7 @@ describe('identifyPosts - Good', () => {
       },
       {
         quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
+        reason: "No article found",
         link: false
       },
       {
@@ -124,12 +124,12 @@ describe('identifyPosts - Good', () => {
       },
       {
         quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
+        reason: "No article found",
         link: false
       },
       {
         quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
+        reason: "No article found",
         link: false
       }
     ]);
@@ -137,10 +137,10 @@ describe('identifyPosts - Good', () => {
     document.documentElement.innerHTML = '';
   });
 
-  it('should identify this good post', () => {
+  it('should identify this good post (1)', () => {
     loadHTML('samples/Replying-To-Embedded-Example.html');
     const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
+    const analyses = results.map(result => result.analysis);
 
     expect(describeSampleAnalyses(document, analyses)).toBe([
       "Structure Summary Totals:",
@@ -166,10 +166,10 @@ describe('identifyPosts - Good', () => {
     document.documentElement.innerHTML = '';
   });
 
-  it('should identify this good post', () => {
+  it('should identify this good post (2)', () => {
     loadHTML('samples/Replying-To-Healthy-Example.html');
     const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
+    const analyses = results.map(result => result.analysis);
 
     expect(describeSampleAnalyses(document, analyses)).toBe([
       "Structure Summary Totals:",
@@ -184,7 +184,6 @@ describe('identifyPosts - Good', () => {
       "   0 Undefined"
     ].join("\n"));
 
-    expect(results.ratedPosts.length).toBe(1);
     expect(analyses).toEqual([
       {
         quality: postQuality.GOOD,
@@ -196,10 +195,10 @@ describe('identifyPosts - Good', () => {
     document.documentElement.innerHTML = '';
   });
 
-  it('should identify this good post', () => {
+  it('should identify this good post (3)', () => {
     loadHTML('samples/This-Quote-Repost-Into-Community-Should-Be-Fine.html');
     const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
+    const analyses = results.map(result => result.analysis);
 
     expect(describeSampleAnalyses(document, analyses)).toBe([
       "Structure Summary Totals:",
@@ -234,7 +233,7 @@ describe('identifyPosts - Problems', () => {
     it('should find a problem community referenced in this sample size of 4', () => {
       loadHTML('samples/CommunityPost-TargetCommunity.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -257,7 +256,7 @@ describe('identifyPosts - Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -267,7 +266,7 @@ describe('identifyPosts - Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         }
       ]);
@@ -279,7 +278,7 @@ describe('identifyPosts - Problems', () => {
     it('should find no problems with the community post in this sample size of 4', () => {
       loadHTML('samples/CommunityPost.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -327,7 +326,7 @@ describe('identifyPosts - Problems', () => {
     it('should identify a deleted post problem in this sample size of 4', () => {
       loadHTML('samples/Conversation-with-Deleted-Post.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -371,7 +370,7 @@ describe('identifyPosts - Problems', () => {
     it('should identify an unavailable account problem in this sample size of 3', () => {
       loadHTML('samples/Conversation-with-account-no-longer-available.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -399,7 +398,7 @@ describe('identifyPosts - Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         }
       ]);
@@ -410,7 +409,7 @@ describe('identifyPosts - Problems', () => {
     it('should identify a copyright violation in this sample size of 20', () => {
       loadHTML('samples/Conversation-with-copyright-violating-quote-repost.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -425,108 +424,125 @@ describe('identifyPosts - Problems', () => {
         "  10 Undefined"
       ].join("\n"));
 
-      expect(analyses).toEqual([
-        {
-          quality: postQuality.PROBLEM,
-          reason: "Found notice: this media has been disabled in response to a report by the copyright owner",
-          link: false
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1894812853124706554"
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.GOOD,
-          reason: "Looks good",
-          link: "/MyBasicFinance/status/1894819472562651293"
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.GOOD,
-          reason: "Looks good",
-          link: "/MattZeeMiller/status/1894849813050740802"
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.GOOD,
-          reason: "Looks good",
-          link: "/DaytonDan55/status/1894837596963951054"
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.GOOD,
-          reason: "Looks good",
-          link: "/YHfLNQEzT942049/status/1894948247187403259"
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.GOOD,
-          reason: "Looks good",
-          link: "/daz1985/status/1894834410198835673"
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.GOOD,
-          reason: "Looks good",
-          link: "/Harry_Bdict/status/1894810993449955580"
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.GOOD,
-          reason: "Looks good",
-          link: "/Harry_Bdict/status/1894810900009201975"
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.GOOD,
-          reason: "Looks good",
-          link: "/smokedandsalted/status/1894811105706271142"
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        }
-      ]);
+      expect(analyses[0]).toEqual({
+        quality: postQuality.PROBLEM,
+        reason: "Found notice: this media has been disabled in response to a report by the copyright owner",
+        link: false
+      });
+
+      expect(analyses[1]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
+
+      expect(analyses[2]).toEqual({
+        quality: postQuality.GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1894812853124706554"
+      });
+
+      expect(analyses[3]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
+
+      expect(analyses[4]).toEqual({
+        quality: postQuality.GOOD,
+        reason: "Looks good",
+        link: "/MyBasicFinance/status/1894819472562651293"
+      });
+
+      expect(analyses[5]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
+
+      expect(analyses[6]).toEqual({
+        quality: postQuality.GOOD,
+        reason: "Looks good",
+        link: "/MattZeeMiller/status/1894849813050740802"
+      });
+
+      expect(analyses[7]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
+
+      expect(analyses[8]).toEqual({
+        quality: postQuality.GOOD,
+        reason: "Looks good",
+        link: "/DaytonDan55/status/1894837596963951054"
+      });
+
+      expect(analyses[9]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
+
+      expect(analyses[10]).toEqual({
+        quality: postQuality.GOOD,
+        reason: "Looks good",
+        link: "/YHfLNQEzT942049/status/1894948247187403259"
+      });
+
+      expect(analyses[11]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
+
+      expect(analyses[12]).toEqual({
+        quality: postQuality.GOOD,
+        reason: "Looks good",
+        link: "/daz1985/status/1894834410198835673"
+      });
+
+      expect(analyses[13]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
+
+      expect(analyses[14]).toEqual({
+        quality: postQuality.GOOD,
+        reason: "Looks good",
+        link: "/Harry_Bdict/status/1894810993449955580"
+      });
+
+      expect(analyses[15]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
+
+      expect(analyses[16]).toEqual({
+        quality: postQuality.GOOD,
+        reason: "Looks good",
+        link: "/Harry_Bdict/status/1894810900009201975"
+      });
+
+      expect(analyses[17]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
+
+      expect(analyses[18]).toEqual({
+        quality: postQuality.GOOD,
+        reason: "Looks good",
+        link: "/smokedandsalted/status/1894811105706271142"
+      });
+
+      expect(analyses[19]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "Nothing to measure",
+        link: false
+      });
 
       document.documentElement.innerHTML = '';
     });
@@ -534,7 +550,7 @@ describe('identifyPosts - Problems', () => {
     it('should identify no longer available without a subscription in this sample size of 3', () => {
       loadHTML('samples/Conversation-with-expired-subscription.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -549,23 +565,23 @@ describe('identifyPosts - Problems', () => {
         "   2 Undefined"
       ].join("\n"));
 
-      expect(analyses).toEqual([
-        {
-          quality: postQuality.PROBLEM,
-          reason: "Found notice: you're unable to view this post",
-          link: false
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        }
-      ]);
+      expect(analyses[0]).toEqual({
+        quality: postQuality.PROBLEM,
+        reason: "Found notice: you're unable to view this post",
+        link: false
+      });
+
+      expect(analyses[1]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "Nothing to measure",
+        link: false
+      });
+
+      expect(analyses[2]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
 
       document.documentElement.innerHTML = '';
     });
@@ -573,7 +589,7 @@ describe('identifyPosts - Problems', () => {
     it('should identify two unable to view post problems in this sample size of 6', () => {
       loadHTML('samples/Conversation-with-limited-visibility.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -588,38 +604,41 @@ describe('identifyPosts - Problems', () => {
         "   3 Undefined"
       ].join("\n"));
 
-      expect(analyses).toEqual([
-        {
-          quality: postQuality.PROBLEM,
-          reason: "Found notice: you're unable to view this post",
-          link: false
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.PROBLEM,
-          reason: "Found notice: you're unable to view this post",
-          link: false
-        },
-        {
-          quality: postQuality.GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1883293430052430332"
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        }
-      ]);
+      expect(analyses[0]).toEqual({
+        quality: postQuality.PROBLEM,
+        reason: "Found notice: you're unable to view this post",
+        link: false
+      });
+
+      expect(analyses[1]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "Nothing to measure",
+        link: false
+      });
+
+      expect(analyses[2]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
+
+      expect(analyses[3]).toEqual({
+        quality: postQuality.PROBLEM,
+        reason: "Found notice: you're unable to view this post",
+        link: false
+      });
+
+      expect(analyses[4]).toEqual({
+        quality: postQuality.GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1883293430052430332"
+      });
+
+      expect(analyses[5]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
 
       document.documentElement.innerHTML = '';
     });
@@ -628,7 +647,7 @@ describe('identifyPosts - Problems', () => {
     it.skip('should identify three problems in this sample size of 5', () => {
       loadHTML('samples/Conversation-with-multiple-problem-posts.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -643,33 +662,35 @@ describe('identifyPosts - Problems', () => {
         "   2 Undefined"
       ].join("\n"));
 
-      expect(analyses).toEqual([
-        {
-          quality: postQuality.PROBLEM,
-          reason: "Found notice: you're unable to view this post",
-          link: false
-        },
-        {
-          quality: postQuality.PROBLEM,
-          reason: "Found notice: this post was deleted by the post author",
-          link: false
-        },
-        {
-          quality: postQuality.PROBLEM,
-          reason: "Found notice: you're unable to view this post",
-          link: false
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        }
-      ]);
+      expect(analyses[0]).toEqual({
+        quality: postQuality.PROBLEM,
+        reason: "Found notice: you're unable to view this post",
+        link: false
+      });
+
+      expect(analyses[1]).toEqual({
+        quality: postQuality.PROBLEM,
+        reason: "Found notice: this post was deleted by the post author",
+        link: false
+      });
+
+      expect(analyses[2]).toEqual({
+        quality: postQuality.PROBLEM,
+        reason: "Found notice: you're unable to view this post",
+        link: false
+      });
+
+      expect(analyses[3]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
+
+      expect(analyses[4]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
 
       document.documentElement.innerHTML = '';
     });
@@ -678,7 +699,7 @@ describe('identifyPosts - Problems', () => {
     it.skip('should identify the deleted post in this sample size of 4', () => {
       loadHTML('samples/Conversation-with-now-deleted-post.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -711,7 +732,7 @@ describe('identifyPosts - Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         }
       ]);
@@ -722,7 +743,7 @@ describe('identifyPosts - Problems', () => {
     it('should identify the unavailable post in this sample size of 4', () => {
       loadHTML('samples/Conversation-with-now-unavailable-post-included.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -737,28 +758,29 @@ describe('identifyPosts - Problems', () => {
         "   1 Undefined"
       ].join("\n"));
 
-      expect(analyses).toEqual([
-        {
-          quality: postQuality.GOOD,
-          reason: "Looks good",
-          link: "/iam_smx/status/1883977770709258287"
-        },
-        {
-          quality: postQuality.GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1883978356900913165"
-        },
-        {
-          quality: postQuality.PROBLEM,
-          reason: "Found notice: this post is unavailable",
-          link: false
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        }
-      ]);
+      expect(analyses[0]).toEqual({
+        quality: postQuality.GOOD,
+        reason: "Looks good",
+        link: "/iam_smx/status/1883977770709258287"
+      });
+
+      expect(analyses[1]).toEqual({
+        quality: postQuality.GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1883978356900913165"
+      });
+
+      expect(analyses[2]).toEqual({
+        quality: postQuality.PROBLEM,
+        reason: "Found notice: this post is unavailable",
+        link: false
+      });
+
+      expect(analyses[3]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "Nothing to measure",
+        link: false
+      });
 
       document.documentElement.innerHTML = '';
     });
@@ -766,7 +788,7 @@ describe('identifyPosts - Problems', () => {
     it('should identify the unavailable post in this sample size of 3 including 1 nested article', () => {
       loadHTML('samples/Conversation-with-quoted-post-unavailable.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -781,23 +803,23 @@ describe('identifyPosts - Problems', () => {
         "   2 Undefined"
       ].join("\n"));
 
-      expect(analyses).toEqual([
-        {
-          quality: postQuality.PROBLEM,
-          reason: "Found notice: this post is unavailable",
-          link: "/RepNancyMace/status/1884565403483218235"
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        },
-        {
-          quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
-          link: false
-        }
-      ]);
+      expect(analyses[0]).toEqual({
+        quality: postQuality.PROBLEM,
+        reason: "Found notice: this post is unavailable",
+        link: "/RepNancyMace/status/1884565403483218235"
+      });
+
+      expect(analyses[1]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "Nothing to measure",
+        link: false
+      });
+
+      expect(analyses[2]).toEqual({
+        quality: postQuality.UNDEFINED,
+        reason: "No article found",
+        link: false
+      });
 
       document.documentElement.innerHTML = '';
     });
@@ -806,7 +828,7 @@ describe('identifyPosts - Problems', () => {
     it.skip('should identify two unable to view post problems in this sample size of 4', () => {
       loadHTML('samples/Conversation-with-two-problem-posts.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -851,7 +873,7 @@ describe('identifyPosts - Problems', () => {
     it.skip('should identify the unavailable post in this sample size of 6', () => {
       loadHTML('samples/Conversation-with-unavailable-post.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -894,7 +916,7 @@ describe('identifyPosts - Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         }
       ]);
@@ -906,8 +928,8 @@ describe('identifyPosts - Problems', () => {
     it("should identify the unavailable post problem in this nested article", () => {
       loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
-  
+      const analyses = results.map(result => result.analysis);
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   1 Posts",
@@ -920,12 +942,12 @@ describe('identifyPosts - Problems', () => {
         "   1 Problem",
         "   0 Undefined"
       ].join("\n"));
-  
+
       const article = document.querySelector('div[data-testid="cellInnerDiv"]');
       const postHasProblemSystemNotice = require('./postHasProblemSystemNotice');
       const result = postHasProblemSystemNotice(article);
       expect(result).toBe("this post is unavailable");
-  
+
       document.documentElement.innerHTML = '';
     });
 
@@ -933,8 +955,8 @@ describe('identifyPosts - Problems', () => {
     it("should identify the unavailable post problem in this nested article", () => {
       loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
-  
+      const analyses = results.map(result => result.analysis);
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   1 Posts",
@@ -947,7 +969,7 @@ describe('identifyPosts - Problems', () => {
         "   1 Problem",
         "   0 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           quality: postQuality.PROBLEM,
@@ -955,7 +977,7 @@ describe('identifyPosts - Problems', () => {
           link: "/OwenGregorian/status/1896977661144260900"
         }
       ]);
-  
+
       document.documentElement.innerHTML = '';
     });
 
@@ -963,8 +985,8 @@ describe('identifyPosts - Problems', () => {
     it.skip('should identify 4 deleted post problems in this sample size of 9', () => {
       loadHTML('samples/Multiple-Deleted-Posts-Conversation-Thread.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
-  
+      const analyses = results.map(result => result.analysis);
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   9 Posts",
@@ -977,7 +999,7 @@ describe('identifyPosts - Problems', () => {
         "   4 Problem",
         "   2 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           quality: postQuality.GOOD,
@@ -1016,16 +1038,16 @@ describe('identifyPosts - Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false,
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false,
         }
       ]);
-  
+
       document.documentElement.innerHTML = '';
     });
 
@@ -1033,8 +1055,8 @@ describe('identifyPosts - Problems', () => {
     it('should find the unavailable post problem in this nested article', () => {
       loadHTML('samples/Post-No-Longer-Available.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
-  
+      const analyses = results.map(result => result.analysis);
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   3 Posts",
@@ -1047,7 +1069,7 @@ describe('identifyPosts - Problems', () => {
         "   1 Problem",
         "   1 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           quality: postQuality.PROBLEM,
@@ -1056,7 +1078,7 @@ describe('identifyPosts - Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1065,7 +1087,7 @@ describe('identifyPosts - Problems', () => {
           link: "/BarbieTrueBlue/status/1886211137961680919"
         }
       ]);
-  
+
       document.documentElement.innerHTML = '';
     });
 
@@ -1073,8 +1095,8 @@ describe('identifyPosts - Problems', () => {
     it.skip('should identify the deleted post in this sample size of 5', () => {
       loadHTML('samples/Replied-To-Now-Deleted-Post.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
-  
+      const analyses = results.map(result => result.analysis);
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   5 Posts",
@@ -1087,7 +1109,7 @@ describe('identifyPosts - Problems', () => {
         "   1 Problem",
         "   3 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           quality: postQuality.PROBLEM,
@@ -1096,12 +1118,12 @@ describe('identifyPosts - Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false,
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false,
         },
         {
@@ -1111,19 +1133,19 @@ describe('identifyPosts - Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false,
         }
       ]);
-  
+
       document.documentElement.innerHTML = '';
     });
 
     it('should identify this unable to view post problem in this nested article', () => {
       loadHTML('samples/You-Cant-View-This-Post.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
-  
+      const analyses = results.map(result => result.analysis);
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   3 Posts",
@@ -1136,7 +1158,7 @@ describe('identifyPosts - Problems', () => {
         "   1 Problem",
         "   1 Undefined"
       ].join("\n"));
-  
+
       // Extract analysis from each rated post
       expect(analyses).toEqual([
         {
@@ -1146,7 +1168,7 @@ describe('identifyPosts - Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false,
         },
         {
@@ -1155,7 +1177,261 @@ describe('identifyPosts - Problems', () => {
           link: "/BarbieTrueBlue/status/1886211137961680919",
         },
       ]);
-  
+
+      document.documentElement.innerHTML = '';
+    });
+
+    it('should identify this unable to view post problem in this nested article', () => {
+      loadHTML('samples/Reply-To-Repost-Of-Account-No-Longer-Exists.html');
+      const results = identifyPosts(document);
+      const analyses = results.map(result => result.analysis);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "  29 Posts",
+        "  20 Articles",
+        "   1 Nested Articles",
+        "",
+        "Rated Post Quality (29 Total):",
+        "  19 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   9 Undefined"
+      ].join("\n"));
+
+      expect(analyses[0]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/ApostleJohnW/status/1900446828958470577"
+      });
+      expect(analyses[1]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/Name__Error_404/status/1900452964101402693"
+      });
+      expect(analyses[2]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/ApostleJohnW/status/1900454996501475806"
+      });
+      expect(analyses[3]).toEqual({
+        "quality": {
+          "name": "Undefined",
+          "value": 0
+        },
+        "reason": "No article found",
+        "link": false
+      });
+      expect(analyses[4]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/adamcarolla/status/1900417203356193038"
+      });
+      expect(analyses[5]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/ApostleJohnW/status/1900454397697495122"
+      });
+      expect(analyses[6]).toEqual({
+        "quality": {
+          "name": "Undefined",
+          "value": 0
+        },
+        "reason": "No article found",
+        "link": false
+      });
+      expect(analyses[7]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/klara_sjo/status/1900303399511318989"
+      });
+      expect(analyses[8]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/ApostleJohnW/status/1900453954611232911"
+      });
+      expect(analyses[9]).toEqual({
+        "quality": {
+          "name": "Undefined",
+          "value": 0
+        },
+        "reason": "No article found",
+        "link": false
+      });
+      expect(analyses[10]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/CNviolations/status/1900441767553446324"
+      });
+      expect(analyses[11]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/ApostleJohnW/status/1900453039971971160"
+      });
+      expect(analyses[12]).toEqual({
+        "quality": {
+          "name": "Undefined",
+          "value": 0
+        },
+        "reason": "No article found",
+        "link": false
+      });
+      expect(analyses[13]).toEqual({
+        "quality": {
+          "name": "Problem",
+          "value": 1
+        },
+        "reason": "Found notice: this post is from an account that no longer exists",
+        "link": "/_____USA___/status/1900433669036405235"
+      });
+      expect(analyses[14]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/ApostleJohnW/status/1900452749206044700"
+      });
+      expect(analyses[15]).toEqual({
+        "quality": {
+          "name": "Undefined",
+          "value": 0
+        },
+        "reason": "No article found",
+        "link": false
+      });
+      expect(analyses[16]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/CultureCrave/status/1900440715806859351"
+      });
+      expect(analyses[17]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/ApostleJohnW/status/1900452224620179640"
+      });
+      expect(analyses[18]).toEqual({
+        "quality": {
+          "name": "Undefined",
+          "value": 0
+        },
+        "reason": "No article found",
+        "link": false
+      });
+      expect(analyses[19]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/MagneticNorse/status/1900444331082690813"
+      });
+      expect(analyses[20]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/ApostleJohnW/status/1900451349776490691"
+      });
+      expect(analyses[21]).toEqual({
+        "quality": {
+          "name": "Undefined",
+          "value": 0
+        },
+        "reason": "No article found",
+        "link": false
+      });
+      expect(analyses[22]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/WallStreetMav/status/1900437991761563894"
+      });
+      expect(analyses[23]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/ApostleJohnW/status/1900450032354025709"
+      });
+      expect(analyses[24]).toEqual({
+        "quality": {
+          "name": "Undefined",
+          "value": 0
+        },
+        "reason": "No article found",
+        "link": false
+      });
+      expect(analyses[25]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/charliekirk11/status/1900284625467170868"
+      });
+      expect(analyses[26]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/ApostleJohnW/status/1900449357188546773"
+      });
+      expect(analyses[27]).toEqual({
+        "quality": {
+          "name": "Undefined",
+          "value": 0
+        },
+        "reason": "No article found",
+        "link": false
+      });
+      expect(analyses[28]).toEqual({
+        "quality": {
+          "name": "Good",
+          "value": 3
+        },
+        "reason": "Looks good",
+        "link": "/gunsnrosesgirl3/status/1900423541561962874"
+      });
+
       document.documentElement.innerHTML = '';
     });
 
@@ -1170,7 +1446,7 @@ describe('identifyPosts - Potential Problems', () => {
     it('should identify one potential problem reply in this single post', () => {
       loadHTML('samples/Home-Timeline-SingleExample.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -1199,7 +1475,7 @@ describe('identifyPosts - Potential Problems', () => {
     it('should identify one potential problem reply in this sample size of 23', () => {
       loadHTML('samples/Home-Timeline-With-Replies-SeparateButRelated.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -1227,7 +1503,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1242,7 +1518,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1257,7 +1533,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1277,7 +1553,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1292,7 +1568,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1307,7 +1583,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1322,7 +1598,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1338,7 +1614,7 @@ describe('identifyPosts - Potential Problems', () => {
     it('should identify one potential problem reply in this sample size of 8', () => {
       loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply-To-DOGE.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -1361,7 +1637,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1376,7 +1652,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1386,7 +1662,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1402,7 +1678,7 @@ describe('identifyPosts - Potential Problems', () => {
     it('should identify one potential problem reply in this sample size of 9', () => {
       loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply-To-TheRabbitHole84.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -1430,7 +1706,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1445,7 +1721,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1471,7 +1747,7 @@ describe('identifyPosts - Potential Problems', () => {
     it('should identify one potential problem reply in this sample size of 28', () => {
       loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
+      const analyses = results.map(result => result.analysis);
 
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
@@ -1494,7 +1770,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1504,7 +1780,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1519,7 +1795,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1529,7 +1805,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1544,7 +1820,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1554,7 +1830,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1569,7 +1845,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1584,7 +1860,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1599,7 +1875,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1619,7 +1895,7 @@ describe('identifyPosts - Potential Problems', () => {
         },
         {
           quality: postQuality.UNDEFINED,
-          reason: "Nothing to measure",
+          reason: "No article found",
           link: false
         },
         {
@@ -1635,8 +1911,8 @@ describe('identifyPosts - Potential Problems', () => {
     it('should identify one potential problem reply in this single post', () => {
       loadHTML('samples/Replying-To-Suspicious-Example (2).html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
-  
+      const analyses = results.map(result => result.analysis);
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   1 Posts",
@@ -1649,7 +1925,7 @@ describe('identifyPosts - Potential Problems', () => {
         "   0 Problem",
         "   0 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           quality: postQuality.POTENTIAL_PROBLEM,
@@ -1657,15 +1933,15 @@ describe('identifyPosts - Potential Problems', () => {
           reason: "Found: 'Replying to <a>@TheRabbitHole84</a>' at a depth of 6",
         }
       ]);
-  
+
       document.documentElement.innerHTML = '';
     });
 
     it('should identify one potential problem reply in this single post', () => {
       loadHTML('samples/Replying-To-Suspicious-Example.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
-  
+      const analyses = results.map(result => result.analysis);
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   1 Posts",
@@ -1678,7 +1954,7 @@ describe('identifyPosts - Potential Problems', () => {
         "   0 Problem",
         "   0 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           quality: postQuality.POTENTIAL_PROBLEM,
@@ -1686,15 +1962,15 @@ describe('identifyPosts - Potential Problems', () => {
           link: "/ApostleJohnW/status/1890483565499932926",
         }
       ]);
-  
+
       document.documentElement.innerHTML = '';
     });
 
     it('should find four potential problem replies in this sample size of 7', () => {
       loadHTML('samples/Search-With-Unlinked-Replying-To-Handle.html');
       const results = identifyPosts(document);
-      const analyses = results.ratedPosts.map(post => post.analysis);
-  
+      const analyses = results.map(result => result.analysis);
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "   7 Posts",
@@ -1707,7 +1983,7 @@ describe('identifyPosts - Potential Problems', () => {
         "   0 Problem",
         "   0 Undefined"
       ].join("\n"));
-  
+
       expect(analyses).toEqual([
         {
           link: "/ApostleJohnW/status/1878550122281185320",
@@ -1745,9 +2021,9 @@ describe('identifyPosts - Potential Problems', () => {
           reason: "Found: 'Replying to <a>@ApostleJohnW</a>' at a depth of 6",
         },
       ]);
-  
+
       document.documentElement.innerHTML = '';
-    });  
+    });
 
   });
 
@@ -1758,7 +2034,7 @@ describe('identifyPosts - Problems and Potential Problems', () => {
   it("should identify two potential problems replies and one problem post in this sample size of 36 with one nested article", () => {
     loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
     const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
+    const analyses = results.map(result => result.analysis);
 
     expect(describeSampleAnalyses(document, analyses)).toBe([
       "Structure Summary Totals:",
@@ -1773,188 +2049,221 @@ describe('identifyPosts - Problems and Potential Problems', () => {
       "  12 Undefined"
     ].join("\n"));
 
-    expect(analyses).toEqual([
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/DongWookChung2/status/1887852588457988314"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/monetization_x/status/1897010659075989835"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897016048639180873"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/Name__Error_404/status/1896938936599228642"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/Name__Error_404/status/1897015679158788554"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897015899099414914"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/Name__Error_404/status/1897015203541524847"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897015449176748449"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/SpaceX/status/1896708396902174849"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897003945203306614"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897013413664145793"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.PROBLEM,
-        reason: "Found notice: this post is unavailable",
-        link: "/OwenGregorian/status/1896977661144260900"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897011110072738182"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/DongWookChung2/status/1897005083709374868"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897010202974806174"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/monetization_x/status/1896999071665324318"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/godswayfoundinc/status/1897003429870129243"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897004848614420667"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.POTENTIAL_PROBLEM,
-        reason: "Found: 'Replying to <a>@godswayfoundinc</a> and <a>@monetization_x</a>' at a depth of 6",
-        link: "/ApostleJohnW/status/1897004713570394503"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/godswayfoundinc/status/1897002671846121539"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897002963107025141"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/WesleyKy/status/1896999314582642895"
-      },
-      {
-        quality: postQuality.GOOD,
-        reason: "Looks good",
-        link: "/ApostleJohnW/status/1897002818214748430"
-      },
-      {
-        quality: postQuality.UNDEFINED,
-        reason: "Nothing to measure",
-        link: false
-      },
-      {
-        quality: postQuality.POTENTIAL_PROBLEM,
-        reason: "Found: 'Replying to <a>@monetization_x</a>' at a depth of 6",
-        link: "/ApostleJohnW/status/1897002239753073002"
-      }
-    ]);
+    expect(analyses[0]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/DongWookChung2/status/1887852588457988314"
+    });
+
+    expect(analyses[1]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/monetization_x/status/1897010659075989835"
+    });
+
+    expect(analyses[2]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/ApostleJohnW/status/1897016048639180873"
+    });
+
+    expect(analyses[3]).toEqual({
+      quality: postQuality.UNDEFINED,
+      reason: "No article found",
+      link: false
+    });
+
+    expect(analyses[4]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/Name__Error_404/status/1896938936599228642"
+    });
+
+    expect(analyses[5]).toEqual({
+      quality: postQuality.UNDEFINED,
+      reason: "No article found",
+      link: false
+    });
+
+    expect(analyses[6]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/Name__Error_404/status/1897015679158788554"
+    });
+
+    expect(analyses[7]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/ApostleJohnW/status/1897015899099414914"
+    });
+
+    expect(analyses[8]).toEqual({
+      quality: postQuality.UNDEFINED,
+      reason: "No article found",
+      link: false
+    });
+
+    expect(analyses[9]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/Name__Error_404/status/1897015203541524847"
+    });
+
+    expect(analyses[10]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/ApostleJohnW/status/1897015449176748449"
+    });
+
+    expect(analyses[11]).toEqual({
+      quality: postQuality.UNDEFINED,
+      reason: "No article found",
+      link: false
+    });
+
+    expect(analyses[12]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/SpaceX/status/1896708396902174849"
+    });
+
+    expect(analyses[13]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/ApostleJohnW/status/1897003945203306614"
+    });
+
+    expect(analyses[14]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/ApostleJohnW/status/1897013413664145793"
+    });
+
+    expect(analyses[15]).toEqual({
+      quality: postQuality.UNDEFINED,
+      reason: "No article found",
+      link: false
+    });
+
+    expect(analyses[16]).toEqual({
+      quality: postQuality.PROBLEM,
+      reason: "Found notice: this post is unavailable",
+      link: "/OwenGregorian/status/1896977661144260900"
+    });
+
+    expect(analyses[17]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/ApostleJohnW/status/1897011110072738182"
+    });
+
+    expect(analyses[18]).toEqual({
+      quality: postQuality.UNDEFINED,
+      reason: "No article found",
+      link: false
+    });
+
+    expect(analyses[19]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/DongWookChung2/status/1897005083709374868"
+    });
+
+    expect(analyses[20]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/ApostleJohnW/status/1897010202974806174"
+    });
+
+    expect(analyses[21]).toEqual({
+      quality: postQuality.UNDEFINED,
+      reason: "No article found",
+      link: false
+    });
+
+    expect(analyses[22]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/monetization_x/status/1896999071665324318"
+    });
+
+    expect(analyses[23]).toEqual({
+      quality: postQuality.UNDEFINED,
+      reason: "No article found",
+      link: false
+    });
+
+    expect(analyses[24]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/godswayfoundinc/status/1897003429870129243"
+    });
+
+    expect(analyses[25]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/ApostleJohnW/status/1897004848614420667"
+    });
+
+    expect(analyses[26]).toEqual({
+      quality: postQuality.UNDEFINED,
+      reason: "No article found",
+      link: false
+    });
+
+    expect(analyses[27]).toEqual({
+      quality: postQuality.POTENTIAL_PROBLEM,
+      reason: "Found: 'Replying to <a>@godswayfoundinc</a> and <a>@monetization_x</a>' at a depth of 6",
+      link: "/ApostleJohnW/status/1897004713570394503"
+    });
+
+    expect(analyses[28]).toEqual({
+      quality: postQuality.UNDEFINED,
+      reason: "No article found",
+      link: false
+    });
+
+    expect(analyses[29]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/godswayfoundinc/status/1897002671846121539"
+    });
+
+    expect(analyses[30]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/ApostleJohnW/status/1897002963107025141"
+    });
+
+    expect(analyses[31]).toEqual({
+      quality: postQuality.UNDEFINED,
+      reason: "No article found",
+      link: false
+    });
+
+    expect(analyses[32]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/WesleyKy/status/1896999314582642895"
+    });
+
+    expect(analyses[33]).toEqual({
+      quality: postQuality.GOOD,
+      reason: "Looks good",
+      link: "/ApostleJohnW/status/1897002818214748430"
+    });
+
+    expect(analyses[34]).toEqual({
+      quality: postQuality.UNDEFINED,
+      reason: "No article found",
+      link: false
+    });
+
+    expect(analyses[35]).toEqual({
+      quality: postQuality.POTENTIAL_PROBLEM,
+      reason: "Found: 'Replying to <a>@monetization_x</a>' at a depth of 6",
+      link: "/ApostleJohnW/status/1897002239753073002"
+    });
 
     document.documentElement.innerHTML = '';
   });
@@ -1962,7 +2271,7 @@ describe('identifyPosts - Problems and Potential Problems', () => {
   it('should identify one potential problem reply and one problem post in this sample size of 6 with one nested article', () => {
     loadHTML('samples/Search-Including-Post-No-Longer-Available.html');
     const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
+    const analyses = results.map(result => result.analysis);
 
     expect(describeSampleAnalyses(document, analyses)).toBe([
       "Structure Summary Totals:",
@@ -2021,7 +2330,7 @@ describe.skip('identifyPosts - Future Features', () => {
   it('should identify replies to two but only find 1 in this sample size of 3', () => {
     loadHTML('samples/Reply-To-Two-But-Only-See-One.html');
     const results = identifyPosts(document);
-    const analyses = results.ratedPosts.map(post => post.analysis);
+    const analyses = results.map(result => result.analysis);
 
     expect(describeSampleAnalyses(document, analyses)).toBe([
       "Structure Summary Totals:",

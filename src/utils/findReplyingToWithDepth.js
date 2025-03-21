@@ -22,8 +22,7 @@ function findReplyingToWithDepth(article) {
             return childArticle;
         }
 
-        // Check for parent article
-        return element.closest('article');
+        return null;
     }
 
     const result = [];
@@ -39,12 +38,14 @@ function findReplyingToWithDepth(article) {
     }
 
     function findDivs(element, depth) {
-        if (element.tagName === 'DIV' && element.innerHTML.startsWith('Replying to')) {
-            result.push({
-                depth,
-                innerHTML: getInnerHTMLWithoutAttributes(element)
-                    .replace(/<\/?(div|span)>/gi, '')
-            });
+        if (element.tagName === 'DIV') {
+            if (element.innerHTML.startsWith('Replying to')) {
+                result.push({
+                    depth,
+                    innerHTML: getInnerHTMLWithoutAttributes(element)
+                        .replace(/<\/?(div|span)>/gi, '')
+                });
+            }
         }
 
         Array.from(element.children).forEach(child => findDivs(child, depth + 1));
