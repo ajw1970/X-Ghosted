@@ -2,10 +2,9 @@
 
 // Require the tested functions from their respective files
 const getRelativeLinkToPost = require('./utils/getRelativeLinkToPost');
-const summarizeRatedPosts = require('./utils/summarizeRatedPosts');
 const postQuality = require('./utils/postQuality');
 const detectTheme = require('./dom/detectTheme');
-const identifyPosts = require('./utils/identifyPosts');
+const identifyPost = require('./utils/identifyPost');
 
 function XGhosted(doc) {
   this.state = {
@@ -35,13 +34,29 @@ XGhosted.prototype.findPostContainer = function () {
 };
 
 XGhosted.prototype.identifyPosts = function () {
+  // Get posts from the post container
   const container = this.findPostContainer();
   if (!container) return [];
-  const results = identifyPosts(container);
-  const analyses = results.ratedPosts.map(post => post.analysis);
-  const summary = summarizeRatedPosts(analyses);
-  console.log(summary);
-  return Array.from(articles).map(article => this.processArticle(article));
+
+  const posts = container.querySelectorAll('div[data-testid="cellInnerDiv"]');
+  const results = [];
+
+  posts.forEach(post => {
+    const link = getRelativeLinkToPost(post) || `temp-id-${Math.random().toString(36).slice(2)}`; // Fallback ID for undefined posts
+    const cached = this.state.processedArticles.get(link);
+
+    if (cached && cached.element === post) {
+      // Use cached result if the post element hasn’t changed
+      results.push({ post, analysis: cached.analysis });
+    } else {
+      // Analyze and cache new or changed posts
+      const analysis = identifyPost(post, this.state.isWithReplies, false);
+      this.state.processedArticles.set(link, { analysis, element: post });
+      results.push({ post, analysis });
+    }
+  });
+
+  return results;
 };
 
 XGhosted.prototype.getThemeMode = function () {
