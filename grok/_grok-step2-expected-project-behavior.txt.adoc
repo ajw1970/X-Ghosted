@@ -1,10 +1,10 @@
 = Grok Step 2: Working Understanding of X-Ghosted Project
 :author: ajw1970
 :date: March 16, 2025
-:revdate: March 21, 2025
+:revdate: March 23, 2025
 
 == Overview
-X-Ghosted is a Tampermonkey userscript that flags dodgy posts on X.com with visual markers, making the replies feed less of a minefield. Version 0.6.1 aims to refine 0.6.0 (commit 2ecaf8f49) with better throttling and polish.
+X-Ghosted is a Tampermonkey userscript that flags dodgy X.com posts with visual markers, taming the replies feed. Version 0.6.1 (post commit 2ecaf8f49) nails detection and tests, thanks to a leaner `identifyPost.js`.
 
 == Core Features
 - *Detection*: Tags posts as:
@@ -16,9 +16,9 @@ X-Ghosted is a Tampermonkey userscript that flags dodgy posts on X.com with visu
 - *Testing*: Unit tests in `identifyPosts.test.js` use real samples from `samples/`.
 
 == Next Steps
-- Craft `xGhosted.js` as the 0.6.1 core, driving `highlight-potential-problems.js`.
-- Throttle tab checks and DOM updates (e.g., debounce), maybe with user prompts.
-- Streamline to a slick userscript with a polished panel and auto-collapsing.
+- Polish `xGhosted.js` for 0.6.1, driving `highlight-potential-problems.js`.
+- Add throttling (debounce) for tab checks and DOM updates; consider user prompts.
+- Refine the userscript with a slick panel and auto-collapsing.
 
 == Notes
 - Pick up from link:https://github.com/ajw1970/X-Ghosted[Grok-Prompt.txt] and latest commit.
@@ -27,3 +27,4 @@ X-Ghosted is a Tampermonkey userscript that flags dodgy posts on X.com with visu
 == Revision History
 - March 16, 2025: Initial project sketch.
 - March 21, 2025: Aligned with 0.6.1, trimmed to essentials.
+- March 23, 2025: Updated for 0.6.1 success—`identifyPost.js` fix aced it.

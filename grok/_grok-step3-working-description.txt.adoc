@@ -1,7 +1,7 @@
 = Grok Step 3: Detailed Description of X-Ghosted Userscript
 :author: ajw1970
 :date: March 16, 2025
-:revdate: March 21, 2025
+:revdate: March 23, 2025
 
 == Overview
 - *Name*: Highlight Potential Problems
@@ -39,14 +39,14 @@
 
 == How It Works
 - *Init*: Sets theme, panel, and `MutationObserver` on posts.
-- *Logic*: `xGhosted.js` scans, highlights, and updates panel; skips processed posts with `WeakSet`/`Set`.
+- *Logic*: `xGhosted.js` scans, highlights, and updates panel via `identifyPost.js` and `findReplyingToWithDepth.js`; skips processed posts with `WeakSet`/`Set`.
 - *State*: Persists panel, collapsing, and links across URL shifts.
 
 == Technical Details
 - *Files*:
   - `xGhosted.js`: Core logic.
   - `highlight-potential-problems-template.js`: Userscript shell.
-  - Utils: `identifyPost.js`, `postQuality.js`, `isProfileRepliesPage.js`, `debounce.js`, `detectTheme.js`.
+  - Utils: `identifyPost.js` (feeds articles directly), `findReplyingToWithDepth.js` (simplified, no `getArticleElement`), `postQuality.js`, `isProfileRepliesPage.js`, `debounce.js`, `detectTheme.js`.
 - *Styles* (`applyHighlight`):
 +
 [source,javascript]
@@ -64,6 +64,7 @@ function applyHighlight(article, status = 'potential') {
 }
 ----
 - *Depends*: Tampermonkey (`GM_log`), X.com DOM.
+- *JSDOM*: Uses `resources: 'usable', runScripts: 'dangerously'` for reliable DOM parsing in tests.
 
 == Notes
 - Adapt to X.com DOM changes.
@@ -72,3 +73,4 @@ function applyHighlight(article, status = 'potential') {
 == Revision History
 - March 16, 2025: Detailed 0.6.1 plan.
 - March 21, 2025: Streamlined, synced terms (good, not safe), added throttling/debug.
+- March 23, 2025: Noted `identifyPost.js` fix—dropped `getArticleElement` baggage, tests pass clean.
