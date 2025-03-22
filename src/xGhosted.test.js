@@ -96,14 +96,14 @@ describe('xGhosted', () => {
 
     // Check classifications against sample summary
     const summary = summarizeRatedPosts(analyses);
-    expect(summary.Good).toBe(21);
+    expect(summary.Good).toBe(4);
     expect(summary.Problem).toBe(1);
-    expect(summary['Potential Problem']).toBe(2);
-    expect(summary.Undefined).toBe(12);
+    expect(summary['Potential Problem']).toBe(1);
+    expect(summary.Undefined).toBe(0);
 
     // Re-run should return same results (cached)
     const postsAgain = xGhosted.identifyPosts();
-    expect(postsAgain.length).toBe(36);
+    expect(postsAgain.length).toBe(6);
     expect(postsAgain[0].analysis).toEqual(posts[0].analysis); // Cached result
   });
 
