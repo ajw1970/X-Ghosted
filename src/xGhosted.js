@@ -50,7 +50,7 @@ XGhosted.prototype.identifyPosts = function () {
       results.push({ post, analysis: cached.analysis });
     } else {
       // Analyze and cache new or changed posts
-      const analysis = identifyPost(post, this.state.isWithReplies, false);
+      const analysis = identifyPost(post, this.state.isWithReplies, link);
       this.state.processedArticles.set(link, { analysis, element: post });
       results.push({ post, analysis });
     }
