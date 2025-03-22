@@ -12,19 +12,21 @@ X-Ghosted is a Tampermonkey userscript that flags dodgy X.com posts with visual 
   - *Potential Problems*: Replies to problems, shallow depth (yellow).
   - *Good*: Clean posts (green, post-check).
   - *Undefined*: Filler (collapsible, neutral), tagged with deterministic IDs like `/prev/status/123#fillerN`.
-- *UI*: Dynamic highlights (red for Problems, yellow for Potential Problems with eye icon, green for Good post-check, none for Undefined) implemented; control panel for flagged links and toggles in progress.
-- *Testing*: Unit tests in `identifyPosts.test.js` use real samples from `samples/`; `xGhosted.test.js` covers highlights.
+- *UI*: Dynamic highlights (red for Problems, yellow for Potential Problems with eye icon, green for Good post-check, none for Undefined) implemented; control panel from 0.6.0 integrated with PROBLEM/POTENTIAL links, Copy button, and theme toggle; full panel features (CSV, collapse toggles) in progress.
+- *Testing*: Unit tests in `identifyPosts.test.js` use real samples from `samples/`; `xGhosted.test.js` covers integration; DOM unit tests in `src/dom/` added for panel functions.
 
 == Next Steps
-- Finalize `xGhosted.js` for 0.6.1 with collapsing (GOOD/UNDEFINED, 1s-batched via MutationObserver) and panel (PROBLEM/POTENTIAL links, CSV writes, toggles).
+- Finalize `xGhosted.js` for 0.6.1 by completing panel (CSV writes with 5s throttle, auto-collapse toggles) and tab checks (2s-debounced for GOOD highlights).
 - Add user prompts for “Manual Check Mode” if debug kicks in.
+- Resolve DOM unit test failures: RGB color normalization in `createButton`, config passing in `createPanel`, flagged post rendering in `renderPanel`.
 
 == Notes
 - Pick up from link:https://github.com/ajw1970/X-Ghosted[Grok-Prompt.txt] and latest commit.
 - Details in Step 3—keep this lean.
+- Large updates may hit attachment errors; start new prompts if needed.
 
 == Revision History
 - March 16, 2025: Initial project sketch.
 - March 21, 2025: Aligned with 0.6.1, trimmed to essentials.
 - March 23, 2025: Updated for 0.6.1 success—`identifyPost.js` fix aced it.
-- March 22, 2025: Updated for `identifyPosts()` deterministic IDs—fillers now trackable; added highlights implementation; shifted next steps to collapsing and panel.
+- March 22, 2025: Updated for `identifyPosts()` deterministic IDs—fillers now trackable; added highlights implementation; shifted next steps to collapsing and panel; integrated 0.6.0 panel, began DOM extraction to `src/dom/`, noted test failures and attachment issues.

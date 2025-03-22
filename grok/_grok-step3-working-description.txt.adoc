@@ -15,40 +15,46 @@
   - *POTENTIAL PROBLEM*: Replies to problems, depth < 10.
   - *GOOD*: Clean on first scan, unhighlighted.
   - *UNDEFINED*: Filler posts (no articles), assigned IDs like `/prev/status/123#fillerN` based on prior post.
-- *UI*: Red (problems), yellow (potential with eye icon), green (cleared post-check), none (undefined) highlights implemented in `xGhosted.js`; panel lists flagged posts (not yet implemented).
-- *Tests*: `identifyPosts.test.js` checks all types with `samples/`; `xGhosted.test.js` verifies highlights.
+- *UI*: Red (problems), yellow (potential with eye icon), green (cleared post-check), none (undefined) highlights implemented in `xGhosted.js`; panel from 0.6.0 added with PROBLEM/POTENTIAL links, Copy button, and theme toggle; full panel (CSV, toggles) and tab checks pending.
+- *Tests*: `identifyPosts.test.js` checks detection with `samples/`; `xGhosted.test.js` verifies integration; `src/dom/` unit tests added for panel functions, some failing (RGB colors, config, rendering).
 
 == End Goal: Version 0.6.1
 - *Core*: 
-  - `xGhosted.js` powers `highlight-potential-problems.js` (from template), now with deterministic filler IDs (e.g., `/prev/status/123#fillerN`).
+  - `xGhosted.js` powers `highlight-potential-problems.js` (from template), now with deterministic filler IDs (e.g., `/prev/status/123#fillerN`); DOM logic moving to `src/dom/`.
 - *Features*:
-  - *Theme Sync*: Matches X.com’s light/dim/dark.
+  - *Theme Sync*: Matches X.com’s light/dim/dark, implemented in panel via `getThemeMode()`.
   - *Post ID*: Targets `div[data-testid="cellInnerDiv"] > article:not(article article)`.
   - *Visuals* (Implemented):
     - *PROBLEM*: `2px solid red`, `rgba(255, 0, 0, 0.3)`.
     - *POTENTIAL PROBLEM*: `2px solid yellow`, `rgba(255, 255, 0, 0.3)`.
     - *GOOD*: `2px solid green`, `rgba(0, 255, 0, 0.3)` (post-check).
     - *UNDEFINED*: Collapsible, no highlight.
-  - *Panel*: Fixed right-side:
-    - Lists PROBLEM/POTENTIAL PROBLEM links (CSV, 5s throttled writes).
-    - Toggles: visibility, theme, auto-collapse (Start/Stop/Reset).
-    - Buttons: Copy, clear, load links.
-  - *Checks*: Eye icon (`👀`) on potential posts; 2s-debounced tab check updates status.
-  - *Collapsing*: 1s-batched GOOD/UNDEFINED collapses via `MutationObserver`.
+  - *Panel* (Partially Implemented):
+    - Lists PROBLEM/POTENTIAL PROBLEM links (working from 0.6.0), Copy button, theme toggle; CSV (5s throttled writes), visibility/auto-collapse toggles (Start/Stop/Reset) pending.
+    - Buttons: Copy implemented, Clear/Load to add.
+  - *Checks*: Eye icon (`👀`) on potential posts; 2s-debounced tab check for GOOD status updates pending.
+  - *Collapsing*: 1s-batched GOOD/UNDEFINED collapses via `MutationObserver` (low priority, not started).
   - *Throttling*: 2s (tabs, pending), 250ms (highlights, implemented), 1s (collapses, pending).
-  - *Debug*: Optional “Manual Check Mode” with user prompt, logged via `GM_log`.
+  - *Debug*: Optional “Manual Check Mode” with user prompt, logged via `GM_log` (not started).
 
 == How It Works
-- *Init*: Sets theme, panel, and `MutationObserver` on posts.
-- *Logic*: `xGhosted.js` scans, highlights, and updates panel via `identifyPost.js` and `findReplyingToWithDepth.js`; skips processed posts with a `Map` (`processedArticles`).
-- *State*: Persists panel, collapsing, and links across URL shifts.
+- *Init*: Sets theme, panel (via `createPanel`), and `MutationObserver` on posts (observer pending).
+- *Logic*: `xGhosted.js` scans, highlights, and updates panel via `identifyPost.js` and `findReplyingToWithDepth.js`; skips processed posts with a `Map` (`processedArticles`); DOM functions (`createButton`, `createPanel`, etc.) extracted to `src/dom/`.
+- *State*: Persists panel visibility, theme, and links across URL shifts.
 
 == Technical Details
 - *Files*:
-  - `xGhosted.js`: Core logic, assigns deterministic IDs to UNDEFINED posts, handles highlights with `applyHighlight`.
-  - `highlight-potential-problems-template.js`: Userscript shell.
-  - Utils: `identifyPost.js` (feeds articles directly), `findReplyingToWithDepth.js` (simplified, no `getArticleElement`), `postQuality.js`, `isProfileRepliesPage.js`, `debounce.js`, `detectTheme.js`.
-- *Styles* (`applyHighlight` moved to `xGhosted.js`):
+  - `xGhosted.js`: Core logic, assigns deterministic IDs, handles highlights; delegates DOM to `src/dom/`.
+  - `highlight-potential-problems-template.js`: Userscript shell (0.6.0 panel source).
+  - *DOM* (`src/dom/`):
+    - `createButton.js`: Creates styled buttons.
+    - `createPanel.js`: Builds panel structure (from 0.6.0).
+    - `togglePanelVisibility.js`: Toggles panel visibility.
+    - `renderPanel.js`: Renders PROBLEM/POTENTIAL links.
+    - `updateTheme.js`: Syncs panel theme with `detectTheme`.
+    - `detectTheme.js`: Detects X.com theme (light/dim/dark).
+  - *Utils*: `identifyPost.js` (feeds articles directly), `findReplyingToWithDepth.js` (simplified, no `getArticleElement`), `postQuality.js`, `isProfileRepliesPage.js`, `debounce.js`.
+- *Styles*: Managed in `src/dom/` (e.g., `createPanel`, `updateTheme`); `applyHighlight` remains in `xGhosted.js`:
 +
 [source,javascript]
 ----
@@ -64,15 +70,16 @@ function applyHighlight(article, status = 'potential') {
   article.style.border = style.border;
 }
 ----
-- *Depends*: Tampermonkey (`GM_log`), X.com DOM.
+- *Depends*: Tampermonkey (`GM_log`, pending in tests), X.com DOM.
 - *JSDOM*: Uses `resources: 'usable', runScripts: 'dangerously'` for reliable DOM parsing in tests.
 
 == Notes
 - Adapt to X.com DOM changes.
 - Resume via link:https://github.com/ajw1970/X-Ghosted[Grok-Prompt.txt], latest commit.
+- Large updates may hit attachment errors; new prompts may be needed.
 
 == Revision History
 - March 16, 2025: Detailed 0.6.1 plan.
 - March 21, 2025: Streamlined, synced terms (good, not safe), added throttling/debug.
 - March 23, 2025: Noted `identifyPost.js` fix—dropped `getArticleElement` baggage, tests pass clean.
-- March 22, 2025: Synced with `identifyPosts()` deterministic IDs—UNDEFINED posts now tagged cleanly; highlights and 250ms throttling implemented in `xGhosted.js`; collapsing and panel next.
+- March 22, 2025: Synced with `identifyPosts()` deterministic IDs—UNDEFINED posts tagged cleanly; highlights and 250ms throttling implemented in `xGhosted.js`; integrated 0.6.0 panel, began DOM extraction to `src/dom/`, noted `renderPanel` test failure (panel null), added DOM unit tests with failures (RGB normalization, config passing, rendering), flagged attachment errors for large updates.

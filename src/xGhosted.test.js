@@ -36,10 +36,18 @@ describe('xGhosted', () => {
     dom = setupJSDOM();
     xGhosted = new XGhosted(dom.window.document);
     xGhosted.updateState('https://x.com/user/with_replies');
+    xGhosted.init(); // Full setup
   });
 
   afterEach(() => {
     dom.window.document.body.innerHTML = '';
+  });
+
+  test('init sets up panel and highlights', () => {
+    const panel = xGhosted.document.getElementById('xghosted-panel');
+    expect(panel).toBeTruthy(); // Should pass now with proper imports
+    const links = xGhosted.document.querySelectorAll('.link-item a');
+    expect(links.length).toBe(3); // 1 PROBLEM, 2 POTENTIAL
   });
 
   test('updateState detects /with_replies URL', () => {
@@ -235,9 +243,19 @@ describe('xGhosted', () => {
     const problemPost = posts.find(p => p.analysis.quality === postQuality.PROBLEM);
     const potentialPost = posts.find(p => p.analysis.quality === postQuality.POTENTIAL_PROBLEM);
 
-    expect(goodPost.post.querySelector('article').style.border).toBe('none');
-    expect(problemPost.post.querySelector('article').style.border).toBe('3px solid red');
-    expect(potentialPost.post.querySelector('article').style.border).toBe('3px solid orange');
+    expect(goodPost.post.querySelector('article').style.border).toBe(''); // GOOD not checked yet
+    expect(problemPost.post.querySelector('article').style.border).toBe('2px solid red');
+    expect(potentialPost.post.querySelector('article').style.border).toBe('2px solid yellow');
+    expect(potentialPost.post.querySelector('.eye-icon').textContent).toBe('👀');
+  });
+  test('renderPanel displays problem and potential posts', () => {
+    xGhosted.init(); // Sets up panel and highlights
+    const panel = xGhosted.document.getElementById('xghosted-panel');
+    expect(panel).toBeTruthy();
+    const links = panel.querySelectorAll('.link-item a');
+    expect(links.length).toBe(3); // 1 PROBLEM, 2 POTENTIAL from sample
+    expect(links[0].href).toContain('/OwenGregorian/status/1896977661144260900');
+    expect(links[1].href).toContain('/ApostleJohnW/status/1897004713570394503');
   });
 
   describe.skip('identifyPosts with sample HTML', () => {
