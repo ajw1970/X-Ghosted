@@ -15,8 +15,8 @@
   - *POTENTIAL PROBLEM*: Replies to problems, depth < 10.
   - *GOOD*: Clean on first scan, unhighlighted.
   - *UNDEFINED*: Filler posts (no articles), assigned IDs like `/prev/status/123#fillerN` based on prior post.
-- *UI*: Red (problems), yellow (potential), green (cleared); panel lists flagged posts.
-- *Tests*: `identifyPosts.test.js` checks all types with `samples/`.
+- *UI*: Red (problems), yellow (potential with eye icon), green (cleared post-check), none (undefined) highlights implemented in `xGhosted.js`; panel lists flagged posts (not yet implemented).
+- *Tests*: `identifyPosts.test.js` checks all types with `samples/`; `xGhosted.test.js` verifies highlights.
 
 == End Goal: Version 0.6.1
 - *Core*: 
@@ -24,7 +24,7 @@
 - *Features*:
   - *Theme Sync*: Matches X.com’s light/dim/dark.
   - *Post ID*: Targets `div[data-testid="cellInnerDiv"] > article:not(article article)`.
-  - *Visuals*:
+  - *Visuals* (Implemented):
     - *PROBLEM*: `2px solid red`, `rgba(255, 0, 0, 0.3)`.
     - *POTENTIAL PROBLEM*: `2px solid yellow`, `rgba(255, 255, 0, 0.3)`.
     - *GOOD*: `2px solid green`, `rgba(0, 255, 0, 0.3)` (post-check).
@@ -35,7 +35,7 @@
     - Buttons: Copy, clear, load links.
   - *Checks*: Eye icon (`👀`) on potential posts; 2s-debounced tab check updates status.
   - *Collapsing*: 1s-batched GOOD/UNDEFINED collapses via `MutationObserver`.
-  - *Throttling*: 2s (tabs), 250ms (highlights), 1s (collapses).
+  - *Throttling*: 2s (tabs, pending), 250ms (highlights, implemented), 1s (collapses, pending).
   - *Debug*: Optional “Manual Check Mode” with user prompt, logged via `GM_log`.
 
 == How It Works
@@ -45,10 +45,10 @@
 
 == Technical Details
 - *Files*:
-  - `xGhosted.js`: Core logic, now assigns deterministic IDs to UNDEFINED posts.
+  - `xGhosted.js`: Core logic, assigns deterministic IDs to UNDEFINED posts, handles highlights with `applyHighlight`.
   - `highlight-potential-problems-template.js`: Userscript shell.
   - Utils: `identifyPost.js` (feeds articles directly), `findReplyingToWithDepth.js` (simplified, no `getArticleElement`), `postQuality.js`, `isProfileRepliesPage.js`, `debounce.js`, `detectTheme.js`.
-- *Styles* (`applyHighlight`):
+- *Styles* (`applyHighlight` moved to `xGhosted.js`):
 +
 [source,javascript]
 ----
@@ -75,4 +75,4 @@ function applyHighlight(article, status = 'potential') {
 - March 16, 2025: Detailed 0.6.1 plan.
 - March 21, 2025: Streamlined, synced terms (good, not safe), added throttling/debug.
 - March 23, 2025: Noted `identifyPost.js` fix—dropped `getArticleElement` baggage, tests pass clean.
-- March 22, 2025: Synced with `identifyPosts()` deterministic IDs—UNDEFINED posts now tagged cleanly.
+- March 22, 2025: Synced with `identifyPosts()` deterministic IDs—UNDEFINED posts now tagged cleanly; highlights and 250ms throttling implemented in `xGhosted.js`; collapsing and panel next.

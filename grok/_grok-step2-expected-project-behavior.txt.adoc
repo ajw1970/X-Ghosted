@@ -12,11 +12,11 @@ X-Ghosted is a Tampermonkey userscript that flags dodgy X.com posts with visual 
   - *Potential Problems*: Replies to problems, shallow depth (yellow).
   - *Good*: Clean posts (green, post-check).
   - *Undefined*: Filler (collapsible, neutral), tagged with deterministic IDs like `/prev/status/123#fillerN`.
-- *UI*: Dynamic highlights and a control panel for flagged links and toggles.
-- *Testing*: Unit tests in `identifyPosts.test.js` use real samples from `samples/`.
+- *UI*: Dynamic highlights (red for Problems, yellow for Potential Problems with eye icon, green for Good post-check, none for Undefined) implemented; control panel for flagged links and toggles in progress.
+- *Testing*: Unit tests in `identifyPosts.test.js` use real samples from `samples/`; `xGhosted.test.js` covers highlights.
 
 == Next Steps
-- Finalize `xGhosted.js` for 0.6.1 with throttling (debounce) for tab checks and DOM updates in `highlight-potential-problems.js`.
+- Finalize `xGhosted.js` for 0.6.1 with collapsing (GOOD/UNDEFINED, 1s-batched via MutationObserver) and panel (PROBLEM/POTENTIAL links, CSV writes, toggles).
 - Add user prompts for “Manual Check Mode” if debug kicks in.
 
 == Notes
@@ -27,4 +27,4 @@ X-Ghosted is a Tampermonkey userscript that flags dodgy X.com posts with visual 
 - March 16, 2025: Initial project sketch.
 - March 21, 2025: Aligned with 0.6.1, trimmed to essentials.
 - March 23, 2025: Updated for 0.6.1 success—`identifyPost.js` fix aced it.
-- March 22, 2025: Updated for `identifyPosts()` deterministic IDs—fillers now trackable.
+- March 22, 2025: Updated for `identifyPosts()` deterministic IDs—fillers now trackable; added highlights implementation; shifted next steps to collapsing and panel.
