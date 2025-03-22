@@ -74,7 +74,7 @@ describe('xGhosted', () => {
 
     expect(analyses[3].quality).toEqual(postQuality.UNDEFINED);
     expect(analyses[3].reason).toEqual("No article found");
-    expect(analyses[3].link).toMatch(/^temp-id-.+$/);
+    expect(analyses[3].link).toEqual("/ApostleJohnW/status/1897016048639180873#filler1");
 
     expect(analyses[4].quality).toEqual(postQuality.GOOD);
     expect(analyses[4].reason).toEqual("Looks good");
@@ -82,7 +82,7 @@ describe('xGhosted', () => {
 
     expect(analyses[5].quality).toEqual(postQuality.UNDEFINED);
     expect(analyses[5].reason).toEqual("No article found");
-    expect(analyses[5].link).toMatch(/^temp-id-.+$/);
+    expect(analyses[5].link).toEqual("/Name__Error_404/status/1896938936599228642#filler1");
 
     expect(analyses[6].quality).toEqual(postQuality.GOOD);
     expect(analyses[6].reason).toEqual("Looks good");
@@ -94,7 +94,7 @@ describe('xGhosted', () => {
 
     expect(analyses[8].quality).toEqual(postQuality.UNDEFINED);
     expect(analyses[8].reason).toEqual("No article found");
-    expect(analyses[8].link).toMatch(/^temp-id-.+$/);
+    expect(analyses[8].link).toEqual("/ApostleJohnW/status/1897015899099414914#filler1");
 
     expect(analyses[9].quality).toEqual(postQuality.GOOD);
     expect(analyses[9].reason).toEqual("Looks good");
@@ -106,7 +106,7 @@ describe('xGhosted', () => {
 
     expect(analyses[11].quality).toEqual(postQuality.UNDEFINED);
     expect(analyses[11].reason).toEqual("No article found");
-    expect(analyses[11].link).toMatch(/^temp-id-.+$/);
+    expect(analyses[11].link).toEqual("/ApostleJohnW/status/1897015449176748449#filler1");
 
     expect(analyses[12].quality).toEqual(postQuality.GOOD);
     expect(analyses[12].reason).toEqual("Looks good");
@@ -122,7 +122,7 @@ describe('xGhosted', () => {
 
     expect(analyses[15].quality).toEqual(postQuality.UNDEFINED);
     expect(analyses[15].reason).toEqual("No article found");
-    expect(analyses[15].link).toMatch(/^temp-id-.+$/);
+    expect(analyses[15].link).toEqual("/ApostleJohnW/status/1897013413664145793#filler1");
 
     expect(analyses[16].quality).toEqual(postQuality.PROBLEM);
     expect(analyses[16].reason).toEqual("Found notice: this post is unavailable");
@@ -134,7 +134,7 @@ describe('xGhosted', () => {
 
     expect(analyses[18].quality).toEqual(postQuality.UNDEFINED);
     expect(analyses[18].reason).toEqual("No article found");
-    expect(analyses[18].link).toMatch(/^temp-id-.+$/);
+    expect(analyses[18].link).toEqual("/ApostleJohnW/status/1897011110072738182#filler1");
 
     expect(analyses[19].quality).toEqual(postQuality.GOOD);
     expect(analyses[19].reason).toEqual("Looks good");
@@ -146,7 +146,7 @@ describe('xGhosted', () => {
 
     expect(analyses[21].quality).toEqual(postQuality.UNDEFINED);
     expect(analyses[21].reason).toEqual("No article found");
-    expect(analyses[21].link).toMatch(/^temp-id-.+$/);
+    expect(analyses[21].link).toEqual("/ApostleJohnW/status/1897010202974806174#filler1");
 
     expect(analyses[22].quality).toEqual(postQuality.GOOD);
     expect(analyses[22].reason).toEqual("Looks good");
@@ -154,7 +154,7 @@ describe('xGhosted', () => {
 
     expect(analyses[23].quality).toEqual(postQuality.UNDEFINED);
     expect(analyses[23].reason).toEqual("No article found");
-    expect(analyses[23].link).toMatch(/^temp-id-.+$/);
+    expect(analyses[23].link).toEqual("/monetization_x/status/1896999071665324318#filler1");
 
     expect(analyses[24].quality).toEqual(postQuality.GOOD);
     expect(analyses[24].reason).toEqual("Looks good");
@@ -166,7 +166,7 @@ describe('xGhosted', () => {
 
     expect(analyses[26].quality).toEqual(postQuality.UNDEFINED);
     expect(analyses[26].reason).toEqual("No article found");
-    expect(analyses[26].link).toMatch(/^temp-id-.+$/);
+    expect(analyses[26].link).toEqual("/ApostleJohnW/status/1897004848614420667#filler1");
 
     expect(analyses[27].quality).toEqual(postQuality.POTENTIAL_PROBLEM);
     expect(analyses[27].reason).toEqual("Found: 'Replying to <a>@godswayfoundinc</a> and <a>@monetization_x</a>' at a depth of 6");
@@ -174,7 +174,7 @@ describe('xGhosted', () => {
 
     expect(analyses[28].quality).toEqual(postQuality.UNDEFINED);
     expect(analyses[28].reason).toEqual("No article found");
-    expect(analyses[28].link).toMatch(/^temp-id-.+$/);
+    expect(analyses[28].link).toEqual("/ApostleJohnW/status/1897004713570394503#filler1");
 
     expect(analyses[29].quality).toEqual(postQuality.GOOD);
     expect(analyses[29].reason).toEqual("Looks good");
@@ -186,7 +186,7 @@ describe('xGhosted', () => {
 
     expect(analyses[31].quality).toEqual(postQuality.UNDEFINED);
     expect(analyses[31].reason).toEqual("No article found");
-    expect(analyses[31].link).toMatch(/^temp-id-.+$/);
+    expect(analyses[31].link).toEqual("/ApostleJohnW/status/1897002963107025141#filler1");
 
     expect(analyses[32].quality).toEqual(postQuality.GOOD);
     expect(analyses[32].reason).toEqual("Looks good");
@@ -198,7 +198,7 @@ describe('xGhosted', () => {
 
     expect(analyses[34].quality).toEqual(postQuality.UNDEFINED);
     expect(analyses[34].reason).toEqual("No article found");
-    expect(analyses[34].link).toMatch(/^temp-id-.+$/);
+    expect(analyses[34].link).toEqual("/ApostleJohnW/status/1897002818214748430#filler1");
 
     expect(analyses[35].quality).toEqual(postQuality.POTENTIAL_PROBLEM);
     expect(analyses[35].reason).toEqual("Found: 'Replying to <a>@monetization_x</a>' at a depth of 6");

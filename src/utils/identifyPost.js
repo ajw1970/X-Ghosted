@@ -4,14 +4,14 @@ const findReplyingToWithDepth = require('./findReplyingToWithDepth');
 const getRelativeLinkToPost = require('./getRelativeLinkToPost');
 const postQuality = require('./postQuality');
 
-function identifyPost(post, checkReplies = false, providedLink = false) {
+function identifyPost(post, checkReplies = false) {
     // Check for first article (to avoid nested articles)
     const article = post.querySelector('article');
     if (!article) {
         return {
             quality: postQuality.UNDEFINED,
             reason: "No article found",
-            link: providedLink,
+            link: false,
         };
     }
 
@@ -21,7 +21,7 @@ function identifyPost(post, checkReplies = false, providedLink = false) {
         return {
             quality: postQuality.PROBLEM,
             reason: `Found notice: ${noticeFound}`,
-            link: providedLink || getRelativeLinkToPost(post),
+            link: getRelativeLinkToPost(post),
         };
     }
 
@@ -31,13 +31,12 @@ function identifyPost(post, checkReplies = false, providedLink = false) {
         return {
             quality: postQuality.PROBLEM,
             reason: `Found community: ${communityFound}`,
-            link: providedLink || getRelativeLinkToPost(post),
+            link: getRelativeLinkToPost(post),
         };
     }
 
     if (checkReplies) {
         // Posts with "Replying to" might be potential problems when found on with_replies page
-        const link = getRelativeLinkToPost(post);
         const replyingToDepths = findReplyingToWithDepth(article);
         if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
             // Posts with replying to found at a depth < 10 are potential problems
@@ -48,14 +47,14 @@ function identifyPost(post, checkReplies = false, providedLink = false) {
                 return {
                     quality: postQuality.POTENTIAL_PROBLEM,
                     reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
-                    link: providedLink || getRelativeLinkToPost(post),
+                    link: getRelativeLinkToPost(post),
                 };
             }
         }
     }
 
     // By process of elimination, this is either good or undefined (likely filler info like "Click to see more replies").
-    const link = providedLink || getRelativeLinkToPost(post);
+    const link = getRelativeLinkToPost(post);
     if (link) {
         return {
             quality: postQuality.GOOD,
@@ -67,7 +66,7 @@ function identifyPost(post, checkReplies = false, providedLink = false) {
     return {
         quality: postQuality.UNDEFINED,
         reason: "Nothing to measure",
-        link: providedLink,
+        link: false,
     };
 }
 
