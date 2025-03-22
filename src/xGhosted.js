@@ -1,17 +1,16 @@
 // src/xGhosted.js
 
-// Require the tested functions from their respective files
-const getRelativeLinkToPost = require('./utils/getRelativeLinkToPost');
 const postQuality = require('./utils/postQuality');
 const detectTheme = require('./dom/detectTheme');
 const identifyPost = require('./utils/identifyPost');
+const debounce = require('./utils/debounce'); // Added for throttling
 
 function XGhosted(doc) {
   this.state = {
-      isWithReplies: false,
-      postContainer: null,
-      lastUrl: '',
-      processedArticles: new Map(), // Key: post URL, Value: { status, checked, element, text, links }
+    isWithReplies: false,
+    postContainer: null,
+    lastUrl: '',
+    processedArticles: new Map(), // Key: post URL, Value: { status, checked, element, text, links }
   };
   this.document = doc;
 }
@@ -19,9 +18,9 @@ function XGhosted(doc) {
 XGhosted.prototype.updateState = function (url) {
   this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(url);
   if (this.state.lastUrl !== url) {
-      this.state.postContainer = null;
-      this.state.processedArticles.clear();
-      this.state.lastUrl = url;
+    this.state.postContainer = null;
+    this.state.processedArticles.clear();
+    this.state.lastUrl = url;
   }
 };
 
@@ -43,22 +42,18 @@ XGhosted.prototype.identifyPosts = function () {
   let fillerCount = 0; // Increment for consecutive fillers
 
   posts.forEach(post => {
-    // Run identifyPost without pre-setting a link
     const analysis = identifyPost(post, this.state.isWithReplies);
-    let id = analysis.link; // Might be a valid link or false
+    let id = analysis.link;
 
-    // If UNDEFINED with no link, craft a deterministic ID
     if (analysis.quality === postQuality.UNDEFINED && id === false) {
       if (lastLink) {
         fillerCount++;
         id = `${lastLink}#filler${fillerCount}`;
       } else {
-        // Rare: first post is undefined
         id = `#filler${Math.random().toString(36).slice(2)}`;
       }
-      analysis.link = id; // Update analysis with new ID
+      analysis.link = id;
     } else if (id) {
-      // Valid link found, update tracking
       lastLink = id;
       fillerCount = 0;
     }
@@ -75,6 +70,57 @@ XGhosted.prototype.identifyPosts = function () {
 
   return results;
 };
+
+XGhosted.prototype.applyHighlight = function (article, status = 'potential') {
+  const styles = {
+    problem: { background: 'rgba(255, 0, 0, 0.3)', border: '2px solid red' },
+    potential: { background: 'rgba(255, 255, 0, 0.3)', border: '2px solid yellow' },
+    good: { background: 'rgba(0, 255, 0, 0.3)', border: '2px solid green' },
+    none: { background: '', border: '' }
+  };
+  const style = styles[status] || styles.none;
+  article.style.backgroundColor = style.background;
+  article.style.border = style.border;
+};
+
+XGhosted.prototype.highlightPosts = function () {
+  const posts = this.identifyPosts();
+  posts.forEach(({ post, analysis }) => {
+    const article = post.querySelector('article');
+    if (!article) return;
+
+    const statusMap = {
+      [postQuality.PROBLEM.name]: 'problem',
+      [postQuality.POTENTIAL_PROBLEM.name]: 'potential',
+      [postQuality.GOOD.name]: 'good',
+      [postQuality.UNDEFINED.name]: 'none'
+    };
+    const cached = this.state.processedArticles.get(analysis.link);
+    let status = statusMap[analysis.quality.name] || 'none';
+
+    // GOOD only highlighted post-check
+    if (status === 'good' && (!cached || !cached.checked)) {
+      status = 'none';
+    }
+
+    this.applyHighlight(article, status);
+
+    // Eye icon for POTENTIAL
+    if (status === 'potential' && !article.querySelector('.eye-icon')) {
+      const eye = this.document.createElement('span');
+      eye.textContent = '👀';
+      eye.className = 'eye-icon';
+      eye.style.position = 'absolute';
+      eye.style.top = '5px';
+      eye.style.right = '5px';
+      article.appendChild(eye);
+    }
+  });
+};
+
+XGhosted.prototype.highlightPostsDebounced = debounce(function () {
+  this.highlightPosts();
+}, 250);
 
 XGhosted.prototype.getThemeMode = function () {
   return detectTheme(this.document);

@@ -1,4 +1,4 @@
-const { debounce } = require('./debounce');
+const debounce = require('./debounce');
 
 jest.useFakeTimers();
 
