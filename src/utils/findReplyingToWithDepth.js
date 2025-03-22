@@ -6,27 +6,6 @@
 
 function findReplyingToWithDepth(article) {
 
-    function getArticleElement(element) {
-        if (!element || !(element instanceof Element)) {
-            return null;
-        }
-
-        // Check if element itself is an article
-        if (element.tagName.toLowerCase() === 'article') {
-            return element;
-        }
-
-        // Check for article in children
-        const childArticle = element.querySelector('article');
-        if (childArticle) {
-            return childArticle;
-        }
-
-        return null;
-    }
-
-    const result = [];
-
     function getInnerHTMLWithoutAttributes(element) {
         const clone = element.cloneNode(true);
         clone.querySelectorAll('*').forEach(el => {
@@ -50,12 +29,8 @@ function findReplyingToWithDepth(article) {
 
         Array.from(element.children).forEach(child => findDivs(child, depth + 1));
     }
-
-    article = getArticleElement(article);
-    if (!article) {
-        return result;
-    }
-
+    
+    const result = [];
     findDivs(article, 0);
     return result;
 }
