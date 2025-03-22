@@ -1,7 +1,7 @@
 = Grok Step 3: Detailed Description of X-Ghosted Userscript
 :author: ajw1970
 :date: March 16, 2025
-:revdate: March 23, 2025
+:revdate: March 22, 2025
 
 == Overview
 - *Name*: Highlight Potential Problems
@@ -14,12 +14,13 @@
   - *PROBLEM*: System notices or community links.
   - *POTENTIAL PROBLEM*: Replies to problems, depth < 10.
   - *GOOD*: Clean on first scan, unhighlighted.
-  - *UNDEFINED*: Filler, no links.
+  - *UNDEFINED*: Filler posts (no articles), assigned IDs like `/prev/status/123#fillerN` based on prior post.
 - *UI*: Red (problems), yellow (potential), green (cleared); panel lists flagged posts.
 - *Tests*: `identifyPosts.test.js` checks all types with `samples/`.
 
 == End Goal: Version 0.6.1
-- *Core*: `xGhosted.js` powers `highlight-potential-problems.js` (from template).
+- *Core*: 
+  - `xGhosted.js` powers `highlight-potential-problems.js` (from template), now with deterministic filler IDs (e.g., `/prev/status/123#fillerN`).
 - *Features*:
   - *Theme Sync*: Matches X.com’s light/dim/dark.
   - *Post ID*: Targets `div[data-testid="cellInnerDiv"] > article:not(article article)`.
@@ -39,12 +40,12 @@
 
 == How It Works
 - *Init*: Sets theme, panel, and `MutationObserver` on posts.
-- *Logic*: `xGhosted.js` scans, highlights, and updates panel via `identifyPost.js` and `findReplyingToWithDepth.js`; skips processed posts with `WeakSet`/`Set`.
+- *Logic*: `xGhosted.js` scans, highlights, and updates panel via `identifyPost.js` and `findReplyingToWithDepth.js`; skips processed posts with a `Map` (`processedArticles`).
 - *State*: Persists panel, collapsing, and links across URL shifts.
 
 == Technical Details
 - *Files*:
-  - `xGhosted.js`: Core logic.
+  - `xGhosted.js`: Core logic, now assigns deterministic IDs to UNDEFINED posts.
   - `highlight-potential-problems-template.js`: Userscript shell.
   - Utils: `identifyPost.js` (feeds articles directly), `findReplyingToWithDepth.js` (simplified, no `getArticleElement`), `postQuality.js`, `isProfileRepliesPage.js`, `debounce.js`, `detectTheme.js`.
 - *Styles* (`applyHighlight`):
@@ -74,3 +75,4 @@ function applyHighlight(article, status = 'potential') {
 - March 16, 2025: Detailed 0.6.1 plan.
 - March 21, 2025: Streamlined, synced terms (good, not safe), added throttling/debug.
 - March 23, 2025: Noted `identifyPost.js` fix—dropped `getArticleElement` baggage, tests pass clean.
+- March 22, 2025: Synced with `identifyPosts()` deterministic IDs—UNDEFINED posts now tagged cleanly.

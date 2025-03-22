@@ -1,7 +1,7 @@
 = Grok Step 2: Working Understanding of X-Ghosted Project
 :author: ajw1970
 :date: March 16, 2025
-:revdate: March 23, 2025
+:revdate: March 22, 2025
 
 == Overview
 X-Ghosted is a Tampermonkey userscript that flags dodgy X.com posts with visual markers, taming the replies feed. Version 0.6.1 (post commit 2ecaf8f49) nails detection and tests, thanks to a leaner `identifyPost.js`.
@@ -11,14 +11,13 @@ X-Ghosted is a Tampermonkey userscript that flags dodgy X.com posts with visual 
   - *Problems*: System notices or target community links (red).
   - *Potential Problems*: Replies to problems, shallow depth (yellow).
   - *Good*: Clean posts (green, post-check).
-  - *Undefined*: Filler (collapsible, neutral).
+  - *Undefined*: Filler (collapsible, neutral), tagged with deterministic IDs like `/prev/status/123#fillerN`.
 - *UI*: Dynamic highlights and a control panel for flagged links and toggles.
 - *Testing*: Unit tests in `identifyPosts.test.js` use real samples from `samples/`.
 
 == Next Steps
-- Polish `xGhosted.js` for 0.6.1, driving `highlight-potential-problems.js`.
-- Add throttling (debounce) for tab checks and DOM updates; consider user prompts.
-- Refine the userscript with a slick panel and auto-collapsing.
+- Finalize `xGhosted.js` for 0.6.1 with throttling (debounce) for tab checks and DOM updates in `highlight-potential-problems.js`.
+- Add user prompts for “Manual Check Mode” if debug kicks in.
 
 == Notes
 - Pick up from link:https://github.com/ajw1970/X-Ghosted[Grok-Prompt.txt] and latest commit.
@@ -28,3 +27,4 @@ X-Ghosted is a Tampermonkey userscript that flags dodgy X.com posts with visual 
 - March 16, 2025: Initial project sketch.
 - March 21, 2025: Aligned with 0.6.1, trimmed to essentials.
 - March 23, 2025: Updated for 0.6.1 success—`identifyPost.js` fix aced it.
+- March 22, 2025: Updated for `identifyPosts()` deterministic IDs—fillers now trackable.
