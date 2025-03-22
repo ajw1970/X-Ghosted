@@ -1,14 +1,16 @@
 const fs = require('fs').promises;
 const path = require('path');
 
-async function generateGrokPrompt(startFile, outputPath = 'new-grok-prompt.txt') {
+async function generateGrokPrompt(startFile, outputDir = 'grok') {
     const dependencies = new Set();
     const processedFiles = new Set();
     let outputContent = `${startFile}\n\n`;
     
-    // Ensure startFile has proper extension
-    const entryFile = startFile.endsWith('.js') ? startFile : `${startFile}.js`;
-    const entryFileRelative = path.relative(process.cwd(), path.resolve(entryFile));
+    // Get file extension (if any) and construct output filename
+    const fileExt = path.extname(startFile);
+    const fileBaseName = path.basename(startFile, fileExt);
+    const outputFileName = `${fileBaseName}${fileExt}.txt`;
+    const entryFileRelative = path.relative(process.cwd(), path.resolve(startFile));
     dependencies.add(entryFileRelative);
     
     async function processFile(filePath) {
@@ -20,21 +22,24 @@ async function generateGrokPrompt(startFile, outputPath = 'new-grok-prompt.txt')
         try {
             const content = await fs.readFile(filePath, 'utf8');
             
-            const requireRegex = /require\(['"](.+?)['"]\)/g;
-            let match;
-            
-            while ((match = requireRegex.exec(content)) !== null) {
-                let depPath = match[1];
+            // Only process dependencies if it's a .js file
+            if (filePath.endsWith('.js')) {
+                const requireRegex = /require\(['"](.+?)['"]\)/g;
+                let match;
                 
-                if (depPath.startsWith('.')) {
-                    depPath = path.resolve(path.dirname(filePath), depPath);
-                    if (!path.extname(depPath)) {
-                        depPath += '.js';
-                    }
+                while ((match = requireRegex.exec(content)) !== null) {
+                    let depPath = match[1];
                     
-                    const relativeDepPath = path.relative(process.cwd(), depPath);
-                    dependencies.add(relativeDepPath);
-                    await processFile(depPath);
+                    if (depPath.startsWith('.')) {
+                        depPath = path.resolve(path.dirname(filePath), depPath);
+                        if (!path.extname(depPath)) {
+                            depPath += '.js';
+                        }
+                        
+                        const relativeDepPath = path.relative(process.cwd(), depPath);
+                        dependencies.add(relativeDepPath);
+                        await processFile(depPath);
+                    }
                 }
             }
             
@@ -43,7 +48,7 @@ async function generateGrokPrompt(startFile, outputPath = 'new-grok-prompt.txt')
         }
     }
     
-    await processFile(path.resolve(entryFile));
+    await processFile(path.resolve(startFile));
     
     const sortedDeps = Array.from(dependencies).sort();
     for (const dep of sortedDeps) {
@@ -58,13 +63,13 @@ async function generateGrokPrompt(startFile, outputPath = 'new-grok-prompt.txt')
         }
     }
     
-    // Ensure output directory exists
-    const outputDir = path.dirname(outputPath);
+    // Ensure output directory exists and construct full output path
     await fs.mkdir(outputDir, { recursive: true });
+    const outputPath = path.join(outputDir, outputFileName);
     
-    // Write to the specified output path
+    // Write to the specified output path (will overwrite existing file)
     await fs.writeFile(outputPath, outputContent);
-    console.log(`Generated ${outputPath} with contents of:`);
+    console.log(`Generated (or overwrote) ${outputPath} with contents of:`);
     sortedDeps.forEach(dep => console.log(dep));
 }
 
@@ -72,12 +77,12 @@ async function main() {
     const args = process.argv.slice(2);
     
     if (args.length < 1) {
-        console.log('Usage: node script.js <filename> [output_path]');
+        console.log('Usage: node script.js <filename> [output_directory]');
         process.exit(1);
     }
     
-    const [sourceFile, outputPath] = args;
-    await generateGrokPrompt(sourceFile, outputPath || 'new-grok-prompt.txt');
+    const [sourceFile, outputDir] = args;
+    await generateGrokPrompt(sourceFile, outputDir || 'grok');
 }
 
 main().catch(console.error);
