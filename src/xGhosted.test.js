@@ -232,7 +232,7 @@ describe('xGhosted', () => {
     expect(xGhosted.state.collapsedElements.size).toBeGreaterThan(0);
   });
 
-  test.skip('highlightPosts applies correct borders', () => {
+  test('highlightPosts applies correct borders', () => {
     xGhosted.highlightPosts();
     const posts = xGhosted.identifyPosts();
     const goodPost = posts.find(p => p.analysis.quality === postQuality.GOOD);
@@ -255,7 +255,7 @@ describe('xGhosted', () => {
     expect(links[1].href).toContain('/ApostleJohnW/status/1897004713570394503');
   });
 
-  describe.skip('identifyPosts with sample HTML', () => {
+  describe('identifyPosts with sample HTML', () => {
     test('processes good and problem posts correctly', () => {
       const posts = xGhosted.identifyPosts();
       const problemPost = posts.find(p => p.analysis.quality === postQuality.PROBLEM);
