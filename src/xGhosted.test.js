@@ -32,7 +32,7 @@ describe('xGhosted', () => {
   beforeEach(() => {
     dom = setupJSDOM();
     xGhosted = new XGhosted(dom.window.document);
-    console.log('Pre-init config:', xGhosted.uiElements.config.PANEL.TOP);
+    // console.log('Pre-init config:', xGhosted.uiElements.config.PANEL.TOP);
     xGhosted.updateState('https://x.com/user/with_replies');
   });
 
@@ -222,16 +222,55 @@ describe('xGhosted', () => {
   });
 
   test('highlightPosts applies correct borders', () => {
-    xGhosted.highlightPosts();
+    xGhosted.highlightPostsImmediate();
     const posts = xGhosted.identifyPosts();
     const goodPost = posts.find(p => p.analysis.quality === postQuality.GOOD);
     const problemPost = posts.find(p => p.analysis.quality === postQuality.PROBLEM);
     const potentialPost = posts.find(p => p.analysis.quality === postQuality.POTENTIAL_PROBLEM);
-
+    const undefinedPost = posts.find(p => p.analysis.quality === postQuality.UNDEFINED);
+  
+    // Border and background checks
+    expect(goodPost.post.querySelector('article').style.border).toBe(''); // Unchecked GOOD
+    expect(goodPost.post.querySelector('article').style.backgroundColor).toBe('');
+    expect(goodPost.post.querySelector('.eye-icon')).toBeNull();
+  
+    expect(problemPost.post.querySelector('article').style.border).toBe('2px solid red');
+    expect(problemPost.post.querySelector('article').style.backgroundColor).toBe('rgba(255, 0, 0, 0.3)');
+    expect(problemPost.post.querySelector('.eye-icon')).toBeNull();
+  
+    expect(potentialPost.post.querySelector('article').style.border).toBe('2px solid yellow');
+    expect(potentialPost.post.querySelector('article').style.backgroundColor).toBe('rgba(255, 255, 0, 0.3)');
+    expect(potentialPost.post.querySelector('.eye-icon').textContent).toBe('👀');
+  
+    // Handle UNDEFINED posts—check article if present, otherwise post itself
+    const undefinedArticle = undefinedPost.post.querySelector('article');
+    if (undefinedArticle) {
+      expect(undefinedArticle.style.border).toBe('');
+      expect(undefinedArticle.style.backgroundColor).toBe('');
+      expect(undefinedPost.post.querySelector('.eye-icon')).toBeNull();
+    } else {
+      expect(undefinedPost.post.style.border).toBe(''); // No article, no style on post
+      expect(undefinedPost.post.style.backgroundColor).toBe('');
+    }
+  
+    // Persistence: Re-run shouldn’t mess with styles
+    xGhosted.highlightPostsImmediate();
     expect(goodPost.post.querySelector('article').style.border).toBe('');
     expect(problemPost.post.querySelector('article').style.border).toBe('2px solid red');
     expect(potentialPost.post.querySelector('article').style.border).toBe('2px solid yellow');
-    expect(potentialPost.post.querySelector('.eye-icon').textContent).toBe('👀');
+    expect(potentialPost.post.querySelectorAll('.eye-icon').length).toBe(1); // No duplicate icons
+    if (undefinedArticle) {
+      expect(undefinedArticle.style.border).toBe('');
+    } else {
+      expect(undefinedPost.post.style.border).toBe('');
+    }
+  
+    // Edge case: Post without article
+    const noArticlePost = dom.window.document.createElement('div');
+    noArticlePost.setAttribute('data-testid', 'cellInnerDiv');
+    xGhosted.state.postContainer.appendChild(noArticlePost);
+    xGhosted.highlightPostsImmediate();
+    expect(noArticlePost.style.border).toBe(''); // No crash, no style applied
   });
 
   test('renderPanel displays problem and potential posts', () => {

@@ -2,7 +2,7 @@ const createButton = require('./createButton');
 const detectTheme = require('./detectTheme');
 
 function createPanel(doc, state, uiElements, config, togglePanelVisibility, copyCallback) {
-  console.log('Creating panel...');
+  // ('Creating panel...');
   const mode = detectTheme(doc);
   state.isDarkMode = mode !== 'light';
 

@@ -12,7 +12,7 @@ global.GM_setValue = jest.fn().mockResolvedValue(undefined);
 global.GM_addStyle = jest.fn();
 global.GM_setClipboard = jest.fn();
 
-console.log("Before eval: ", GM_log, GM_getValue, GM_addStyle);
+// console.log("Before eval: ", GM_log, GM_getValue, GM_addStyle);
 
 describe('Highlight Potential Problems Userscript', () => {
   let dom;

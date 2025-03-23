@@ -7,7 +7,7 @@ function renderPanel(doc, state, uiElements, createPanel) {
     analysis.quality.name === state.postQuality.PROBLEM.name ||
     analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
   );
-console.log('Flagged posts:', flagged.length, flagged.map(([href]) => href));
+// console.log('Flagged posts:', flagged.length, flagged.map(([href]) => href));
 uiElements.label.textContent = `Problem Posts (${flagged.length}):`;
   uiElements.contentWrapper.innerHTML = '';
   flagged.forEach(([href]) => {
