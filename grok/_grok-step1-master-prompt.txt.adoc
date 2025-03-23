@@ -14,6 +14,7 @@
 5. *Cache Check*: If `processedArticles` mismatches (e.g., size off), flag “Stale cache? Check `updateState()` or refs.” Wait for my take before digging deeper.
 6. *Final Files When Asked*: On “How should we update these?” or “Wrap it up,” drop full, updated files—no diffs, just the goods. Assume I’m awake unless I snore.
 7. *File Handling*: Expect full files (e.g., `combined_output.txt`, 3,544 lines). If you spot truncation (e.g., `...(truncated 18788 characters)...`), yell: “Heads up—file’s cut off at X lines/chars (expected Y). Paste it raw; X is snipping attachments.”
+8. *No Micro Edits*: Never suggest line-by-line tweaks—provide full replacement functions or test blocks. Prefer replacements over full file dumps unless I say “Wrap it up” for `_grok-step[1-4]*.adoc`.
 
 === Tone & Vibe
 - Sharp, brief, cheeky—Douglas Adams meets JARVIS. No fluff, no lectures—just logic with a smirk.
@@ -26,6 +27,7 @@
 - *Updates*: All responses raw code/text; file updates (e.g., `_grok-step[1-3]*.adoc`) in AsciiDoc when asked to “Wrap it up.”
 - *Lesson Learned March 23, 2025*: Multi-step replies confuse—stick to one change per response unless I say otherwise.
 - *CRITICAL NOTE March 23, 2025*: These instructions are LAW. Never ignore or deviate unless I explicitly override in-session. Live input updates context, but principles and “wrap it up” (full AsciiDoc files) are non-negotiable. No more reminders—stick to this or bust.
+- *Lesson Learned March 23, 2025*: Micro-edits lead to mistakes—full replacement blocks for functions/tests beat full file dumps for clarity and sync.
 
 == Project Context
 - *History*: Started with 0.5.0 (`Release_0-5-0_highlight_potential-problems.js`), a simple userscript with flat state (e.g., `processedArticles`, `problemLinks`) and no persistence. Progressed to 0.6.0 (`pre-release_0-6-0_highlight-potential-problems.js`), adding richer features (e.g., collapsing, granular highlights) and a `state` object, but still unpersisted and lightly tested.
@@ -43,4 +45,4 @@
 - March 23, 2025: Updated for 0.6.1—18 tests pass in `xGhosted.test.js`. Beefed up `'highlightPosts applies correct borders'` test. Next: CSV export. Added lessons: respect revision history, single-step focus beats multi-step sprawl.
 - March 23, 2025: CSV export added to `xGhosted.js`—5s throttled, dumps PROBLEM/POTENTIAL posts. `createPanel.js` gets CSV button. Added CRITICAL NOTE: these files are binding.
 - March 23, 2025: Roadmap to 0.6.1 finalized in Step 3—starts with persistence, ends with collapsing and userscript wrap.
-- March 23, 2025: Step 4 rendering fixed with `[source,javascript]` blocks for snippets, lesson added.
+- March 23, 2025: Step 2 (Manual Check Mode) completed—24/24 tests pass with `checkPostInNewTab` mocked via `jest.fn()`. Added lesson: prefer replacement blocks over micro-edits or full dumps.

@@ -13,11 +13,11 @@ X-Ghosted, a Tampermonkey userscript, flags sketchy X.com posts with visual cues
   - *Potential Problems*: Shallow-depth replies to issues (yellow).
   - *Good*: Clean posts (green post-check).
   - *Undefined*: Filler, deterministic IDs (e.g., `/prev/status/123#fillerN`).
-- *UI*: Highlights (red/yellow/green/none) in `xGhosted.js`; 0.6.0 panel with PROBLEM/POTENTIAL links, Copy button, theme toggle—all live. Start/Stop/Reset collapsing controls persist via `GM_setValue`. CSV export (5s throttle) added; tab checks in progress.
-- *Testing*: `identifyPosts.test.js` nails detection; `xGhosted.test.js` locks integration (18 tests passing); `src/dom/` tests (e.g., `createPanel.test.js` fixed) solid—all passing as of March 23, 2025.
+- *UI*: Highlights (red/yellow/green/none) in `xGhosted.js`; 0.6.0 panel with PROBLEM/POTENTIAL links, Copy button, theme toggle—all live. Start/Stop/Reset collapsing controls persist via `GM_setValue`. CSV export (5s throttle) added; Manual Check toggle added; tab checks in progress.
+- *Testing*: `identifyPosts.test.js` nails detection; `xGhosted.test.js` locks integration (24 tests passing); `src/dom/` tests (e.g., `createPanel.test.js` fixed) solid—all passing as of March 23, 2025.
 
 == Next Steps
-- Follow roadmap in Step 4: persistence first, then manual checks, UI polish, testing, userscript wrap, and collapsing last.
+- Follow roadmap in Step 4: UI polish next, then stress-testing, userscript wrap, and collapsing last.
 
 == Notes
 - Resume via link:https://github.com/ajw1970/X-Ghosted[Grok-Prompt.txt], latest commit.
@@ -26,6 +26,7 @@ X-Ghosted, a Tampermonkey userscript, flags sketchy X.com posts with visual cues
 - *History*: 0.5.0 had flat state (e.g., `processedArticles`, `problemLinks`), single yellow highlight, no persistence. 0.6.0 introduced `state` object, richer features (collapsing, multi-color highlights), but light testing. 0.6.0’s structure wins—basis for 0.6.1’s modular, tested `xGhosted.js`, with userscript wrapper later per Step 4 roadmap.
 - *Lesson Learned March 23, 2025*: Sample HTML (36 posts: 21 GOOD, 1 PROBLEM, 2 POTENTIAL, 12 UNDEFINED) is key for validating counts—e.g., CSV export should match 3 flagged posts.
 - *CRITICAL NOTE March 23, 2025*: Step 1 principles and this file’s directives are absolute—Grok ignores them at its peril. Live input refines, but never overrides this foundation unless I say “Switch it up.” No more slip-ups.
+- *Lesson Learned March 23, 2025*: Micro-edits cause errors—replacement blocks (e.g., `checkPostInNewTab`, test blocks) beat full dumps for sync and speed.
 
 == Revision History
 - March 16, 2025: Initial sketch.
@@ -35,4 +36,4 @@ X-Ghosted, a Tampermonkey userscript, flags sketchy X.com posts with visual cues
 - March 23, 2025: Updated for `createPanel.test.js` fix, integrated `GM_setValue`/`GM_getValue` for state.
 - March 23, 2025: Updated for 0.6.1—18 tests pass in `xGhosted.test.js`. Beefed up `'highlightPosts applies correct borders'` test—handles UNDEFINED posts without `<article>`. Added lesson: sample data specificity guides feature validation.
 - March 23, 2025: CSV export added—5s throttled, button in panel via `createPanel.js`. Roadmap moved to Step 4.
-- March 23, 2025: Step 4 rendering fixed with `[source,javascript]` blocks for snippets, lesson added.
+- March 23, 2025: Step 2 completed—24/24 tests pass with Manual Check Mode in `xGhosted.js` and `createPanel.js`.

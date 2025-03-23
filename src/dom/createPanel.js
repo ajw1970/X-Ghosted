@@ -2,12 +2,11 @@ const createButton = require('./createButton');
 const detectTheme = require('./detectTheme');
 
 function createPanel(doc, state, uiElements, config, togglePanelVisibility, copyCallback) {
-  // ('Creating panel...');
   const mode = detectTheme(doc);
   state.isDarkMode = mode !== 'light';
 
   uiElements.panel = doc.createElement('div');
-  uiElements.panel.id = 'xghosted-panel'; // Add this
+  uiElements.panel.id = 'xghosted-panel';
   Object.assign(uiElements.panel.style, {
     position: 'fixed',
     top: config.PANEL.TOP,
@@ -37,9 +36,19 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
 
   uiElements.label = doc.createElement('span');
   uiElements.label.textContent = 'Problem Posts (0):';
-  Object.assign(uiElements.label.style, { fontSize: '15px', fontWeight: '700', color: config.THEMES[mode].text });
+  Object.assign(uiElements.label.style, {
+    fontSize: '15px',
+    fontWeight: '700',
+    color: config.THEMES[mode].text
+  });
 
   uiElements.copyButton = createButton(doc, 'Copy', mode, copyCallback, config);
+
+  uiElements.manualCheckButton = createButton(doc, 'Manual Check', mode, () => {
+    state.isManualCheckEnabled = !state.isManualCheckEnabled;
+    uiElements.manualCheckButton.textContent = state.isManualCheckEnabled ? 'Stop Manual' : 'Manual Check';
+    // Note: saveState deferred to xGhosted instance (e.g., in togglePanelVisibility or wrapper)
+  }, config);
 
   uiElements.modeSelector = doc.createElement('select');
   uiElements.modeSelector.innerHTML = '<option value="dark">Dark</option><option value="dim">Dim</option><option value="light">Light</option>';
@@ -72,7 +81,14 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
     scrollbarColor: `${config.THEMES[mode].scroll} ${config.THEMES[mode].bg}`,
   });
 
-  uiElements.toolbar.append(uiElements.label, uiElements.copyButton, uiElements.modeSelector, uiElements.toggleButton);
+  uiElements.toolbar.append(
+    uiElements.label,
+    uiElements.copyButton,
+    uiElements.manualCheckButton,
+    uiElements.modeSelector,
+    uiElements.toggleButton
+  );
+
   uiElements.panel.append(uiElements.toolbar, uiElements.contentWrapper);
   doc.body.appendChild(uiElements.panel);
 

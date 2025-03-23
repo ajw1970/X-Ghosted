@@ -19,6 +19,7 @@ function XGhosted(doc) {
     postQuality,
     isPanelVisible: true,
     isDarkMode: true,
+    isManualCheckEnabled: false,
   };
   this.document = doc;
   this.uiElements = {
@@ -43,10 +44,10 @@ function XGhosted(doc) {
 XGhosted.prototype.loadState = function () {
   const savedState = GM_getValue('xGhostedState', {});
   this.state.isPanelVisible = savedState.isPanelVisible ?? true;
-  this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false; // For later
+  this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
+  this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
   const savedArticles = savedState.processedArticles || {};
   for (const [id, data] of Object.entries(savedArticles)) {
-    // Element refs won’t persist—rely on analysis only
     this.state.processedArticles.set(id, { analysis: data.analysis, element: null });
   }
 };
@@ -54,11 +55,12 @@ XGhosted.prototype.loadState = function () {
 XGhosted.prototype.saveState = function () {
   const serializableArticles = {};
   for (const [id, data] of this.state.processedArticles) {
-    serializableArticles[id] = { analysis: data.analysis }; // Drop element
+    serializableArticles[id] = { analysis: data.analysis };
   }
   GM_setValue('xGhostedState', {
     isPanelVisible: this.state.isPanelVisible,
     isCollapsingEnabled: this.state.isCollapsingEnabled,
+    isManualCheckEnabled: this.state.isManualCheckEnabled,
     processedArticles: serializableArticles
   });
 };
@@ -71,6 +73,44 @@ XGhosted.prototype.updateState = function (url) {
     this.state.lastUrl = url;
   }
 };
+
+XGhosted.prototype.checkPostInNewTab = function (article, href) {
+  const fullUrl = `https://x.com${href}`;
+  const newWindow = this.document.defaultView.open(fullUrl, '_blank');
+  let attempts = 0, maxAttempts = 10;
+  const checkInterval = setInterval(() => {
+    attempts++;
+    if (newWindow && newWindow.document.readyState === 'complete') {
+      clearInterval(checkInterval);
+      const threadArticles = newWindow.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+      let isProblem = false;
+      for (let threadArticle of threadArticles) {
+        const analysis = identifyPost(threadArticle, false); // No reply checks in thread
+        if (analysis.quality === postQuality.PROBLEM) {
+          isProblem = true;
+          break;
+        }
+      }
+      this.applyHighlight(article, isProblem ? 'problem' : 'good');
+      const cached = this.state.processedArticles.get(href);
+      if (cached) {
+        cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
+        cached.checked = true;
+      }
+      if (!isProblem) newWindow.close();
+      this.saveState();
+    }
+    if (attempts >= maxAttempts) {
+      clearInterval(checkInterval);
+      if (newWindow) newWindow.close();
+    }
+  }, 500);
+};
+
+// Throttled version
+XGhosted.prototype.checkPostInNewTabThrottled = debounce(function (article, href) {
+  this.checkPostInNewTab(article, href);
+}, 5000);
 
 XGhosted.prototype.findPostContainer = function () {
   if (this.state.postContainer) return this.state.postContainer;
@@ -136,7 +176,6 @@ XGhosted.prototype.highlightPosts = function () {
   posts.forEach(({ post, analysis }) => {
     const article = post.querySelector('article');
     if (!article) return;
-
     const statusMap = {
       [postQuality.PROBLEM.name]: 'problem',
       [postQuality.POTENTIAL_PROBLEM.name]: 'potential',
@@ -145,13 +184,11 @@ XGhosted.prototype.highlightPosts = function () {
     };
     const cached = this.state.processedArticles.get(analysis.link);
     let status = statusMap[analysis.quality.name] || 'none';
-
-    if (status === 'good' && (!cached || !cached.checked)) {
-      status = 'none';
-    }
-
+    if (status === 'good' && (!cached || !cached.checked)) status = 'none';
     this.applyHighlight(article, status);
-
+    if (status === 'potential' && this.state.isManualCheckEnabled && !cached?.checked) {
+      this.checkPostInNewTabThrottled(article, analysis.link);
+    }
     if (status === 'potential' && !article.querySelector('.eye-icon')) {
       const eye = this.document.createElement('span');
       eye.textContent = '👀';
@@ -204,7 +241,7 @@ XGhosted.prototype.createPanel = function () {
 
 XGhosted.prototype.togglePanelVisibility = function () {
   togglePanelVisibility(this.state, this.uiElements);
-  this.saveState(); 
+  this.saveState();
 };
 
 XGhosted.prototype.updateTheme = function () {
