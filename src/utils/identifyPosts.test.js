@@ -2008,32 +2008,3 @@ describe('identifyPosts - Problems and Potential Problems', () => {
   });
 
 });
-
-describe.skip('identifyPosts - Future Features', () => {
-
-  it('should identify replies to two but only find 1 in this sample size of 3', () => {
-    loadHTML('samples/Reply-To-Two-But-Only-See-One.html');
-    const results = identifyPosts(document);
-    const analyses = results.map(result => result.analysis);
-
-    expect(describeSampleAnalyses(document, analyses)).toBe([
-      "Structure Summary Totals:",
-      "   3 Posts",
-      "   3 Articles",
-      "   0 Nested Articles",
-      "",
-      "Rated Post Quality (3 Total):",
-      "   1 Good",
-      "   0 Potential Problem",
-      "   1 Problem",
-      "   2 Undefined"
-    ].join("\n"));
-
-    expect(analyses).toEqual([]);
-
-    expect(results.logMessages).toEqual([]);
-    expect(results.matchingArticles.length).toBe(1);
-    document.documentElement.innerHTML = '';
-  });
-
-});

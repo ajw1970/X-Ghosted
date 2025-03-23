@@ -221,17 +221,6 @@ describe('xGhosted', () => {
     expect(postsAgain[0].analysis).toEqual(posts[0].analysis);
   });
 
-  test.skip('collapsePosts hides problem posts', () => {
-    const cells = xGhosted.findCollapsibleElements();
-    xGhosted.state.lastCollapseTime = 0;
-    xGhosted.collapsePosts();
-    const problemPostCell = cells.find(cell =>
-      cell.querySelector('article')?.innerHTML.includes('this post is unavailable')
-    );
-    expect(problemPostCell.style.display).toBe('none');
-    expect(xGhosted.state.collapsedElements.size).toBeGreaterThan(0);
-  });
-
   test('highlightPosts applies correct borders', () => {
     xGhosted.highlightPosts();
     const posts = xGhosted.identifyPosts();
