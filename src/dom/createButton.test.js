@@ -1,5 +1,6 @@
 const { JSDOM } = require('jsdom');
 const createButton = require('./createButton');
+const rgbToHex = require('./rgbToHex');
 
 describe('createButton', () => {
   let doc, config;
@@ -19,7 +20,7 @@ describe('createButton', () => {
     const button = createButton(doc, 'Copy', 'light', onClick, config);
     expect(button.tagName).toBe('BUTTON');
     expect(button.textContent).toBe('Copy');
-    expect(button.style.background).toBe('#D3D3D3');
+    expect(rgbToHex(button.style.background)).toBe('#D3D3D3');
     button.dispatchEvent(new doc.defaultView.Event('click'));
     expect(onClick).toHaveBeenCalled();
   });
