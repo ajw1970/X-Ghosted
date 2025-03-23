@@ -3,11 +3,12 @@ function renderPanel(doc, state, uiElements, createPanel) {
     createPanel(doc, state, uiElements);
   }
   const flagged = Array.from(state.processedArticles.entries())
-    .filter(([_, { analysis }]) =>
-      analysis.quality.name === state.postQuality.PROBLEM.name ||
-      analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
-    );
-  uiElements.label.textContent = `Problem Posts (${flagged.length}):`;
+  .filter(([_, { analysis }]) =>
+    analysis.quality.name === state.postQuality.PROBLEM.name ||
+    analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
+  );
+console.log('Flagged posts:', flagged.length, flagged.map(([href]) => href));
+uiElements.label.textContent = `Problem Posts (${flagged.length}):`;
   uiElements.contentWrapper.innerHTML = '';
   flagged.forEach(([href]) => {
     const linkItem = doc.createElement('div');

@@ -7,6 +7,7 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
   state.isDarkMode = mode !== 'light';
 
   uiElements.panel = doc.createElement('div');
+  uiElements.panel.id = 'xghosted-panel'; // Add this
   Object.assign(uiElements.panel.style, {
     position: 'fixed',
     top: config.PANEL.TOP,

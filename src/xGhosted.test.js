@@ -1,18 +1,15 @@
+// File: src/xGhosted.test.js
 const { JSDOM } = require('jsdom');
 const XGhosted = require('./xGhosted');
 const postQuality = require('./utils/postQuality');
 const summarizeRatedPosts = require('./utils/summarizeRatedPosts');
-const fs = require('fs'); // Add these
+const fs = require('fs');
 const path = require('path');
 
 function setupJSDOM() {
-  // Load the sample HTML fragment
   const samplePath = path.resolve(__dirname, '../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
   const sampleHtml = fs.readFileSync(samplePath, 'utf8');
-
-  // Inject into <body>
   const html = `<!DOCTYPE html><html><body>${sampleHtml}</body></html>`;
-
   const dom = new JSDOM(html, {
     url: 'https://x.com/user/with_replies',
     resources: 'usable',
@@ -35,8 +32,8 @@ describe('xGhosted', () => {
   beforeEach(() => {
     dom = setupJSDOM();
     xGhosted = new XGhosted(dom.window.document);
+    console.log('Pre-init config:', xGhosted.uiElements.config.PANEL.TOP);
     xGhosted.updateState('https://x.com/user/with_replies');
-    xGhosted.init(); // Full setup
   });
 
   afterEach(() => {
@@ -44,28 +41,29 @@ describe('xGhosted', () => {
   });
 
   test('init sets up panel and highlights', () => {
+    xGhosted.highlightPostsImmediate(); 
     const panel = xGhosted.document.getElementById('xghosted-panel');
-    expect(panel).toBeTruthy(); // Should pass now with proper imports
-    const links = xGhosted.document.querySelectorAll('.link-item a');
-    expect(links.length).toBe(3); // 1 PROBLEM, 2 POTENTIAL
+    expect(panel).toBeTruthy();
+    const links = xGhosted.document.querySelectorAll('#xghosted-panel .problem-links-wrapper .link-item a');
+    expect(links.length).toBe(3);
   });
 
   test('updateState detects /with_replies URL', () => {
-    expect(xGhosted.state.isWithReplies).toBe(true); // Already set in beforeEach
+    expect(xGhosted.state.isWithReplies).toBe(true);
   });
 
   test('findPostContainer identifies correct container', () => {
     const container = xGhosted.findPostContainer();
-    expect(container.querySelectorAll('article:not(article article)').length).toBe(24); // Matches sample
+    expect(container.querySelectorAll('article:not(article article)').length).toBe(24);
   });
 
   test('identifyPosts classifies posts and caches results', () => {
-    expect(xGhosted.state.isWithReplies).toBe(true); // Already set in beforeEach
-    expect(xGhosted.state.processedArticles.size).toEqual(0); // No posts cached
-
+    expect(xGhosted.state.isWithReplies).toBe(true);
+    expect(xGhosted.state.processedArticles.size).toEqual(0);
+    xGhosted.highlightPostsImmediate(); // Move it here
     const posts = xGhosted.identifyPosts();
-    expect(posts.length).toBe(36); // Matches sample HTML summary from Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html
-    expect(xGhosted.state.processedArticles.size).toBe(36); // All posts cached
+    expect(posts.length).toBe(36);
+    expect(xGhosted.state.processedArticles.size).toBe(36);
 
     const analyses = posts.map(p => p.analysis);
     expect(analyses[0].quality).toEqual(postQuality.GOOD);
@@ -212,17 +210,15 @@ describe('xGhosted', () => {
     expect(analyses[35].reason).toEqual("Found: 'Replying to <a>@monetization_x</a>' at a depth of 6");
     expect(analyses[35].link).toEqual("/ApostleJohnW/status/1897002239753073002");
 
-    // Check classifications against sample summary
     const summary = summarizeRatedPosts(analyses);
     expect(summary.Good).toBe(21);
     expect(summary.Problem).toBe(1);
     expect(summary['Potential Problem']).toBe(2);
     expect(summary.Undefined).toBe(12);
 
-    // Re-run should return same results (cached)
     const postsAgain = xGhosted.identifyPosts();
     expect(postsAgain.length).toBe(36);
-    expect(postsAgain[0].analysis).toEqual(posts[0].analysis); // Cached result
+    expect(postsAgain[0].analysis).toEqual(posts[0].analysis);
   });
 
   test.skip('collapsePosts hides problem posts', () => {
@@ -243,17 +239,18 @@ describe('xGhosted', () => {
     const problemPost = posts.find(p => p.analysis.quality === postQuality.PROBLEM);
     const potentialPost = posts.find(p => p.analysis.quality === postQuality.POTENTIAL_PROBLEM);
 
-    expect(goodPost.post.querySelector('article').style.border).toBe(''); // GOOD not checked yet
+    expect(goodPost.post.querySelector('article').style.border).toBe('');
     expect(problemPost.post.querySelector('article').style.border).toBe('2px solid red');
     expect(potentialPost.post.querySelector('article').style.border).toBe('2px solid yellow');
     expect(potentialPost.post.querySelector('.eye-icon').textContent).toBe('👀');
   });
+
   test('renderPanel displays problem and potential posts', () => {
-    xGhosted.init(); // Sets up panel and highlights
+    xGhosted.highlightPostsImmediate(); // Replace init()
     const panel = xGhosted.document.getElementById('xghosted-panel');
     expect(panel).toBeTruthy();
-    const links = panel.querySelectorAll('.link-item a');
-    expect(links.length).toBe(3); // 1 PROBLEM, 2 POTENTIAL from sample
+    const links = xGhosted.document.querySelectorAll('#xghosted-panel .problem-links-wrapper .link-item a');
+    expect(links.length).toBe(3);
     expect(links[0].href).toContain('/OwenGregorian/status/1896977661144260900');
     expect(links[1].href).toContain('/ApostleJohnW/status/1897004713570394503');
   });
@@ -268,7 +265,7 @@ describe('xGhosted', () => {
       expect(problemPost.analysis).toEqual({
         quality: postQuality.PROBLEM,
         reason: "Found notice: this post is unavailable",
-        link: expect.stringContaining('/status/') // Dynamic status ID
+        link: expect.stringContaining('/status/')
       });
       expect(goodPost).toBeDefined();
       expect(goodPost.analysis.quality).toBe(postQuality.GOOD);
@@ -276,7 +273,7 @@ describe('xGhosted', () => {
 
     test('identifies all post qualities correctly', () => {
       const posts = xGhosted.identifyPosts();
-      expect(posts.length).toBe(36); // Matches sample summary
+      expect(posts.length).toBe(36);
       const goodPosts = posts.filter(p => p.analysis.quality === postQuality.GOOD);
       const problemPosts = posts.filter(p => p.analysis.quality === postQuality.PROBLEM);
       const potentialPosts = posts.filter(p => p.analysis.quality === postQuality.POTENTIAL_PROBLEM);
@@ -290,7 +287,6 @@ describe('xGhosted', () => {
   });
 
   describe('getThemeMode', () => {
-
     test('returns "dark" when data-theme includes "lights-out" or "dark"', () => {
       dom.window.document.body.setAttribute('data-theme', 'lights-out');
       var xGhosted = new XGhosted(dom.window.document);
@@ -318,7 +314,7 @@ describe('xGhosted', () => {
     });
 
     test('returns "dark" when body has dark classes', () => {
-      dom.window.document.body.removeAttribute('data-theme'); // Ensure data-theme doesn’t interfere
+      dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.classList.add('dark');
       var xGhosted = new XGhosted(dom.window.document);
       expect(xGhosted.getThemeMode()).toBe('dark');

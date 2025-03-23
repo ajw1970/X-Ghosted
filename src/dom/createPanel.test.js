@@ -19,7 +19,8 @@ describe('createPanel', () => {
 
   test('creates a panel with toolbar and content', () => {
     createPanel(doc, state, uiElements, config, () => { }, () => { });
-    expect(doc.getElementById('xghosted-panel')).toBeNull(); // No ID, just structure
+    const panel = doc.getElementById('xghosted-panel');
+    expect(panel).toBeTruthy(); 
     expect(uiElements.panel.style.width).toBe('350px');
     expect(uiElements.label.textContent).toBe('Problem Posts (0):');
     expect(uiElements.contentWrapper.className).toBe('problem-links-wrapper');

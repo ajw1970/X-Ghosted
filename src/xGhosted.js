@@ -140,13 +140,18 @@ XGhosted.prototype.highlightPosts = function () {
     }
   });
   renderPanel(this.document, this.state, this.uiElements, () =>
-    createPanel(this.document, this.state, this.uiElements, this.togglePanelVisibility.bind(this), this.copyLinks.bind(this))
+    createPanel(this.document, this.state, this.uiElements, this.uiElements.config, this.togglePanelVisibility.bind(this), this.copyLinks.bind(this))
   );
 };
 
 XGhosted.prototype.highlightPostsDebounced = debounce(function () {
   this.highlightPosts();
 }, 250);
+
+// Add for testing
+XGhosted.prototype.highlightPostsImmediate = function () {
+  this.highlightPosts();
+};
 
 XGhosted.prototype.getThemeMode = function () {
   return detectTheme(this.document);
@@ -170,7 +175,7 @@ XGhosted.prototype.createButton = function (text, mode, onClick) {
 };
 
 XGhosted.prototype.createPanel = function () {
-  createPanel(this.document, this.state, this.uiElements, this.togglePanelVisibility.bind(this), this.copyLinks.bind(this));
+  createPanel(this.document, this.state, this.uiElements, this.uiElements.config, this.togglePanelVisibility.bind(this), this.copyLinks.bind(this));
 };
 
 XGhosted.prototype.togglePanelVisibility = function () {

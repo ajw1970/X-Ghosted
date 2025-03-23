@@ -1,7 +1,7 @@
 = Grok Step 2: Working Understanding of X-Ghosted Project
 :author: ajw1970
 :date: March 16, 2025
-:revdate: March 22, 2025
+:revdate: March 23, 2025
 
 == Overview
 X-Ghosted is a Tampermonkey userscript that flags dodgy X.com posts with visual markers, taming the replies feed. Version 0.6.1 (post commit 2ecaf8f49) nails detection and tests, thanks to a leaner `identifyPost.js`.
@@ -13,12 +13,13 @@ X-Ghosted is a Tampermonkey userscript that flags dodgy X.com posts with visual 
   - *Good*: Clean posts (green, post-check).
   - *Undefined*: Filler (collapsible, neutral), tagged with deterministic IDs like `/prev/status/123#fillerN`.
 - *UI*: Dynamic highlights (red for Problems, yellow for Potential Problems with eye icon, green for Good post-check, none for Undefined) implemented; control panel from 0.6.0 integrated with PROBLEM/POTENTIAL links, Copy button, and theme toggle; full panel features (CSV, collapse toggles) in progress.
-- *Testing*: Unit tests in `identifyPosts.test.js` use real samples from `samples/`; `xGhosted.test.js` covers integration; DOM unit tests in `src/dom/` added for panel functions.
+- *Testing*: Unit tests in `identifyPosts.test.js` use real samples from `samples/`; `xGhosted.test.js` covers integration, with `init sets up panel and highlights` fixed using `highlightPostsImmediate()`; DOM unit tests in `src/dom/` added for panel functions; 1 failure remains in `identifyPosts classifies posts and caches results`.
 
 == Next Steps
-- Finalize `xGhosted.js` for 0.6.1 by completing panel (CSV writes with 5s throttle, auto-collapse toggles) and tab checks (2s-debounced for GOOD highlights).
+- Un-skip most tests in `xGhosted.test.js` (except collapsing-related) to lock in 0.6.1 integration coverage.
+- Finalize panel with CSV writes (5s throttle) and tab checks (2s-debounced for GOOD highlights); leave collapsing for last.
 - Add user prompts for “Manual Check Mode” if debug kicks in.
-- Resolve DOM unit test failures: RGB color normalization in `createButton`, config passing in `createPanel`, flagged post rendering in `renderPanel`.
+- Fix `identifyPosts classifies posts and caches results`—expects `processedArticles.size` 0 but gets 36 after `highlightPostsImmediate()`; check size before population.
 
 == Notes
 - Pick up from link:https://github.com/ajw1970/X-Ghosted[Grok-Prompt.txt] and latest commit.
@@ -29,4 +30,5 @@ X-Ghosted is a Tampermonkey userscript that flags dodgy X.com posts with visual 
 - March 16, 2025: Initial project sketch.
 - March 21, 2025: Aligned with 0.6.1, trimmed to essentials.
 - March 23, 2025: Updated for 0.6.1 success—`identifyPost.js` fix aced it.
-- March 22, 2025: Updated for `identifyPosts()` deterministic IDs—fillers now trackable; added highlights implementation; shifted next steps to collapsing and panel; integrated 0.6.0 panel, began DOM extraction to `src/dom/`, noted test failures and attachment issues.
+- March 22, 2025: Updated for `identifyPosts()` deterministic IDs—fillers now trackable; added highlights implementation; shifted next steps to collapsing and panel; integrated 0.6.0 panel, began DOM extraction to `src/dom/`, noted test failures and attachment issues; updated status: 1 failure remains.
+- March 23, 2025: Noted `xGhosted.test.js` fix—`init sets up panel and highlights` passes; next step is un-skipping tests, delaying collapsing; status as of March 23, 2025: 1 failure in `identifyPosts classifies posts and caches results`.

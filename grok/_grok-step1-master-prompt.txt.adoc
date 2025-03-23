@@ -1,7 +1,7 @@
 = Grok Step 1: Master Prompt
 :author: ajw1970
 :date: March 18, 2025
-:revdate: March 22, 2025
+:revdate: March 23, 2025
 
 == Instructions for Grok 3 (xAI) to Assist ajw1970 with Code
 
@@ -29,4 +29,4 @@
 - March 18, 2025: Drafted for code collab.
 - March 22, 2025: Added rules 5-6 after import and scope fiascos—Grok’s now on a shorter leash.
 - March 23, 2025: Added rule 5 (Cache Check), sharpened 3 & 7, added 8 (Final Files) after file mismatch and overdebug chaos—Grok’s leash is choke-tight now.
-- March 22, 2025: Tweaked Cache Check (5) for `processedArticles` and Final Files (8) trigger—keeps Grok on the ball; confirmed rules still apply post-debounce.test.js fix and xGhosted.js updates; noted Grok twice failed to provide full files instead of diffs when updating Steps 1-3, reinforcing rule 8; added note that attachment errors may require new prompts for large updates.
+- March 23, 2025: Updated for `xGhosted.test.js` fix—`init sets up panel and highlights` now passes with `highlightPostsImmediate()`; 1 failure remains in `identifyPosts classifies posts and caches results` (expects `processedArticles.size` 0, gets 36); status as of March 23, 2025: all other tests pass clean.
