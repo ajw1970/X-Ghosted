@@ -6,6 +6,11 @@ const summarizeRatedPosts = require('./utils/summarizeRatedPosts');
 const fs = require('fs');
 const path = require('path');
 
+// Mock Tampermonkey GM_* functions
+const gmStorage = {};
+global.GM_getValue = jest.fn((key, defaultValue) => gmStorage[key] ?? defaultValue);
+global.GM_setValue = jest.fn((key, value) => { gmStorage[key] = value; });
+
 function setupJSDOM() {
   const samplePath = path.resolve(__dirname, '../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
   const sampleHtml = fs.readFileSync(samplePath, 'utf8');
@@ -393,5 +398,86 @@ describe('xGhosted', () => {
       var xGhosted = new XGhosted(dom.window.document);
       expect(xGhosted.getThemeMode()).toBe('light');
     });
+  });
+});
+
+describe('Persistence in xGhosted', () => {
+  let xGhosted, dom;
+
+  beforeEach(() => {
+    dom = setupJSDOM();
+    xGhosted = new XGhosted(dom.window.document);
+    xGhosted.updateState('https://x.com/user/with_replies');
+    gmStorage.xGhostedState = undefined; // Reset mock storage
+  });
+
+  afterEach(() => {
+    dom.window.document.body.innerHTML = '';
+    jest.clearAllMocks();
+  });
+
+  test('loadState hydrates state from GM_getValue', () => {
+    gmStorage.xGhostedState = {
+      isPanelVisible: false,
+      isCollapsingEnabled: true,
+      processedArticles: {
+        '/status/123': { analysis: { quality: postQuality.PROBLEM, reason: 'Test problem', link: '/status/123' } },
+        '/status/456': { analysis: { quality: postQuality.GOOD, reason: 'Test good', link: '/status/456' } }
+      }
+    };
+    xGhosted.loadState();
+    expect(xGhosted.state.isPanelVisible).toBe(false);
+    expect(xGhosted.state.isCollapsingEnabled).toBe(true);
+    expect(xGhosted.state.processedArticles.size).toBe(2);
+    expect(xGhosted.state.processedArticles.get('/status/123').analysis.quality).toBe(postQuality.PROBLEM);
+    expect(xGhosted.state.processedArticles.get('/status/456').element).toBeNull();
+  });
+
+  test('saveState persists state to GM_setValue', () => {
+    xGhosted.state.isPanelVisible = false;
+    xGhosted.state.isCollapsingEnabled = true;
+    xGhosted.state.processedArticles.set('/status/789', {
+      analysis: { quality: postQuality.POTENTIAL_PROBLEM, reason: 'Test potential', link: '/status/789' },
+      element: dom.window.document.createElement('div') // Won’t persist
+    });
+    xGhosted.saveState();
+    expect(GM_setValue).toHaveBeenCalledWith('xGhostedState', {
+      isPanelVisible: false,
+      isCollapsingEnabled: true,
+      processedArticles: {
+        '/status/789': { analysis: { quality: postQuality.POTENTIAL_PROBLEM, reason: 'Test potential', link: '/status/789' } }
+      }
+    });
+    expect(gmStorage.xGhostedState.processedArticles['/status/789'].analysis).toBeDefined();
+    expect(gmStorage.xGhostedState.processedArticles['/status/789'].element).toBeUndefined();
+  });
+
+  test('init loads state, creates panel, and saves', () => {
+    gmStorage.xGhostedState = { isPanelVisible: false, processedArticles: {} };
+    xGhosted.init();
+    expect(GM_getValue).toHaveBeenCalledWith('xGhostedState', {});
+    expect(xGhosted.state.isPanelVisible).toBe(false);
+    expect(xGhosted.document.getElementById('xghosted-panel')).toBeTruthy();
+    expect(GM_setValue).toHaveBeenCalled(); // Initial save after highlightPostsDebounced
+  });
+
+  test('highlightPosts processes posts and saves state', () => {
+    xGhosted.highlightPostsImmediate();
+    expect(xGhosted.state.processedArticles.size).toBe(36); // Sample HTML
+    expect(GM_setValue).toHaveBeenCalled();
+    const saved = gmStorage.xGhostedState;
+    expect(Object.keys(saved.processedArticles).length).toBe(36);
+    expect(saved.processedArticles['/OwenGregorian/status/1896977661144260900'].analysis.quality).toBe(postQuality.PROBLEM);
+  });
+
+  test('togglePanelVisibility flips visibility and saves', () => {
+    xGhosted.createPanel(); // Need panel for toggle to work
+    xGhosted.state.isPanelVisible = true;
+    xGhosted.togglePanelVisibility();
+    expect(xGhosted.state.isPanelVisible).toBe(false);
+    expect(GM_setValue).toHaveBeenCalledWith('xGhostedState', expect.objectContaining({ isPanelVisible: false }));
+    xGhosted.togglePanelVisibility();
+    expect(xGhosted.state.isPanelVisible).toBe(true);
+    expect(GM_setValue).toHaveBeenCalledWith('xGhostedState', expect.objectContaining({ isPanelVisible: true }));
   });
 });

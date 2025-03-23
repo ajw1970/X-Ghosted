@@ -40,6 +40,29 @@ function XGhosted(doc) {
   };
 }
 
+XGhosted.prototype.loadState = function () {
+  const savedState = GM_getValue('xGhostedState', {});
+  this.state.isPanelVisible = savedState.isPanelVisible ?? true;
+  this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false; // For later
+  const savedArticles = savedState.processedArticles || {};
+  for (const [id, data] of Object.entries(savedArticles)) {
+    // Element refs won’t persist—rely on analysis only
+    this.state.processedArticles.set(id, { analysis: data.analysis, element: null });
+  }
+};
+
+XGhosted.prototype.saveState = function () {
+  const serializableArticles = {};
+  for (const [id, data] of this.state.processedArticles) {
+    serializableArticles[id] = { analysis: data.analysis }; // Drop element
+  }
+  GM_setValue('xGhostedState', {
+    isPanelVisible: this.state.isPanelVisible,
+    isCollapsingEnabled: this.state.isCollapsingEnabled,
+    processedArticles: serializableArticles
+  });
+};
+
 XGhosted.prototype.updateState = function (url) {
   this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(url);
   if (this.state.lastUrl !== url) {
@@ -142,6 +165,7 @@ XGhosted.prototype.highlightPosts = function () {
   renderPanel(this.document, this.state, this.uiElements, () =>
     createPanel(this.document, this.state, this.uiElements, this.uiElements.config, this.togglePanelVisibility.bind(this), this.copyLinks.bind(this))
   );
+  this.saveState();
 };
 
 XGhosted.prototype.highlightPostsDebounced = debounce(function () {
@@ -180,6 +204,7 @@ XGhosted.prototype.createPanel = function () {
 
 XGhosted.prototype.togglePanelVisibility = function () {
   togglePanelVisibility(this.state, this.uiElements);
+  this.saveState(); 
 };
 
 XGhosted.prototype.updateTheme = function () {
@@ -187,8 +212,10 @@ XGhosted.prototype.updateTheme = function () {
 };
 
 XGhosted.prototype.init = function () {
+  this.loadState(); // Load first
   this.createPanel();
   this.highlightPostsDebounced();
+  this.saveState(); // Initial save
 };
 
 module.exports = XGhosted;
