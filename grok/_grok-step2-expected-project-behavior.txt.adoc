@@ -1,5 +1,4 @@
 // File: grok/_grok-step2-expected-project-behavior.txt.adoc
-// --------------------------------
 = Grok Step 2: Working Understanding of X-Ghosted Project
 :author: ajw1970
 :date: March 16, 2025
@@ -18,8 +17,7 @@ X-Ghosted, a Tampermonkey userscript, flags sketchy X.com posts with visual cues
 - *Testing*: `identifyPosts.test.js` nails detection (7 redundant skips flagged); `xGhosted.test.js` locks integration; `src/dom/` tests (e.g., `createPanel.test.js` fixed) solid—all passing as of March 23, 2025.
 
 == Next Steps
-- Cut 7 redundant skipped tests from `identifyPosts.test.js`—overkill covered elsewhere.
-- Un-skip `xGhosted.test.js` tests (e.g., `'highlightPosts applies correct borders'`) for 0.6.1 coverage, save collapsing for last.
+- Cut 7 redundant tests from `identifyPosts.test.js`—overkill covered elsewhere.
 - Finalize panel: CSV (5s throttle), tab checks (2s-debounced GOOD updates).
 - Add “Manual Check Mode” toggle with `GM_log` for flagged posts, persisting state.
 
@@ -28,7 +26,7 @@ X-Ghosted, a Tampermonkey userscript, flags sketchy X.com posts with visual cues
 - Details in Step 3—keep this tight.
 - Large updates might hit attachment snags—new prompts if needed.
 - *History*: 0.5.0 had flat state (e.g., `processedArticles`, `problemLinks`), single yellow highlight, no persistence. 0.6.0 introduced `state` object, richer features (collapsing, multi-color highlights), but light testing. 0.6.0’s structure wins—basis for 0.6.1’s modular, tested `xGhosted.js`, with userscript wrapper later.
-- March 23, 2025: Rules loosened to principles—worked slick today, fixed `createPanel.test.js`, eyed test cleanup. State persistence (e.g., `isPanelVisible`, `isCollapsingEnabled`) now live via `GM_setValue`/`GM_getValue`.
+- *Lesson Learned March 23, 2025*: Sample HTML (36 posts: 21 GOOD, 1 PROBLEM, 2 POTENTIAL, 12 UNDEFINED) is key for validating counts—e.g., CSV export should match 3 flagged posts.
 
 == Revision History
 - March 16, 2025: Initial sketch.
@@ -36,3 +34,4 @@ X-Ghosted, a Tampermonkey userscript, flags sketchy X.com posts with visual cues
 - March 23, 2025: Noted `identifyPost.js` fix success, added state persistence details. *Updated with 0.5.0 vs. 0.6.0 analysis—0.6.0’s structured state drives 0.6.1’s modular evolution.*
 - March 22, 2025: Added deterministic IDs, highlights, DOM extraction, 1 failure status.
 - March 23, 2025: Updated for `createPanel.test.js` fix, 7 redundant tests in `identifyPosts.test.js` to cut, rules shifted to principles after today’s win. Persistence via `GM_setValue`/`GM_getValue` integrated.
+- March 23, 2025: Updated for 0.6.1—18 tests pass in `xGhosted.test.js`. Beefed up `'highlightPosts applies correct borders'` test—handles UNDEFINED posts without `<article>`. Next: CSV export (5s throttle). Added lesson: sample data specificity guides feature validation.
