@@ -1,0 +1,77 @@
+// File: grok/_grok-step4-roadmap.txt.adoc
+= Grok Step 4: Roadmap to Version 0.6.1
+:author: ajw1970
+:date: March 23, 2025
+:revdate: March 23, 2025
+
+== Overview
+- *Purpose*: Bridge 0.6.0’s UI/UX polish to 0.6.1’s modular, tested `xGhosted.js`, wrapped in a Tampermonkey userscript.
+
+== Roadmap to 0.6.1
+- *Goal*: Turn `xGhosted.js` into a 0.6.1 userscript, keeping 0.6.0’s UI/UX polish, fixing bugs, using 0.6.1’s modularity/testing.
+- *Steps*:
+  1. *Full State Persistence*: Persist `state.processedArticles` and flags via `GM_setValue`/`GM_getValue` in `xGhosted.js`.
+  2. *Manual Check Mode*: Add toggle for 0.6.0-style new tab checks in `xGhosted.js` and `createPanel.js`, fix timing/popups.
+  3. *Polish UI/UX*: Match 0.6.0’s panel layout in `createPanel.js` (toolbar + controls), keep CSV.
+  4. *Final Testing & Bug Fixes*: Stress-test checks/persistence on X.com, fix DOM/popup issues.
+  5. *Baseline Userscript Wrapper*: Wrap `xGhosted.js` in Tampermonkey script with 0.6.0 header, add `GM_setValue`/`GM_getValue`.
+  6. *Collapsing Feature*: Port 0.6.0’s Start/Stop/Reset to `xGhosted.js` and `createPanel.js`, add 1s-batched automation.
+- *Deliverable*: `highlight-potential-problems.js`—0.6.1 userscript with 0.6.0’s fixed features and 0.6.1’s robustness.
+
+== 0.6.0 Snippets
+- *Highlighting*:
+[source,javascript]
+----
+function applyHighlight(article, status = 'potential') {
+    const styles = { 'problem': { background: 'rgba(255, 0, 0, 0.3)', border: '2px solid red' }, 'potential': { background: 'rgba(255, 255, 0, 0.3)', border: '2px solid yellow' }, 'safe': { background: 'rgba(0, 255, 0, 0.3)', border: '2px solid green' }, 'none': { background: '', border: '' } };
+    const style = styles[status] || styles['none'];
+    article.style.backgroundColor = style.background;
+    article.style.border = style.border;
+}
+----
+- *Manual Check*:
+[source,javascript]
+----
+function checkPostInNewTab(article, href) {
+    const fullUrl = `https://x.com${href}`;
+    const newWindow = window.open(fullUrl, '_blank');
+    let attempts = 0, maxAttempts = 10;
+    const checkInterval = setInterval(() => {
+        attempts++;
+        if (newWindow.document.readyState === 'complete') {
+            clearInterval(checkInterval);
+            const threadArticles = newWindow.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+            let isProblem = false;
+            for (let threadArticle of threadArticles) {
+                const hasNotice = articleContainsSystemNotice(threadArticle);
+                const hasLinks = articleLinksToTargetCommunities(threadArticle);
+                if (hasNotice || hasLinks) { isProblem = true; break; }
+            }
+            applyHighlight(article, isProblem ? 'problem' : 'safe');
+            if (isProblem) { state.problemLinks.add(href); } else { newWindow.close(); }
+            state.fullyProcessedArticles.add(article);
+            updatePanel();
+        }
+        if (attempts >= maxAttempts) { clearInterval(checkInterval); newWindow.close(); }
+    }, 500);
+}
+----
+- *Panel Controls*:
+[source,javascript]
+----
+uiElements.controlRow = document.createElement('div');
+uiElements.controlRow.append(
+    createButton('Start', mode, () => { state.isCollapsingEnabled = true; }),
+    createButton('Stop', mode, () => { state.isCollapsingEnabled = false; }),
+    createButton('Reset', mode, () => { state.isCollapsingEnabled = false; })
+);
+----
+
+== Notes
+- If rendering spill persists, consider splitting snippets into a separate Step 5 file.
+- *Lesson Learned March 23, 2025*: Wrapping code snippets in `[source,javascript]` blocks within AsciiDoc output prevents rendering spills, but only apply this in AsciiDoc files, not raw code responses. Avoid over-focusing on AsciiDoc formatting—prioritize project goals.
+
+== Revision History
+- March 23, 2025: Created to hold roadmap and snippets from Step 3, fixing rendering spill.
+- March 23, 2025: Trimmed snippets and roadmap to reduce spill risk in Step 4.
+- March 23, 2025: Wrapped snippets in `[source,javascript]` blocks to fix rendering spill, added lesson on AsciiDoc usage.
