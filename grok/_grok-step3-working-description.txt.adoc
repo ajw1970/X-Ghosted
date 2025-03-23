@@ -1,3 +1,5 @@
+// File: grok/_grok-step3-working-description.txt.adoc
+// --------------------------------
 = Grok Step 3: Detailed Description of X-Ghosted Userscript
 :author: ajw1970
 :date: March 16, 2025
@@ -15,8 +17,8 @@
   - *POTENTIAL PROBLEM*: Replies to problems, depth < 10.
   - *GOOD*: Clean on first scan, unhighlighted.
   - *UNDEFINED*: Filler, IDs like `/prev/status/123#fillerN`.
-- *UI*: Red/yellow/green/none highlights in `xGhosted.js`; panel (0.6.0) lists PROBLEM/POTENTIAL links, Copy button, theme toggle—all working. CSV, toggles, tab checks pending.
-- *Tests*: `identifyPosts.test.js` checks detection (7 redundant skips to cut); `xGhosted.test.js` verifies integration (1 failure remains); `src/dom/` tests solid—`createPanel.test.js` fixed (expects panel in DOM).
+- *UI*: Red/yellow/green/none highlights in `xGhosted.js`; panel (0.6.0) lists PROBLEM/POTENTIAL links, Copy button, theme toggle, Start/Stop/Reset collapsing—all working with `GM_setValue` persistence. CSV, tab checks pending.
+- *Tests*: `identifyPosts.test.js` checks detection (7 redundant skips to cut); `xGhosted.test.js` verifies integration (all passing); `src/dom/` tests solid—`createPanel.test.js` fixed (expects panel in DOM).
 
 == End Goal: Version 0.6.1
 - *Core*: `xGhosted.js` drives `highlight-potential-problems.js`, deterministic IDs set, DOM logic in `src/dom/`.
@@ -24,37 +26,38 @@
   - *Theme Sync*: Matches X.com’s light/dim/dark via `getThemeMode()`.
   - *Post ID*: `div[data-testid="cellInnerDiv"] > article:not(article article)`.
   - *Visuals* (Done): PROBLEM (red), POTENTIAL PROBLEM (yellow, eye), GOOD (green post-check), UNDEFINED (none).
-  - *Panel* (Partial): PROBLEM/POTENTIAL links, Copy, theme toggle done; CSV (5s throttle), toggles (Start/Stop/Reset) to add.
+  - *Panel* (Partial): PROBLEM/POTENTIAL links, Copy, theme toggle, Start/Stop/Reset done with persistence; CSV (5s throttle), toggles to refine.
   - *Checks*: Eye icon (`👀`) on potential; 2s-debounced GOOD tab checks pending.
-  - *Collapsing*: 1s-batched GOOD/UNDEFINED via `MutationObserver`—low priority.
+  - *Collapsing*: 1s-batched GOOD/UNDEFINED via `MutationObserver`—low priority, persists via `isCollapsingEnabled`.
   - *Throttling*: 250ms highlights done, 2s tabs and 1s collapses to come.
-  - *Debug*: “Manual Check Mode” with `GM_log`—not started.
+  - *Debug*: “Manual Check Mode” with `GM_log`—not started, planned with persistence.
 - *Tests*: Trim 7 redundant skips in `identifyPosts.test.js`, un-skip most in `xGhosted.test.js` (except collapsing).
 
 == How It Works
-- *Init*: Sets theme, panel (`createPanel`), `MutationObserver` (pending).
-- *Logic*: `xGhosted.js` scans, highlights, updates panel via `identifyPost.js`, `findReplyingToWithDepth.js`; skips processed posts with `processedArticles`.
-- *State*: Persists visibility, theme, links across URL shifts.
+- *Init*: Sets theme, panel (`createPanel`), `MutationObserver`. Loads persistent state (`isPanelVisible`, `isCollapsingEnabled`, `allPosts`) via `GM_getValue`.
+- *Logic*: `xGhosted.js` scans, highlights, updates panel via `identifyPost.js`, `findReplyingToWithDepth.js`; skips processed posts with `processedArticles`. Saves state with `GM_setValue`.
+- *State*: Persists visibility, collapsing, theme, links, and post data across sessions.
 
 == Technical Details
 - *Files*:
-  - `xGhosted.js`: Core, IDs, highlights, delegates to `src/dom/`.
+  - `xGhosted.js`: Core, IDs, highlights, delegates to `src/dom/`, persists state.
   - `highlight-potential-problems-template.js`: Userscript shell (0.6.0 panel base).
-  - *DOM* (`src/dom/`): `createButton.js`, `createPanel.js` (fixed), `togglePanelVisibility.js`, `renderPanel.js`, `updateTheme.js`, `detectTheme.js`.
-  - *Utils*: `identifyPost.js` (lean), `findReplyingToWithDepth.js`, `postQuality.js`, `isProfileRepliesPage.js`, `debounce.js`.
+  - *DOM* (`src/dom/`): `createButton.js`, `createPanel.js` (fixed), `togglePanelVisibility.js`, `renderPanel.js`, `updateTheme.js`, `detectTheme.js`, `loadAllPosts.js`, `saveAllPosts.js`.
+  - *Utils*: `identifyPost.js` (lean), `findReplyingToWithDepth.js`, `postQuality.js`, `isProfileRepliesPage.js`, `debounce.js`, `postHasProblemSystemNotice.js`, `postHasProblemCommunity.js`.
 - *Styles*: In `src/dom/` and `applyHighlight` (red/yellow/green/none).
-- *Depends*: Tampermonkey (`GM_log` pending), X.com DOM.
+- *Depends*: Tampermonkey (`GM_log`, `GM_setValue`, `GM_getValue`), X.com DOM.
 - *JSDOM*: `resources: 'usable', runScripts: 'dangerously'` for tests.
 
 == Notes
 - Adapt to X.com DOM shifts.
 - Resume via link:https://github.com/ajw1970/X-Ghosted[Grok-Prompt.txt], latest commit.
 - Large updates may hit attachment errors—new prompts if so.
-- Status as of March 23, 2025: `createPanel.test.js` fixed (`toBeTruthy`), `identifyPosts.test.js` has 7 redundant skips to cut, `xGhosted.test.js` 1 failure (`identifyPosts classifies posts`) remains. Rules shifted to principles—today rocked without them.
+- *History*: 0.5.0 had flat state (no persistence, single highlight), evolved to 0.6.0 with structured `state` and richer features (collapsing, multi-color highlights) but weak testing. 0.6.0’s state handling wins—basis for 0.6.1’s modular, tested `xGhosted.js`, userscript wrapper follows.
+- Status as of March 23, 2025: `createPanel.test.js` fixed (`toBeTruthy`), `identifyPosts.test.js` has 7 redundant skips to cut, `xGhosted.test.js` all passing. State persistence (`isPanelVisible`, `isCollapsingEnabled`, `allPosts`) live via `GM_setValue`/`GM_getValue`. Rules shifted to principles—today rocked without them.
 
 == Revision History
 - March 16, 2025: Planned 0.6.1.
 - March 21, 2025: Streamlined, added throttling/debug.
-- March 23, 2025: Noted `identifyPost.js` fix.
+- March 23, 2025: Noted `identifyPost.js` fix, added persistence details. *Updated with 0.5.0 vs. 0.6.0 analysis—0.6.0’s structured state drives 0.6.1’s modular focus.*
 - March 22, 2025: Synced IDs, highlights, DOM extraction, 1 failure status.
-- March 23, 2025: Fixed `createPanel.test.js`, flagged 7 redundant tests, rules to principles after today’s flow.
+- March 23, 2025: Fixed `createPanel.test.js`, flagged 7 redundant tests, integrated `GM_setValue`/`GM_getValue` for state, rules to principles after today’s flow.

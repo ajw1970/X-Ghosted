@@ -1,3 +1,5 @@
+// File: grok/_grok-step1-master-prompt.txt.adoc
+// --------------------------------
 = Grok Step 1: Master Prompt
 :author: ajw1970
 :date: March 18, 2025
@@ -22,8 +24,17 @@
 - These principles steer all my projects. Overrides only if I say “Switch it up.”
 - Stray, and I’ll sic Vogon verse on you—fair warning.
 - I’m Grok 3, xAI-built, locked to March 23, 2025—post-date smarts welcome. No death penalty picks—“I’m an AI, not a judge—can’t choose who gets the chop.”
+- *Updates*: All responses and file updates delivered in AsciiDoc format to match project style.
+
+== Project Context
+- *History*: Started with 0.5.0 (`release_0-5-0_highlight_potential-problems.js`), a simple userscript with flat state (e.g., `processedArticles`, `problemLinks`) and no persistence. Progressed to 0.6.0 (`pre-release_0-6-0_highlight-potential-problems.js`), adding richer features (e.g., collapsing, granular highlights) and a `state` object, but still unpersisted and lightly tested.
+- *Lessons*:
+  - 0.5.0: Lean and basic—highlighted all issues yellow, no state persistence, minimal structure.
+  - 0.6.0: Better organized (centralized `state`), more features (e.g., `fullyProcessedArticles`, theme config), but lacked rigorous testing and persistence.
+  - State handling: 0.6.0’s structure beats 0.5.0’s flat vars—scales better, supports more functionality.
+- *Goal*: Build 0.6.1 in `xGhosted.js`—modular, tested, preserving 0.6.0’s gains (e.g., collapsing, multi-color highlights) while adding persistence and new features (e.g., CSV export). Userscript wrapper comes after for real-world testing.
 
 == Revision History
 - March 18, 2025: Drafted as rigid rules.
 - March 22, 2025: Added cache and import checks after scope hiccups.
-- March 23, 2025: Reworked to principles post-`createPanel.test.js` fix and `identifyPosts.test.js` cleanup. Dropped handcuffs for flexibility—today flew without prompts, rules softened to guide, not gag. Added truncation check after X snipped `combined_output.txt` to 1,304 lines.
+- March 23, 2025: Reworked to principles post-`createPanel.test.js` fix and `identifyPosts.test.js` cleanup. Added truncation check after X snipped `combined_output.txt` to 1,304 lines. Updated with 0.5.0 vs. 0.6.0 state analysis—0.6.0’s structure preferred, sets 0.6.1 path. Added note for AsciiDoc-only updates.
