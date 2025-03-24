@@ -19,6 +19,7 @@ function XGhosted(doc, useTampermonkeyLog = false) {
     isPanelVisible: true,
     isDarkMode: true,
     isManualCheckEnabled: false,
+    panelPosition: null, // Add this
   };
   this.document = doc;
   this.log = useTampermonkeyLog && typeof GM_log !== 'undefined'
@@ -42,6 +43,44 @@ function XGhosted(doc, useTampermonkeyLog = false) {
     },
   };
 }
+
+// Replace loadState:
+XGhosted.prototype.loadState = function () {
+  const savedState = GM_getValue('xGhostedState', {});
+  this.state.isPanelVisible = savedState.isPanelVisible ?? true;
+  this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
+  this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
+  this.state.panelPosition = savedState.panelPosition || null;
+  const savedArticles = savedState.processedArticles || {};
+  for (const [id, data] of Object.entries(savedArticles)) {
+    this.state.processedArticles.set(id, { analysis: data.analysis, element: null });
+  }
+};
+
+// Replace saveState:
+XGhosted.prototype.saveState = function () {
+  const serializableArticles = {};
+  for (const [id, data] of this.state.processedArticles) {
+    serializableArticles[id] = { analysis: data.analysis };
+  }
+  GM_setValue('xGhostedState', {
+    isPanelVisible: this.state.isPanelVisible,
+    isCollapsingEnabled: this.state.isCollapsingEnabled,
+    isManualCheckEnabled: this.state.isManualCheckEnabled,
+    panelPosition: this.state.panelPosition,
+    processedArticles: serializableArticles
+  });
+};
+
+// Replace createPanel:
+XGhosted.prototype.createPanel = function () {
+  this.state.instance = this;
+  createPanel(this.document, this.state, this.uiElements, this.uiElements.config, this.togglePanelVisibility.bind(this), this.copyLinks.bind(this));
+  this.uiElements.modeSelector.addEventListener('change', () => {
+    this.updateTheme();
+    this.saveState(); // Persist selected theme
+  });
+};
 
 XGhosted.prototype.loadState = function () {
   const savedState = GM_getValue('xGhostedState', {});

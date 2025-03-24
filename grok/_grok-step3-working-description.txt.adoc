@@ -2,20 +2,21 @@
 :revision-date: March 24, 2025
 
 == Current State
-- **UI**: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow) posts with eye icons, GOOD (none), UNDEFINED (none). Panel lists flagged posts with Copy, Export CSV (5s throttled in production), Import CSV, Clear, and Manual Check buttons.
-- **Core**: Detects post quality via `identifyPost.js`, persists state with `GM_setValue`/`GM_getValue`.
-- **Tests**: `src/xGhosted.test.js`—28 tests passing, up from 24 pre-step 3.
+- **UI**: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow) posts with eye icons, GOOD (none), UNDEFINED (none). Panel (resizable, draggable) lists flagged posts with Copy, Export CSV (5s throttled in production), Import CSV, Clear, and Manual Check buttons. Theme switching polished with tooltips.
+- **Core**: Detects post quality via `identifyPost.js`, persists state (including panel position) with `GM_setValue`/`GM_getValue`.
+- **Tests**: `src/xGhosted.test.js`—28 tests passing, up from 24 pre-step 3. Step 4’s UI polish untested—requires manual browser check.
 
 == End Goal: Version 0.6.1 Features
 - CSV export/import/clear done—export throttled at 5s in production, immediate in tests.
 - Manual Check Mode done—toggles via panel, mocked in tests with `checkPostInNewTab`.
 - Configurable logging added—`GM_log` or `console.log` set in constructor for Tampermonkey compatibility.
-- Tab checks for GOOD posts (10s) and 5s-batched collapsing still pending (roadmap steps 4+).
+- UI polish done—panel resizable/draggable, theme detection seamless, usability improved with tooltips.
+- Tab checks for GOOD posts (10s) and 5s-batched collapsing still pending (roadmap steps 5+).
 
 == Technical Details
 - **Depends On**: `GM_setValue`/`GM_getValue` for persistence, `jest` for testing, JSDOM for DOM mocks.
-- **Modules**: `xGhosted.js`, `createPanel.js`, `renderPanel.js`, utils like `postQuality.js`.
+- **Modules**: `xGhosted.js`, `createPanel.js`, `renderPanel.js`, `updateTheme.js`, utils like `postQuality.js`.
 
 == Revision History
 - March 23, 2025: Updated for 0.6.1—24 tests pass. CSV export (5s throttle in production) and Manual Check Mode added to `xGhosted.js`.
-- March 24, 2025: Step 3 done—CSV import/clear added, export throttle refined, logging made configurable via constructor. 28/28 tests pass.
+- March 24, 2025: Step 3 done—CSV import/clear added, export throttle refined, logging made configurable via constructor. 28/28 tests pass. Step 4 done—panel made resizable/draggable, theme switching and styling polished.

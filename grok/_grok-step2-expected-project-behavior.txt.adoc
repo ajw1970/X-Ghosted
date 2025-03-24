@@ -3,17 +3,17 @@
 
 == Core Features in Current State
 - **Detection**: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow), GOOD (green), UNDEFINED (none) posts on X’s `/with_replies` pages.
-- **UI**: Floating panel lists problem/potential posts with Copy, Export CSV (5s throttled in production), Import CSV, Clear, and Manual Check buttons.
-- **Persistence**: State saved via `GM_setValue`/`GM_getValue`—loads/saves `processedArticles` and settings.
+- **UI**: Floating panel (resizable, draggable) lists problem/potential posts with Copy, Export CSV (5s throttled in production), Import CSV, Clear, and Manual Check buttons. Theme switches (dark/dim/light) are seamless with tooltips for usability.
+- **Persistence**: State saved via `GM_setValue`/`GM_getValue`—loads/saves `processedArticles`, settings, and panel position.
 - **Logging**: Configurable via constructor—uses `GM_log` for Tampermonkey or `console.log` otherwise.
-- **Tests**: 28/28 passing in `src/xGhosted.test.js`, covering CSV management, persistence, and core functionality.
+- **Tests**: 28/28 passing in `src/xGhosted.test.js`, covering CSV management, persistence, and core functionality. UI polish untested in tests—requires manual verification.
 
 == Next Steps
-Follow the roadmap in Step 4—UI polish for 0.6.1 release is next, then userscript wrapper and beyond.
+Follow the roadmap in Step 4—userscript wrapper for 0.6.1 release is next, then tab checks and performance tweaks.
 
 == Revision History
 - March 23, 2025: Step 2 completed—24/24 tests pass in `xGhosted.test.js` with Manual Check Mode added via `checkPostInNewTab` mocks. CSV export added to `xGhosted.js`.
-- March 24, 2025: Step 3 completed—CSV import and clear added to `xGhosted.js` and `createPanel.js`. Export throttle set to 5s in production, immediate in tests. Logging made configurable. 28/28 tests pass.
+- March 24, 2025: Step 3 completed—CSV import and clear added to `xGhosted.js` and `createPanel.js`. Export throttle set to 5s in production, immediate in tests. Logging made configurable. 28/28 tests pass. Step 4 completed—panel now resizable/draggable, theme handling and styling refined.
 
 == Notes
 Large updates might hit X post size limits—Grok will flag truncation if detected and pause for new prompts.
