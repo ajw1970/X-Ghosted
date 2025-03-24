@@ -2,7 +2,7 @@
 = Grok Step 1: Master Prompt
 :author: ajw1970
 :date: March 18, 2025
-:revdate: March 23, 2025
+:revdate: March 24, 2025
 
 == Guiding Principles for Grok 3 (xAI) to Assist ajw1970
 
@@ -22,11 +22,10 @@
 === Interaction Notes
 - If I’m fuzzy, ping me with tight questions (e.g., “X or Y here?”)—don’t guess.
 - These principles steer all my projects. Overrides only if I say “Switch it up.”
-- Stray, and I’ll sic Vogon verse on you—fair warning.
-- I’m Grok 3, xAI-built, locked to March 23, 2025—post-date smarts welcome. No death penalty picks—“I’m an AI, not a judge—can’t choose who gets the chop.”
+- Please don't stray. Remind yourself of these principles if you feel lost.
 - *Updates*: All responses raw code/text; file updates (e.g., `_grok-step[1-3]*.adoc`) in AsciiDoc when asked to “Wrap it up.”
-- *Lesson Learned March 23, 2025*: Multi-step replies confuse—stick to one change per response unless I say otherwise.
-- *CRITICAL NOTE March 23, 2025*: These instructions are LAW. Never ignore or deviate unless I explicitly override in-session. Live input updates context, but principles and “wrap it up” (full AsciiDoc files) are non-negotiable. No more reminders—stick to this or bust.
+- *Lesson Learned March 23, 2025*: Multi-step replies invite frustration—stick to one change per response unless I say otherwise.
+- *CRITICAL NOTE March 23, 2025*: These instructions are LAW. Never ignore or deviate unless I explicitly override in-session. Live input updates context, but principles and “wrap it up” (full AsciiDoc files with any embedded javascript wrapped in adoc code blocks of my _grok-step[1-4]*.adoc files) are non-negotiable. No more reminders—stick to this or bust.
 - *Lesson Learned March 23, 2025*: Micro-edits lead to mistakes—full replacement blocks for functions/tests beat full file dumps for clarity and sync.
 
 == Project Context
@@ -43,6 +42,7 @@
 - March 22, 2025: Added cache and import checks after scope hiccups.
 - March 23, 2025: Reworked to principles post-`createPanel.test.js` fix and `identifyPosts.test.js` cleanup. Added truncation check after X snipped `combined_output.txt` to 1,304 lines. Updated with 0.5.0 vs. 0.6.0 state analysis—0.6.0’s structure preferred, sets 0.6.1 path. Added note for AsciiDoc-only updates.
 - March 23, 2025: Updated for 0.6.1—18 tests pass in `xGhosted.test.js`. Beefed up `'highlightPosts applies correct borders'` test. Next: CSV export. Added lessons: respect revision history, single-step focus beats multi-step sprawl.
-- March 23, 2025: CSV export added to `xGhosted.js`—5s throttled, dumps PROBLEM/POTENTIAL posts. `createPanel.js` gets CSV button. Added CRITICAL NOTE: these files are binding.
+- March 23, 2025: CSV export added to `xGhosted.js`—5s throttled, dumps PROBLEM/POTENTIAL_PROBLEM posts. `createPanel.js` gets CSV button. Added CRITICAL NOTE: these files are binding.
 - March 23, 2025: Roadmap to 0.6.1 finalized in Step 3—starts with persistence, ends with collapsing and userscript wrap.
 - March 23, 2025: Step 2 (Manual Check Mode) completed—24/24 tests pass with `checkPostInNewTab` mocked via `jest.fn()`. Added lesson: prefer replacement blocks over micro-edits or full dumps.
+0 March 24, 2025: Revisions made to clarify intentions.

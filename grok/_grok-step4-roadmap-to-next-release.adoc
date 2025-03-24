@@ -2,7 +2,7 @@
 = Grok Step 4: Roadmap to Version 0.6.1
 :author: ajw1970
 :date: March 23, 2025
-:revdate: March 23, 2025
+:revdate: March 24, 2025
 
 == Overview
 - *Purpose*: Bridge 0.6.0’s UI/UX polish to 0.6.1’s modular, tested `xGhosted.js`, wrapped in a Tampermonkey userscript.
@@ -13,10 +13,11 @@
   1. *Full State Persistence*: Persist `state.processedArticles` and flags via `GM_setValue`/`GM_getValue` in `xGhosted.js`. **Done—24/24 tests pass.**
   2. *Manual Check Mode*: Add toggle for 0.6.0-style new tab checks in `xGhosted.js` and `createPanel.js`, fix timing/popups. **Done—24/24 tests pass with `checkPostInNewTab` mocked.**
   3. *Polish UI/UX*: Match 0.6.0’s panel layout in `createPanel.js` (toolbar + controls), keep CSV. **Next—test structure, manual CSS polish.**
-  4. *Baseline Userscript Wrapper*: Wrap `xGhosted.js` in Tampermonkey script with 0.6.0 header, add `GM_setValue`/`GM_getValue`.
-  5. *Push key data into configuration file*: move notification strings and community ids into a configuration file. Allow user to edit/export/import custom lists.
-  6. *Final Testing & Bug Fixes*: Stress-test checks/persistence on X.com, fix DOM/popup issues.
-  7. *Collapsing Feature*: Port 0.6.0’s Start/Stop/Reset to `xGhosted.js` and `createPanel.js`, add 1s-batched automation.
+  4. We'll need a way to import/export/clear the processed posts list too. This can also be CSV to make it Excel friendly.
+  5. *Baseline Userscript Wrapper*: Wrap `xGhosted.js` in Tampermonkey script with 0.6.0 header, add `GM_setValue`/`GM_getValue`.
+  6. *Push key data into configuration file*: move notification strings and community ids into a configuration file. Allow user to edit/export/import custom lists.
+  7. *Final Testing & Bug Fixes*: Stress-test checks/persistence on X.com, fix DOM/popup issues.
+  8. *Collapsing Feature*: Port 0.6.0’s Start/Stop/Reset to `xGhosted.js` and `createPanel.js`, add 1s-batched automation.
 - *Deliverable*: `highlight-potential-problems.js`—0.6.1 userscript with 0.6.0’s fixed features and 0.6.1’s robustness.
 
 == 0.6.0 Snippets
@@ -73,3 +74,4 @@ uiElements.controlRow.append(
 - March 23, 2025: Created to hold roadmap and snippets from Step 3, fixing rendering spill.
 - March 23, 2025: Trimmed snippets and roadmap to reduce spill risk in Step 4.
 - March 23, 2025: Updated—Step 2 completed with 24/24 tests, Manual Check Mode in place.
+- March 24, 2025: Updated to clarify intentions.
