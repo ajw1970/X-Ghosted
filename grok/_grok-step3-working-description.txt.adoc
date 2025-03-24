@@ -2,21 +2,22 @@
 :revision-date: March 24, 2025
 
 == Current State
-- **UI**: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow) posts with eye icons, GOOD (none), UNDEFINED (none). Panel (resizable, draggable) lists flagged posts with Copy, Export CSV (5s throttled in production), Import CSV, Clear, and Manual Check buttons. Theme switching polished with tooltips.
-- **Core**: Detects post quality via `identifyPost.js`, persists state (including panel position) with `GM_setValue`/`GM_getValue`.
-- **Tests**: `src/xGhosted.test.js`—28 tests passing, up from 24 pre-step 3. Step 4’s UI polish untested—requires manual browser check.
+- **UI**: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow) posts with eye icons, GOOD (none), UNDEFINED (none). Panel (resizable, draggable) lists flagged posts with Copy, Export CSV (5s throttled), Import CSV, Clear, and Manual Check buttons. Theme switching polished with tooltips.
+- **Core**: Detects post quality via `identifyPost.js` using DOM only, persists state (capped at 1000 articles) with `GM_setValue`/`GM_getValue`. Manual mode default minimizes server activity.
+- **Tests**: `src/xGhosted.test.js`—28 tests passing, covering up to Step 5. Safety features (resource caps, throttling) require browser testing.
 
 == End Goal: Version 0.6.1 Features
 - CSV export/import/clear done—export throttled at 5s in production, immediate in tests.
-- Manual Check Mode done—toggles via panel, mocked in tests with `checkPostInNewTab`.
-- Configurable logging added—`GM_log` or `console.log` set in constructor for Tampermonkey compatibility.
-- UI polish done—panel resizable/draggable, theme detection seamless, usability improved with tooltips.
-- Tab checks for GOOD posts (10s) and 5s-batched collapsing still pending (roadmap steps 5+).
+- Manual Check Mode done—toggles via panel, starts enabled for safety, mocked in tests.
+- Configurable logging added—`GM_log` or `console.log` set in constructor.
+- UI polish done—panel resizable/draggable, theme detection seamless.
+- Userscript wrapper done—built with resource limits (1000 articles, 500ms debounce, 1s observer throttle) and server safety (no requests beyond page load).
+- Tab checks for GOOD posts (10s) and 5s-batched collapsing pending (roadmap steps 6+).
 
 == Technical Details
 - **Depends On**: `GM_setValue`/`GM_getValue` for persistence, `jest` for testing, JSDOM for DOM mocks.
 - **Modules**: `xGhosted.js`, `createPanel.js`, `renderPanel.js`, `updateTheme.js`, utils like `postQuality.js`.
 
 == Revision History
-- March 23, 2025: Updated for 0.6.1—24 tests pass. CSV export (5s throttle in production) and Manual Check Mode added to `xGhosted.js`.
-- March 24, 2025: Step 3 done—CSV import/clear added, export throttle refined, logging made configurable via constructor. 28/28 tests pass. Step 4 done—panel made resizable/draggable, theme switching and styling polished.
+- March 23, 2025: Updated for 0.6.1—24 tests pass. CSV export and Manual Check Mode added.
+- March 24, 2025: Step 3 done—CSV import/clear added. Step 4 done—UI polished. Step 5 done—userscript wrapper with safety optimizations.

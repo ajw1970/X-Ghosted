@@ -3,14 +3,14 @@
 
 == Roadmap to Version 0.6.1
 1. *Full State Persistence*: Save/load `processedArticles` and settings via `GM_setValue`/`GM_getValue`. Done—24/24 tests pass.
-2. *Manual Check Mode*: Toggle via panel, mock tab checks with `checkPostInNewTab`. Done—24/24 tests pass.
-3. *Manage Processed Posts Data*: Add import/export/clear in CSV format to `xGhosted.js` and `createPanel.js`. Export 5s throttled in production, immediate in tests. Done—28/28 tests pass.
-4. *Polish UI/UX for 0.6.1 Release*: Refine panel styling (resizable/draggable), theme detection, usability with tooltips. Done—untested in `xGhosted.test.js`, requires manual verification.
-5. *Userscript Wrapper*: Wrap `xGhosted.js` in a `@userscript` header—pending.
-6. *Tab Check GOOD Posts*: 10s interval checks—pending.
+2. *Manual Check Mode*: Toggle via panel, mock tab checks with `checkPostInNewTab`. Done—24/24 tests pass, defaults to enabled for safety.
+3. *Manage Processed Posts Data*: Add import/export/clear in CSV format. Export 5s throttled in production, immediate in tests. Done—28/28 tests pass.
+4. *Polish UI/UX for 0.6.1 Release*: Refine panel styling (resizable/draggable), theme detection, usability with tooltips. Done—untested in test suite.
+5. *Userscript Wrapper*: Wrap `xGhosted.js` in a `@userscript` header via `xGhosted.template.js` and build script. Done—optimized for 1000 article cap, 500ms debounce, 1s observer throttle, manual mode default, DOM-only analysis.
+6. *Tab Check GOOD Posts*: 10s interval checks—pending, to be user-triggered for server safety.
 7. *Performance Pass*: Optimize lookups—pending.
 8. *Collapse by Default*: Batch-collapse problem posts every 5s—pending.
 
 == Revision History
-- March 23, 2025: Updated—Step 2 completed with 24/24 tests passing in `xGhosted.test.js`.
-- March 24, 2025: Step 3 completed—CSV import/export/clear implemented, export throttle set, logging configurable. 28/28 tests pass. Step 4 completed—panel resizable/draggable, theme detection and UI polished.
+- March 23, 2025: Step 2 completed—24/24 tests passing.
+- March 24, 2025: Step 3 completed—CSV features done. Step 4 completed—UI polished. Step 5 completed—userscript wrapper with resource and server safety optimizations.

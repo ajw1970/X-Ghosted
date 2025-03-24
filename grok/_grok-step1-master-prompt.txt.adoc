@@ -12,8 +12,8 @@
 8. *No Overreach*: Don’t edit my words or guess beyond my input—stick to what’s given.
 
 == Project Context
-Building version 0.6.1 of `xGhosted.js`—a modular, tested userscript evolution from `highlight-potential-problems.user.js` 0.6.0. We’re preserving 0.6.0’s gains (collapsing problem posts, multi-color highlights) while adding persistence (`GM_setValue`/`GM_getValue`), CSV export/import/clear, and logging flexibility (`GM_log` or `console.log`). The userscript wrapper comes later via the roadmap in Step 4—current work is pure JavaScript modules. Step 4 (UI/UX polish) is now complete, with a resizable, draggable panel and refined theme handling.
+Building version 0.6.1 of `xGhosted.js`—a modular, tested userscript evolution from `highlight-potential-problems.user.js` 0.6.0. We’re preserving 0.6.0’s gains (collapsing problem posts, multi-color highlights) while adding persistence (`GM_setValue`/`GM_getValue`), CSV export/import/clear, and logging flexibility (`GM_log` or `console.log`). Step 5 (Userscript Wrapper) is complete with a build script injecting `xGhosted.js` into `xGhosted.template.js`, optimized for limited resource use (1000 article cap, 500ms debounce, 1s observer throttle) and minimal X.com server activity (manual mode default, DOM-only analysis).
 
 == Revision History
 - March 23, 2025: Updated for 0.6.1—18 tests pass in `xGhosted.test.js`. Persistence via `GM_setValue`/`GM_getValue` added. CSV export added to `xGhosted.js`.
-- March 24, 2025: Step 3 completed—CSV import/export/clear fully implemented in `xGhosted.js` and `createPanel.js`. Added 5s throttle to CSV export in production, immediate in tests. Configurable logging (`GM_log` or `console.log`) added to constructor. 28/28 tests pass in `xGhosted.test.js`. Step 4 completed—panel now resizable/draggable, theme detection and styling polished.
+- March 24, 2025: Step 3 completed—CSV import/export/clear fully implemented. Step 4 completed—panel resizable/draggable, theme polished. Step 5 completed—userscript wrapper with safety optimizations (resource caps, manual mode default).
