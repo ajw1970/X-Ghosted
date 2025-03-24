@@ -12,8 +12,8 @@
 - *Steps*:
   1. *Full State Persistence*: Persist `state.processedArticles` and flags via `GM_setValue`/`GM_getValue` in `xGhosted.js`. **Done—24/24 tests pass.**
   2. *Manual Check Mode*: Add toggle for 0.6.0-style new tab checks in `xGhosted.js` and `createPanel.js`, fix timing/popups. **Done—24/24 tests pass with `checkPostInNewTab` mocked.**
-  3. *Polish UI/UX*: Match 0.6.0’s panel layout in `createPanel.js` (toolbar + controls), keep CSV. **Next—test structure, manual CSS polish.**
-  4. We'll need a way to import/export/clear the processed posts list too. This can also be CSV to make it Excel friendly.
+  3. *Manage processed posts data*: We'll need a way to import/export/clear the processed posts list too. This can also be CSV to make it Excel friendly.
+  4. *Polish UI/UX*: Match 0.6.0’s panel layout in `createPanel.js` (toolbar + controls), keep CSV. **Next—test structure, manual CSS polish.**
   5. *Baseline Userscript Wrapper*: Wrap `xGhosted.js` in Tampermonkey script with 0.6.0 header, add `GM_setValue`/`GM_getValue`.
   6. *Push key data into configuration file*: move notification strings and community ids into a configuration file. Allow user to edit/export/import custom lists.
   7. *Final Testing & Bug Fixes*: Stress-test checks/persistence on X.com, fix DOM/popup issues.
