@@ -13,9 +13,10 @@
   1. *Full State Persistence*: Persist `state.processedArticles` and flags via `GM_setValue`/`GM_getValue` in `xGhosted.js`. **Done—24/24 tests pass.**
   2. *Manual Check Mode*: Add toggle for 0.6.0-style new tab checks in `xGhosted.js` and `createPanel.js`, fix timing/popups. **Done—24/24 tests pass with `checkPostInNewTab` mocked.**
   3. *Polish UI/UX*: Match 0.6.0’s panel layout in `createPanel.js` (toolbar + controls), keep CSV. **Next—test structure, manual CSS polish.**
-  4. *Final Testing & Bug Fixes*: Stress-test checks/persistence on X.com, fix DOM/popup issues.
-  5. *Baseline Userscript Wrapper*: Wrap `xGhosted.js` in Tampermonkey script with 0.6.0 header, add `GM_setValue`/`GM_getValue`.
-  6. *Collapsing Feature*: Port 0.6.0’s Start/Stop/Reset to `xGhosted.js` and `createPanel.js`, add 1s-batched automation.
+  4. *Baseline Userscript Wrapper*: Wrap `xGhosted.js` in Tampermonkey script with 0.6.0 header, add `GM_setValue`/`GM_getValue`.
+  5. *Push key data into configuration file*: move notification strings and community ids into a configuration file. Allow user to edit/export/import custom lists.
+  6. *Final Testing & Bug Fixes*: Stress-test checks/persistence on X.com, fix DOM/popup issues.
+  7. *Collapsing Feature*: Port 0.6.0’s Start/Stop/Reset to `xGhosted.js` and `createPanel.js`, add 1s-batched automation.
 - *Deliverable*: `highlight-potential-problems.js`—0.6.1 userscript with 0.6.0’s fixed features and 0.6.1’s robustness.
 
 == 0.6.0 Snippets
