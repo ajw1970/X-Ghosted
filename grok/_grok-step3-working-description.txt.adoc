@@ -1,49 +1,21 @@
-// File: grok/_grok-step3-working-description.txt.adoc
-= Grok Step 3: Detailed Description of X-Ghosted Userscript
-:author: ajw1970
-:date: March 16, 2025
-:revdate: March 24, 2025
-
-== Overview
-- *Name*: Highlight Potential Problems
-- *Purpose*: Flags X.com posts with cues and a panel for moderation ease.
-- *Version*: Targeting 0.6.1, fixing 0.6.0 rate limits (ref 2ecaf8f49).
-- *Target*: `https://x.com/*`, runs at `document-idle`.
+= Grok Step 3: Working Description
+:revision-date: March 24, 2025
 
 == Current State
-- *Detection* (`src/utils/identifyPost.js`): PROBLEM (notices/links), POTENTIAL_PROBLEM (replies, depth < 10), GOOD (clean), UNDEFINED (filler, e.g., `/prev/status/123#fillerN`).
-- *UI*: Highlights (red/yellow/green/none) in `xGhosted.js`; panel lists PROBLEM/POTENTIAL_PROBLEM links, Copy, theme toggle, Manual Check toggle, persists via `GM_setValue`. CSV export (5s throttle) added; tab checks pending.
-- *Tests*: `identifyPosts.test.js` for detection; `xGhosted.test.js` (24 passing); `src/dom/` solid—`createPanel.test.js` fixed.
+- **UI**: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow) posts with eye icons, GOOD (none), UNDEFINED (none). Panel lists flagged posts with Copy, Export CSV (5s throttled in production), Import CSV, Clear, and Manual Check buttons.
+- **Core**: Detects post quality via `identifyPost.js`, persists state with `GM_setValue`/`GM_getValue`.
+- **Tests**: `src/xGhosted.test.js`—28 tests passing, up from 24 pre-step 3.
 
-== End Goal: Version 0.6.1
-- *Core*: `xGhosted.js` drives `highlight-potential-problems.js`, IDs set, DOM in `src/dom/`.
-- *Features*: Theme sync (done), visuals (done), panel (partial: links/Copy/toggle/CSV/Manual Check done, tab checks/collapsing to refine), eye icon (`👀`) on POTENTIAL_PROBLEM posts, 10s GOOD tab checks pending, 5s-batched collapsing planned, 250ms highlights/5s CSV done, “Manual Check Mode” with `GM_log` done.
-- *Tests*: All passing in `xGhosted.test.js` (except collapsing—next).
-
-== How It Works
-- *Init*: Sets theme, panel, `MutationObserver`. Loads state (`isPanelVisible`, `isCollapsingEnabled`, `isManualCheckEnabled`, `allPosts`) via `GM_getValue`.
-- *Logic*: Scans,ltk highlights, updates panel via `identifyPost.js`, `findReplyingToWithDepth.js`; skips processed posts. Manual checks trigger tab opens. Saves state with `GM_setValue`.
-- *State*: Persists visibility, collapsing, manual checks, theme, links, post data.
+== End Goal: Version 0.6.1 Features
+- CSV export/import/clear done—export throttled at 5s in production, immediate in tests.
+- Manual Check Mode done—toggles via panel, mocked in tests with `checkPostInNewTab`.
+- Configurable logging added—`GM_log` or `console.log` set in constructor for Tampermonkey compatibility.
+- Tab checks for GOOD posts (10s) and 5s-batched collapsing still pending (roadmap steps 4+).
 
 == Technical Details
-- *Files*: `xGhosted.js` (core), `highlight-potential-problems-template.js` (shell), `src/dom/` (DOM logic), `src/utils/` (utils).
-- *Depends*: Tampermonkey (`GM_log`, `GM_setValue`, `GM_getValue`), X.com DOM, JSDOM (`resources: 'usable', runScripts: 'dangerously'`).
-
-== Notes
-- Adapt to X.com DOM shifts.
-- Resume via link:https://github.com/ajw1970/X-Ghosted[Grok-Prompt.txt], latest commit.
-- Large updates may hit attachment errors—new prompts if so.
-- *History*: 0.5.0 had flat state (no persistence, single highlight), evolved to 0.6.0 with structured `state` and richer features (collapsing, multi-color highlights) but weak testing. 0.6.0’s state handling wins—basis for 0.6.1’s modular, tested `xGhosted.js`, userscript wrapper follows.
-- *Lessons Learned March 23, 2025*: UNDEFINED posts in sample (36 posts: 21 GOOD, 1 PROBLEM, 2 POTENTIAL_PROBLEM, 12 UNDEFINED) can lack `<article>`—tests need conditional logic. Test timing: `highlightPosts()` debounce flakes in Jest; use `highlightPostsImmediate()` for reliability. CSV export needs raw responses, AsciiDoc for docs only. Micro-edits cause sync errors—replacement blocks preferred.
-- *CRITICAL NOTE March 23, 2025*: Grok MUST follow Step 1 principles and this spec—ignoring them is forbidden. Live input adjusts context, but this framework holds unless I say otherwise. Last warning.
-- *Roadmap and Snippets*: Moved to Step 4 to prevent rendering issues.
+- **Depends On**: `GM_setValue`/`GM_getValue` for persistence, `jest` for testing, JSDOM for DOM mocks.
+- **Modules**: `xGhosted.js`, `createPanel.js`, `renderPanel.js`, utils like `postQuality.js`.
 
 == Revision History
-- March 16, 2025: Planned 0.6.1.
-- March 21, 2025: Streamlined, added throttling/debug.
-- March 23, 2025: Noted `identifyPost.js` fix, added persistence details. *Updated with 0.5.0 vs. 0.6.0 analysis—0.6.0’s structured state drives 0.6.1’s modular focus.*
-- March 22, 2025: Synced IDs, highlights, DOM extraction, 1 failure status.
-- March 23, 2025: Fixed `createPanel.test.js`, integrated `GM_setValue`/`GM_getValue` for state.
-- March 23, 2025: Updated for 0.6.1—24 tests pass in `xGhosted.test.js`. Beefed up `'highlightPosts applies correct borders'` test—handles UNDEFINED posts with/without `<article>`. Added lessons: UNDEFINED edge cases, test timing fixes.
-- March 23, 2025: CSV export (5s throttle) and Manual Check Mode added to `xGhosted.js`, button in `createPanel.js`. Roadmap to 0.6.1 added, moved to Step 4.
-- March 24, 2025: Updated to clarify intentions.
+- March 23, 2025: Updated for 0.6.1—24 tests pass. CSV export (5s throttle in production) and Manual Check Mode added to `xGhosted.js`.
+- March 24, 2025: Step 3 done—CSV import/clear added, export throttle refined, logging made configurable via constructor. 28/28 tests pass.

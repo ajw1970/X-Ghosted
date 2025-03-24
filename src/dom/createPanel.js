@@ -1,3 +1,4 @@
+// src/dom/createPanel.js
 const createButton = require('./createButton');
 const detectTheme = require('./detectTheme');
 
@@ -32,6 +33,8 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
     paddingBottom: '8px',
     borderBottom: `1px solid ${config.THEMES[mode].border}`,
     marginBottom: '8px',
+    flexWrap: 'wrap', // Allow wrapping for more buttons
+    gap: '8px', // Space between elements
   });
 
   uiElements.label = doc.createElement('span');
@@ -47,7 +50,19 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
   uiElements.manualCheckButton = createButton(doc, 'Manual Check', mode, () => {
     state.isManualCheckEnabled = !state.isManualCheckEnabled;
     uiElements.manualCheckButton.textContent = state.isManualCheckEnabled ? 'Stop Manual' : 'Manual Check';
-    // Note: saveState deferred to xGhosted instance (e.g., in togglePanelVisibility or wrapper)
+  }, config);
+
+  uiElements.exportButton = createButton(doc, 'Export CSV', mode, () => {
+    state.instance.exportProcessedPostsCSV();
+  }, config);
+
+  uiElements.importButton = createButton(doc, 'Import CSV', mode, () => {
+    const csvText = prompt('Paste your CSV content here:');
+    if (csvText) state.instance.importProcessedPostsCSV(csvText);
+  }, config);
+
+  uiElements.clearButton = createButton(doc, 'Clear', mode, () => {
+    if (confirm('Clear all processed posts?')) state.instance.clearProcessedPosts();
   }, config);
 
   uiElements.modeSelector = doc.createElement('select');
@@ -85,6 +100,9 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
     uiElements.label,
     uiElements.copyButton,
     uiElements.manualCheckButton,
+    uiElements.exportButton,
+    uiElements.importButton,
+    uiElements.clearButton,
     uiElements.modeSelector,
     uiElements.toggleButton
   );

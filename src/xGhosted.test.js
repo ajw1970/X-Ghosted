@@ -1,9 +1,11 @@
-const { JSDOM } = require('jsdom');
-const XGhosted = require('./xGhosted');
-const postQuality = require('./utils/postQuality');
-const summarizeRatedPosts = require('./utils/summarizeRatedPosts');
+// src/xGhosted.test.js
 const fs = require('fs');
 const path = require('path');
+const { JSDOM } = require('jsdom');
+const XGhosted = require('./xGhosted');
+const renderPanel = require('./dom/renderPanel');
+const postQuality = require('./utils/postQuality');
+const summarizeRatedPosts = require('./utils/summarizeRatedPosts');
 
 // Mock Tampermonkey GM_* functions
 const gmStorage = {};
@@ -27,8 +29,12 @@ function setupJSDOM() {
       getPropertyValue: () => ''
     });
   }
-  // Mock window.open on defaultView
   dom.window.document.defaultView.open = jest.fn();
+  dom.window.navigator.clipboard = { writeText: jest.fn().mockResolvedValue() };
+  dom.window.URL = {
+    createObjectURL: jest.fn(() => 'blob://test'),
+    revokeObjectURL: jest.fn()
+  };
   return dom;
 }
 
@@ -485,28 +491,138 @@ describe('Persistence in xGhosted', () => {
       document: { readyState: 'complete', querySelectorAll: () => [] },
       close: jest.fn()
     };
-    // Ensure mock is set and log it
     xGhosted.document.defaultView.open = jest.fn(() => mockWindow);
-    console.log('Mock set:', typeof xGhosted.document.defaultView.open);
     jest.useFakeTimers();
-  
+
     xGhosted.state.isManualCheckEnabled = true;
     const posts = xGhosted.identifyPosts();
     const potentialPost = posts.find(p => p.analysis.quality === postQuality.POTENTIAL_PROBLEM);
     if (!potentialPost || !potentialPost.post.querySelector('article')) {
       throw new Error('No potential post or article found—sample HTML issue?');
     }
-    console.log('Calling checkPostInNewTab with:', potentialPost.analysis.link);
     xGhosted.checkPostInNewTab(potentialPost.post.querySelector('article'), potentialPost.analysis.link);
-    console.log('After call, open called:', xGhosted.document.defaultView.open.mock.calls.length);
     expect(xGhosted.document.defaultView.open).toHaveBeenCalledWith(`https://x.com${potentialPost.analysis.link}`, '_blank');
     jest.advanceTimersByTime(500 * 10);
     expect(mockWindow.close).toHaveBeenCalled();
     expect(gmStorage.xGhostedState.processedArticles[potentialPost.analysis.link].analysis.quality).toBe(postQuality.GOOD);
-  
+
     xGhosted.document.defaultView.open.mockClear();
     xGhosted.state.isManualCheckEnabled = false;
     xGhosted.highlightPostsImmediate();
     expect(xGhosted.document.defaultView.open).not.toHaveBeenCalled();
+  });
+});
+
+describe('CSV Management in xGhosted', () => {
+  let xGhosted, dom, originalCreateElement;
+
+  beforeEach(() => {
+    dom = setupJSDOM();
+    xGhosted = new XGhosted(dom.window.document);
+    xGhosted.updateState('https://x.com/user/with_replies');
+    originalCreateElement = dom.window.document.createElement;
+    dom.window.document.createElement = jest.fn((tag) => {
+      const el = originalCreateElement.call(dom.window.document, tag);
+      if (tag === 'a') {
+        el.click = jest.fn();
+        return Object.assign(el, { href: '', download: '', style: {} });
+      }
+      return el;
+    });
+    global.navigator.clipboard = { writeText: jest.fn().mockResolvedValue() };
+    global.URL = {
+      createObjectURL: jest.fn(() => 'blob://test'),
+      revokeObjectURL: jest.fn()
+    };
+    global.prompt = jest.fn(() => null);
+  });
+
+  afterEach(() => {
+    dom.window.document.body.innerHTML = '';
+    dom.window.document.createElement = originalCreateElement;
+    delete global.navigator.clipboard;
+    delete global.URL;
+    delete global.prompt;
+    jest.clearAllMocks();
+  });
+
+  test('exportProcessedPostsCSV generates valid CSV and triggers download', () => {
+    xGhosted.highlightPostsImmediate();
+    xGhosted.exportProcessedPostsCSV();
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalled();
+    const csvText = navigator.clipboard.writeText.mock.calls[0][0];
+    const lines = csvText.split('\n');
+    expect(lines[0]).toBe('Link,Quality,Reason,Checked');
+    expect(lines.length).toBe(37);
+    expect(lines[1]).toContain('"https://x.com/DongWookChung2/status/1887852588457988314","Good","Looks good",false');
+    expect(dom.window.document.createElement).toHaveBeenCalledWith('a');
+    const aTag = dom.window.document.createElement.mock.results[0].value;
+    jest.spyOn(aTag, 'click');
+    aTag.click();
+    expect(aTag.click).toHaveBeenCalled();
+    expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    expect(URL.revokeObjectURL).toHaveBeenCalled();
+  });
+
+  test('importProcessedPostsCSV loads CSV into processedArticles', () => {
+    jest.spyOn(xGhosted, 'highlightPostsImmediate').mockImplementation(() => {});
+    xGhosted.state.processedArticles.clear();
+    const csvText = `Link,Quality,Reason,Checked
+"https://x.com/test/status/123","Problem","Test problem",true
+"https://x.com/test/status/456","Good","Looks good",false`;
+    xGhosted.importProcessedPostsCSV(csvText);
+
+    expect(xGhosted.state.processedArticles.size).toBe(2);
+    const problemPost = xGhosted.state.processedArticles.get('/test/status/123');
+    expect(problemPost.analysis.quality).toBe(postQuality.PROBLEM);
+    expect(problemPost.analysis.reason).toBe('Test problem');
+    expect(problemPost.checked).toBe(true);
+    const goodPost = xGhosted.state.processedArticles.get('/test/status/456');
+    expect(goodPost.analysis.quality).toBe(postQuality.GOOD);
+    expect(goodPost.analysis.reason).toBe('Looks good');
+    expect(goodPost.checked).toBe(false);
+    expect(GM_setValue).toHaveBeenCalled();
+    xGhosted.createPanel();
+    xGhosted.uiElements.contentWrapper.innerHTML = '';
+    renderPanel(xGhosted.document, xGhosted.state, xGhosted.uiElements, () => {});
+    const links = xGhosted.document.querySelectorAll('#xghosted-panel .problem-links-wrapper .link-item a');
+    expect(links.length).toBe(1);
+  });
+
+  test('clearProcessedPosts wipes processedArticles and updates UI', () => {
+    xGhosted.highlightPostsImmediate();
+    expect(xGhosted.state.processedArticles.size).toBe(36);
+    xGhosted.createPanel();
+    jest.spyOn(xGhosted, 'highlightPostsImmediate').mockImplementation(() => {});
+    // Remove existing panel to force a full reset
+    const oldPanel = xGhosted.document.getElementById('xghosted-panel');
+    if (oldPanel) oldPanel.remove();
+    xGhosted.uiElements.panel = null; // Reset uiElements.panel to trigger recreate
+    xGhosted.clearProcessedPosts();
+    renderPanel(xGhosted.document, xGhosted.state, xGhosted.uiElements, () => xGhosted.createPanel());
+
+    expect(xGhosted.state.processedArticles.size).toBe(0);
+    expect(GM_setValue).toHaveBeenCalled();
+    const links = xGhosted.document.querySelectorAll('#xghosted-panel .problem-links-wrapper .link-item a');
+    expect(links.length).toBe(0);
+  });
+
+  test('panel buttons trigger CSV management functions', () => {
+    xGhosted.createPanel();
+    jest.spyOn(xGhosted, 'exportProcessedPostsCSV');
+    jest.spyOn(xGhosted, 'importProcessedPostsCSV');
+    jest.spyOn(xGhosted, 'clearProcessedPosts');
+    global.confirm = jest.fn(() => true);
+    global.prompt = jest.fn(() => 'Link,Quality,Reason,Checked\n"https://x.com/test/status/789","Problem","Test",true');
+
+    xGhosted.uiElements.exportButton.click();
+    expect(xGhosted.exportProcessedPostsCSV).toHaveBeenCalled();
+
+    xGhosted.uiElements.importButton.click();
+    expect(xGhosted.importProcessedPostsCSV).toHaveBeenCalledWith('Link,Quality,Reason,Checked\n"https://x.com/test/status/789","Problem","Test",true');
+
+    xGhosted.uiElements.clearButton.click();
+    expect(xGhosted.clearProcessedPosts).toHaveBeenCalled();
   });
 });
