@@ -31,7 +31,7 @@ const DEPENDENCIES = [
 
 // Map dependencies to full paths
 const modulePaths = {};
-DEPENDENCIES.forEach(dep => {
+DEPENDENCIES.forEach((dep) => {
   const fullPath = path.resolve(SRC_DIR, `${dep}.js`);
   if (fs.existsSync(fullPath)) {
     modulePaths[dep] = fullPath;
@@ -39,7 +39,12 @@ DEPENDENCIES.forEach(dep => {
     console.warn(`Dependency not found: ${dep}`);
   }
 });
-console.log('Inlining', Object.keys(modulePaths).length, 'modules:', Object.keys(modulePaths));
+console.log(
+  'Inlining',
+  Object.keys(modulePaths).length,
+  'modules:',
+  Object.keys(modulePaths)
+);
 
 // Function to extract and deduplicate module code
 function getModuleCode(modulePath, processedModules = new Set()) {
@@ -62,7 +67,10 @@ const processedModules = new Set();
 let moduleBlock = '';
 for (const [requirePath, filePath] of Object.entries(modulePaths)) {
   const requireRegex = new RegExp(
-    `(const|let|var)?\\s*(\\w+)\\s*=\\s*require\\(\\s*['"]${requirePath.replace(/\./g, '\\.')}\\s*['"]\\s*\\);?`,
+    `(const|let|var)?\\s*(\\w+)\\s*=\\s*require\\(\\s*['"]${requirePath.replace(
+      /\./g,
+      '\\.'
+    )}\\s*['"]\\s*\\);?`,
     'g'
   );
   const moduleCode = getModuleCode(filePath, processedModules);
@@ -79,6 +87,23 @@ xGhostedContent = `${moduleBlock}${xGhostedContent}`;
 xGhostedContent = xGhostedContent.replace(/const\s+\w+\s*=\s*require\(.+?\);?/g, '');
 xGhostedContent = xGhostedContent.replace(/module\.exports\s*=\s*[^;]+;?/g, '');
 
+// Remove duplicate method definitions
+const methodDeduplicationRegex = [
+  /XGhosted\.prototype\.createPanel\s*=\s*function\s*\(\)\s*{[\s\S]*?}\s*;/g,
+  /XGhosted\.prototype\.copyLinks\s*=\s*function\s*\(\)\s*{[\s\S]*?}\s*;/g,
+  /XGhosted\.prototype\.loadState\s*=\s*function\s*\(\)\s*{[\s\S]*?}\s*;/g,
+  /XGhosted\.prototype\.saveState\s*=\s*function\s*\(\)\s*{[\s\S]*?}\s*;/g,
+];
+
+// Keep only the last occurrence of each method
+methodDeduplicationRegex.forEach((regex) => {
+  const matches = xGhostedContent.match(regex);
+  if (matches && matches.length > 1) {
+    xGhostedContent = xGhostedContent.replace(regex, '');
+    xGhostedContent += `\n${matches[matches.length - 1]}`;
+  }
+});
+
 // Optimize for resource limits and server safety within XGhosted class
 xGhostedContent = xGhostedContent.replace(
   'XGhosted.prototype.identifyPosts = function() {',
@@ -89,14 +114,17 @@ xGhostedContent = xGhostedContent.replace(
           return [];
       }`
 );
+
+// Fix the debounce delay to 500ms
 xGhostedContent = xGhostedContent.replace(
-  'XGhosted.prototype.highlightPostsDebounced = debounce(function() { this.highlightPosts(); }, 250)',
-  `XGhosted.prototype.highlightPostsDebounced = debounce(function() { this.highlightPosts(); }, 500)`
+  /XGhosted\.prototype\.highlightPostsDebounced\s*=\s*debounce\(function\s*\(\)\s*{\s*this\.highlightPosts\(\);\s*},\s*250\)/,
+  `XGhosted.prototype.highlightPostsDebounced = debounce(function () { this.highlightPosts(); }, 500)`
 );
+
 // Add the override within the class definition, after the initial debounce
 xGhostedContent = xGhostedContent.replace(
-  'XGhosted.prototype.highlightPostsDebounced = debounce(function() { this.highlightPosts(); }, 500)',
-  `XGhosted.prototype.highlightPostsDebounced = debounce(function() { this.highlightPosts(); }, 500);
+  'XGhosted.prototype.highlightPostsDebounced = debounce(function () { this.highlightPosts(); }, 500)',
+  `XGhosted.prototype.highlightPostsDebounced = debounce(function () { this.highlightPosts(); }, 500);
   const originalHighlightPostsDebounced = XGhosted.prototype.highlightPostsDebounced;
   XGhosted.prototype.highlightPostsDebounced = function () {
     const MAX_PROCESSED_ARTICLES = 1000;
@@ -117,9 +145,9 @@ if (templateContent.includes(injectTag)) {
   console.error('Injection point not found in template');
 }
 
-// Remove the old override from the template (no longer needed)
+// Remove any override in the template (should already be gone, but just in case)
 templateContent = templateContent.replace(
-  /const originalHighlightPostsDebounced = xGhosted\.highlightPostsDebounced;[\s\S]*?originalHighlightPostsDebounced\.apply\(xGhosted\);[\s\S]*?\};/,
+  /\/\/\s*Override highlightPostsDebounced to enforce resource caps[\s\S]*?xGhosted\.highlightPostsDebounced\s*=\s*function\s*\(\)\s*{[\s\S]*?}\s*;/,
   ''
 );
 

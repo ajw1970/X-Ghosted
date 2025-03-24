@@ -5,6 +5,7 @@
 - **UI**: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow) posts with eye icons, GOOD (none), UNDEFINED (none). Panel (resizable, draggable) lists flagged posts with Copy, Export CSV (5s throttled), Import CSV, Clear, and Manual Check buttons. Theme switching polished with tooltips.
 - **Core**: Detects post quality via `identifyPost.js` using DOM only, persists state (capped at 1000 articles) with `GM_setValue`/`GM_getValue`. Manual mode default minimizes server activity.
 - **Tests**: `src/xGhosted.test.js`—28 tests passing, covering up to Step 5. Safety features (resource caps, throttling) require browser testing.
+- **Build**: `build-xGhosted.js` script bundles `xGhosted.js` with dependencies into `xGhosted.user.js`, with method deduplication fixed to keep the last occurrence of methods (`createPanel`, `copyLinks`, `loadState`, `saveState`) in place, ensuring syntactically correct output for Prettier formatting.
 
 == End Goal: Version 0.6.1 Features
 - CSV export/import/clear done—export throttled at 5s in production, immediate in tests.
@@ -17,7 +18,8 @@
 == Technical Details
 - **Depends On**: `GM_setValue`/`GM_getValue` for persistence, `jest` for testing, JSDOM for DOM mocks.
 - **Modules**: `xGhosted.js`, `createPanel.js`, `renderPanel.js`, `updateTheme.js`, utils like `postQuality.js`.
+- **Build Script**: `build-xGhosted.js` inlines dependencies, applies resource caps (1000 articles, 500ms debounce), and ensures method deduplication for clean output. Planned transition to Rollup for more reliable bundling and cleaner output.
 
 == Revision History
 - March 23, 2025: Updated for 0.6.1—24 tests pass. CSV export and Manual Check Mode added.
-- March 24, 2025: Step 3 done—CSV import/clear added. Step 4 done—UI polished. Step 5 done—userscript wrapper with safety optimizations.
+- March 24, 2025: Step 3 done—CSV import/clear added. Step 4 done—UI polished. Step 5 done—userscript wrapper with safety optimizations. Build script fixed for method deduplication and Prettier formatting. Plan to transition to Rollup for bundling established.

@@ -1,3 +1,5 @@
+// File: src/xGhosted.template.js
+// --------------------------------
 // ==UserScript==
 // @name         xGhosted
 // @namespace    http://tampermonkey.net/
@@ -34,16 +36,6 @@
     const xGhosted = new XGhosted(document);
     xGhosted.state.isManualCheckEnabled = true; // Start in manual mode to limit server activity
     xGhosted.init();
-
-    // Override highlightPostsDebounced to enforce resource caps
-    const originalHighlightPostsDebounced = xGhosted.highlightPostsDebounced;
-    xGhosted.highlightPostsDebounced = function () {
-        if (xGhosted.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) {
-            log('xGhosted: Processed articles cap reached (1000), skipping highlight');
-            return;
-        }
-        originalHighlightPostsDebounced.apply(xGhosted);
-    };
 
     // Observe URL changes with throttling
     let lastUrl = window.location.href;
