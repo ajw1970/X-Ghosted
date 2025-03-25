@@ -1,19 +1,21 @@
 = Grok Step 4: Roadmap to Next Release (0.6.1)
-:revision-date: March 24, 2025
+:revision-date: March 25, 2025
 
 == Roadmap to Version 0.6.1
-1. *Full State Persistence*: Save/load `processedArticles` and settings via `GM_setValue`/`GM_getValue`. Done—24/24 tests pass.
-2. *Manual Check Mode*: Toggle via panel, mock tab checks with `checkPostInNewTab`. Done—24/24 tests pass, defaults to enabled for safety.
-3. *Manage Processed Posts Data*: Add import/export/clear in CSV format. Export 5s throttled in production, immediate in tests. Done—28/28 tests pass.
-4. *Polish UI/UX for 0.6.1 Release*: Refine panel styling (resizable/draggable), theme detection, usability with tooltips. Done—untested in test suite.
-5. *Userscript Wrapper*: Wrap `xGhosted.js` in a `@userscript` header via `xGhosted.template.js` and build script. Done—optimized for 1000 article cap, 500ms debounce, 1s observer throttle, manual mode default, DOM-only analysis. Build script fixed for method deduplication and Prettier formatting.
+1. *Full State Persistence*: Save/load `processedArticles` and settings via `GM_setValue`/`GM_getValue`. Done—24/24 tests passed previously.
+2. *Manual Check Mode*: Toggle via panel, mock tab checks with `checkPostInNewTab`. Done—24/24 tests passed previously, defaults to enabled for safety.
+3. *Manage Processed Posts Data*: Add import/export/clear in CSV format. Export 5s throttled in production, immediate in tests. Done—28/28 tests defined, currently failing due to `SyntaxError`.
+4. *Polish UI/UX for 0.6.1 Release*: Refine panel styling (resizable/draggable), theme detection, usability with tooltips. Done—untested in test suite due to current failures.
+5. *Userscript Wrapper*: Wrap `xGhosted.js` in a `@userscript` header via `xGhosted.template.js` and build script. Done—optimized for 1000 article cap, 500ms debounce, 1s observer throttle, manual mode default, DOM-only analysis. Build script fixed for method deduplication and Prettier formatting. Test verification stalled by `SyntaxError`.
 
 == Roadmap to Version 0.6.2
-1. *Transition to Rollup*: Replace the custom `build-xGhosted.js` script with Rollup for bundling `xGhosted.js` with its dependencies, improving maintainability and ensuring cleaner, more readable output.
-2. *Tab Check GOOD Posts*: 10s interval checks—pending, to be user-triggered for server safety.
-3. *Performance Pass*: Optimize lookups—pending.
-4. *Collapse by Default*: Batch-collapse problem posts every 5s—pending.
+1. *Fix Test Suite*: Resolve `SyntaxError` in `src/xGhosted.test.js` from duplicate `setupJSDOM` to restore 28/28 tests passing, verifying Step 5 functionality.
+2. *Transition to Rollup*: Replace the custom `build-xGhosted.js` script with Rollup for bundling `xGhosted.js` with its dependencies, improving maintainability and ensuring cleaner, more readable output.
+3. *Tab Check GOOD Posts*: 10s interval checks—pending, to be user-triggered for server safety.
+4. *Performance Pass*: Optimize lookups—pending.
+5. *Collapse by Default*: Batch-collapse problem posts every 5s—pending.
 
 == Revision History
 - March 23, 2025: Step 2 completed—24/24 tests passing.
 - March 24, 2025: Step 3 completed—CSV features done. Step 4 completed—UI polished. Step 5 completed—userscript wrapper with resource and server safety optimizations. Build script fixed for method deduplication and Prettier formatting. Roadmap updated to include transition to Rollup for version 0.6.2.
+- March 25, 2025: Test suite regressed—28/28 tests fail due to `SyntaxError` from duplicate `setupJSDOM`. Previously, 27/28 passed, with CSV export test failing on `navigator.clipboard`. Added test fix to roadmap step 0.6.2-1.
