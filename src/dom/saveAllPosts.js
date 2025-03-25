@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals';
+
 function saveAllPosts(state, gm_setValueFn, gm_logFn) {
     if (!state.storageAvailable) {
         gm_logFn('Storage is unavailable, skipping save.');
@@ -14,4 +16,4 @@ function saveAllPosts(state, gm_setValueFn, gm_logFn) {
     }
 }
 
-module.exports = { saveAllPosts };
+export default saveAllPosts;

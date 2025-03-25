@@ -1,5 +1,5 @@
-const { JSDOM } = require('jsdom');
-const togglePanelVisibility = require('./togglePanelVisibility');
+import { JSDOM } from 'jsdom';
+import togglePanelVisibility from './togglePanelVisibility';
 
 describe('togglePanelVisibility', () => {
   let doc, state, uiElements;

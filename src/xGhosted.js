@@ -1,13 +1,14 @@
 // src/xGhosted.js
-const postQuality = require('./utils/postQuality');
-const detectTheme = require('./dom/detectTheme');
-const identifyPost = require('./utils/identifyPost');
-const debounce = require('./utils/debounce');
-const createButton = require('./dom/createButton');
-const createPanel = require('./dom/createPanel');
-const togglePanelVisibility = require('./dom/togglePanelVisibility');
-const renderPanel = require('./dom/renderPanel');
-const updateTheme = require('./dom/updateTheme');
+import postQuality from './utils/postQuality.js';
+const { GOOD, UNDEFINED, PROBLEM, POTENTIAL_PROBLEM } = postQuality;
+import detectTheme from './dom/detectTheme';
+import identifyPost from './utils/identifyPost';
+import debounce from './utils/debounce';
+import createButton from './dom/createButton';
+import createPanel from './dom/createPanel';
+import togglePanelVisibility from './dom/togglePanelVisibility';
+import renderPanel from './dom/renderPanel';
+import updateTheme from './dom/updateTheme';
 
 function XGhosted(doc, useTampermonkeyLog = false) {
   this.state = {
@@ -127,7 +128,7 @@ XGhosted.prototype.checkPostInNewTab = function (article, href) {
       let isProblem = false;
       for (let threadArticle of threadArticles) {
         const analysis = identifyPost(threadArticle, false);
-        if (analysis.quality === postQuality.PROBLEM) {
+        if (analysis.quality === PROBLEM) {
           isProblem = true;
           break;
         }
@@ -135,7 +136,7 @@ XGhosted.prototype.checkPostInNewTab = function (article, href) {
       this.applyHighlight(article, isProblem ? 'problem' : 'good');
       const cached = this.state.processedArticles.get(href);
       if (cached) {
-        cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
+        cached.analysis.quality = isProblem ? PROBLEM : GOOD;
         cached.checked = true;
       }
       if (!isProblem) newWindow.close();
@@ -173,7 +174,7 @@ XGhosted.prototype.identifyPosts = function () {
     const analysis = identifyPost(post, this.state.isWithReplies);
     let id = analysis.link;
 
-    if (analysis.quality === postQuality.UNDEFINED && id === false) {
+    if (analysis.quality === UNDEFINED && id === false) {
       if (lastLink) {
         fillerCount++;
         id = `${lastLink}#filler${fillerCount}`;
@@ -217,10 +218,10 @@ XGhosted.prototype.highlightPosts = function () {
     const article = post.querySelector('article');
     if (!article) return;
     const statusMap = {
-      [postQuality.PROBLEM.name]: 'problem',
-      [postQuality.POTENTIAL_PROBLEM.name]: 'potential',
-      [postQuality.GOOD.name]: 'good',
-      [postQuality.UNDEFINED.name]: 'none'
+      [PROBLEM.name]: 'problem',
+      [POTENTIAL_PROBLEM.name]: 'potential',
+      [GOOD.name]: 'good',
+      [UNDEFINED.name]: 'none'
     };
     const cached = this.state.processedArticles.get(analysis.link);
     let status = statusMap[analysis.quality.name] || 'none';
@@ -260,8 +261,8 @@ XGhosted.prototype.getThemeMode = function () {
 XGhosted.prototype.copyLinks = function () {
   const linksText = Array.from(this.state.processedArticles.entries())
     .filter(([_, { analysis }]) =>
-      analysis.quality === postQuality.PROBLEM ||
-      analysis.quality === postQuality.POTENTIAL_PROBLEM
+      analysis.quality === PROBLEM ||
+      analysis.quality === POTENTIAL_PROBLEM
     )
     .map(([link]) => `https://x.com${link}`)
     .join('\n');
@@ -303,8 +304,8 @@ XGhosted.prototype.exportProcessedPostsCSV = function () {
 XGhosted.prototype.copyLinks = function () {
   const linksText = Array.from(this.state.processedArticles.entries())
     .filter(([_, { analysis }]) =>
-      analysis.quality === postQuality.PROBLEM ||
-      analysis.quality === postQuality.POTENTIAL_PROBLEM
+      analysis.quality === PROBLEM ||
+      analysis.quality === POTENTIAL_PROBLEM
     )
     .map(([link]) => `https://x.com${link}`)
     .join('\n');
@@ -328,10 +329,10 @@ XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
     return;
   }
   const qualityMap = {
-    [postQuality.UNDEFINED.name]: postQuality.UNDEFINED,
-    [postQuality.PROBLEM.name]: postQuality.PROBLEM,
-    [postQuality.POTENTIAL_PROBLEM.name]: postQuality.POTENTIAL_PROBLEM,
-    [postQuality.GOOD.name]: postQuality.GOOD
+    [UNDEFINED.name]: UNDEFINED,
+    [PROBLEM.name]: PROBLEM,
+    [POTENTIAL_PROBLEM.name]: POTENTIAL_PROBLEM,
+    [GOOD.name]: GOOD
   };
   lines.slice(1).forEach(row => {
     const [link, qualityName, reason, checkedStr] = row;
@@ -380,4 +381,4 @@ XGhosted.prototype.init = function () {
   this.saveState();
 };
 
-module.exports = XGhosted;
+export default XGhosted;

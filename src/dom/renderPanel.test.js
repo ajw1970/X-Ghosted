@@ -1,5 +1,6 @@
-const { JSDOM } = require('jsdom');
-const renderPanel = require('./renderPanel');
+import { JSDOM } from 'jsdom';
+import renderPanel from './renderPanel';
+import postQuality from '../utils/postQuality';
 
 describe('renderPanel', () => {
   let doc, state, uiElements;
@@ -12,7 +13,7 @@ describe('renderPanel', () => {
         ['/test/problem', { analysis: { quality: { name: 'Problem' } } }],
         ['/test/potential', { analysis: { quality: { name: 'Potential Problem' } } }]
       ]),
-      postQuality: require('../utils/postQuality')
+      postQuality: postQuality
     };
     uiElements = {
       label: doc.createElement('span'),

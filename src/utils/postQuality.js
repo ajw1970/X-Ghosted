@@ -5,4 +5,4 @@ const postQuality = Object.freeze({
     GOOD: Object.freeze({ name: 'Good', value: 3 }),
 });
 
-module.exports = postQuality;
+export default postQuality;

@@ -1,4 +1,4 @@
-const getArticleDetails = require('./getArticleDetails');
+import getArticleDetails from './getArticleDetails';
 
 test('We can get posts from sample data', () => {
     // Load sample into DOM document

@@ -1,15 +1,16 @@
-const postHasProblemCommunity = require('./postHasProblemCommunity');
-const postHasProblemSystemNotice = require('./postHasProblemSystemNotice');
-const findReplyingToWithDepth = require('./findReplyingToWithDepth');
-const getRelativeLinkToPost = require('./getRelativeLinkToPost');
-const postQuality = require('./postQuality');
+import postHasProblemCommunity from './postHasProblemCommunity';
+import postHasProblemSystemNotice from './postHasProblemSystemNotice';
+import findReplyingToWithDepth from './findReplyingToWithDepth';
+import getRelativeLinkToPost from './getRelativeLinkToPost';
+import postQuality from './postQuality';
+const { GOOD, UNDEFINED, PROBLEM, POTENTIAL_PROBLEM } = postQuality;
 
 function identifyPost(post, checkReplies = false) {
     // Check for first article (to avoid nested articles)
     const article = post.querySelector('article');
     if (!article) {
         return {
-            quality: postQuality.UNDEFINED,
+            quality: UNDEFINED,
             reason: "No article found",
             link: false,
         };
@@ -19,7 +20,7 @@ function identifyPost(post, checkReplies = false) {
     const noticeFound = postHasProblemSystemNotice(article);
     if (noticeFound) {
         return {
-            quality: postQuality.PROBLEM,
+            quality: PROBLEM,
             reason: `Found notice: ${noticeFound}`,
             link: getRelativeLinkToPost(post),
         };
@@ -29,7 +30,7 @@ function identifyPost(post, checkReplies = false) {
     const communityFound = postHasProblemCommunity(article);
     if (communityFound) {
         return {
-            quality: postQuality.PROBLEM,
+            quality: PROBLEM,
             reason: `Found community: ${communityFound}`,
             link: getRelativeLinkToPost(post),
         };
@@ -45,7 +46,7 @@ function identifyPost(post, checkReplies = false) {
             if (replyingTo) {
 
                 return {
-                    quality: postQuality.POTENTIAL_PROBLEM,
+                    quality: POTENTIAL_PROBLEM,
                     reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
                     link: getRelativeLinkToPost(post),
                 };
@@ -57,17 +58,17 @@ function identifyPost(post, checkReplies = false) {
     const link = getRelativeLinkToPost(post);
     if (link) {
         return {
-            quality: postQuality.GOOD,
+            quality: GOOD,
             reason: "Looks good",
             link: link,
         };
     }
 
     return {
-        quality: postQuality.UNDEFINED,
+        quality: UNDEFINED,
         reason: "Nothing to measure",
         link: false,
     };
 }
 
-module.exports = identifyPost;
+export default identifyPost;

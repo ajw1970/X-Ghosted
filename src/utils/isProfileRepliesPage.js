@@ -12,4 +12,4 @@ function isProfileRepliesPage(url) {
 
     return urlWithoutParams.endsWith('/with_replies'); // Case-sensitive check
 }
-module.exports = { isProfileRepliesPage };
+export default isProfileRepliesPage;

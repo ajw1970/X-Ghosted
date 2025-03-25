@@ -1,12 +1,13 @@
-const postQuality = require('./postQuality');
+import postQuality from './postQuality';
+const { GOOD, UNDEFINED, PROBLEM, POTENTIAL_PROBLEM } = postQuality;
 
 function summarizeRatedPosts(analyses) {
   // Initialize counters object using the enum values
   const summary = {
-    [postQuality.UNDEFINED.name]: 0,
-    [postQuality.PROBLEM.name]: 0,
-    [postQuality.POTENTIAL_PROBLEM.name]: 0,
-    [postQuality.GOOD.name]: 0
+    [UNDEFINED.name]: 0,
+    [PROBLEM.name]: 0,
+    [POTENTIAL_PROBLEM.name]: 0,
+    [GOOD.name]: 0
   };
 
   // Check if posts is valid and iterable
@@ -24,4 +25,4 @@ function summarizeRatedPosts(analyses) {
   return summary;
 }
 
-module.exports = summarizeRatedPosts;
+export default summarizeRatedPosts;

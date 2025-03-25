@@ -1,6 +1,7 @@
-const { JSDOM } = require('jsdom');
-const createButton = require('./createButton');
-const rgbToHex = require('./rgbToHex');
+import { jest } from '@jest/globals';
+import { JSDOM } from 'jsdom';
+import createButton from './createButton';
+import rgbToHex from './rgbToHex';
 
 describe('createButton', () => {
   let doc, config;

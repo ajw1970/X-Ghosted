@@ -52,4 +52,4 @@ function detectTheme(doc) {
     return 'light';
 }
 
-module.exports = detectTheme;
+export default detectTheme;

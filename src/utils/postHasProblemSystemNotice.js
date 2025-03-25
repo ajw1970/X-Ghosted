@@ -29,4 +29,4 @@ function postHasProblemSystemNotice(article) {
     return false;
 }
 
-module.exports = postHasProblemSystemNotice;
+export default postHasProblemSystemNotice;

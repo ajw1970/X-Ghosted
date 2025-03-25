@@ -1,26 +1,33 @@
-// src/xGhosted.test.js
-const fs = require('fs');
-const path = require('path');
-const { JSDOM } = require('jsdom');
-const XGhosted = require('./xGhosted');
-const renderPanel = require('./dom/renderPanel');
-const postQuality = require('./utils/postQuality');
-const summarizeRatedPosts = require('./utils/summarizeRatedPosts');
+import { jest } from '@jest/globals';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+import { JSDOM } from 'jsdom';
+import XGhosted from './xGhosted.js';
+import renderPanel from './dom/renderPanel.js';
+import postQuality from './utils/postQuality.js';
+const { GOOD, UNDEFINED, PROBLEM, POTENTIAL_PROBLEM } = postQuality;
+import summarizeRatedPosts from './utils/summarizeRatedPosts.js';
 
 // Mock Tampermonkey GM_* functions
 const gmStorage = {};
 global.GM_getValue = jest.fn((key, defaultValue) => gmStorage[key] ?? defaultValue);
 global.GM_setValue = jest.fn((key, value) => { gmStorage[key] = value; });
 
+// Convert __dirname to ES6-compatible syntax
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 function setupJSDOM() {
-  const samplePath = path.resolve(__dirname, '../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
-  const sampleHtml = fs.readFileSync(samplePath, 'utf8');
+  const samplePath = resolve(__dirname, '../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
+  const sampleHtml = readFileSync(samplePath, 'utf8');
   const html = `<!DOCTYPE html><html><body>${sampleHtml}</body></html>`;
   const dom = new JSDOM(html, {
     url: 'https://x.com/user/with_replies',
     resources: 'usable',
     runScripts: 'dangerously',
   });
+  console.log('JSDOM created'); // Debug
   global.window = dom.window;
   global.document = dom.window.document;
   if (!dom.window.getComputedStyle) {
@@ -30,7 +37,14 @@ function setupJSDOM() {
     });
   }
   dom.window.document.defaultView.open = jest.fn();
-  dom.window.navigator.clipboard = { writeText: jest.fn().mockResolvedValue() };
+  const clipboardMock = { writeText: jest.fn().mockResolvedValue() };
+  dom.window.navigator = {
+    clipboard: clipboardMock,
+    userAgent: 'jest',
+  };
+  global.navigator = dom.window.navigator;
+  console.log('Navigator set:', global.navigator); // Debug
+  console.log('Navigator mock setup in setupJSDOM:', global.navigator.clipboard.writeText); // Debug
   dom.window.URL = {
     createObjectURL: jest.fn(() => 'blob://test'),
     revokeObjectURL: jest.fn()
@@ -48,7 +62,9 @@ describe('xGhosted', () => {
   });
 
   afterEach(() => {
-    dom.window.document.body.innerHTML = '';
+    if (dom && dom.window && dom.window.document) {
+      dom.window.document.body.innerHTML = '';
+    }
     jest.clearAllMocks();
   });
 
@@ -78,147 +94,147 @@ describe('xGhosted', () => {
     expect(xGhosted.state.processedArticles.size).toBe(36);
 
     const analyses = posts.map(p => p.analysis);
-    expect(analyses[0].quality).toEqual(postQuality.GOOD);
+    expect(analyses[0].quality).toEqual(GOOD);
     expect(analyses[0].reason).toEqual("Looks good");
     expect(analyses[0].link).toEqual("/DongWookChung2/status/1887852588457988314");
 
-    expect(analyses[1].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[1].reason).toEqual("Looks good"); 
-    expect(analyses[1].link).toEqual("/monetization_x/status/1897010659075989835"); 
- 
-    expect(analyses[2].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[2].reason).toEqual("Looks good"); 
-    expect(analyses[2].link).toEqual("/ApostleJohnW/status/1897016048639180873"); 
- 
-    expect(analyses[3].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[3].reason).toEqual("No article found"); 
-    expect(analyses[3].link).toEqual("/ApostleJohnW/status/1897016048639180873#filler1"); 
- 
-    expect(analyses[4].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[4].reason).toEqual("Looks good"); 
-    expect(analyses[4].link).toEqual("/Name__Error_404/status/1896938936599228642"); 
- 
-    expect(analyses[5].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[5].reason).toEqual("No article found"); 
-    expect(analyses[5].link).toEqual("/Name__Error_404/status/1896938936599228642#filler1"); 
- 
-    expect(analyses[6].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[6].reason).toEqual("Looks good"); 
-    expect(analyses[6].link).toEqual("/Name__Error_404/status/1897015679158788554"); 
- 
-    expect(analyses[7].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[7].reason).toEqual("Looks good"); 
-    expect(analyses[7].link).toEqual("/ApostleJohnW/status/1897015899099414914"); 
- 
-    expect(analyses[8].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[8].reason).toEqual("No article found"); 
-    expect(analyses[8].link).toEqual("/ApostleJohnW/status/1897015899099414914#filler1"); 
- 
-    expect(analyses[9].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[9].reason).toEqual("Looks good"); 
-    expect(analyses[9].link).toEqual("/Name__Error_404/status/1897015203541524847"); 
- 
-    expect(analyses[10].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[10].reason).toEqual("Looks good"); 
-    expect(analyses[10].link).toEqual("/ApostleJohnW/status/1897015449176748449"); 
- 
-    expect(analyses[11].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[11].reason).toEqual("No article found"); 
-    expect(analyses[11].link).toEqual("/ApostleJohnW/status/1897015449176748449#filler1"); 
- 
-    expect(analyses[12].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[12].reason).toEqual("Looks good"); 
-    expect(analyses[12].link).toEqual("/SpaceX/status/1896708396902174849"); 
- 
-    expect(analyses[13].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[13].reason).toEqual("Looks good"); 
-    expect(analyses[13].link).toEqual("/ApostleJohnW/status/1897003945203306614"); 
- 
-    expect(analyses[14].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[14].reason).toEqual("Looks good"); 
-    expect(analyses[14].link).toEqual("/ApostleJohnW/status/1897013413664145793"); 
- 
-    expect(analyses[15].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[15].reason).toEqual("No article found"); 
-    expect(analyses[15].link).toEqual("/ApostleJohnW/status/1897013413664145793#filler1"); 
- 
-    expect(analyses[16].quality).toEqual(postQuality.PROBLEM); 
-    expect(analyses[16].reason).toEqual("Found notice: this post is unavailable"); 
-    expect(analyses[16].link).toEqual("/OwenGregorian/status/1896977661144260900"); 
- 
-    expect(analyses[17].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[17].reason).toEqual("Looks good"); 
-    expect(analyses[17].link).toEqual("/ApostleJohnW/status/1897011110072738182"); 
- 
-    expect(analyses[18].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[18].reason).toEqual("No article found"); 
-    expect(analyses[18].link).toEqual("/ApostleJohnW/status/1897011110072738182#filler1"); 
- 
-    expect(analyses[19].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[19].reason).toEqual("Looks good"); 
-    expect(analyses[19].link).toEqual("/DongWookChung2/status/1897005083709374868"); 
- 
-    expect(analyses[20].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[20].reason).toEqual("Looks good"); 
-    expect(analyses[20].link).toEqual("/ApostleJohnW/status/1897010202974806174"); 
- 
-    expect(analyses[21].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[21].reason).toEqual("No article found"); 
-    expect(analyses[21].link).toEqual("/ApostleJohnW/status/1897010202974806174#filler1"); 
- 
-    expect(analyses[22].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[22].reason).toEqual("Looks good"); 
-    expect(analyses[22].link).toEqual("/monetization_x/status/1896999071665324318"); 
- 
-    expect(analyses[23].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[23].reason).toEqual("No article found"); 
-    expect(analyses[23].link).toEqual("/monetization_x/status/1896999071665324318#filler1"); 
- 
-    expect(analyses[24].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[24].reason).toEqual("Looks good"); 
-    expect(analyses[24].link).toEqual("/godswayfoundinc/status/1897003429870129243"); 
- 
-    expect(analyses[25].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[25].reason).toEqual("Looks good"); 
-    expect(analyses[25].link).toEqual("/ApostleJohnW/status/1897004848614420667"); 
- 
-    expect(analyses[26].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[26].reason).toEqual("No article found"); 
-    expect(analyses[26].link).toEqual("/ApostleJohnW/status/1897004848614420667#filler1"); 
- 
-    expect(analyses[27].quality).toEqual(postQuality.POTENTIAL_PROBLEM); 
-    expect(analyses[27].reason).toEqual("Found: 'Replying to <a>@godswayfoundinc</a> and <a>@monetization_x</a>' at a depth of 6"); 
-    expect(analyses[27].link).toEqual("/ApostleJohnW/status/1897004713570394503"); 
- 
-    expect(analyses[28].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[28].reason).toEqual("No article found"); 
-    expect(analyses[28].link).toEqual("/ApostleJohnW/status/1897004713570394503#filler1"); 
- 
-    expect(analyses[29].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[29].reason).toEqual("Looks good"); 
-    expect(analyses[29].link).toEqual("/godswayfoundinc/status/1897002671846121539"); 
- 
-    expect(analyses[30].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[30].reason).toEqual("Looks good"); 
-    expect(analyses[30].link).toEqual("/ApostleJohnW/status/1897002963107025141"); 
- 
-    expect(analyses[31].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[31].reason).toEqual("No article found"); 
-    expect(analyses[31].link).toEqual("/ApostleJohnW/status/1897002963107025141#filler1"); 
- 
-    expect(analyses[32].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[32].reason).toEqual("Looks good"); 
-    expect(analyses[32].link).toEqual("/WesleyKy/status/1896999314582642895"); 
- 
-    expect(analyses[33].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[33].reason).toEqual("Looks good"); 
-    expect(analyses[33].link).toEqual("/ApostleJohnW/status/1897002818214748430"); 
- 
-    expect(analyses[34].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[34].reason).toEqual("No article found"); 
-    expect(analyses[34].link).toEqual("/ApostleJohnW/status/1897002818214748430#filler1"); 
- 
-    expect(analyses[35].quality).toEqual(postQuality.POTENTIAL_PROBLEM);
+    expect(analyses[1].quality).toEqual(GOOD);
+    expect(analyses[1].reason).toEqual("Looks good");
+    expect(analyses[1].link).toEqual("/monetization_x/status/1897010659075989835");
+
+    expect(analyses[2].quality).toEqual(GOOD);
+    expect(analyses[2].reason).toEqual("Looks good");
+    expect(analyses[2].link).toEqual("/ApostleJohnW/status/1897016048639180873");
+
+    expect(analyses[3].quality).toEqual(UNDEFINED);
+    expect(analyses[3].reason).toEqual("No article found");
+    expect(analyses[3].link).toEqual("/ApostleJohnW/status/1897016048639180873#filler1");
+
+    expect(analyses[4].quality).toEqual(GOOD);
+    expect(analyses[4].reason).toEqual("Looks good");
+    expect(analyses[4].link).toEqual("/Name__Error_404/status/1896938936599228642");
+
+    expect(analyses[5].quality).toEqual(UNDEFINED);
+    expect(analyses[5].reason).toEqual("No article found");
+    expect(analyses[5].link).toEqual("/Name__Error_404/status/1896938936599228642#filler1");
+
+    expect(analyses[6].quality).toEqual(GOOD);
+    expect(analyses[6].reason).toEqual("Looks good");
+    expect(analyses[6].link).toEqual("/Name__Error_404/status/1897015679158788554");
+
+    expect(analyses[7].quality).toEqual(GOOD);
+    expect(analyses[7].reason).toEqual("Looks good");
+    expect(analyses[7].link).toEqual("/ApostleJohnW/status/1897015899099414914");
+
+    expect(analyses[8].quality).toEqual(UNDEFINED);
+    expect(analyses[8].reason).toEqual("No article found");
+    expect(analyses[8].link).toEqual("/ApostleJohnW/status/1897015899099414914#filler1");
+
+    expect(analyses[9].quality).toEqual(GOOD);
+    expect(analyses[9].reason).toEqual("Looks good");
+    expect(analyses[9].link).toEqual("/Name__Error_404/status/1897015203541524847");
+
+    expect(analyses[10].quality).toEqual(GOOD);
+    expect(analyses[10].reason).toEqual("Looks good");
+    expect(analyses[10].link).toEqual("/ApostleJohnW/status/1897015449176748449");
+
+    expect(analyses[11].quality).toEqual(UNDEFINED);
+    expect(analyses[11].reason).toEqual("No article found");
+    expect(analyses[11].link).toEqual("/ApostleJohnW/status/1897015449176748449#filler1");
+
+    expect(analyses[12].quality).toEqual(GOOD);
+    expect(analyses[12].reason).toEqual("Looks good");
+    expect(analyses[12].link).toEqual("/SpaceX/status/1896708396902174849");
+
+    expect(analyses[13].quality).toEqual(GOOD);
+    expect(analyses[13].reason).toEqual("Looks good");
+    expect(analyses[13].link).toEqual("/ApostleJohnW/status/1897003945203306614");
+
+    expect(analyses[14].quality).toEqual(GOOD);
+    expect(analyses[14].reason).toEqual("Looks good");
+    expect(analyses[14].link).toEqual("/ApostleJohnW/status/1897013413664145793");
+
+    expect(analyses[15].quality).toEqual(UNDEFINED);
+    expect(analyses[15].reason).toEqual("No article found");
+    expect(analyses[15].link).toEqual("/ApostleJohnW/status/1897013413664145793#filler1");
+
+    expect(analyses[16].quality).toEqual(PROBLEM);
+    expect(analyses[16].reason).toEqual("Found notice: this post is unavailable");
+    expect(analyses[16].link).toEqual("/OwenGregorian/status/1896977661144260900");
+
+    expect(analyses[17].quality).toEqual(GOOD);
+    expect(analyses[17].reason).toEqual("Looks good");
+    expect(analyses[17].link).toEqual("/ApostleJohnW/status/1897011110072738182");
+
+    expect(analyses[18].quality).toEqual(UNDEFINED);
+    expect(analyses[18].reason).toEqual("No article found");
+    expect(analyses[18].link).toEqual("/ApostleJohnW/status/1897011110072738182#filler1");
+
+    expect(analyses[19].quality).toEqual(GOOD);
+    expect(analyses[19].reason).toEqual("Looks good");
+    expect(analyses[19].link).toEqual("/DongWookChung2/status/1897005083709374868");
+
+    expect(analyses[20].quality).toEqual(GOOD);
+    expect(analyses[20].reason).toEqual("Looks good");
+    expect(analyses[20].link).toEqual("/ApostleJohnW/status/1897010202974806174");
+
+    expect(analyses[21].quality).toEqual(UNDEFINED);
+    expect(analyses[21].reason).toEqual("No article found");
+    expect(analyses[21].link).toEqual("/ApostleJohnW/status/1897010202974806174#filler1");
+
+    expect(analyses[22].quality).toEqual(GOOD);
+    expect(analyses[22].reason).toEqual("Looks good");
+    expect(analyses[22].link).toEqual("/monetization_x/status/1896999071665324318");
+
+    expect(analyses[23].quality).toEqual(UNDEFINED);
+    expect(analyses[23].reason).toEqual("No article found");
+    expect(analyses[23].link).toEqual("/monetization_x/status/1896999071665324318#filler1");
+
+    expect(analyses[24].quality).toEqual(GOOD);
+    expect(analyses[24].reason).toEqual("Looks good");
+    expect(analyses[24].link).toEqual("/godswayfoundinc/status/1897003429870129243");
+
+    expect(analyses[25].quality).toEqual(GOOD);
+    expect(analyses[25].reason).toEqual("Looks good");
+    expect(analyses[25].link).toEqual("/ApostleJohnW/status/1897004848614420667");
+
+    expect(analyses[26].quality).toEqual(UNDEFINED);
+    expect(analyses[26].reason).toEqual("No article found");
+    expect(analyses[26].link).toEqual("/ApostleJohnW/status/1897004848614420667#filler1");
+
+    expect(analyses[27].quality).toEqual(POTENTIAL_PROBLEM);
+    expect(analyses[27].reason).toEqual("Found: 'Replying to <a>@godswayfoundinc</a> and <a>@monetization_x</a>' at a depth of 6");
+    expect(analyses[27].link).toEqual("/ApostleJohnW/status/1897004713570394503");
+
+    expect(analyses[28].quality).toEqual(UNDEFINED);
+    expect(analyses[28].reason).toEqual("No article found");
+    expect(analyses[28].link).toEqual("/ApostleJohnW/status/1897004713570394503#filler1");
+
+    expect(analyses[29].quality).toEqual(GOOD);
+    expect(analyses[29].reason).toEqual("Looks good");
+    expect(analyses[29].link).toEqual("/godswayfoundinc/status/1897002671846121539");
+
+    expect(analyses[30].quality).toEqual(GOOD);
+    expect(analyses[30].reason).toEqual("Looks good");
+    expect(analyses[30].link).toEqual("/ApostleJohnW/status/1897002963107025141");
+
+    expect(analyses[31].quality).toEqual(UNDEFINED);
+    expect(analyses[31].reason).toEqual("No article found");
+    expect(analyses[31].link).toEqual("/ApostleJohnW/status/1897002963107025141#filler1");
+
+    expect(analyses[32].quality).toEqual(GOOD);
+    expect(analyses[32].reason).toEqual("Looks good");
+    expect(analyses[32].link).toEqual("/WesleyKy/status/1896999314582642895");
+
+    expect(analyses[33].quality).toEqual(GOOD);
+    expect(analyses[33].reason).toEqual("Looks good");
+    expect(analyses[33].link).toEqual("/ApostleJohnW/status/1897002818214748430");
+
+    expect(analyses[34].quality).toEqual(UNDEFINED);
+    expect(analyses[34].reason).toEqual("No article found");
+    expect(analyses[34].link).toEqual("/ApostleJohnW/status/1897002818214748430#filler1");
+
+    expect(analyses[35].quality).toEqual(POTENTIAL_PROBLEM);
     expect(analyses[35].reason).toEqual("Found: 'Replying to <a>@monetization_x</a>' at a depth of 6");
     expect(analyses[35].link).toEqual("/ApostleJohnW/status/1897002239753073002");
 
@@ -236,10 +252,10 @@ describe('xGhosted', () => {
   test('highlightPosts applies correct borders', () => {
     xGhosted.highlightPostsImmediate();
     const posts = xGhosted.identifyPosts();
-    const goodPost = posts.find(p => p.analysis.quality === postQuality.GOOD);
-    const problemPost = posts.find(p => p.analysis.quality === postQuality.PROBLEM);
-    const potentialPost = posts.find(p => p.analysis.quality === postQuality.POTENTIAL_PROBLEM);
-    const undefinedPost = posts.find(p => p.analysis.quality === postQuality.UNDEFINED);
+    const goodPost = posts.find(p => p.analysis.quality === GOOD);
+    const problemPost = posts.find(p => p.analysis.quality === PROBLEM);
+    const potentialPost = posts.find(p => p.analysis.quality === POTENTIAL_PROBLEM);
+    const undefinedPost = posts.find(p => p.analysis.quality === UNDEFINED);
 
     expect(goodPost.post.querySelector('article').style.border).toBe('');
     expect(goodPost.post.querySelector('article').style.backgroundColor).toBe('');
@@ -291,26 +307,26 @@ describe('xGhosted', () => {
   describe('identifyPosts with sample HTML', () => {
     test('processes good and problem posts correctly', () => {
       const posts = xGhosted.identifyPosts();
-      const problemPost = posts.find(p => p.analysis.quality === postQuality.PROBLEM);
-      const goodPost = posts.find(p => p.analysis.quality === postQuality.GOOD);
+      const problemPost = posts.find(p => p.analysis.quality === PROBLEM);
+      const goodPost = posts.find(p => p.analysis.quality === GOOD);
 
       expect(problemPost).toBeDefined();
       expect(problemPost.analysis).toEqual({
-        quality: postQuality.PROBLEM,
+        quality: PROBLEM,
         reason: "Found notice: this post is unavailable",
         link: expect.stringContaining('/status/')
       });
       expect(goodPost).toBeDefined();
-      expect(goodPost.analysis.quality).toBe(postQuality.GOOD);
+      expect(goodPost.analysis.quality).toBe(GOOD);
     });
 
     test('identifies all post qualities correctly', () => {
       const posts = xGhosted.identifyPosts();
       expect(posts.length).toBe(36);
-      const goodPosts = posts.filter(p => p.analysis.quality === postQuality.GOOD);
-      const problemPosts = posts.filter(p => p.analysis.quality === postQuality.PROBLEM);
-      const potentialPosts = posts.filter(p => p.analysis.quality === postQuality.POTENTIAL_PROBLEM);
-      const undefinedPosts = posts.filter(p => p.analysis.quality === postQuality.UNDEFINED);
+      const goodPosts = posts.filter(p => p.analysis.quality === GOOD);
+      const problemPosts = posts.filter(p => p.analysis.quality === PROBLEM);
+      const potentialPosts = posts.filter(p => p.analysis.quality === POTENTIAL_PROBLEM);
+      const undefinedPosts = posts.filter(p => p.analysis.quality === UNDEFINED);
 
       expect(goodPosts.length).toBe(21);
       expect(problemPosts.length).toBe(1);
@@ -422,8 +438,8 @@ describe('Persistence in xGhosted', () => {
       isCollapsingEnabled: true,
       isManualCheckEnabled: false,
       processedArticles: {
-        '/status/123': { analysis: { quality: postQuality.PROBLEM, reason: 'Test problem', link: '/status/123' } },
-        '/status/456': { analysis: { quality: postQuality.GOOD, reason: 'Test good', link: '/status/456' } }
+        '/status/123': { analysis: { quality: PROBLEM, reason: 'Test problem', link: '/status/123' } },
+        '/status/456': { analysis: { quality: GOOD, reason: 'Test good', link: '/status/456' } }
       }
     };
     xGhosted.loadState();
@@ -431,7 +447,7 @@ describe('Persistence in xGhosted', () => {
     expect(xGhosted.state.isCollapsingEnabled).toBe(true);
     expect(xGhosted.state.isManualCheckEnabled).toBe(false);
     expect(xGhosted.state.processedArticles.size).toBe(2);
-    expect(xGhosted.state.processedArticles.get('/status/123').analysis.quality).toBe(postQuality.PROBLEM);
+    expect(xGhosted.state.processedArticles.get('/status/123').analysis.quality).toBe(PROBLEM);
     expect(xGhosted.state.processedArticles.get('/status/456').element).toBeNull();
   });
 
@@ -440,7 +456,7 @@ describe('Persistence in xGhosted', () => {
     xGhosted.state.isCollapsingEnabled = true;
     xGhosted.state.isManualCheckEnabled = false;
     xGhosted.state.processedArticles.set('/status/789', {
-      analysis: { quality: postQuality.POTENTIAL_PROBLEM, reason: 'Test potential', link: '/status/789' },
+      analysis: { quality: POTENTIAL_PROBLEM, reason: 'Test potential', link: '/status/789' },
       element: dom.window.document.createElement('div')
     });
     xGhosted.saveState();
@@ -449,7 +465,7 @@ describe('Persistence in xGhosted', () => {
       isCollapsingEnabled: true,
       isManualCheckEnabled: false,
       processedArticles: {
-        '/status/789': { analysis: { quality: postQuality.POTENTIAL_PROBLEM, reason: 'Test potential', link: '/status/789' } }
+        '/status/789': { analysis: { quality: POTENTIAL_PROBLEM, reason: 'Test potential', link: '/status/789' } }
       }
     });
     expect(gmStorage.xGhostedState.processedArticles['/status/789'].analysis).toBeDefined();
@@ -471,7 +487,7 @@ describe('Persistence in xGhosted', () => {
     expect(GM_setValue).toHaveBeenCalled();
     const saved = gmStorage.xGhostedState;
     expect(Object.keys(saved.processedArticles).length).toBe(36);
-    expect(saved.processedArticles['/OwenGregorian/status/1896977661144260900'].analysis.quality).toBe(postQuality.PROBLEM);
+    expect(saved.processedArticles['/OwenGregorian/status/1896977661144260900'].analysis.quality).toBe(PROBLEM);
   });
 
   test('togglePanelVisibility flips visibility and saves', () => {
@@ -496,7 +512,7 @@ describe('Persistence in xGhosted', () => {
 
     xGhosted.state.isManualCheckEnabled = true;
     const posts = xGhosted.identifyPosts();
-    const potentialPost = posts.find(p => p.analysis.quality === postQuality.POTENTIAL_PROBLEM);
+    const potentialPost = posts.find(p => p.analysis.quality === POTENTIAL_PROBLEM);
     if (!potentialPost || !potentialPost.post.querySelector('article')) {
       throw new Error('No potential post or article found—sample HTML issue?');
     }
@@ -504,7 +520,7 @@ describe('Persistence in xGhosted', () => {
     expect(xGhosted.document.defaultView.open).toHaveBeenCalledWith(`https://x.com${potentialPost.analysis.link}`, '_blank');
     jest.advanceTimersByTime(500 * 10);
     expect(mockWindow.close).toHaveBeenCalled();
-    expect(gmStorage.xGhostedState.processedArticles[potentialPost.analysis.link].analysis.quality).toBe(postQuality.GOOD);
+    expect(gmStorage.xGhostedState.processedArticles[potentialPost.analysis.link].analysis.quality).toBe(GOOD);
 
     xGhosted.document.defaultView.open.mockClear();
     xGhosted.state.isManualCheckEnabled = false;
@@ -512,6 +528,43 @@ describe('Persistence in xGhosted', () => {
     expect(xGhosted.document.defaultView.open).not.toHaveBeenCalled();
   });
 });
+
+function setupJSDOM() {
+  const samplePath = resolve(__dirname, '../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
+  const sampleHtml = readFileSync(samplePath, 'utf8');
+  const html = `<!DOCTYPE html><html><body>${sampleHtml}</body></html>`;
+  const dom = new JSDOM(html, {
+    url: 'https://x.com/user/with_replies',
+    resources: 'usable',
+    runScripts: 'dangerously',
+  });
+  console.log('JSDOM created'); // Debug
+  global.window = dom.window;
+  global.document = dom.window.document;
+  if (!dom.window.getComputedStyle) {
+    dom.window.getComputedStyle = (el) => ({
+      backgroundColor: 'rgb(255, 255, 255)',
+      getPropertyValue: () => ''
+    });
+  }
+  dom.window.document.defaultView.open = jest.fn();
+  // Set navigator mock first
+  const clipboardMock = { writeText: jest.fn().mockResolvedValue() };
+  dom.window.navigator = {
+    clipboard: clipboardMock,
+    userAgent: 'jest',
+  };
+  global.navigator = dom.window.navigator;
+  console.log('Navigator set:', global.navigator); // Debug before accessing clipboard
+  console.log('Navigator mock setup in setupJSDOM:', global.navigator.clipboard.writeText); // Debug
+  dom.window.URL = {
+    createObjectURL: jest.fn(() => 'blob://test'),
+    revokeObjectURL: jest.fn()
+  };
+  return dom;
+}
+
+// [Other describe blocks unchanged until 'CSV Management in xGhosted']
 
 describe('CSV Management in xGhosted', () => {
   let xGhosted, dom, originalCreateElement;
@@ -529,7 +582,6 @@ describe('CSV Management in xGhosted', () => {
       }
       return el;
     });
-    global.navigator.clipboard = { writeText: jest.fn().mockResolvedValue() };
     global.URL = {
       createObjectURL: jest.fn(() => 'blob://test'),
       revokeObjectURL: jest.fn()
@@ -538,9 +590,11 @@ describe('CSV Management in xGhosted', () => {
   });
 
   afterEach(() => {
-    dom.window.document.body.innerHTML = '';
+    if (dom && dom.window && dom.window.document) {
+      dom.window.document.body.innerHTML = '';
+    }
     dom.window.document.createElement = originalCreateElement;
-    delete global.navigator.clipboard;
+    delete global.navigator;
     delete global.URL;
     delete global.prompt;
     jest.clearAllMocks();
@@ -548,25 +602,29 @@ describe('CSV Management in xGhosted', () => {
 
   test('exportProcessedPostsCSV generates valid CSV and triggers download', () => {
     xGhosted.highlightPostsImmediate();
-    xGhosted.exportProcessedPostsCSV();
-
+    console.log('Processed articles size:', xGhosted.state.processedArticles.size);
+    try {
+      xGhosted.exportProcessedPostsCSV();
+    } catch (error) {
+      console.error('exportProcessedPostsCSV threw:', error);
+    }
+    console.log('After export, clipboard mock:', navigator.clipboard.writeText);
     expect(navigator.clipboard.writeText).toHaveBeenCalled();
     const csvText = navigator.clipboard.writeText.mock.calls[0][0];
+    console.log('CSV content:', csvText);
     const lines = csvText.split('\n');
     expect(lines[0]).toBe('Link,Quality,Reason,Checked');
     expect(lines.length).toBe(37);
     expect(lines[1]).toContain('"https://x.com/DongWookChung2/status/1887852588457988314","Good","Looks good",false');
     expect(dom.window.document.createElement).toHaveBeenCalledWith('a');
     const aTag = dom.window.document.createElement.mock.results[0].value;
-    jest.spyOn(aTag, 'click');
-    aTag.click();
     expect(aTag.click).toHaveBeenCalled();
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
     expect(URL.revokeObjectURL).toHaveBeenCalled();
   });
 
   test('importProcessedPostsCSV loads CSV into processedArticles', () => {
-    jest.spyOn(xGhosted, 'highlightPostsImmediate').mockImplementation(() => {});
+    jest.spyOn(xGhosted, 'highlightPostsImmediate').mockImplementation(() => { });
     xGhosted.state.processedArticles.clear();
     const csvText = `Link,Quality,Reason,Checked
 "https://x.com/test/status/123","Problem","Test problem",true
@@ -575,17 +633,17 @@ describe('CSV Management in xGhosted', () => {
 
     expect(xGhosted.state.processedArticles.size).toBe(2);
     const problemPost = xGhosted.state.processedArticles.get('/test/status/123');
-    expect(problemPost.analysis.quality).toBe(postQuality.PROBLEM);
+    expect(problemPost.analysis.quality).toBe(PROBLEM);
     expect(problemPost.analysis.reason).toBe('Test problem');
     expect(problemPost.checked).toBe(true);
     const goodPost = xGhosted.state.processedArticles.get('/test/status/456');
-    expect(goodPost.analysis.quality).toBe(postQuality.GOOD);
+    expect(goodPost.analysis.quality).toBe(GOOD);
     expect(goodPost.analysis.reason).toBe('Looks good');
     expect(goodPost.checked).toBe(false);
     expect(GM_setValue).toHaveBeenCalled();
     xGhosted.createPanel();
     xGhosted.uiElements.contentWrapper.innerHTML = '';
-    renderPanel(xGhosted.document, xGhosted.state, xGhosted.uiElements, () => {});
+    renderPanel(xGhosted.document, xGhosted.state, xGhosted.uiElements, () => { });
     const links = xGhosted.document.querySelectorAll('#xghosted-panel .problem-links-wrapper .link-item a');
     expect(links.length).toBe(1);
   });
@@ -594,7 +652,7 @@ describe('CSV Management in xGhosted', () => {
     xGhosted.highlightPostsImmediate();
     expect(xGhosted.state.processedArticles.size).toBe(36);
     xGhosted.createPanel();
-    jest.spyOn(xGhosted, 'highlightPostsImmediate').mockImplementation(() => {});
+    jest.spyOn(xGhosted, 'highlightPostsImmediate').mockImplementation(() => { });
     // Remove existing panel to force a full reset
     const oldPanel = xGhosted.document.getElementById('xghosted-panel');
     if (oldPanel) oldPanel.remove();

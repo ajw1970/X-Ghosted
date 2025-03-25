@@ -19,4 +19,4 @@ function createButton(doc, text, mode, onClick, config) {
   return button;
 }
 
-module.exports = createButton;
+export default createButton;

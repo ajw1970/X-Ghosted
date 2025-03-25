@@ -35,4 +35,4 @@ function findReplyingToWithDepth(article) {
     return result;
 }
 
-module.exports = findReplyingToWithDepth;
+export default findReplyingToWithDepth;

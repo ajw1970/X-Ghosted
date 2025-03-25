@@ -14,4 +14,4 @@ function togglePanelVisibility(state, uiElements) {
     }
   }
   
-  module.exports = togglePanelVisibility;
+  export default togglePanelVisibility;

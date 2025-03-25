@@ -1,4 +1,4 @@
-const identifyPost = require('./identifyPost');
+import identifyPost from './identifyPost';
 
 function identifyPosts(document) {
     // Select all <article> elements (or adjust selector for your structure)
@@ -22,4 +22,4 @@ function identifyPosts(document) {
     return results;
 }
 
-module.exports = identifyPosts;
+export default identifyPosts;
