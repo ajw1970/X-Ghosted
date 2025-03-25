@@ -4,7 +4,6 @@ import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import { JSDOM } from 'jsdom';
 import XGhosted from './xGhosted.js';
-import renderPanel from './dom/renderPanel.js';
 import postQuality from './utils/postQuality.js';
 const { GOOD, UNDEFINED, PROBLEM, POTENTIAL_PROBLEM } = postQuality;
 import summarizeRatedPosts from './utils/summarizeRatedPosts.js';
@@ -29,7 +28,7 @@ function setupJSDOM() {
     resources: 'usable',
     runScripts: 'dangerously',
   });
-  console.log('JSDOM created'); // Debug
+  console.log('JSDOM created');
   global.window = dom.window;
   global.document = dom.window.document;
   if (!dom.window.getComputedStyle) {
@@ -57,7 +56,15 @@ describe('xGhosted', () => {
 
   beforeEach(() => {
     dom = setupJSDOM();
-    xGhosted = new XGhosted(dom.window.document);
+    xGhosted = new XGhosted(dom.window.document, {
+      timing: {
+        debounceDelay: 500,      // Match new default from constructor
+        throttleDelay: 1000,     // Match new default from constructor
+        tabCheckThrottle: 5000,  // Match new default from constructor
+        exportThrottle: 5000     // Match new default from constructor
+      },
+      useTampermonkeyLog: false
+    });
     xGhosted.updateState('https://x.com/user/with_replies');
   });
 
@@ -338,48 +345,112 @@ describe('xGhosted', () => {
   describe('getThemeMode', () => {
     test('returns "dark" when data-theme includes "lights-out" or "dark"', () => {
       dom.window.document.body.setAttribute('data-theme', 'lights-out');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dark');
 
       dom.window.document.body.setAttribute('data-theme', 'dark');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dark');
     });
 
     test('returns "dim" when data-theme includes "dim"', () => {
       dom.window.document.body.setAttribute('data-theme', 'dim');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dim');
     });
 
     test('returns "light" when data-theme includes "light" or "default"', () => {
       dom.window.document.body.setAttribute('data-theme', 'light');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('light');
 
       dom.window.document.body.setAttribute('data-theme', 'default');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('light');
     });
 
     test('returns "dark" when body has dark classes', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.classList.add('dark');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dark');
     });
 
     test('returns "dim" when body has dim classes', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.classList.add('dim');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dim');
     });
 
     test('returns "light" when body has light classes', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.classList.add('light');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('light');
     });
 
@@ -387,7 +458,15 @@ describe('xGhosted', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.className = '';
       dom.window.document.body.style.backgroundColor = 'rgb(0, 0, 0)';
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dark');
     });
 
@@ -395,7 +474,15 @@ describe('xGhosted', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.className = '';
       dom.window.document.body.style.backgroundColor = 'rgb(21, 32, 43)';
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dim');
     });
 
@@ -403,7 +490,15 @@ describe('xGhosted', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.className = '';
       dom.window.document.body.style.backgroundColor = 'rgb(255, 255, 255)';
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('light');
     });
 
@@ -411,7 +506,15 @@ describe('xGhosted', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.className = '';
       dom.window.document.body.style.backgroundColor = '';
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('light');
     });
   });
@@ -422,7 +525,15 @@ describe('Persistence in xGhosted', () => {
 
   beforeEach(() => {
     dom = setupJSDOM();
-    xGhosted = new XGhosted(dom.window.document);
+    xGhosted = new XGhosted(dom.window.document, {
+      timing: {
+        debounceDelay: 500,
+        throttleDelay: 1000,
+        tabCheckThrottle: 5000,
+        exportThrottle: 5000
+      },
+      useTampermonkeyLog: false
+    });
     xGhosted.updateState('https://x.com/user/with_replies');
     gmStorage.xGhostedState = undefined;
   });
@@ -464,6 +575,7 @@ describe('Persistence in xGhosted', () => {
       isPanelVisible: false,
       isCollapsingEnabled: true,
       isManualCheckEnabled: false,
+      panelPosition: null,
       processedArticles: {
         '/status/789': { analysis: { quality: POTENTIAL_PROBLEM, reason: 'Test potential', link: '/status/789' } }
       }

@@ -3,22 +3,22 @@
 
 == Core Features in Current State
 - *Detection*: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow), GOOD (none), UNDEFINED (none) posts on X’s `/with_replies` pages using local DOM analysis only.
-- *UI*: Floating panel (resizable, draggable) lists problem/potential posts with Copy, Export CSV (5s throttled), Import CSV, Clear, and Manual Check buttons. Theme switching (dark/dim/light) is seamless with tooltips.
+- *UI*: Floating panel (resizable, draggable) lists problem/potential posts with Copy, Export CSV (configurable throttle), Import CSV, Clear, and Manual Check buttons. Theme switching (dark/dim/light) is seamless with tooltips.
 - *Persistence*: State saved via `GM_setValue`/`GM_getValue`—loads/saves `processedArticles` (capped at 1000), settings, and panel position.
 - *Logging*: Configurable via constructor—uses `GM_log` or `console.log`.
-- *Safety*: Starts with `isManualCheckEnabled` true to limit server activity; 500ms debounce and 1s observer throttle reduce resource use. No server requests beyond page loads.
-- *Tests*: `src/xGhosted.test.js`—24 tests pass, covering core functionality. Additional CSV tests (originally 28 total) attempted in `src/xGhosted.csv.test.js` are stalled due to ESM mocking issues with `writeToClipboard`. Previously, 27/28 passed, with CSV export test failing due to `navigator.clipboard` mocking issues.
-- *Build*: `build-xGhosted.js` script successfully bundles `xGhosted.js` with dependencies into `xGhosted.user.js`, with method deduplication fixed to ensure clean, Prettier-formatted output.
+- *Safety*: Starts with `isManualCheckEnabled` true to limit server activity; configurable debounce/throttle values reduce resource use. No server requests beyond page loads.
+- *Tests*: `src/xGhosted.test.js`—24 tests pass, covering core functionality. Total 108 tests across 17 suites, all passing after fixing `saveState` expectation.
+- *Build*: `build-xGhosted.js` uses esbuild to bundle `xGhosted.js` with dependencies into `xGhosted.user.js`, replacing custom script. Timing values are now configurable via constructor.
 
 == Next Steps
-- Fix ESM mocking issues in `src/xGhosted.csv.test.js` to restore full test suite (targeting 28/28 passing), verifying CSV export/import/clear functionality.
-- Transition from the custom `build-xGhosted.js` script to Rollup for bundling `xGhosted.js` with its dependencies, improving maintainability and ensuring cleaner, more readable output.
-- Follow the roadmap in Step 4—Step 6 (Tab Check GOOD Posts) is next, to be implemented with user-triggered controls to maintain server safety.
+- Manually test `build-xGhosted.js` to verify esbuild output matches expectations (e.g., correct bundling, resource caps, manual mode default).
+- Fix ESM mocking issues in `src/xGhosted.csv.test.js` to restore full test suite (targeting 28/28 passing for CSV functionality), deferred earlier due to `writeToClipboard` issues.
+- Transition to Rollup for bundling (planned post-esbuild validation) for improved maintainability.
 
 == Revision History
 - March 23, 2025: Step 2 completed—24/24 tests pass with Manual Check Mode mocked. CSV export added.
-- March 24, 2025: Step 3 completed—CSV import/clear added. Step 4 completed—UI polished. Step 5 completed—userscript wrapper built with resource caps (1000 articles) and server safety (manual mode, DOM-only). Build script fixed for method deduplication and Prettier formatting. Plan to transition to Rollup for bundling established.
-- March 25, 2025: Test suite at 24/24 passing in `src/xGhosted.test.js`. CSV test suite in `src/xGhosted.csv.test.js` deferred due to ESM mocking issues with `writeToClipboard`. Previously 27/28 passed; fix pending before Rollup transition.
+- March 24, 2025: Step 3 completed—CSV import/clear added. Step 4 completed—UI polished. Step 5 completed—userscript wrapper with resource caps and server safety.
+- March 25, 2025: Test suite at 108/108 passing after fixing `saveState` test. Timing values moved to config object, esbuild adopted. Next: manual test of `build-xGhosted.js`.
 
 == Notes
 Large updates might hit X post size limits—Grok will flag truncation if detected and pause for new prompts.
