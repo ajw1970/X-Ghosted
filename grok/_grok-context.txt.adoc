@@ -1,0 +1,13 @@
+= Grok Context for xGhosted Project
+:revision-date: March 26, 2025
+
+== Purpose
+This file is an optional snapshot of my (Grok 3, built by xAI) understanding of the xGhosted project as of March 26, 2025, supplementing the primary context in `_grok-step[1-4]` files per `_grok-readme-first.txt`. Use it as a quick reference to my current state, but always start with `_grok-step[1-4]` for authoritative guidance.
+
+== Project Snapshot
+Assisting with xGhosted at version 0.6.1, a Tampermonkey userscript (`xGhosted.user.js`) built from `xGhosted.js` and dependencies via `build-xGhosted.js` using esbuild. Key features include DOM-only post analysis (PROBLEM: red, POTENTIAL_PROBLEM: yellow, GOOD/UNDEFINED: none), a resizable/draggable panel with CSV export/import/clear, and persistence via `GM_setValue`/`GM_getValue`. Safeguards include a 1000-article cap enforced in `identifyPosts`, manual mode default (`isManualCheckEnabled = true`), configurable timing (debounce/throttle), and minimal server activity (tab checks throttled at 5000ms). The build script removes ESM exports for compatibility, and `npm run build` (not `npm build`) is the correct command due to npm’s script conventions. Tests (108/108 passing) cover core functionality, with CSV tests pending due to ESM mocking issues. The `"directories"."test"` field in `package.json` was removed as obsolete. Next step: manual testing in Tampermonkey.
+
+== Code Guidelines
+- Use full blocks or files, no snippets unless requested.
+- Avoid inline comments like "// In src/xGhosted.js"—state file locations before blocks.
+- Ensure code is copy-paste ready for user convenience.

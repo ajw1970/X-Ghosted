@@ -1,15 +1,16 @@
 = Grok Step 4: Roadmap to Next Release
-:revision-date: March 25, 2025
+:revision-date: March 26, 2025
 
 == Roadmap to Next Version (Post-0.6.0)
 1. *Full State Persistence*: Save/load `processedArticles` and settings via `GM_setValue`/`GM_getValue`. Done—24/24 tests passed, `panelPosition` included.
 2. *Manual Check Mode*: Toggle via panel, mock tab checks with `checkPostInNewTab`. Done—24/24 tests passed, defaults to enabled.
 3. *Manage Processed Posts Data*: Add import/export/clear in CSV format. Export throttle configurable, immediate in tests. Done—functional, CSV tests deferred.
 4. *Polish UI/UX*: Refine panel styling (resizable/draggable), theme detection, usability with tooltips. Done—verified in browser, tested in suite.
-5. *Userscript Wrapper*: Wrap `xGhosted.js` in a `@userscript` header via `xGhosted.template.js` and `build-xGhosted.js`. Done—uses esbuild, timing configurable, 1000 article cap, manual mode default, DOM-only analysis.
+5. *Userscript Wrapper*: Wrap `xGhosted.js` in a `@userscript` header via `xGhosted.template.js` and `build-xGhosted.js`. Done—uses esbuild, timing configurable, 1000 article cap enforced, manual mode default, DOM-only analysis, ESM exports removed.
+6. *Release 0.6.1*: Confirm manual test in Tampermonkey, update `README.md`, and tag release. Pending.
 
-== Roadmap to Next Version (Post-0.6.1)
-1. *Manual Test Build Script*: Verify `build-xGhosted.js` output with esbuild—ensure bundling, resource caps, and manual mode work as expected. Pending—next step.
+== Roadmap to Next Version Release (0.6.1)
+1. *Manual Test Build Script*: Verify `build-xGhosted.js` output in Tampermonkey—ensure bundling, resource caps, manual mode, and no ESM exports. Pending—current task.
 2. *Fix Test Suite*: Resolve ESM mocking issues for CSV functionality (`exportProcessedPostsCSV`, `importProcessedPostsCSV`, `clearProcessedPosts`) in `src/xGhosted.csv.test.js`. Target 28/28 passing. Deferred due to `writeToClipboard` mocking issues.
 3. *Transition to Rollup*: Replace esbuild with Rollup for bundling, improving maintainability and output readability. Pending post-manual test.
 4. *Tab Check GOOD Posts*: Implement 10s interval checks, user-triggered for server safety. Pending.
@@ -19,4 +20,5 @@
 == Revision History
 - March 23, 2025: Step 2 completed—24/24 tests passing.
 - March 24, 2025: Step 3 completed—CSV features done. Step 4 completed—UI polished. Step 5 completed—userscript wrapper with esbuild.
-- March 25, 2025: Test suite at 108/108 passing after fixing timing initialization and `saveState` test. Next: manually test `build-xGhosted.js`.
+- March 25, 2025: Test suite at 108/108 passing after fixing timing initialization and `saveState` test.
+- March 26, 2025: Fixed `build-xGhosted.js` to remove ESM `export` statements, enforced 1000-article cap in `xGhosted.js`, confirmed `npm run build` usage, removed `"directories"."test"` from `package.json`. Next: manual test `xGhosted.user.js` in Tampermonkey.

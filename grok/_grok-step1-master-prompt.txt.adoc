@@ -1,5 +1,5 @@
 = Grok Step 1: Master Prompt
-:revision-date: March 25, 2025
+:revision-date: March 26, 2025
 
 == Core Principles for Interaction
 1. *Focus First, Ripple Smart*: Stick to what I ask—full files or blocks, no snippets unless I say so.
@@ -10,11 +10,17 @@
 6. *Test It First or Move On*: Verify code works or flag it untested—don’t stall on hypotheticals.
 7. *Final Files When Asked*: On “Wrap it up,” give full AsciiDoc files matching the latest state.
 8. *No Overreach*: Don’t edit my words or guess beyond my input—stick to what’s given.
+9. *Clean Code Blocks*: Don’t add comments like "// In src/xGhosted.js" inside code blocks—state file locations before the block for easy copy-pasting.
 
 == Project Context
-Version 0.6.1 of `xGhosted.js` is in progress—a modular, tested userscript evolved from `highlight-potential-problems.user.js` 0.6.0. It preserves 0.6.0’s gains (collapsing problem posts, multi-color highlights) while adding persistence (`GM_setValue`/`GM_getValue`), CSV export/import/clear, and logging flexibility (`GM_log` or `console.log`). Hardcoded timing values (debounce, throttle, etc.) have been moved to a configurable object passed via the constructor from `xGhosted.template.js`. Step 5 (Userscript Wrapper) is complete, with `build-xGhosted.js` now using esbuild to bundle `xGhosted.js` into `xGhosted.user.js`, optimized for limited resource use (1000 article cap) and minimal X.com server activity (manual mode default, DOM-only analysis). Tests in `src/xGhosted.test.js` (24/24 passing) and 16 other suites (84 tests) are updated, with a fix applied to align `saveState` expectations. Next step: manually test `build-xGhosted.js` to verify the esbuild output.
+The pending 0.6.1 release of `xGhosted.js` is complete—a modular, tested userscript evolved from `highlight-potential-problems.user.js` 0.6.0. 
+- It preserves 0.6.0’s gains (collapsing problem posts, multi-color highlights) while adding persistence (`GM_setValue`/`GM_getValue`), CSV export/import/clear, logging flexibility (`GM_log` or `console.log`), and a 1000-article cap enforced in `identifyPosts`. 
+- Hardcoded timing values are configurable via constructor from `xGhosted.template.js`. 
+- Step 5 (Userscript Wrapper) uses `build-xGhosted.js` with esbuild to bundle `xGhosted.js` into `xGhosted.user.js`, optimized for minimal X.com server activity (manual mode default, DOM-only analysis). Tests in `src/xGhosted.test.js` (24/24 passing) and 16 other suites (84 tests) are updated. 
+- Manual testing of `build-xGhosted.js` output is next, with `npm run build` confirmed as the correct command (`npm build` isn’t a direct npm alias).
 
 == Revision History
 - March 23, 2025: Updated for 0.6.1—18 tests pass in `xGhosted.test.js`. Persistence via `GM_setValue`/`GM_getValue` added. CSV export added to `xGhosted.js`.
-- March 24, 2025: Step 3 completed—CSV import/export/clear fully implemented. Step 4 completed—panel resizable/draggable, theme polished. Step 5 completed—userscript wrapper with safety optimizations. Plan to transition to Rollup established.
-- March 25, 2025: Test suite at 24/24 passing in `src/xGhosted.test.js` after fixing timing initialization and `saveState` test. Timing values moved to constructor config, esbuild adopted. CSV tests deferred due to ESM mocking issues. Next: manually test `build-xGhosted.js`.
+- March 24, 2025: Step 3 completed—CSV import/export/clear implemented. Step 4 completed—panel resizable/draggable, theme polished. Step 5 completed—userscript wrapper with safety optimizations. Plan to transition to Rollup established.
+- March 25, 2025: Test suite at 24/24 passing in `src/xGhosted.test.js` after fixing timing initialization and `saveState` test. Timing values moved to constructor config, esbuild adopted. CSV tests deferred due to ESM mocking issues.
+- March 26, 2025: Fixed `build-xGhosted.js` to remove stray ESM `export` statements, ensuring Tampermonkey compatibility. Enforced 1000-article cap in `xGhosted.js`. Clarified `npm run build` requirement (not `npm build`). Removed obsolete `"directories"."test"` from `package.json`. Ready for manual testing.
