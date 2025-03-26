@@ -91,32 +91,38 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
     fontSize: '15px',
     fontWeight: '700',
     color: config.THEMES[mode].text,
+    display: 'inline-block', // Explicitly set initial display
   });
 
   uiElements.copyButton = createButton(doc, 'Copy', mode, copyCallback, config);
   uiElements.copyButton.title = 'Copy flagged post links';
+  uiElements.copyButton.style.display = 'inline-block'; // Explicitly set initial display
 
   uiElements.manualCheckButton = createButton(doc, 'Manual Check', mode, () => {
     state.isManualCheckEnabled = !state.isManualCheckEnabled;
     uiElements.manualCheckButton.textContent = state.isManualCheckEnabled ? 'Stop Manual' : 'Manual Check';
   }, config);
   uiElements.manualCheckButton.title = 'Toggle manual post checking';
+  uiElements.manualCheckButton.style.display = 'inline-block'; // Explicitly set initial display
 
   uiElements.exportButton = createButton(doc, 'Export CSV', mode, () => {
     state.instance.exportProcessedPostsCSV();
   }, config);
   uiElements.exportButton.title = 'Export flagged posts as CSV';
+  uiElements.exportButton.style.display = 'inline-block'; // Explicitly set initial display
 
   uiElements.importButton = createButton(doc, 'Import CSV', mode, () => {
     const csvText = prompt('Paste your CSV content here:');
     if (csvText) state.instance.importProcessedPostsCSV(csvText);
   }, config);
   uiElements.importButton.title = 'Import flagged posts from CSV';
+  uiElements.importButton.style.display = 'inline-block'; // Explicitly set initial display
 
   uiElements.clearButton = createButton(doc, 'Clear', mode, () => {
     if (confirm('Clear all processed posts?')) state.instance.clearProcessedPosts();
   }, config);
   uiElements.clearButton.title = 'Clear all processed posts';
+  uiElements.clearButton.style.display = 'inline-block'; // Explicitly set initial display
 
   uiElements.modeSelector = doc.createElement('select');
   uiElements.modeSelector.innerHTML = '<option value="dark">Dark</option><option value="dim">Dim</option><option value="light">Light</option>';
@@ -135,23 +141,13 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
     appearance: 'none',
     outline: 'none',
     transition: 'background 0.2s ease, color 0.2s ease',
+    display: 'inline-block', // Explicitly set initial display
   });
   uiElements.modeSelector.title = 'Switch theme';
 
   uiElements.toggleButton = createButton(doc, 'Hide', mode, togglePanelVisibility, config);
   uiElements.toggleButton.title = 'Show/hide panel';
-
-  uiElements.contentWrapper = doc.createElement('div');
-  uiElements.contentWrapper.className = 'problem-links-wrapper';
-  Object.assign(uiElements.contentWrapper.style, {
-    maxHeight: 'calc(100% - 70px)',
-    overflowY: 'auto',
-    fontSize: '14px',
-    lineHeight: '1.4',
-    scrollbarWidth: 'thin',
-    scrollbarColor: `${config.THEMES[mode].scroll} ${config.THEMES[mode].bg}`,
-    paddingRight: '4px',
-  });
+  uiElements.toggleButton.style.display = 'inline-block'; // Explicitly set initial display
 
   uiElements.toolbar.append(
     uiElements.label,
@@ -163,6 +159,19 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
     uiElements.modeSelector,
     uiElements.toggleButton
   );
+
+  uiElements.contentWrapper = doc.createElement('div');
+  uiElements.contentWrapper.className = 'problem-links-wrapper';
+  Object.assign(uiElements.contentWrapper.style, {
+    maxHeight: 'calc(100% - 70px)',
+    overflowY: 'auto',
+    fontSize: '14px',
+    lineHeight: '1.4',
+    scrollbarWidth: 'thin',
+    scrollbarColor: `${config.THEMES[mode].scroll} ${config.THEMES[mode].bg}`,
+    paddingRight: '4px',
+    display: 'block', // Explicitly set initial display
+  });
 
   uiElements.panel.append(uiElements.toolbar, uiElements.contentWrapper);
   doc.body.appendChild(uiElements.panel);
