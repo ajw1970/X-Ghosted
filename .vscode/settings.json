@@ -1,0 +1,6 @@
+{
+  "jest.shell": "wsl.exe",
+  "jest.jestCommandLine": "bash -c \"npx jest\"",
+  "jest.debugMode": true,
+  "jest.runMode": "on-demand"
+}

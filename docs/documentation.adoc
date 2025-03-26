@@ -1,0 +1,78 @@
+= Highlight Potential Problems Userscript Documentation
+
+== Overview
+This script is a Tampermonkey userscript designed to highlight potentially problematic posts and their parent articles on X.com. It provides a panel to manage and review highlighted posts.
+
+== Configuration
+The `CONFIG` object contains various configuration options:
+* `CHECK_DELAY`: Delay between checks for new posts.
+* `HIGHLIGHT_STYLE`: CSS class for highlighted posts.
+* `COLLAPSE_STYLE`: CSS class for collapsed posts.
+* `PANEL`: Configuration for the panel's appearance.
+* `THEMES`: Different themes for light, dim, and dark modes.
+* `COLLAPSE_DELAY`: Delay between collapsing articles.
+* `TAB_DELAY`: Delay between opening new tabs.
+* `RATE_LIMIT_PAUSE`: Pause duration when rate limit is detected.
+
+== State Management
+The `state` object holds the current state of the script:
+* `processedArticles`: WeakSet of processed articles.
+* `fullyProcessedArticles`: Set of fully processed articles.
+* `problemLinks`: Set of links to problematic posts.
+* `allPosts`: Map of all posts with their status.
+* `isDarkMode`: Boolean indicating if dark mode is enabled.
+* `isPanelVisible`: Boolean indicating if the panel is visible.
+* `isCollapsingEnabled`: Boolean indicating if collapsing is enabled.
+* `isCollapsingRunning`: Boolean indicating if collapsing is running.
+* `isRateLimited`: Boolean indicating if rate limit is detected.
+* `storageAvailable`: Boolean indicating if storage is available.
+
+== UI Elements
+The `uiElements` object holds references to various UI elements:
+* `panel`: The main panel element.
+* `toolbar`: The toolbar within the panel.
+* `label`: Label showing the number of posts.
+* `toolsSection`: Section for additional tools.
+* `toolsToggle`: Button to toggle the tools section.
+* `modeSelector`: Dropdown to select the theme mode.
+* `toggleButton`: Button to toggle the panel visibility.
+* `controlRow`: Row containing control buttons.
+* `controlLabel`: Label showing the current state of auto-collapse.
+* `contentWrapper`: Wrapper for the list of posts.
+* `styleSheet`: Style sheet for custom styles.
+
+== Utility Functions
+* `debounce(func, wait)`: Debounces a function to limit its execution rate.
+* `loadAllPosts()`: Loads posts from storage.
+* `saveAllPosts()`: Saves posts to storage.
+* `detectTheme()`: Detects the current theme.
+* `isProfileRepliesPage()`: Checks if the current page is a profile replies page.
+* `applyHighlight(article, status)`: Applies highlight to an article based on status.
+* `collapseArticle(article)`: Collapses an article.
+* `expandArticle(article)`: Expands an article.
+* `collapseArticlesWithDelay(articles)`: Collapses articles with a delay.
+* `checkPostInNewTab(article, href, callback)`: Checks a post in a new tab.
+* `replaceMenuButton(article, href)`: Replaces the menu button with a custom link.
+* `processTabQueue()`: Processes the tab queue.
+* `updateControlLabel()`: Updates the control label.
+* `updatePanel()`: Updates the panel with the current state.
+
+== Core Logic
+The main logic of the script is in the `highlightPotentialProblems(mutations)` function, which highlights potentially problematic posts based on various conditions.
+
+== Panel Management
+Functions related to panel management:
+* `createButton(text, iconSvg, mode, onClick)`: Creates a button with specified properties.
+* `createModal()`: Creates a modal for importing CSV data.
+* `createPanel()`: Creates the main panel.
+* `togglePanelVisibility()`: Toggles the visibility of the panel.
+* `updateTheme()`: Updates the theme of the panel.
+
+== Initialization
+The `init()` function initializes the script by:
+* Loading posts from storage.
+* Creating the panel.
+* Setting up monitoring for new posts.
+
+== Example Usage
+To use this script, install it as a Tampermonkey userscript and navigate to X.com. The script will automatically highlight potentially problematic posts and provide a panel for managing them.

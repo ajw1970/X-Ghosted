@@ -1,7 +1,4 @@
-function articleContainsSystemNotice(article) {
-    // X notices to look for 
-    // We want straight apostrophes here 
-    // we replace curly with straight in normalizedTextContent()
+function postHasProblemSystemNotice(article) {
     const targetNotices = [
         "unavailable",
         "content warning",
@@ -14,14 +11,12 @@ function articleContainsSystemNotice(article) {
         "you're unable to view this post"
     ];
 
-    // Helper function for span.textContent
     function normalizedTextContent(textContent) {
         return textContent
-            .replace(/[‘’]/g, "'") // Replace curly single with straight
+            .replace(/[‘’]/g, "'")
             .toLowerCase();
     }
 
-    // Check spans and return first matching notice or empty string
     const spans = Array.from(article.querySelectorAll('span'));
     for (const span of spans) {
         const textContent = normalizedTextContent(span.textContent);
@@ -31,7 +26,7 @@ function articleContainsSystemNotice(article) {
             }
         }
     }
-    return "";
+    return false;
 }
 
-module.exports = articleContainsSystemNotice;
+export { postHasProblemSystemNotice };

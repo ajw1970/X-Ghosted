@@ -1,9 +1,8 @@
-function articleLinksToTargetCommunities(article) {
+function postHasProblemCommunity(article) {
     const communityIds = [
-        "1889908654133911912" // This is a community I deleted
+        "1889908654133911912"
     ];
 
-    // Check if any anchor's href ends with a target community ID
     const aTags = Array.from(article.querySelectorAll('a'));
     for (const aTag of aTags) {
         for (const id of communityIds) {
@@ -12,7 +11,7 @@ function articleLinksToTargetCommunities(article) {
             }
         }
     }
-    return "";
+    return false; // Changed from "" to false
 }
 
-module.exports = articleLinksToTargetCommunities;
+export { postHasProblemCommunity };
