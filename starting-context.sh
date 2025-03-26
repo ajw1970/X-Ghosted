@@ -1,12 +1,30 @@
 #!/bin/bash
 # filepath: c:\Dev\X-Twitter\Ghosted\starting-context.sh
 
-# Run the Node.js script with the specified arguments
-node undoc.js
-node grokify.js src/xGhosted.test.js xGhosted.test.js.txt
-node grokify.js src/xGhosted.template.js xGhosted.template.js.txt
-node grokify.js build-xGhosted.js build-xGhosted.js.txt
-node grokify.js src/xGhosted.user.js xGhosted.user.js.txt
-node grokify.js package.json package.json.txt
-node grokify.js jest.config.mjs jest.setup.mjs babel.config.mjs jest-stuff.txt
+OUTPUT_FILE="grok/startup-context.txt"
+
+# List of input files
+FILES=(
+    "grok/_grok-readme-first.txt.adoc"
+    "grok/_grok-context.txt.adoc"
+    "grok/_grok-step1-master-prompt.txt.adoc"
+    "grok/_grok-step2-expected-project-behavior.txt.adoc"
+    "grok/_grok-step3-working-description.txt.adoc"
+    "grok/_grok-step4-roadmap-to-next-release.txt.adoc"
+)
+
+# Clear output file first (single > overwrites)
+> "$OUTPUT_FILE"
+
+# Process each file
+for FILE in "${FILES[@]}"; do
+    echo "// Start of File: ${FILE}" >> "$OUTPUT_FILE"
+    cat  "$FILE" >> "$OUTPUT_FILE"
+    echo -e "" >> "$OUTPUT_FILE"  # Explicit newline after content
+    echo "// End of File: ${FILE}" >> "$OUTPUT_FILE"
+    echo -e "" >> "$OUTPUT_FILE"  # Explicit newline after content
+done
+
+node grokify.js src/*/*.test.js src/xGhosted.template.js xGhosted.template.js.txt build-xGhosted.js build-xGhosted.js.txt src/xGhosted.user.js grok/xGhosted.code.txt
+node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs project.stuff.txt
 wc -l grok/*.txt > grok/line-counts.txt
