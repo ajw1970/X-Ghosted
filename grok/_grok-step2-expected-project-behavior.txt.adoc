@@ -11,13 +11,14 @@
 - *Build*: `build-xGhosted.js` uses esbuild to bundle `xGhosted.js` with dependencies into `xGhosted.user.js`, removing ESM exports for Tampermonkey compatibility. Timing values configurable via constructor. Run via `npm run build`.
 
 == Next Steps
-- Fix Show/Hide button positioning: Move to top-right corner of the panel (Issue 2).
-- Resolve POTENTIAL_PROBLEM post detection: Investigate DOM structure changes or state issues causing inconsistent detection (Issue 3).
+- Verify the panel’s position persistence and hide behavior: Confirm the panel starts at `top: '60px'`, `right: '10px'`, saves the user’s position after dragging, and the "Hide" button stays fixed while the panel collapses toward it (Issue 2).
+- Debug and fix the highlighting issue for the problem post `/ajweltytest/status/1901080866002014636`: Use console logs to determine why the post isn’t highlighted in the UI, ensuring it displays a red background for PROBLEM status (Issue 3).
 - Complete manual testing of `xGhosted.user.js` in Tampermonkey:
   - Test remaining button functionality (Copy, Manual Check, Export CSV, Import CSV, Clear).
   - Verify 1000-article cap by loading more posts.
   - Fix eye icon visibility for POTENTIAL_PROBLEM posts (add `zIndex: '10000'`).
 - Fix ESM mocking issues in `src/xGhosted.csv.test.js` to restore full test suite (targeting 28/28 passing for CSV functionality), deferred earlier due to `writeToClipboard` issues.
+- Polish the UI if necessary: Review button contrast (e.g., `#4A5C6D` on `#15202B` in dim mode) and spacing to improve readability and aesthetics.
 
 == Revision History
 - March 23, 2025: Step 2 completed—24/24 tests pass with Manual Check Mode mocked. CSV export added.

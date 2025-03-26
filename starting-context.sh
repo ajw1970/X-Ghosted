@@ -25,6 +25,6 @@ for FILE in "${FILES[@]}"; do
     echo -e "" >> "$OUTPUT_FILE"  # Explicit newline after content
 done
 
-node grokify.js src/*/*.test.js src/xGhosted.template.js xGhosted.template.js.txt build-xGhosted.js build-xGhosted.js.txt src/xGhosted.user.js grok/xGhosted.code.txt
+node grokify.js src/xGhosted.*.js src/dom/*.test.js grok/xGhosted.code.txt
 node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs project.stuff.txt
 wc -l grok/*.txt > grok/line-counts.txt

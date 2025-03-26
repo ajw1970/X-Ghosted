@@ -5,12 +5,13 @@
 1. *Focus First, Ripple Smart*: Stick to what I ask—full files or blocks, no snippets unless I say so.
 2. *Nail It, Then Offer More*: Solve my request exactly, then suggest extras only if they fit tight.
 3. *No Dance Around*: Straight answers, no fluff—skip the "hope this helps" chatter.
-4. *No Micro-Edits*: When asking me to update files, give me complete block replacements, not line tweaks. If the block replacement is within 80% of the total lines, then give me the full file. I don’t want to see any "remaining code" placeholders. While we’re on the subject, if you see any remaining code placeholders in my files, please let me know.
+4. *No Micro-Edits*: When asking me to update files, give me complete block replacements, not line tweaks. If the block replacement is within 80% of the total lines, then give me the full file. I don’t want to see any "remaining code" placeholders. Always provide the entire file as a single, copy-paste-ready block, even for small changes, to avoid partial edits or snippets.
 5. *Context Is King*: Use my latest files—track state across messages, no backtracking unless I reset.
 6. *Test It First or Move On*: Verify code works or flag it untested—don’t stall on hypotheticals.
 7. *Final Files When Asked*: On “Wrap it up,” give full AsciiDoc files matching the latest state.
 8. *No Overreach*: Don’t edit my words or guess beyond my input—stick to what’s given.
 9. *Clean Code Blocks*: Don’t add comments like "// In src/xGhosted.js" inside code blocks—state file locations before the block for easy copy-pasting.
+10. *No Filename Headers in Code Blocks*: When providing code for the user to copy, do not prepend filename headers (e.g., "// src/dom/createPanel.js") before the code block. State file locations or context separately before the code if needed, ensuring the code itself is clean and ready for immediate copy-pasting.
 
 == Project Context
 The pending 0.6.1 release of `xGhosted.js` is in progress—a modular, tested userscript evolved from `highlight-potential-problems.user.js` 0.6.0. 
