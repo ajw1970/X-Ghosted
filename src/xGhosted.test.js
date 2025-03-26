@@ -310,6 +310,46 @@ describe('xGhosted', () => {
     expect(links[1].href).toContain('/ApostleJohnW/status/1897004713570394503');
   });
 
+  test('togglePanelVisibility dynamically hides all elements except toggleButton when hiding', () => {
+    xGhosted.createPanel();
+    expect(xGhosted.state.isPanelVisible).toBe(true); // Initial state
+  
+    // Collect all UI elements that should be toggled, excluding toggleButton and non-UI elements
+    const elementsToToggle = Object.keys(xGhosted.uiElements)
+      .filter(key => 
+        key !== 'toggleButton' && 
+        key !== 'config' && 
+        key !== 'panel' && 
+        key !== 'toolbar' && 
+        key !== 'styleSheet' && 
+        xGhosted.uiElements[key] && 
+        xGhosted.uiElements[key].style // Ensure it's a DOM element with a style property
+      )
+      .map(key => xGhosted.uiElements[key]);
+  
+    // Toggle to "Hide" state
+    xGhosted.togglePanelVisibility();
+    expect(xGhosted.state.isPanelVisible).toBe(false);
+    expect(xGhosted.uiElements.toggleButton.textContent).toBe('Show');
+  
+    // Verify that all elements except toggleButton are hidden
+    elementsToToggle.forEach(element => {
+      expect(element.style.display).toBe('none');
+    });
+    expect(xGhosted.uiElements.toggleButton.style.display).not.toBe('none'); // Should remain visible
+  
+    // Toggle back to "Show" state to verify restoration
+    xGhosted.togglePanelVisibility();
+    expect(xGhosted.state.isPanelVisible).toBe(true);
+    expect(xGhosted.uiElements.toggleButton.textContent).toBe('Hide');
+  
+    // Verify that all elements are restored
+    elementsToToggle.forEach(element => {
+      const expectedDisplay = element === xGhosted.uiElements.contentWrapper ? 'block' : 'inline-block';
+      expect(element.style.display).toBe(expectedDisplay);
+    });
+  });
+
   describe('identifyPosts with sample HTML', () => {
     test('processes good and problem posts correctly', () => {
       const posts = xGhosted.identifyPosts();
