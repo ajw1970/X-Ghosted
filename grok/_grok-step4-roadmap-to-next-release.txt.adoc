@@ -7,18 +7,24 @@
 3. *Manage Processed Posts Data*: Add import/export/clear in CSV format. Export throttle configurable, immediate in tests. Done—functional, CSV tests deferred.
 4. *Polish UI/UX*: Refine panel styling (resizable/draggable), theme detection, usability with tooltips. Done—verified in browser, tested in suite.
 5. *Userscript Wrapper*: Wrap `xGhosted.js` in a `@userscript` header via `xGhosted.template.js` and `build-xGhosted.js`. Done—uses esbuild, timing configurable, 1000 article cap enforced, manual mode default, DOM-only analysis, ESM exports removed.
-6. *Release 0.6.1*: Confirm manual test in Tampermonkey, update `README.md`, and tag release. Pending.
+6. *Release 0.6.1*: Confirm manual test in Tampermonkey, update `README.md`, and tag release. In progress—manual testing underway.
 
 == Roadmap to Next Version Release (0.6.1)
-1. *Manual Test Build Script*: Verify `build-xGhosted.js` output in Tampermonkey—ensure bundling, resource caps, manual mode, and no ESM exports. Pending—current task.
-2. *Fix Test Suite*: Resolve ESM mocking issues for CSV functionality (`exportProcessedPostsCSV`, `importProcessedPostsCSV`, `clearProcessedPosts`) in `src/xGhosted.csv.test.js`. Target 28/28 passing. Deferred due to `writeToClipboard` mocking issues.
-3. *Transition to Rollup*: Replace esbuild with Rollup for bundling, improving maintainability and output readability. Pending post-manual test.
-4. *Tab Check GOOD Posts*: Implement 10s interval checks, user-triggered for server safety. Pending.
-5. *Performance Pass*: Optimize lookups. Pending.
-6. *Collapse by Default*: Batch-collapse problem posts every 5s. Pending.
+1. *Manual Test Build Script*: Verify `build-xGhosted.js` output in Tampermonkey—ensure bundling, resource caps, manual mode, and no ESM exports. In progress—panel functionality partially tested, "Hide" fixed, Show/Hide positioning and POTENTIAL_PROBLEM detection pending.
+2. *Fix Show/Hide Button Positioning*: Move Show/Hide button to top-right corner of the panel (Issue 2).
+3. *Fix POTENTIAL_PROBLEM Detection*: Investigate DOM structure changes or state issues causing inconsistent detection (Issue 3).
+4. *Complete Manual Testing*:
+   - Test remaining button functionality (Copy, Manual Check, Export CSV, Import CSV, Clear).
+   - Verify 1000-article cap by loading more posts.
+   - Fix eye icon visibility for POTENTIAL_PROBLEM posts (add `zIndex: '10000'`).
+5. *Fix Test Suite*: Resolve ESM mocking issues for CSV functionality (`exportProcessedPostsCSV`, `importProcessedPostsCSV`, `clearProcessedPosts`) in `src/xGhosted.csv.test.js`. Target 28/28 passing. Deferred due to `writeToClipboard` mocking issues.
+6. *Transition to Rollup*: Replace esbuild with Rollup for bundling, improving maintainability and output readability. Pending post-manual test.
+7. *Tab Check GOOD Posts*: Implement 10s interval checks, user-triggered for server safety. Pending.
+8. *Performance Pass*: Optimize lookups. Pending.
+9. *Collapse by Default*: Batch-collapse problem posts every 5s. Pending.
 
 == Revision History
 - March 23, 2025: Step 2 completed—24/24 tests passing.
 - March 24, 2025: Step 3 completed—CSV features done. Step 4 completed—UI polished. Step 5 completed—userscript wrapper with esbuild.
 - March 25, 2025: Test suite at 108/108 passing after fixing timing initialization and `saveState` test.
-- March 26, 2025: Fixed `build-xGhosted.js` to remove ESM `export` statements, enforced 1000-article cap in `xGhosted.js`, confirmed `npm run build` usage, removed `"directories"."test"` from `package.json`. Next: manual test `xGhosted.user.js` in Tampermonkey.
+- March 26, 2025: Fixed `build-xGhosted.js` to remove ESM `export` statements, enforced 1000-article cap in `xGhosted.js`, confirmed `npm run build` usage, removed `"directories"."test"` from `package.json`. Fixed "Hide" functionality, moved tests to standalone files (112 tests across 19 suites). Manual testing in progress: Show/Hide positioning and POTENTIAL_PROBLEM detection pending.

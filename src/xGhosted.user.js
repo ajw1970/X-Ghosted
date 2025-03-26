@@ -353,6 +353,8 @@
       fontSize: '15px',
       fontWeight: '700',
       color: config.THEMES[mode].text,
+      display: 'inline-block',
+      // Explicitly set initial display
     });
     uiElements.copyButton = createButton(
       doc,
@@ -362,6 +364,7 @@
       config
     );
     uiElements.copyButton.title = 'Copy flagged post links';
+    uiElements.copyButton.style.display = 'inline-block';
     uiElements.manualCheckButton = createButton(
       doc,
       'Manual Check',
@@ -375,6 +378,7 @@
       config
     );
     uiElements.manualCheckButton.title = 'Toggle manual post checking';
+    uiElements.manualCheckButton.style.display = 'inline-block';
     uiElements.exportButton = createButton(
       doc,
       'Export CSV',
@@ -385,6 +389,7 @@
       config
     );
     uiElements.exportButton.title = 'Export flagged posts as CSV';
+    uiElements.exportButton.style.display = 'inline-block';
     uiElements.importButton = createButton(
       doc,
       'Import CSV',
@@ -396,6 +401,7 @@
       config
     );
     uiElements.importButton.title = 'Import flagged posts from CSV';
+    uiElements.importButton.style.display = 'inline-block';
     uiElements.clearButton = createButton(
       doc,
       'Clear',
@@ -407,6 +413,7 @@
       config
     );
     uiElements.clearButton.title = 'Clear all processed posts';
+    uiElements.clearButton.style.display = 'inline-block';
     uiElements.modeSelector = doc.createElement('select');
     uiElements.modeSelector.innerHTML =
       '<option value="dark">Dark</option><option value="dim">Dim</option><option value="light">Light</option>';
@@ -425,6 +432,8 @@
       appearance: 'none',
       outline: 'none',
       transition: 'background 0.2s ease, color 0.2s ease',
+      display: 'inline-block',
+      // Explicitly set initial display
     });
     uiElements.modeSelector.title = 'Switch theme';
     uiElements.toggleButton = createButton(
@@ -435,17 +444,7 @@
       config
     );
     uiElements.toggleButton.title = 'Show/hide panel';
-    uiElements.contentWrapper = doc.createElement('div');
-    uiElements.contentWrapper.className = 'problem-links-wrapper';
-    Object.assign(uiElements.contentWrapper.style, {
-      maxHeight: 'calc(100% - 70px)',
-      overflowY: 'auto',
-      fontSize: '14px',
-      lineHeight: '1.4',
-      scrollbarWidth: 'thin',
-      scrollbarColor: `${config.THEMES[mode].scroll} ${config.THEMES[mode].bg}`,
-      paddingRight: '4px',
-    });
+    uiElements.toggleButton.style.display = 'inline-block';
     uiElements.toolbar.append(
       uiElements.label,
       uiElements.copyButton,
@@ -456,6 +455,19 @@
       uiElements.modeSelector,
       uiElements.toggleButton
     );
+    uiElements.contentWrapper = doc.createElement('div');
+    uiElements.contentWrapper.className = 'problem-links-wrapper';
+    Object.assign(uiElements.contentWrapper.style, {
+      maxHeight: 'calc(100% - 70px)',
+      overflowY: 'auto',
+      fontSize: '14px',
+      lineHeight: '1.4',
+      scrollbarWidth: 'thin',
+      scrollbarColor: `${config.THEMES[mode].scroll} ${config.THEMES[mode].bg}`,
+      paddingRight: '4px',
+      display: 'block',
+      // Explicitly set initial display
+    });
     uiElements.panel.append(uiElements.toolbar, uiElements.contentWrapper);
     doc.body.appendChild(uiElements.panel);
     if (state.panelPosition) {
@@ -486,26 +498,37 @@
     const {
       label,
       copyButton,
+      manualCheckButton,
+      exportButton,
+      importButton,
+      clearButton,
       modeSelector,
       toggleButton,
       contentWrapper,
       panel,
     } = uiElements;
     if (state.isPanelVisible) {
-      label.style.display =
-        copyButton.style.display =
-        modeSelector.style.display =
-          'inline-block';
+      label.style.display = 'inline-block';
+      copyButton.style.display = 'inline-block';
+      manualCheckButton.style.display = 'inline-block';
+      exportButton.style.display = 'inline-block';
+      importButton.style.display = 'inline-block';
+      clearButton.style.display = 'inline-block';
+      modeSelector.style.display = 'inline-block';
       contentWrapper.style.display = 'block';
       toggleButton.textContent = 'Hide';
       panel.style.width = uiElements.config.PANEL.WIDTH;
     } else {
-      label.style.display =
-        copyButton.style.display =
-        modeSelector.style.display =
-        contentWrapper.style.display =
-          'none';
+      label.style.display = 'none';
+      copyButton.style.display = 'none';
+      manualCheckButton.style.display = 'none';
+      exportButton.style.display = 'none';
+      importButton.style.display = 'none';
+      clearButton.style.display = 'none';
+      modeSelector.style.display = 'none';
+      contentWrapper.style.display = 'none';
       toggleButton.textContent = 'Show';
+      toggleButton.style.display = 'inline-block';
       panel.style.width = 'auto';
       toggleButton.style.margin = '0';
     }
