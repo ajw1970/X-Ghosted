@@ -1,4 +1,4 @@
-import postHasProblemSystemNotice from './postHasProblemSystemNotice';
+import { postHasProblemSystemNotice } from './postHasProblemSystemNotice';
 import { JSDOM } from 'jsdom';
 
 describe('postHasProblemSystemNotice', () => {

@@ -1,5 +1,5 @@
 import { JSDOM } from 'jsdom';
-import updateTheme from './updateTheme';
+import { updateTheme } from './updateTheme';
 
 describe('updateTheme', () => {
   let doc, uiElements, config;

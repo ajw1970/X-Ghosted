@@ -1,3 +1,4 @@
+// File: build-xGhosted.js
 import esbuild from 'esbuild';
 import fs from 'fs';
 import path from 'path';
@@ -16,7 +17,7 @@ const templateContent = fs.readFileSync(
     const result = await esbuild.build({
       entryPoints: [path.resolve(SRC_DIR, 'xGhosted.js')],
       bundle: true,
-      format: 'esm',
+      format: 'esm', // Still works with named exports
       minify: false,
       sourcemap: false,
       target: ['es2020'],
@@ -26,10 +27,13 @@ const templateContent = fs.readFileSync(
 
     let bundledCode = result.outputFiles[0].text;
 
-    // Replace export with global assignment and remove all export statements
+    // Remove all export statements and ensure globals are defined
     bundledCode = bundledCode
-      .replace(/export default XGhosted;/, 'var XGhosted = XGhosted;')
-      .replace(/export\s*{[^}]*};/, ''); // Remove any export { ... } statement
+      .replace(/export\s*{([^}]*)};/g, (_, names) => {
+        // Extract exported names and declare them as vars
+        const exportedNames = names.split(',').map(name => name.trim());
+        return exportedNames.map(name => `var ${name} = ${name};`).join('\n');
+      });
 
     let finalContent = templateContent.replace('// INJECT: xGhosted', bundledCode);
 

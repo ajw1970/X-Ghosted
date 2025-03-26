@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { JSDOM } from 'jsdom';
-import createButton from './createButton';
-import rgbToHex from './rgbToHex';
+import { createButton } from './createButton';
+import { rgbToHex } from './rgbToHex';
 
 describe('createButton', () => {
   let doc, config;

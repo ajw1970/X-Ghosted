@@ -35,7 +35,6 @@
     POTENTIAL_PROBLEM: Object.freeze({ name: 'Potential Problem', value: 2 }),
     GOOD: Object.freeze({ name: 'Good', value: 3 }),
   });
-  var postQuality_default = postQuality;
 
   // src/dom/detectTheme.js
   function detectTheme(doc) {
@@ -79,7 +78,6 @@
     }
     return 'light';
   }
-  var detectTheme_default = detectTheme;
 
   // src/utils/postHasProblemCommunity.js
   function postHasProblemCommunity(article) {
@@ -94,7 +92,6 @@
     }
     return false;
   }
-  var postHasProblemCommunity_default = postHasProblemCommunity;
 
   // src/utils/postHasProblemSystemNotice.js
   function postHasProblemSystemNotice(article) {
@@ -123,7 +120,6 @@
     }
     return false;
   }
-  var postHasProblemSystemNotice_default = postHasProblemSystemNotice;
 
   // src/utils/findReplyingToWithDepth.js
   function findReplyingToWithDepth(article) {
@@ -156,7 +152,6 @@
     findDivs(article, 0);
     return result;
   }
-  var findReplyingToWithDepth_default = findReplyingToWithDepth;
 
   // src/utils/getRelativeLinkToPost.js
   function getRelativeLinkToPost(element) {
@@ -165,63 +160,60 @@
       ?.parentElement?.getAttribute('href');
     return link || false;
   }
-  var getRelativeLinkToPost_default = getRelativeLinkToPost;
 
   // src/utils/identifyPost.js
-  var { GOOD, UNDEFINED, PROBLEM, POTENTIAL_PROBLEM } = postQuality_default;
   function identifyPost(post, checkReplies = false) {
     const article = post.querySelector('article');
     if (!article) {
       return {
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: 'No article found',
         link: false,
       };
     }
-    const noticeFound = postHasProblemSystemNotice_default(article);
+    const noticeFound = postHasProblemSystemNotice(article);
     if (noticeFound) {
       return {
-        quality: PROBLEM,
+        quality: postQuality.PROBLEM,
         reason: `Found notice: ${noticeFound}`,
-        link: getRelativeLinkToPost_default(post),
+        link: getRelativeLinkToPost(post),
       };
     }
-    const communityFound = postHasProblemCommunity_default(article);
+    const communityFound = postHasProblemCommunity(article);
     if (communityFound) {
       return {
-        quality: PROBLEM,
+        quality: postQuality.PROBLEM,
         reason: `Found community: ${communityFound}`,
-        link: getRelativeLinkToPost_default(post),
+        link: getRelativeLinkToPost(post),
       };
     }
     if (checkReplies) {
-      const replyingToDepths = findReplyingToWithDepth_default(article);
+      const replyingToDepths = findReplyingToWithDepth(article);
       if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
         const replyingTo = replyingToDepths.find((object) => object.depth < 10);
         if (replyingTo) {
           return {
-            quality: POTENTIAL_PROBLEM,
+            quality: postQuality.POTENTIAL_PROBLEM,
             reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
-            link: getRelativeLinkToPost_default(post),
+            link: getRelativeLinkToPost(post),
           };
         }
       }
     }
-    const link = getRelativeLinkToPost_default(post);
+    const link = getRelativeLinkToPost(post);
     if (link) {
       return {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: 'Looks good',
         link,
       };
     }
     return {
-      quality: UNDEFINED,
+      quality: postQuality.UNDEFINED,
       reason: 'Nothing to measure',
       link: false,
     };
   }
-  var identifyPost_default2 = identifyPost;
 
   // src/utils/debounce.js
   function debounce(func, wait) {
@@ -235,7 +227,6 @@
       }
     };
   }
-  var debounce_default = debounce;
 
   // src/dom/createButton.js
   function createButton(doc, text, mode, onClick, config) {
@@ -264,7 +255,6 @@
     button.addEventListener('click', onClick);
     return button;
   }
-  var createButton_default = createButton;
 
   // src/dom/createPanel.js
   function createPanel(
@@ -275,7 +265,7 @@
     togglePanelVisibility2,
     copyCallback
   ) {
-    const mode = detectTheme_default(doc);
+    const mode = detectTheme(doc);
     state.isDarkMode = mode !== 'light';
     uiElements.panel = doc.createElement('div');
     uiElements.panel.id = 'xghosted-panel';
@@ -364,7 +354,7 @@
       fontWeight: '700',
       color: config.THEMES[mode].text,
     });
-    uiElements.copyButton = createButton_default(
+    uiElements.copyButton = createButton(
       doc,
       'Copy',
       mode,
@@ -372,7 +362,7 @@
       config
     );
     uiElements.copyButton.title = 'Copy flagged post links';
-    uiElements.manualCheckButton = createButton_default(
+    uiElements.manualCheckButton = createButton(
       doc,
       'Manual Check',
       mode,
@@ -385,7 +375,7 @@
       config
     );
     uiElements.manualCheckButton.title = 'Toggle manual post checking';
-    uiElements.exportButton = createButton_default(
+    uiElements.exportButton = createButton(
       doc,
       'Export CSV',
       mode,
@@ -395,7 +385,7 @@
       config
     );
     uiElements.exportButton.title = 'Export flagged posts as CSV';
-    uiElements.importButton = createButton_default(
+    uiElements.importButton = createButton(
       doc,
       'Import CSV',
       mode,
@@ -406,7 +396,7 @@
       config
     );
     uiElements.importButton.title = 'Import flagged posts from CSV';
-    uiElements.clearButton = createButton_default(
+    uiElements.clearButton = createButton(
       doc,
       'Clear',
       mode,
@@ -437,7 +427,7 @@
       transition: 'background 0.2s ease, color 0.2s ease',
     });
     uiElements.modeSelector.title = 'Switch theme';
-    uiElements.toggleButton = createButton_default(
+    uiElements.toggleButton = createButton(
       doc,
       'Hide',
       mode,
@@ -489,7 +479,6 @@
   `;
     doc.head.appendChild(uiElements.styleSheet);
   }
-  var createPanel_default = createPanel;
 
   // src/dom/togglePanelVisibility.js
   function togglePanelVisibility(state, uiElements) {
@@ -521,7 +510,6 @@
       toggleButton.style.margin = '0';
     }
   }
-  var togglePanelVisibility_default = togglePanelVisibility;
 
   // src/dom/renderPanel.js
   function renderPanel(doc, state, uiElements, createPanel2) {
@@ -555,7 +543,6 @@
     uiElements.contentWrapper.scrollTop =
       uiElements.contentWrapper.scrollHeight;
   }
-  var renderPanel_default = renderPanel;
 
   // src/dom/updateTheme.js
   function updateTheme(uiElements, config) {
@@ -630,15 +617,8 @@
     button:active { transform: scale(0.95); }
   `;
   }
-  var updateTheme_default = updateTheme;
 
   // src/xGhosted.js
-  var {
-    GOOD: GOOD2,
-    UNDEFINED: UNDEFINED3,
-    PROBLEM: PROBLEM2,
-    POTENTIAL_PROBLEM: POTENTIAL_PROBLEM2,
-  } = postQuality_default;
   function XGhosted(doc, config = {}) {
     const defaultTiming = {
       debounceDelay: 500,
@@ -656,7 +636,7 @@
       postContainer: null,
       lastUrl: '',
       processedArticles: /* @__PURE__ */ new Map(),
-      postQuality: postQuality_default,
+      postQuality,
       isPanelVisible: true,
       isDarkMode: true,
       isManualCheckEnabled: false,
@@ -705,10 +685,10 @@
         },
       },
     };
-    this.checkPostInNewTabThrottled = debounce_default((article, href) => {
+    this.checkPostInNewTabThrottled = debounce((article, href) => {
       this.checkPostInNewTab(article, href);
     }, this.timing.tabCheckThrottle);
-    this.highlightPostsDebounced = debounce_default(() => {
+    this.highlightPostsDebounced = debounce(() => {
       this.highlightPosts();
     }, this.timing.debounceDelay);
     this.exportProcessedPostsCSV = () => {
@@ -741,7 +721,7 @@
         URL.revokeObjectURL(url);
       };
       if (typeof jest === 'undefined') {
-        debounce_default(exportFn, this.timing.exportThrottle)();
+        debounce(exportFn, this.timing.exportThrottle)();
       } else {
         exportFn();
       }
@@ -776,7 +756,7 @@
   };
   XGhosted.prototype.createPanel = function () {
     this.state.instance = this;
-    createPanel_default(
+    createPanel(
       this.document,
       this.state,
       this.uiElements,
@@ -813,8 +793,8 @@
         );
         let isProblem = false;
         for (let threadArticle of threadArticles) {
-          const analysis = identifyPost_default2(threadArticle, false);
-          if (analysis.quality === PROBLEM2) {
+          const analysis = identifyPost(threadArticle, false);
+          if (analysis.quality === postQuality.PROBLEM) {
             isProblem = true;
             break;
           }
@@ -822,7 +802,9 @@
         this.applyHighlight(article, isProblem ? 'problem' : 'good');
         const cached = this.state.processedArticles.get(href);
         if (cached) {
-          cached.analysis.quality = isProblem ? PROBLEM2 : GOOD2;
+          cached.analysis.quality = isProblem
+            ? postQuality.PROBLEM
+            : postQuality.GOOD;
           cached.checked = true;
         }
         if (!isProblem) newWindow.close();
@@ -864,9 +846,9 @@
     }
     posts.forEach((post) => {
       if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) return;
-      const analysis = identifyPost_default(post, this.state.isWithReplies);
+      const analysis = identifyPost(post, this.state.isWithReplies);
       let id = analysis.link;
-      if (analysis.quality === UNDEFINED2 && id === false) {
+      if (analysis.quality === postQuality.UNDEFINED && id === false) {
         if (lastLink) {
           fillerCount++;
           id = `${lastLink}#filler${fillerCount}`;
@@ -908,10 +890,10 @@
       const article = post.querySelector('article');
       if (!article) return;
       const statusMap = {
-        [PROBLEM2.name]: 'problem',
-        [POTENTIAL_PROBLEM2.name]: 'potential',
-        [GOOD2.name]: 'good',
-        [UNDEFINED3.name]: 'none',
+        [postQuality.PROBLEM.name]: 'problem',
+        [postQuality.POTENTIAL_PROBLEM.name]: 'potential',
+        [postQuality.GOOD.name]: 'good',
+        [postQuality.UNDEFINED.name]: 'none',
       };
       const cached = this.state.processedArticles.get(analysis.link);
       let status = statusMap[analysis.quality.name] || 'none';
@@ -934,8 +916,8 @@
         article.appendChild(eye);
       }
     });
-    renderPanel_default(this.document, this.state, this.uiElements, () =>
-      createPanel_default(
+    renderPanel(this.document, this.state, this.uiElements, () =>
+      createPanel(
         this.document,
         this.state,
         this.uiElements,
@@ -950,14 +932,14 @@
     this.highlightPosts();
   };
   XGhosted.prototype.getThemeMode = function () {
-    return detectTheme_default(this.document);
+    return detectTheme(this.document);
   };
   XGhosted.prototype.copyLinks = function () {
     const linksText = Array.from(this.state.processedArticles.entries())
       .filter(
         ([_, { analysis }]) =>
-          analysis.quality === PROBLEM2 ||
-          analysis.quality === POTENTIAL_PROBLEM2
+          analysis.quality === postQuality.PROBLEM ||
+          analysis.quality === postQuality.POTENTIAL_PROBLEM
       )
       .map(([link]) => `https://x.com${link}`)
       .join('\n');
@@ -987,10 +969,10 @@
       return;
     }
     const qualityMap = {
-      [UNDEFINED3.name]: UNDEFINED3,
-      [PROBLEM2.name]: PROBLEM2,
-      [POTENTIAL_PROBLEM2.name]: POTENTIAL_PROBLEM2,
-      [GOOD2.name]: GOOD2,
+      [postQuality.UNDEFINED.name]: postQuality.UNDEFINED,
+      [postQuality.PROBLEM.name]: postQuality.PROBLEM,
+      [postQuality.POTENTIAL_PROBLEM.name]: postQuality.POTENTIAL_PROBLEM,
+      [postQuality.GOOD.name]: postQuality.GOOD,
     };
     lines.slice(1).forEach((row) => {
       const [link, qualityName, reason, checkedStr] = row;
@@ -1012,7 +994,7 @@
     this.highlightPostsImmediate();
   };
   XGhosted.prototype.createButton = function (text, mode, onClick) {
-    return createButton_default(
+    return createButton(
       this.document,
       text,
       mode,
@@ -1021,11 +1003,11 @@
     );
   };
   XGhosted.prototype.togglePanelVisibility = function () {
-    togglePanelVisibility_default(this.state, this.uiElements);
+    togglePanelVisibility(this.state, this.uiElements);
     this.saveState();
   };
   XGhosted.prototype.updateTheme = function () {
-    updateTheme_default(this.uiElements, this.uiElements.config);
+    updateTheme(this.uiElements, this.uiElements.config);
   };
   XGhosted.prototype.init = function () {
     this.loadState();
@@ -1033,7 +1015,7 @@
     this.highlightPostsDebounced();
     this.saveState();
   };
-  var xGhosted_default = XGhosted;
+  var XGhosted = XGhosted;
 
   // --- Initialization with Resource Limits ---
   const MAX_PROCESSED_ARTICLES = 1000; // Cap memory usage

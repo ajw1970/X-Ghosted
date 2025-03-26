@@ -1,4 +1,4 @@
-import findReplyingToWithDepth from './findReplyingToWithDepth';
+import { findReplyingToWithDepth } from './findReplyingToWithDepth';
 import { JSDOM } from 'jsdom';
 
 describe('findReplyingToWithDepth', () => {

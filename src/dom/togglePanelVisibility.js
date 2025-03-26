@@ -14,4 +14,4 @@ function togglePanelVisibility(state, uiElements) {
     }
   }
   
-  export default togglePanelVisibility;
+  export { togglePanelVisibility };

@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import debounce from './debounce';
+import { debounce } from './debounce';
 
 jest.useFakeTimers();
 

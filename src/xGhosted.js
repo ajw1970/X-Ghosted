@@ -1,13 +1,12 @@
-import postQuality from './utils/postQuality.js';
-const { GOOD, UNDEFINED, PROBLEM, POTENTIAL_PROBLEM } = postQuality;
-import detectTheme from './dom/detectTheme';
-import identifyPost from './utils/identifyPost';
-import debounce from './utils/debounce';
-import createButton from './dom/createButton';
-import createPanel from './dom/createPanel';
-import togglePanelVisibility from './dom/togglePanelVisibility';
-import renderPanel from './dom/renderPanel';
-import updateTheme from './dom/updateTheme';
+import { postQuality } from './utils/postQuality.js';
+import { detectTheme } from './dom/detectTheme';
+import { identifyPost } from './utils/identifyPost';
+import { debounce } from './utils/debounce';
+import { createButton } from './dom/createButton';
+import { createPanel } from './dom/createPanel';
+import { togglePanelVisibility } from './dom/togglePanelVisibility';
+import { renderPanel } from './dom/renderPanel';
+import { updateTheme } from './dom/updateTheme';
 
 function XGhosted(doc, config = {}) {
   const defaultTiming = {
@@ -147,7 +146,7 @@ XGhosted.prototype.checkPostInNewTab = function (article, href) {
       let isProblem = false;
       for (let threadArticle of threadArticles) {
         const analysis = identifyPost(threadArticle, false);
-        if (analysis.quality === PROBLEM) {
+        if (analysis.quality === postQuality.PROBLEM) {
           isProblem = true;
           break;
         }
@@ -155,7 +154,7 @@ XGhosted.prototype.checkPostInNewTab = function (article, href) {
       this.applyHighlight(article, isProblem ? 'problem' : 'good');
       const cached = this.state.processedArticles.get(href);
       if (cached) {
-        cached.analysis.quality = isProblem ? PROBLEM : GOOD;
+        cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
         cached.checked = true;
       }
       if (!isProblem) newWindow.close();
@@ -179,29 +178,27 @@ XGhosted.prototype.findPostContainer = function () {
 XGhosted.prototype.identifyPosts = function () {
   const container = this.findPostContainer();
   if (!container) return [];
-  
   const posts = container.querySelectorAll('div[data-testid="cellInnerDiv"]');
   const results = [];
   let lastLink = null;
   let fillerCount = 0;
-
-  // Add cap enforcement
-  const MAX_PROCESSED_ARTICLES = 1000;
+  const MAX_PROCESSED_ARTICLES = 1e3;
   if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) {
-    this.log(`Reached max processed articles (${MAX_PROCESSED_ARTICLES}). Skipping new posts.`);
-    return Array.from(this.state.processedArticles.entries()).map(([id, { analysis, element }]) => ({
-      post: element,
-      analysis,
-    }));
+    this.log(
+      `Reached max processed articles (${MAX_PROCESSED_ARTICLES}). Skipping new posts.`
+    );
+    return Array.from(this.state.processedArticles.entries()).map(
+      ([id, { analysis, element }]) => ({
+        post: element,
+        analysis,
+      })
+    );
   }
-
   posts.forEach((post) => {
     if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) return;
-
-    const analysis = identifyPost_default(post, this.state.isWithReplies);
+    const analysis = identifyPost(post, this.state.isWithReplies);
     let id = analysis.link;
-
-    if (analysis.quality === UNDEFINED2 && id === false) {
+    if (analysis.quality === postQuality.UNDEFINED && id === false) {
       if (lastLink) {
         fillerCount++;
         id = `${lastLink}#filler${fillerCount}`;
@@ -213,7 +210,6 @@ XGhosted.prototype.identifyPosts = function () {
       lastLink = id;
       fillerCount = 0;
     }
-
     const cached = this.state.processedArticles.get(id);
     if (cached && cached.element === post) {
       results.push({ post, analysis: cached.analysis });
@@ -222,7 +218,6 @@ XGhosted.prototype.identifyPosts = function () {
       results.push({ post, analysis });
     }
   });
-
   return results;
 };
 
@@ -244,10 +239,10 @@ XGhosted.prototype.highlightPosts = function () {
     const article = post.querySelector('article');
     if (!article) return;
     const statusMap = {
-      [PROBLEM.name]: 'problem',
-      [POTENTIAL_PROBLEM.name]: 'potential',
-      [GOOD.name]: 'good',
-      [UNDEFINED.name]: 'none'
+      [postQuality.PROBLEM.name]: 'problem',
+      [postQuality.POTENTIAL_PROBLEM.name]: 'potential',
+      [postQuality.GOOD.name]: 'good',
+      [postQuality.UNDEFINED.name]: 'none'
     };
     const cached = this.state.processedArticles.get(analysis.link);
     let status = statusMap[analysis.quality.name] || 'none';
@@ -283,8 +278,8 @@ XGhosted.prototype.getThemeMode = function () {
 XGhosted.prototype.copyLinks = function () {
   const linksText = Array.from(this.state.processedArticles.entries())
     .filter(([_, { analysis }]) =>
-      analysis.quality === PROBLEM ||
-      analysis.quality === POTENTIAL_PROBLEM
+      analysis.quality === postQuality.PROBLEM ||
+      analysis.quality === postQuality.POTENTIAL_PROBLEM
     )
     .map(([link]) => `https://x.com${link}`)
     .join('\n');
@@ -307,10 +302,10 @@ XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
     return;
   }
   const qualityMap = {
-    [UNDEFINED.name]: UNDEFINED,
-    [PROBLEM.name]: PROBLEM,
-    [POTENTIAL_PROBLEM.name]: POTENTIAL_PROBLEM,
-    [GOOD.name]: GOOD
+    [postQuality.UNDEFINED.name]: postQuality.UNDEFINED,
+    [postQuality.PROBLEM.name]: postQuality.PROBLEM,
+    [postQuality.POTENTIAL_PROBLEM.name]: postQuality.POTENTIAL_PROBLEM,
+    [postQuality.GOOD.name]: postQuality.GOOD
   };
   lines.slice(1).forEach(row => {
     const [link, qualityName, reason, checkedStr] = row;
@@ -353,4 +348,4 @@ XGhosted.prototype.init = function () {
   this.saveState();
 };
 
-export default XGhosted;
+export { XGhosted };

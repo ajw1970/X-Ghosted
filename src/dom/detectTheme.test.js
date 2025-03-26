@@ -1,5 +1,5 @@
 import { JSDOM } from 'jsdom';
-import detectTheme from './detectTheme';
+import { detectTheme } from './detectTheme';
 
 describe('getThemeMode', () => {
     let dom;

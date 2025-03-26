@@ -25,4 +25,4 @@ function getArticleDetails(articleElement) {
     }
 }
 
-export default getArticleDetails;
+export { getArticleDetails };

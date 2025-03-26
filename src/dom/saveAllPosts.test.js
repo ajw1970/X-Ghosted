@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import saveAllPosts from './saveAllPosts';
+import { saveAllPosts } from './saveAllPosts';
 
 describe('saveAllPosts', () => {
     let state;

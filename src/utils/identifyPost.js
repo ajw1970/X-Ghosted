@@ -1,16 +1,15 @@
-import postHasProblemCommunity from './postHasProblemCommunity';
-import postHasProblemSystemNotice from './postHasProblemSystemNotice';
-import findReplyingToWithDepth from './findReplyingToWithDepth';
-import getRelativeLinkToPost from './getRelativeLinkToPost';
-import postQuality from './postQuality';
-const { GOOD, UNDEFINED, PROBLEM, POTENTIAL_PROBLEM } = postQuality;
+import { postHasProblemCommunity } from './postHasProblemCommunity';
+import { postHasProblemSystemNotice } from './postHasProblemSystemNotice';
+import { findReplyingToWithDepth } from './findReplyingToWithDepth';
+import { getRelativeLinkToPost } from './getRelativeLinkToPost';
+import { postQuality } from './postQuality';
 
 function identifyPost(post, checkReplies = false) {
     // Check for first article (to avoid nested articles)
     const article = post.querySelector('article');
     if (!article) {
         return {
-            quality: UNDEFINED,
+            quality: postQuality.UNDEFINED,
             reason: "No article found",
             link: false,
         };
@@ -20,7 +19,7 @@ function identifyPost(post, checkReplies = false) {
     const noticeFound = postHasProblemSystemNotice(article);
     if (noticeFound) {
         return {
-            quality: PROBLEM,
+            quality: postQuality.PROBLEM,
             reason: `Found notice: ${noticeFound}`,
             link: getRelativeLinkToPost(post),
         };
@@ -30,7 +29,7 @@ function identifyPost(post, checkReplies = false) {
     const communityFound = postHasProblemCommunity(article);
     if (communityFound) {
         return {
-            quality: PROBLEM,
+            quality: postQuality.PROBLEM,
             reason: `Found community: ${communityFound}`,
             link: getRelativeLinkToPost(post),
         };
@@ -46,7 +45,7 @@ function identifyPost(post, checkReplies = false) {
             if (replyingTo) {
 
                 return {
-                    quality: POTENTIAL_PROBLEM,
+                    quality: postQuality.POTENTIAL_PROBLEM,
                     reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
                     link: getRelativeLinkToPost(post),
                 };
@@ -58,17 +57,17 @@ function identifyPost(post, checkReplies = false) {
     const link = getRelativeLinkToPost(post);
     if (link) {
         return {
-            quality: GOOD,
+            quality: postQuality.GOOD,
             reason: "Looks good",
             link: link,
         };
     }
 
     return {
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "Nothing to measure",
         link: false,
     };
 }
 
-export default identifyPost;
+export { identifyPost };

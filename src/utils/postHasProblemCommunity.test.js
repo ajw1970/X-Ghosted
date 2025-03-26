@@ -1,4 +1,4 @@
-import postHasProblemCommunity from './postHasProblemCommunity';
+import { postHasProblemCommunity } from './postHasProblemCommunity';
 import { JSDOM } from 'jsdom';
 
 describe('postHasProblemCommunity', () => {

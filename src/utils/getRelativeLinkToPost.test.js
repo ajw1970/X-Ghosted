@@ -1,4 +1,4 @@
-import getRelativeLinkToPost from './getRelativeLinkToPost';
+import { getRelativeLinkToPost } from './getRelativeLinkToPost';
 
 test("We can extract relative link to post", () => {
     loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available-Isolated.html');

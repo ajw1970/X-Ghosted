@@ -1,6 +1,6 @@
 import { JSDOM } from 'jsdom';
-import renderPanel from './renderPanel';
-import postQuality from '../utils/postQuality';
+import { renderPanel } from './renderPanel';
+import { postQuality } from '../utils/postQuality';
 
 describe('renderPanel', () => {
   let doc, state, uiElements;

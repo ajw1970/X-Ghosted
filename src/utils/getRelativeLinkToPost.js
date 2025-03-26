@@ -3,4 +3,4 @@ function getRelativeLinkToPost(element) {
     return link || false;
 }
 
-export default getRelativeLinkToPost;
+export { getRelativeLinkToPost };

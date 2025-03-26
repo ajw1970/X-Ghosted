@@ -1,4 +1,4 @@
-import identifyPost from './identifyPost';
+import { identifyPost } from './identifyPost';
 
 function identifyPosts(document) {
     // Select all <article> elements (or adjust selector for your structure)
@@ -22,4 +22,4 @@ function identifyPosts(document) {
     return results;
 }
 
-export default identifyPosts;
+export { identifyPosts };

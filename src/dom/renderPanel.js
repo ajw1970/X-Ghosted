@@ -25,4 +25,4 @@ uiElements.label.textContent = `Problem Posts (${flagged.length}):`;
   uiElements.contentWrapper.scrollTop = uiElements.contentWrapper.scrollHeight;
 }
 
-export default renderPanel;
+export { renderPanel };

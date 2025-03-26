@@ -29,4 +29,4 @@ function loadAllPosts(gmGetValue, gmLog, state, uiElements, document) {
     }
 }
 
-export default loadAllPosts;
+export { loadAllPosts };

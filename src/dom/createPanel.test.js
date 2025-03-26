@@ -1,5 +1,5 @@
 import { JSDOM } from 'jsdom';
-import createPanel from './createPanel';
+import { createPanel } from './createPanel';
 
 describe('createPanel', () => {
   let doc, state, uiElements, config;

@@ -1,8 +1,7 @@
-import postQuality from './postQuality';
-const { GOOD, UNDEFINED, PROBLEM, POTENTIAL_PROBLEM } = postQuality;
-import identifyPosts from './identifyPosts';
-import describeSampleAnalyses from './describeSampleAnalyses';
-import postHasProblemSystemNotice from './postHasProblemSystemNotice';
+import { postQuality } from './postQuality';
+import { identifyPosts } from './identifyPosts';
+import { describeSampleAnalyses } from './describeSampleAnalyses';
+import { postHasProblemSystemNotice } from './postHasProblemSystemNotice';
 
 describe('identifyPosts - Good', () => {
 
@@ -26,57 +25,57 @@ describe('identifyPosts - Good', () => {
 
     expect(analyses).toEqual([
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895111411140907450"
       },
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895174358902956217"
       },
       {
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       },
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/buymeacoffee/status/1895088351235187111"
       },
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895172905203589591"
       },
       {
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       },
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/monetization_x/status/1894962473914298538"
       },
       {
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       },
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/tahreem57/status/1894971735172149613"
       },
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895169898252509372"
       },
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895168899793994232"
       }
@@ -105,32 +104,32 @@ describe('identifyPosts - Good', () => {
 
     expect(analyses).toEqual([
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/Eddie_1X/status/1881836273264103665"
       },
       {
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "Nothing to measure",
         link: false
       },
       {
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       },
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/Eddie_1X/status/1881843269208093033"
       },
       {
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       },
       {
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       }
@@ -159,7 +158,7 @@ describe('identifyPosts - Good', () => {
 
     expect(analyses).toEqual([
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1890787999731913068",
       }
@@ -188,7 +187,7 @@ describe('identifyPosts - Good', () => {
 
     expect(analyses).toEqual([
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/TRHLofficial/status/1890488779200135602",
       },
@@ -217,7 +216,7 @@ describe('identifyPosts - Good', () => {
 
     expect(analyses).toEqual([
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1898022285140758652",
       },
@@ -252,22 +251,22 @@ describe('identifyPosts - Problems', () => {
 
       expect(analyses).toEqual([
         {
-          quality: PROBLEM,
+          quality: postQuality.PROBLEM,
           reason: "Found community: 1889908654133911912",
           link: false
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/Waqar_sahito01/status/1898023692958843033"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         }
@@ -297,22 +296,22 @@ describe('identifyPosts - Problems', () => {
 
       expect(analyses).toEqual([
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1888719160592453713"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1888717684822438329"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1888713602850320746"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1888712977848656024"
         }
@@ -345,22 +344,22 @@ describe('identifyPosts - Problems', () => {
 
       expect(analyses).toEqual([
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/Breaking911/status/1884691881587523595"
         },
         {
-          quality: PROBLEM,
+          quality: postQuality.PROBLEM,
           reason: "Found notice: this post was deleted by the post author",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/WarPumpkin22/status/1884794131643314464"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "Nothing to measure",
           link: false
         }
@@ -389,17 +388,17 @@ describe('identifyPosts - Problems', () => {
 
       expect(analyses).toEqual([
         {
-          quality: PROBLEM,
+          quality: postQuality.PROBLEM,
           reason: "Found notice: this post is from an account that no longer exists",
           link: false
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "Nothing to measure",
           link: false
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         }
@@ -427,121 +426,121 @@ describe('identifyPosts - Problems', () => {
       ].join("\n"));
 
       expect(analyses[0]).toEqual({
-        quality: PROBLEM,
+        quality: postQuality.PROBLEM,
         reason: "Found notice: this media has been disabled in response to a report by the copyright owner",
         link: false
       });
 
       expect(analyses[1]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       });
 
       expect(analyses[2]).toEqual({
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1894812853124706554"
       });
 
       expect(analyses[3]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       });
 
       expect(analyses[4]).toEqual({
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/MyBasicFinance/status/1894819472562651293"
       });
 
       expect(analyses[5]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       });
 
       expect(analyses[6]).toEqual({
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/MattZeeMiller/status/1894849813050740802"
       });
 
       expect(analyses[7]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       });
 
       expect(analyses[8]).toEqual({
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/DaytonDan55/status/1894837596963951054"
       });
 
       expect(analyses[9]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       });
 
       expect(analyses[10]).toEqual({
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/YHfLNQEzT942049/status/1894948247187403259"
       });
 
       expect(analyses[11]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       });
 
       expect(analyses[12]).toEqual({
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/daz1985/status/1894834410198835673"
       });
 
       expect(analyses[13]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       });
 
       expect(analyses[14]).toEqual({
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/Harry_Bdict/status/1894810993449955580"
       });
 
       expect(analyses[15]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       });
 
       expect(analyses[16]).toEqual({
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/Harry_Bdict/status/1894810900009201975"
       });
 
       expect(analyses[17]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       });
 
       expect(analyses[18]).toEqual({
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/smokedandsalted/status/1894811105706271142"
       });
 
       expect(analyses[19]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "Nothing to measure",
         link: false
       });
@@ -568,19 +567,19 @@ describe('identifyPosts - Problems', () => {
       ].join("\n"));
 
       expect(analyses[0]).toEqual({
-        quality: PROBLEM,
+        quality: postQuality.PROBLEM,
         reason: "Found notice: you're unable to view this post",
         link: false
       });
 
       expect(analyses[1]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "Nothing to measure",
         link: false
       });
 
       expect(analyses[2]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       });
@@ -607,37 +606,37 @@ describe('identifyPosts - Problems', () => {
       ].join("\n"));
 
       expect(analyses[0]).toEqual({
-        quality: PROBLEM,
+        quality: postQuality.PROBLEM,
         reason: "Found notice: you're unable to view this post",
         link: false
       });
 
       expect(analyses[1]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "Nothing to measure",
         link: false
       });
 
       expect(analyses[2]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       });
 
       expect(analyses[3]).toEqual({
-        quality: PROBLEM,
+        quality: postQuality.PROBLEM,
         reason: "Found notice: you're unable to view this post",
         link: false
       });
 
       expect(analyses[4]).toEqual({
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1883293430052430332"
       });
 
       expect(analyses[5]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       });
@@ -665,25 +664,25 @@ describe('identifyPosts - Problems', () => {
       ].join("\n"));
 
       expect(analyses[0]).toEqual({
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/iam_smx/status/1883977770709258287"
       });
 
       expect(analyses[1]).toEqual({
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1883978356900913165"
       });
 
       expect(analyses[2]).toEqual({
-        quality: PROBLEM,
+        quality: postQuality.PROBLEM,
         reason: "Found notice: this post is unavailable",
         link: false
       });
 
       expect(analyses[3]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "Nothing to measure",
         link: false
       });
@@ -710,19 +709,19 @@ describe('identifyPosts - Problems', () => {
       ].join("\n"));
 
       expect(analyses[0]).toEqual({
-        quality: PROBLEM,
+        quality: postQuality.PROBLEM,
         reason: "Found notice: this post is unavailable",
         link: "/RepNancyMace/status/1884565403483218235"
       });
 
       expect(analyses[1]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "Nothing to measure",
         link: false
       });
 
       expect(analyses[2]).toEqual({
-        quality: UNDEFINED,
+        quality: postQuality.UNDEFINED,
         reason: "No article found",
         link: false
       });
@@ -777,7 +776,7 @@ describe('identifyPosts - Problems', () => {
 
       expect(analyses).toEqual([
         {
-          quality: PROBLEM,
+          quality: postQuality.PROBLEM,
           reason: "Found notice: this post is unavailable",
           link: "/OwenGregorian/status/1896977661144260900"
         }
@@ -807,17 +806,17 @@ describe('identifyPosts - Problems', () => {
 
       expect(analyses).toEqual([
         {
-          quality: PROBLEM,
+          quality: postQuality.PROBLEM,
           reason: "Found notice: this post is unavailable",
           link: false
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/BarbieTrueBlue/status/1886211137961680919"
         }
@@ -847,17 +846,17 @@ describe('identifyPosts - Problems', () => {
       // Extract analysis from each rated post
       expect(analyses).toEqual([
         {
-          quality: PROBLEM,
+          quality: postQuality.PROBLEM,
           reason: "Found notice: you're unable to view this post",
           link: false,
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false,
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/BarbieTrueBlue/status/1886211137961680919",
         },
@@ -1148,7 +1147,7 @@ describe('identifyPosts - Potential Problems', () => {
 
       expect(analyses).toEqual([
         {
-          quality: POTENTIAL_PROBLEM,
+          quality: postQuality.POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@KanekoaTheGreat</a>' at a depth of 6",
           link: "/ApostleJohnW/status/1890213085878845626"
         }
@@ -1177,117 +1176,117 @@ describe('identifyPosts - Potential Problems', () => {
 
       expect(analyses).toEqual([
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/Polymarket/status/1890150272015692285"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890268189273256429"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/joerogan/status/1890256988065747120"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890267922888831056"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/elonmusk/status/1890267219021689066"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890267836297408744"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/fasc1nate/status/1890159112966529049"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890266335059538298"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890226210656968925"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/KanekoaTheGreat/status/1890210084158103579"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890213612868063403"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: POTENTIAL_PROBLEM,
+          quality: postQuality.POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@KanekoaTheGreat</a>' at a depth of 6",
           link: "/ApostleJohnW/status/1890213085878845626"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890201310458216496"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/amuse/status/1890188509212021011"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890197334828470528"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/GuntherEagleman/status/1890193877270737033"
         }
@@ -1316,42 +1315,42 @@ describe('identifyPosts - Potential Problems', () => {
 
       expect(analyses).toEqual([
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890582770079928347"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/realchrisrufo/status/1890461003453972704"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890582075989737603"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: POTENTIAL_PROBLEM,
+          quality: postQuality.POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@DOGE</a>' at a depth of 6",
           link: "/ApostleJohnW/status/1890581864882065729"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/Starlink/status/1890556777910981087"
         }
@@ -1380,47 +1379,47 @@ describe('identifyPosts - Potential Problems', () => {
 
       expect(analyses).toEqual([
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/TomHoman_/status/1890264842021531908"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890492039311114515"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/TRHLofficial/status/1890488779200135602"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890489017642127402"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: POTENTIAL_PROBLEM,
+          quality: postQuality.POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@TheRabbitHole84</a>' at a depth of 6",
           link: "/ApostleJohnW/status/1890483565499932926"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890477786164318696"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890477475659927947"
         }
@@ -1449,142 +1448,142 @@ describe('identifyPosts - Potential Problems', () => {
 
       expect(analyses).toEqual([
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1897284088387535306"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ArthurMacwaters/status/1897070572934439349"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ArthurMacwaters/status/1897274644358693224"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1897277949675733193"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/cgallaty/status/1897270300171231704"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/cgallaty/status/1897274689350729929"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1897274953936117962"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: POTENTIAL_PROBLEM,
+          quality: postQuality.POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@cgallaty</a>' at a depth of 6",
           link: "/ApostleJohnW/status/1897274769164431494"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ArthurMacwaters/status/1897267322261528696"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1897274123841090000"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/BasedMikeLee/status/1897263908613971994"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1897267944742384013"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/BreannaMorello/status/1897264239783633229"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1897266164189040752"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/piersmorgan/status/1897261181653627162"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/DrEtiquette/status/1897264279868596522"
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1897265836777513106"
         },
         {
-          quality: UNDEFINED,
+          quality: postQuality.UNDEFINED,
           reason: "No article found",
           link: false
         },
         {
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
           link: "/Gutfeldfox/status/1896996720460095926"
         }
@@ -1613,7 +1612,7 @@ describe('identifyPosts - Potential Problems', () => {
 
       expect(analyses).toEqual([
         {
-          quality: POTENTIAL_PROBLEM,
+          quality: postQuality.POTENTIAL_PROBLEM,
           link: "/ApostleJohnW/status/1890483565499932926",
           reason: "Found: 'Replying to <a>@TheRabbitHole84</a>' at a depth of 6",
         }
@@ -1642,7 +1641,7 @@ describe('identifyPosts - Potential Problems', () => {
 
       expect(analyses).toEqual([
         {
-          quality: POTENTIAL_PROBLEM,
+          quality: postQuality.POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@TheRabbitHole84</a>' at a depth of 6",
           link: "/ApostleJohnW/status/1890483565499932926",
         }
@@ -1672,37 +1671,37 @@ describe('identifyPosts - Potential Problems', () => {
       expect(analyses).toEqual([
         {
           link: "/ApostleJohnW/status/1878550122281185320",
-          quality: POTENTIAL_PROBLEM,
+          quality: postQuality.POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@Yelp</a>' at a depth of 6",
         },
         {
           link: "/ApostleJohnW/status/1878503220315566322",
-          quality: POTENTIAL_PROBLEM,
+          quality: postQuality.POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@ApostleJohnW</a>' at a depth of 6",
         },
         {
           link: "/ApostleJohnW/status/1878503164703379943",
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
         },
         {
           link: "/ApostleJohnW/status/1878492936129650980",
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
         },
         {
           link: "/ApostleJohnW/status/1878451643068391847",
-          quality: POTENTIAL_PROBLEM,
+          quality: postQuality.POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@ApostleJohnW</a>@LorraineMarie71and<a>@ApostleEric</a>' at a depth of 6",
         },
         {
           link: "/ApostleJohnW/status/1878432165748220160",
-          quality: GOOD,
+          quality: postQuality.GOOD,
           reason: "Looks good",
         },
         {
           link: "/ApostleJohnW/status/1878371966513500444",
-          quality: POTENTIAL_PROBLEM,
+          quality: postQuality.POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@ApostleJohnW</a>' at a depth of 6",
         },
       ]);
@@ -1735,217 +1734,217 @@ describe('identifyPosts - Problems and Potential Problems', () => {
     ].join("\n"));
 
     expect(analyses[0]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/DongWookChung2/status/1887852588457988314"
     });
 
     expect(analyses[1]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/monetization_x/status/1897010659075989835"
     });
 
     expect(analyses[2]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1897016048639180873"
     });
 
     expect(analyses[3]).toEqual({
-      quality: UNDEFINED,
+      quality: postQuality.UNDEFINED,
       reason: "No article found",
       link: false
     });
 
     expect(analyses[4]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/Name__Error_404/status/1896938936599228642"
     });
 
     expect(analyses[5]).toEqual({
-      quality: UNDEFINED,
+      quality: postQuality.UNDEFINED,
       reason: "No article found",
       link: false
     });
 
     expect(analyses[6]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/Name__Error_404/status/1897015679158788554"
     });
 
     expect(analyses[7]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1897015899099414914"
     });
 
     expect(analyses[8]).toEqual({
-      quality: UNDEFINED,
+      quality: postQuality.UNDEFINED,
       reason: "No article found",
       link: false
     });
 
     expect(analyses[9]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/Name__Error_404/status/1897015203541524847"
     });
 
     expect(analyses[10]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1897015449176748449"
     });
 
     expect(analyses[11]).toEqual({
-      quality: UNDEFINED,
+      quality: postQuality.UNDEFINED,
       reason: "No article found",
       link: false
     });
 
     expect(analyses[12]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/SpaceX/status/1896708396902174849"
     });
 
     expect(analyses[13]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1897003945203306614"
     });
 
     expect(analyses[14]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1897013413664145793"
     });
 
     expect(analyses[15]).toEqual({
-      quality: UNDEFINED,
+      quality: postQuality.UNDEFINED,
       reason: "No article found",
       link: false
     });
 
     expect(analyses[16]).toEqual({
-      quality: PROBLEM,
+      quality: postQuality.PROBLEM,
       reason: "Found notice: this post is unavailable",
       link: "/OwenGregorian/status/1896977661144260900"
     });
 
     expect(analyses[17]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1897011110072738182"
     });
 
     expect(analyses[18]).toEqual({
-      quality: UNDEFINED,
+      quality: postQuality.UNDEFINED,
       reason: "No article found",
       link: false
     });
 
     expect(analyses[19]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/DongWookChung2/status/1897005083709374868"
     });
 
     expect(analyses[20]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1897010202974806174"
     });
 
     expect(analyses[21]).toEqual({
-      quality: UNDEFINED,
+      quality: postQuality.UNDEFINED,
       reason: "No article found",
       link: false
     });
 
     expect(analyses[22]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/monetization_x/status/1896999071665324318"
     });
 
     expect(analyses[23]).toEqual({
-      quality: UNDEFINED,
+      quality: postQuality.UNDEFINED,
       reason: "No article found",
       link: false
     });
 
     expect(analyses[24]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/godswayfoundinc/status/1897003429870129243"
     });
 
     expect(analyses[25]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1897004848614420667"
     });
 
     expect(analyses[26]).toEqual({
-      quality: UNDEFINED,
+      quality: postQuality.UNDEFINED,
       reason: "No article found",
       link: false
     });
 
     expect(analyses[27]).toEqual({
-      quality: POTENTIAL_PROBLEM,
+      quality: postQuality.POTENTIAL_PROBLEM,
       reason: "Found: 'Replying to <a>@godswayfoundinc</a> and <a>@monetization_x</a>' at a depth of 6",
       link: "/ApostleJohnW/status/1897004713570394503"
     });
 
     expect(analyses[28]).toEqual({
-      quality: UNDEFINED,
+      quality: postQuality.UNDEFINED,
       reason: "No article found",
       link: false
     });
 
     expect(analyses[29]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/godswayfoundinc/status/1897002671846121539"
     });
 
     expect(analyses[30]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1897002963107025141"
     });
 
     expect(analyses[31]).toEqual({
-      quality: UNDEFINED,
+      quality: postQuality.UNDEFINED,
       reason: "No article found",
       link: false
     });
 
     expect(analyses[32]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/WesleyKy/status/1896999314582642895"
     });
 
     expect(analyses[33]).toEqual({
-      quality: GOOD,
+      quality: postQuality.GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1897002818214748430"
     });
 
     expect(analyses[34]).toEqual({
-      quality: UNDEFINED,
+      quality: postQuality.UNDEFINED,
       reason: "No article found",
       link: false
     });
 
     expect(analyses[35]).toEqual({
-      quality: POTENTIAL_PROBLEM,
+      quality: postQuality.POTENTIAL_PROBLEM,
       reason: "Found: 'Replying to <a>@monetization_x</a>' at a depth of 6",
       link: "/ApostleJohnW/status/1897002239753073002"
     });
@@ -1973,33 +1972,33 @@ describe('identifyPosts - Problems and Potential Problems', () => {
 
     expect(analyses).toEqual([
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/catturd2/status/1886191961670893917",
       },
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/catturd2/status/1886191251562606816",
       },
       {
-        quality: POTENTIAL_PROBLEM,
+        quality: postQuality.POTENTIAL_PROBLEM,
         reason: "Found: 'Replying to <a>@GuntherEagleman</a>and<a>@LeaderJohnThune</a>' at a depth of 6",
         link: "/catturd2/status/1886189049674616930",
 
       },
       {
-        quality: PROBLEM,
+        quality: postQuality.PROBLEM,
         reason: "Found notice: this post is unavailable",
         link: "/catturd2/status/1886188210524438792",
       },
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/catturd2/status/1886186665342849268",
       },
       {
-        quality: GOOD,
+        quality: postQuality.GOOD,
         reason: "Looks good",
         link: "/catturd2/status/1886185480791744705",
       }

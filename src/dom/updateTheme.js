@@ -53,4 +53,4 @@ function updateTheme(uiElements, config) {
   `;
 }
 
-export default updateTheme;
+export { updateTheme };

@@ -1,4 +1,4 @@
-import isProfileRepliesPage from './isProfileRepliesPage';
+import { isProfileRepliesPage } from './isProfileRepliesPage';
 
 describe('isProfileRepliesPage', () => {
     test('returns true if on replies_page"', () => {

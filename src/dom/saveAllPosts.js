@@ -16,4 +16,4 @@ function saveAllPosts(state, gm_setValueFn, gm_logFn) {
     }
 }
 
-export default saveAllPosts;
+export { saveAllPosts };

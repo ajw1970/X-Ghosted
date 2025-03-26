@@ -1,5 +1,5 @@
 import { JSDOM } from 'jsdom';
-import togglePanelVisibility from './togglePanelVisibility';
+import { togglePanelVisibility } from './togglePanelVisibility';
 
 describe('togglePanelVisibility', () => {
   let doc, state, uiElements;

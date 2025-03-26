@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import loadAllPosts from './loadAllPosts';
+import { loadAllPosts } from './loadAllPosts';
 
 describe('loadAllPosts', () => {
     let mockGM_getValue;

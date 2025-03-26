@@ -42,6 +42,7 @@ async function generateGrokPrompt(inputPatterns, outputDir = 'grok', outputFileN
         bundle: true, // Required to trace dependencies
         write: false, // Don’t write output files
         metafile: true, // Generate dependency metadata
+        outdir: 'grok/dummy', // Dummy directory, not actually used
         platform: 'node', // Treat as Node.js environment
         format: 'esm', // Use ESM format to support import.meta
         external: [

@@ -1,6 +1,6 @@
 // src/dom/createPanel.js
-import createButton from './createButton';
-import detectTheme from './detectTheme';
+import { createButton } from './createButton';
+import { detectTheme } from './detectTheme';
 
 function createPanel(doc, state, uiElements, config, togglePanelVisibility, copyCallback) {
   const mode = detectTheme(doc);
@@ -191,4 +191,4 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
   doc.head.appendChild(uiElements.styleSheet);
 }
 
-export default createPanel;
+export { createPanel };
