@@ -1,5 +1,5 @@
-const summarizeRatedPosts = require('./summarizeRatedPosts');
-const postQuality = require('./postQuality');
+import { summarizeRatedPosts } from './summarizeRatedPosts';
+import { postQuality } from './postQuality';
 
 function describeSampleAnalyses(document, analysis) {
   const totalPosts = document.querySelectorAll('div[data-testid="cellInnerDiv"]').length;
@@ -27,4 +27,4 @@ function describeSampleAnalyses(document, analysis) {
   ].join('\n');
 }
 
-module.exports = describeSampleAnalyses;
+export { describeSampleAnalyses };

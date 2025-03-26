@@ -14,4 +14,4 @@ function postHasProblemCommunity(article) {
     return false; // Changed from "" to false
 }
 
-module.exports = postHasProblemCommunity;
+export { postHasProblemCommunity };

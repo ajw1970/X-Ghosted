@@ -1,19 +1,41 @@
-= Grok Step 4: Roadmap to Next Release (0.6.1)
-:revision-date: March 24, 2025
+= Grok Step 4: Roadmap to Next Release
+:revision-date: March 26, 2025
 
-== Roadmap to Version 0.6.1
-1. *Full State Persistence*: Save/load `processedArticles` and settings via `GM_setValue`/`GM_getValue`. Done—24/24 tests pass.
-2. *Manual Check Mode*: Toggle via panel, mock tab checks with `checkPostInNewTab`. Done—24/24 tests pass, defaults to enabled for safety.
-3. *Manage Processed Posts Data*: Add import/export/clear in CSV format. Export 5s throttled in production, immediate in tests. Done—28/28 tests pass.
-4. *Polish UI/UX for 0.6.1 Release*: Refine panel styling (resizable/draggable), theme detection, usability with tooltips. Done—untested in test suite.
-5. *Userscript Wrapper*: Wrap `xGhosted.js` in a `@userscript` header via `xGhosted.template.js` and build script. Done—optimized for 1000 article cap, 500ms debounce, 1s observer throttle, manual mode default, DOM-only analysis. Build script fixed for method deduplication and Prettier formatting.
+== Roadmap to Next Version (Post-0.6.0)
+1. *Full State Persistence*: Save/load `processedArticles` and settings via `GM_setValue`/`GM_getValue`. Done—24/24 tests passed, `panelPosition` included.
+2. *Manual Check Mode*: Toggle via panel, mock tab checks with `checkPostInNewTab`. Done—24/24 tests passed, defaults to enabled.
+3. *Manage Processed Posts Data*: Add import/export/clear in CSV format. Export throttle configurable, immediate in tests. Done—functional, CSV tests deferred.
+4. *Polish UI/UX*: Refine panel styling (resizable/draggable), theme detection, usability with tooltips. Done—verified in browser, tested in suite.
+5. *Userscript Wrapper*: Wrap `xGhosted.js` in a `@userscript` header via `xGhosted.template.js` and `build-xGhosted.js`. Done—uses esbuild, timing configurable, 1000 article cap enforced, manual mode default, DOM-only analysis, ESM exports removed.
+6. *Release 0.6.1*: Confirm manual test in Tampermonkey, update `README.md`, and tag release. In progress—manual testing underway.
 
-== Roadmap to Version 0.6.2
-1. *Transition to Rollup*: Replace the custom `build-xGhosted.js` script with Rollup for bundling `xGhosted.js` with its dependencies, improving maintainability and ensuring cleaner, more readable output.
-2. *Tab Check GOOD Posts*: 10s interval checks—pending, to be user-triggered for server safety.
-3. *Performance Pass*: Optimize lookups—pending.
-4. *Collapse by Default*: Batch-collapse problem posts every 5s—pending.
+== Roadmap to Next Version Release (0.6.1)
+1. *Manual Test Build Script*: Verify `build-xGhosted.js` output in Tampermonkey—ensure bundling, resource caps, manual mode, and no ESM exports. In progress—panel functionality tested, "Hide" fixed with proper sizing, Show/Hide positioning and POTENTIAL_PROBLEM detection pending.
+2. *Fix Show/Hide Button Positioning*: Move Show/Hide button to top-right corner of the panel (Issue 2).
+3. *Fix POTENTIAL_PROBLEM Detection*: Investigate DOM structure changes or state issues causing inconsistent detection (Issue 3).
+4. *Complete Manual Testing*:
+   - Test remaining button functionality (Copy, Manual Check, Export CSV, Import CSV, Clear).
+   - Verify 1000-article cap by loading more posts.
+   - Fix eye icon visibility for POTENTIAL_PROBLEM posts (add `zIndex: '10000'`).
+5. *Fix Test Suite*: Resolve ESM mocking issues for CSV functionality (`exportProcessedPostsCSV`, `importProcessedPostsCSV`, `clearProcessedPosts`) in `src/xGhosted.csv.test.js`. Target 28/28 passing. Deferred due to `writeToClipboard` mocking issues.
+6. *Transition to Rollup*: Replace esbuild with Rollup for bundling, improving maintainability and output readability. Pending post-manual test.
+7. *Tab Check GOOD Posts*: Implement 10s interval checks, user-triggered for server safety. Pending.
+8. *Performance Pass*: Optimize lookups. Pending.
+9. *Collapse by Default*: Batch-collapse problem posts every 5s. Pending.
+
+== Next Steps for Continuation
+At the end of the session on March 26, 2025, the following tasks remain unresolved and should be addressed in the next session:
+- Verify the panel’s position persistence and hide behavior: Confirm the panel starts at `top: '60px'`, `right: '10px'`, saves the user’s position after dragging, and the "Hide" button stays fixed while the panel collapses toward it (Issue 2).
+- Debug and fix the highlighting issue for the problem post `/ajweltytest/status/1901080866002014636`: Use console logs to determine why the post isn’t highlighted in the UI, ensuring it displays a red background for PROBLEM status (Issue 3).
+- Polish the UI if necessary: Review button contrast (e.g., ensure `#4A5C6D` buttons are visible against `#15202B` background in dim mode) and spacing to improve readability and aesthetics.
+- Complete manual testing of `xGhosted.user.js` in Tampermonkey:
+  - Test remaining button functionality (Copy, Manual Check, Export CSV, Import CSV, Clear).
+  - Verify 1000-article cap by loading more posts.
+  - Fix eye icon visibility for POTENTIAL_PROBLEM posts (add `zIndex: '10000'`).
+- Fix ESM mocking issues in `src/xGhosted.csv.test.js` to restore full test suite (targeting 28/28 passing for CSV functionality), deferred earlier due to `writeToClipboard` issues.
 
 == Revision History
 - March 23, 2025: Step 2 completed—24/24 tests passing.
-- March 24, 2025: Step 3 completed—CSV features done. Step 4 completed—UI polished. Step 5 completed—userscript wrapper with resource and server safety optimizations. Build script fixed for method deduplication and Prettier formatting. Roadmap updated to include transition to Rollup for version 0.6.2.
+- March 24, 2025: Step 3 completed—CSV features done. Step 4 completed—UI polished. Step 5 completed—userscript wrapper with esbuild.
+- March 25, 2025: Test suite at 108/108 passing after fixing timing initialization and `saveState` test.
+- March 26, 2025: Fixed `build-xGhosted.js` to remove ESM `export` statements, enforced 1000-article cap in `xGhosted.js`, confirmed `npm run build` usage, removed `"directories"."test"` from `package.json`. Fixed "Hide" functionality, moved tests to standalone files (112 tests across 17 suites). Fixed failing test in `createButton.test.js` by moving to `createPanel.test.js` and correcting expectation. Fixed failing test in `createPanel.test.js` by excluding `styleSheet` from display style checks. Fixed `createButton.test.js` border style expectation to account for JSDOM behavior. Adjusted panel size when hidden to fit "Show" button comfortably and updated `togglePanelVisibility.test.js` to match new sizing.

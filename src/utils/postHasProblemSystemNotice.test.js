@@ -1,8 +1,8 @@
-const postHasProblemSystemNotice = require('./postHasProblemSystemNotice');
+import { postHasProblemSystemNotice } from './postHasProblemSystemNotice';
+import { JSDOM } from 'jsdom';
 
 describe('postHasProblemSystemNotice', () => {
 
-    const { JSDOM } = require('jsdom');
     const dom = new JSDOM('<!DOCTYPE html><div></div>');
     global.document = dom.window.document;
 

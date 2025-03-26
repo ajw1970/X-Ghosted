@@ -7,4 +7,4 @@ function rgbToHex(rgb) {
   return `#${r}${g}${b}`.toUpperCase();
 }
 
-module.exports = rgbToHex;
+export { rgbToHex };

@@ -1,4 +1,4 @@
-const postQuality = require('./postQuality');
+import { postQuality } from './postQuality';
 
 function summarizeRatedPosts(analyses) {
   // Initialize counters object using the enum values
@@ -24,4 +24,4 @@ function summarizeRatedPosts(analyses) {
   return summary;
 }
 
-module.exports = summarizeRatedPosts;
+export { summarizeRatedPosts };

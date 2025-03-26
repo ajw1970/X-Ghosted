@@ -25,4 +25,4 @@ function getArticleDetails(articleElement) {
     }
 }
 
-module.exports = getArticleDetails;
+export { getArticleDetails };

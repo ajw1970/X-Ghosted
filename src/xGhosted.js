@@ -1,15 +1,23 @@
-// src/xGhosted.js
-const postQuality = require('./utils/postQuality');
-const detectTheme = require('./dom/detectTheme');
-const identifyPost = require('./utils/identifyPost');
-const debounce = require('./utils/debounce');
-const createButton = require('./dom/createButton');
-const createPanel = require('./dom/createPanel');
-const togglePanelVisibility = require('./dom/togglePanelVisibility');
-const renderPanel = require('./dom/renderPanel');
-const updateTheme = require('./dom/updateTheme');
+import { postQuality } from './utils/postQuality.js';
+import { detectTheme } from './dom/detectTheme';
+import { identifyPost } from './utils/identifyPost';
+import { debounce } from './utils/debounce';
+import { createButton } from './dom/createButton';
+import { createPanel } from './dom/createPanel';
+import { togglePanelVisibility } from './dom/togglePanelVisibility';
+import { renderPanel } from './dom/renderPanel';
+import { updateTheme } from './dom/updateTheme';
 
-function XGhosted(doc, useTampermonkeyLog = false) {
+function XGhosted(doc, config = {}) {
+  const defaultTiming = {
+    debounceDelay: 500,           // ms for highlightPosts debounce
+    throttleDelay: 1000,          // ms for DOM observation throttle
+    tabCheckThrottle: 5000,       // ms for new tab checks
+    exportThrottle: 5000          // ms for CSV export throttle
+  };
+
+  this.timing = { ...defaultTiming, ...config.timing };
+  
   this.state = {
     isWithReplies: false,
     postContainer: null,
@@ -19,10 +27,10 @@ function XGhosted(doc, useTampermonkeyLog = false) {
     isPanelVisible: true,
     isDarkMode: true,
     isManualCheckEnabled: false,
-    panelPosition: null, // Add this
+    panelPosition: null,
   };
   this.document = doc;
-  this.log = useTampermonkeyLog && typeof GM_log !== 'undefined'
+  this.log = config.useTampermonkeyLog && typeof GM_log !== 'undefined'
     ? GM_log.bind(null)
     : console.log.bind(console);
   this.uiElements = {
@@ -42,9 +50,46 @@ function XGhosted(doc, useTampermonkeyLog = false) {
       },
     },
   };
+
+  // Define debounced methods in constructor to access this.timing
+  this.checkPostInNewTabThrottled = debounce((article, href) => {
+    this.checkPostInNewTab(article, href);
+  }, this.timing.tabCheckThrottle);
+
+  this.highlightPostsDebounced = debounce(() => {
+    this.highlightPosts();
+  }, this.timing.debounceDelay);
+
+  this.exportProcessedPostsCSV = () => {
+    const headers = ['Link', 'Quality', 'Reason', 'Checked'];
+    const rows = Array.from(this.state.processedArticles.entries())
+      .map(([link, { analysis, checked }]) => [
+        `"https://x.com${link}"`,
+        `"${analysis.quality.name}"`,
+        `"${analysis.reason.replace(/"/g, '""')}"`,
+        checked ? 'true' : 'false'
+      ]);
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    const exportFn = () => {
+      navigator.clipboard.writeText(csvContent)
+        .then(() => this.log('Processed posts CSV copied to clipboard'))
+        .catch(err => this.log(`CSV export failed: ${err}`));
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = this.document.createElement('a');
+      a.href = url;
+      a.download = 'xghosted_processed_posts.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+    if (typeof jest === 'undefined') {
+      debounce(exportFn, this.timing.exportThrottle)();
+    } else {
+      exportFn();
+    }
+  };
 }
 
-// Replace loadState:
 XGhosted.prototype.loadState = function () {
   const savedState = GM_getValue('xGhostedState', {});
   this.state.isPanelVisible = savedState.isPanelVisible ?? true;
@@ -57,7 +102,6 @@ XGhosted.prototype.loadState = function () {
   }
 };
 
-// Replace saveState:
 XGhosted.prototype.saveState = function () {
   const serializableArticles = {};
   for (const [id, data] of this.state.processedArticles) {
@@ -72,37 +116,12 @@ XGhosted.prototype.saveState = function () {
   });
 };
 
-// Replace createPanel:
 XGhosted.prototype.createPanel = function () {
   this.state.instance = this;
   createPanel(this.document, this.state, this.uiElements, this.uiElements.config, this.togglePanelVisibility.bind(this), this.copyLinks.bind(this));
   this.uiElements.modeSelector.addEventListener('change', () => {
     this.updateTheme();
-    this.saveState(); // Persist selected theme
-  });
-};
-
-XGhosted.prototype.loadState = function () {
-  const savedState = GM_getValue('xGhostedState', {});
-  this.state.isPanelVisible = savedState.isPanelVisible ?? true;
-  this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
-  this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
-  const savedArticles = savedState.processedArticles || {};
-  for (const [id, data] of Object.entries(savedArticles)) {
-    this.state.processedArticles.set(id, { analysis: data.analysis, element: null });
-  }
-};
-
-XGhosted.prototype.saveState = function () {
-  const serializableArticles = {};
-  for (const [id, data] of this.state.processedArticles) {
-    serializableArticles[id] = { analysis: data.analysis };
-  }
-  GM_setValue('xGhostedState', {
-    isPanelVisible: this.state.isPanelVisible,
-    isCollapsingEnabled: this.state.isCollapsingEnabled,
-    isManualCheckEnabled: this.state.isManualCheckEnabled,
-    processedArticles: serializableArticles
+    this.saveState();
   });
 };
 
@@ -148,10 +167,6 @@ XGhosted.prototype.checkPostInNewTab = function (article, href) {
   }, 500);
 };
 
-XGhosted.prototype.checkPostInNewTabThrottled = debounce(function (article, href) {
-  this.checkPostInNewTab(article, href);
-}, 5000);
-
 XGhosted.prototype.findPostContainer = function () {
   if (this.state.postContainer) return this.state.postContainer;
   const posts = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
@@ -163,16 +178,26 @@ XGhosted.prototype.findPostContainer = function () {
 XGhosted.prototype.identifyPosts = function () {
   const container = this.findPostContainer();
   if (!container) return [];
-
   const posts = container.querySelectorAll('div[data-testid="cellInnerDiv"]');
   const results = [];
   let lastLink = null;
   let fillerCount = 0;
-
-  posts.forEach(post => {
+  const MAX_PROCESSED_ARTICLES = 1e3;
+  if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) {
+    this.log(
+      `Reached max processed articles (${MAX_PROCESSED_ARTICLES}). Skipping new posts.`
+    );
+    return Array.from(this.state.processedArticles.entries()).map(
+      ([id, { analysis, element }]) => ({
+        post: element,
+        analysis,
+      })
+    );
+  }
+  posts.forEach((post) => {
+    if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) return;
     const analysis = identifyPost(post, this.state.isWithReplies);
     let id = analysis.link;
-
     if (analysis.quality === postQuality.UNDEFINED && id === false) {
       if (lastLink) {
         fillerCount++;
@@ -185,9 +210,7 @@ XGhosted.prototype.identifyPosts = function () {
       lastLink = id;
       fillerCount = 0;
     }
-
     const cached = this.state.processedArticles.get(id);
-
     if (cached && cached.element === post) {
       results.push({ post, analysis: cached.analysis });
     } else {
@@ -195,7 +218,6 @@ XGhosted.prototype.identifyPosts = function () {
       results.push({ post, analysis });
     }
   });
-
   return results;
 };
 
@@ -245,10 +267,6 @@ XGhosted.prototype.highlightPosts = function () {
   this.saveState();
 };
 
-XGhosted.prototype.highlightPostsDebounced = debounce(function () {
-  this.highlightPosts();
-}, 250);
-
 XGhosted.prototype.highlightPostsImmediate = function () {
   this.highlightPosts();
 };
@@ -266,61 +284,17 @@ XGhosted.prototype.copyLinks = function () {
     .map(([link]) => `https://x.com${link}`)
     .join('\n');
   navigator.clipboard.writeText(linksText)
-    .then(() => console.log('Links copied'))
-    .catch(err => console.error(`Copy failed: ${err}`));
-};
-
-// New method: Export processed posts as CSV
-XGhosted.prototype.exportProcessedPostsCSV = function () {
-  const headers = ['Link', 'Quality', 'Reason', 'Checked'];
-  const rows = Array.from(this.state.processedArticles.entries())
-    .map(([link, { analysis, checked }]) => [
-      `"https://x.com${link}"`,
-      `"${analysis.quality.name}"`,
-      `"${analysis.reason.replace(/"/g, '""')}"`,
-      checked ? 'true' : 'false'
-    ]);
-  const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
-  const exportFn = () => {
-    navigator.clipboard.writeText(csvContent)
-      .then(() => this.log('Processed posts CSV copied to clipboard'))
-      .catch(err => this.log(`CSV export failed: ${err}`));
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = this.document.createElement('a');
-    a.href = url;
-    a.download = 'xghosted_processed_posts.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-  if (typeof jest === 'undefined') {
-    debounce(exportFn, 5000)();
-  } else {
-    exportFn();
-  }
-};
-
-XGhosted.prototype.copyLinks = function () {
-  const linksText = Array.from(this.state.processedArticles.entries())
-    .filter(([_, { analysis }]) =>
-      analysis.quality === postQuality.PROBLEM ||
-      analysis.quality === postQuality.POTENTIAL_PROBLEM
-    )
-    .map(([link]) => `https://x.com${link}`)
-    .join('\n');
-  navigator.clipboard.writeText(linksText)
     .then(() => this.log('Links copied'))
     .catch(err => this.log(`Copy failed: ${err}`));
 };
 
-// New method: Import processed posts from CSV
 XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
   if (!csvText || typeof csvText !== 'string') {
     console.error('Invalid CSV text provided');
     return;
   }
   const lines = csvText.trim().split('\n').map(line => line.split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"')));
-  if (lines.length < 2) return; // Need at least header + 1 row
+  if (lines.length < 2) return;
   const headers = lines[0];
   const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
   if (!expectedHeaders.every((h, i) => h === headers[i])) {
@@ -345,23 +319,17 @@ XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
     });
   });
   this.saveState();
-  this.highlightPostsImmediate(); // Refresh UI
+  this.highlightPostsImmediate();
 };
 
-// New method: Clear processed posts
 XGhosted.prototype.clearProcessedPosts = function () {
   this.state.processedArticles.clear();
   this.saveState();
-  this.highlightPostsImmediate(); // Refresh UI
+  this.highlightPostsImmediate();
 };
 
 XGhosted.prototype.createButton = function (text, mode, onClick) {
   return createButton(this.document, text, mode, onClick, this.uiElements.config);
-};
-
-XGhosted.prototype.createPanel = function () {
-  this.state.instance = this; 
-  createPanel(this.document, this.state, this.uiElements, this.uiElements.config, this.togglePanelVisibility.bind(this), this.copyLinks.bind(this));
 };
 
 XGhosted.prototype.togglePanelVisibility = function () {
@@ -380,4 +348,4 @@ XGhosted.prototype.init = function () {
   this.saveState();
 };
 
-module.exports = XGhosted;
+export { XGhosted };

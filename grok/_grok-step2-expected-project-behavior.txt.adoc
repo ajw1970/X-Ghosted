@@ -1,22 +1,30 @@
 = Grok Step 2: Expected Project Behavior
-:revision-date: March 24, 2025
+:revision-date: March 26, 2025
 
 == Core Features in Current State
-- **Detection**: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow), GOOD (none), UNDEFINED (none) posts on X’s `/with_replies` pages using local DOM analysis only.
-- **UI**: Floating panel (resizable, draggable) lists problem/potential posts with Copy, Export CSV (5s throttled), Import CSV, Clear, and Manual Check buttons. Theme switching (dark/dim/light) is seamless with tooltips.
-- **Persistence**: State saved via `GM_setValue`/`GM_getValue`—loads/saves `processedArticles` (capped at 1000), settings, and panel position.
-- **Logging**: Configurable via constructor—uses `GM_log` or `console.log`.
-- **Safety**: Starts with `isManualCheckEnabled` true to limit server activity; 500ms debounce and 1s observer throttle reduce resource use. No server requests beyond page loads.
-- **Tests**: 28/28 passing in `src/xGhosted.test.js`, covering CSV management, persistence, and core functionality.
-- **Build**: `build-xGhosted.js` script successfully bundles `xGhosted.js` with dependencies into `xGhosted.user.js`, with method deduplication fixed to ensure clean, Prettier-formatted output.
+- *Detection*: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow, with eye icons), GOOD (none), UNDEFINED (none) posts on X’s `/with_replies` pages using local DOM analysis only. POTENTIAL_PROBLEM detection inconsistent due to possible DOM changes.
+- *UI*: Floating panel (resizable, draggable) lists problem/potential posts with Copy, Export CSV (configurable throttle), Import CSV, Clear, and Manual Check buttons. Theme switching (dark/dim/light) is seamless with tooltips. Show/Hide button positioning incorrect (should be top-right, currently bottom-right). Panel size when hidden adjusted to fit "Show" button comfortably.
+- *Persistence*: State saved via `GM_setValue`/`GM_getValue`—loads/saves `processedArticles` (capped at 1000), settings, and panel position.
+- *Logging*: Configurable via constructor—uses `GM_log` or `console.log`.
+- *Safety*: Starts with `isManualCheckEnabled` true to limit server activity; configurable debounce/throttle values reduce resource use; 1000-article cap enforced in `identifyPosts`. No server requests beyond page loads.
+- *Tests*: `src/xGhosted.test.js`—24 tests pass, covering core functionality. Total 112 tests across 17 suites, all passing after fixing `createButton.test.js`, `createPanel.test.js`, and updating `togglePanelVisibility.test.js` for new panel sizing.
+- *Build*: `build-xGhosted.js` uses esbuild to bundle `xGhosted.js` with dependencies into `xGhosted.user.js`, removing ESM exports for Tampermonkey compatibility. Timing values configurable via constructor. Run via `npm run build`.
 
 == Next Steps
-- Transition from the custom `build-xGhosted.js` script to Rollup for bundling `xGhosted.js` with its dependencies, improving maintainability and ensuring cleaner, more readable output.
-- Follow the roadmap in Step 4—Step 6 (Tab Check GOOD Posts) is next, to be implemented with user-triggered controls to maintain server safety.
+- Verify the panel’s position persistence and hide behavior: Confirm the panel starts at `top: '60px'`, `right: '10px'`, saves the user’s position after dragging, and the "Hide" button stays fixed while the panel collapses toward it (Issue 2).
+- Debug and fix the highlighting issue for the problem post `/ajweltytest/status/1901080866002014636`: Use console logs to determine why the post isn’t highlighted in the UI, ensuring it displays a red background for PROBLEM status (Issue 3).
+- Complete manual testing of `xGhosted.user.js` in Tampermonkey:
+  - Test remaining button functionality (Copy, Manual Check, Export CSV, Import CSV, Clear).
+  - Verify 1000-article cap by loading more posts.
+  - Fix eye icon visibility for POTENTIAL_PROBLEM posts (add `zIndex: '10000'`).
+- Fix ESM mocking issues in `src/xGhosted.csv.test.js` to restore full test suite (targeting 28/28 passing for CSV functionality), deferred earlier due to `writeToClipboard` issues.
+- Polish the UI if necessary: Review button contrast (e.g., `#4A5C6D` on `#15202B` in dim mode) and spacing to improve readability and aesthetics.
 
 == Revision History
 - March 23, 2025: Step 2 completed—24/24 tests pass with Manual Check Mode mocked. CSV export added.
-- March 24, 2025: Step 3 completed—CSV import/clear added. Step 4 completed—UI polished. Step 5 completed—userscript wrapper built with resource caps (1000 articles) and server safety (manual mode, DOM-only). Build script fixed for method deduplication and Prettier formatting. Plan to transition to Rollup for bundling established.
+- March 24, 2025: Step 3 completed—CSV import/clear added. Step 4 completed—UI polished. Step 5 completed—userscript wrapper with resource caps and server safety.
+- March 25, 2025: Test suite at 108/108 passing after fixing `saveState` test. Timing values moved to config object, esbuild adopted.
+- March 26, 2025: Updated `build-xGhosted.js` to remove ESM `export` statements, fixed 1000-article cap enforcement in `identifyPosts`, confirmed `npm run build` usage, and removed `"directories"."test"` from `package.json`. Fixed "Hide" functionality, moved tests to standalone files (112 tests across 17 suites). Adjusted panel size when hidden to fit "Show" button comfortably and updated tests.
 
 == Notes
 Large updates might hit X post size limits—Grok will flag truncation if detected and pause for new prompts.

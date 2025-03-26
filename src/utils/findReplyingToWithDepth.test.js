@@ -1,8 +1,8 @@
-const findReplyingToWithDepth = require('./findReplyingToWithDepth');
+import { findReplyingToWithDepth } from './findReplyingToWithDepth';
+import { JSDOM } from 'jsdom';
 
 describe('findReplyingToWithDepth', () => {
 
-    const { JSDOM } = require('jsdom');
     const dom = new JSDOM('<!DOCTYPE html><div></div>');
     global.document = dom.window.document;
 

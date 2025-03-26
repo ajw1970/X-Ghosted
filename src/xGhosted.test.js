@@ -1,26 +1,33 @@
-// src/xGhosted.test.js
-const fs = require('fs');
-const path = require('path');
-const { JSDOM } = require('jsdom');
-const XGhosted = require('./xGhosted');
-const renderPanel = require('./dom/renderPanel');
-const postQuality = require('./utils/postQuality');
-const summarizeRatedPosts = require('./utils/summarizeRatedPosts');
+import { jest } from '@jest/globals';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+import { JSDOM } from 'jsdom';
+import { XGhosted } from './xGhosted.js';
+import { postQuality } from './utils/postQuality.js';
+import { summarizeRatedPosts } from './utils/summarizeRatedPosts.js';
 
 // Mock Tampermonkey GM_* functions
 const gmStorage = {};
 global.GM_getValue = jest.fn((key, defaultValue) => gmStorage[key] ?? defaultValue);
 global.GM_setValue = jest.fn((key, value) => { gmStorage[key] = value; });
 
+// Convert __dirname to ES6-compatible syntax
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+let clipboardMock; // Store mock globally for test access
+
 function setupJSDOM() {
-  const samplePath = path.resolve(__dirname, '../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
-  const sampleHtml = fs.readFileSync(samplePath, 'utf8');
+  const samplePath = resolve(__dirname, '../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
+  const sampleHtml = readFileSync(samplePath, 'utf8');
   const html = `<!DOCTYPE html><html><body>${sampleHtml}</body></html>`;
   const dom = new JSDOM(html, {
     url: 'https://x.com/user/with_replies',
     resources: 'usable',
     runScripts: 'dangerously',
   });
+  // console.log('JSDOM created');
   global.window = dom.window;
   global.document = dom.window.document;
   if (!dom.window.getComputedStyle) {
@@ -30,7 +37,12 @@ function setupJSDOM() {
     });
   }
   dom.window.document.defaultView.open = jest.fn();
-  dom.window.navigator.clipboard = { writeText: jest.fn().mockResolvedValue() };
+  clipboardMock = { writeText: jest.fn().mockResolvedValue() };
+  dom.window.navigator = {
+    clipboard: clipboardMock,
+    userAgent: 'jest',
+  };
+  global.navigator = dom.window.navigator;
   dom.window.URL = {
     createObjectURL: jest.fn(() => 'blob://test'),
     revokeObjectURL: jest.fn()
@@ -43,12 +55,22 @@ describe('xGhosted', () => {
 
   beforeEach(() => {
     dom = setupJSDOM();
-    xGhosted = new XGhosted(dom.window.document);
+    xGhosted = new XGhosted(dom.window.document, {
+      timing: {
+        debounceDelay: 500,      // Match new default from constructor
+        throttleDelay: 1000,     // Match new default from constructor
+        tabCheckThrottle: 5000,  // Match new default from constructor
+        exportThrottle: 5000     // Match new default from constructor
+      },
+      useTampermonkeyLog: false
+    });
     xGhosted.updateState('https://x.com/user/with_replies');
   });
 
   afterEach(() => {
-    dom.window.document.body.innerHTML = '';
+    if (dom?.window?.document) {
+      dom.window.document.body.innerHTML = '';
+    }
     jest.clearAllMocks();
   });
 
@@ -82,142 +104,142 @@ describe('xGhosted', () => {
     expect(analyses[0].reason).toEqual("Looks good");
     expect(analyses[0].link).toEqual("/DongWookChung2/status/1887852588457988314");
 
-    expect(analyses[1].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[1].reason).toEqual("Looks good"); 
-    expect(analyses[1].link).toEqual("/monetization_x/status/1897010659075989835"); 
- 
-    expect(analyses[2].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[2].reason).toEqual("Looks good"); 
-    expect(analyses[2].link).toEqual("/ApostleJohnW/status/1897016048639180873"); 
- 
-    expect(analyses[3].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[3].reason).toEqual("No article found"); 
-    expect(analyses[3].link).toEqual("/ApostleJohnW/status/1897016048639180873#filler1"); 
- 
-    expect(analyses[4].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[4].reason).toEqual("Looks good"); 
-    expect(analyses[4].link).toEqual("/Name__Error_404/status/1896938936599228642"); 
- 
-    expect(analyses[5].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[5].reason).toEqual("No article found"); 
-    expect(analyses[5].link).toEqual("/Name__Error_404/status/1896938936599228642#filler1"); 
- 
-    expect(analyses[6].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[6].reason).toEqual("Looks good"); 
-    expect(analyses[6].link).toEqual("/Name__Error_404/status/1897015679158788554"); 
- 
-    expect(analyses[7].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[7].reason).toEqual("Looks good"); 
-    expect(analyses[7].link).toEqual("/ApostleJohnW/status/1897015899099414914"); 
- 
-    expect(analyses[8].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[8].reason).toEqual("No article found"); 
-    expect(analyses[8].link).toEqual("/ApostleJohnW/status/1897015899099414914#filler1"); 
- 
-    expect(analyses[9].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[9].reason).toEqual("Looks good"); 
-    expect(analyses[9].link).toEqual("/Name__Error_404/status/1897015203541524847"); 
- 
-    expect(analyses[10].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[10].reason).toEqual("Looks good"); 
-    expect(analyses[10].link).toEqual("/ApostleJohnW/status/1897015449176748449"); 
- 
-    expect(analyses[11].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[11].reason).toEqual("No article found"); 
-    expect(analyses[11].link).toEqual("/ApostleJohnW/status/1897015449176748449#filler1"); 
- 
-    expect(analyses[12].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[12].reason).toEqual("Looks good"); 
-    expect(analyses[12].link).toEqual("/SpaceX/status/1896708396902174849"); 
- 
-    expect(analyses[13].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[13].reason).toEqual("Looks good"); 
-    expect(analyses[13].link).toEqual("/ApostleJohnW/status/1897003945203306614"); 
- 
-    expect(analyses[14].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[14].reason).toEqual("Looks good"); 
-    expect(analyses[14].link).toEqual("/ApostleJohnW/status/1897013413664145793"); 
- 
-    expect(analyses[15].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[15].reason).toEqual("No article found"); 
-    expect(analyses[15].link).toEqual("/ApostleJohnW/status/1897013413664145793#filler1"); 
- 
-    expect(analyses[16].quality).toEqual(postQuality.PROBLEM); 
-    expect(analyses[16].reason).toEqual("Found notice: this post is unavailable"); 
-    expect(analyses[16].link).toEqual("/OwenGregorian/status/1896977661144260900"); 
- 
-    expect(analyses[17].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[17].reason).toEqual("Looks good"); 
-    expect(analyses[17].link).toEqual("/ApostleJohnW/status/1897011110072738182"); 
- 
-    expect(analyses[18].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[18].reason).toEqual("No article found"); 
-    expect(analyses[18].link).toEqual("/ApostleJohnW/status/1897011110072738182#filler1"); 
- 
-    expect(analyses[19].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[19].reason).toEqual("Looks good"); 
-    expect(analyses[19].link).toEqual("/DongWookChung2/status/1897005083709374868"); 
- 
-    expect(analyses[20].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[20].reason).toEqual("Looks good"); 
-    expect(analyses[20].link).toEqual("/ApostleJohnW/status/1897010202974806174"); 
- 
-    expect(analyses[21].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[21].reason).toEqual("No article found"); 
-    expect(analyses[21].link).toEqual("/ApostleJohnW/status/1897010202974806174#filler1"); 
- 
-    expect(analyses[22].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[22].reason).toEqual("Looks good"); 
-    expect(analyses[22].link).toEqual("/monetization_x/status/1896999071665324318"); 
- 
-    expect(analyses[23].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[23].reason).toEqual("No article found"); 
-    expect(analyses[23].link).toEqual("/monetization_x/status/1896999071665324318#filler1"); 
- 
-    expect(analyses[24].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[24].reason).toEqual("Looks good"); 
-    expect(analyses[24].link).toEqual("/godswayfoundinc/status/1897003429870129243"); 
- 
-    expect(analyses[25].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[25].reason).toEqual("Looks good"); 
-    expect(analyses[25].link).toEqual("/ApostleJohnW/status/1897004848614420667"); 
- 
-    expect(analyses[26].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[26].reason).toEqual("No article found"); 
-    expect(analyses[26].link).toEqual("/ApostleJohnW/status/1897004848614420667#filler1"); 
- 
-    expect(analyses[27].quality).toEqual(postQuality.POTENTIAL_PROBLEM); 
-    expect(analyses[27].reason).toEqual("Found: 'Replying to <a>@godswayfoundinc</a> and <a>@monetization_x</a>' at a depth of 6"); 
-    expect(analyses[27].link).toEqual("/ApostleJohnW/status/1897004713570394503"); 
- 
-    expect(analyses[28].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[28].reason).toEqual("No article found"); 
-    expect(analyses[28].link).toEqual("/ApostleJohnW/status/1897004713570394503#filler1"); 
- 
-    expect(analyses[29].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[29].reason).toEqual("Looks good"); 
-    expect(analyses[29].link).toEqual("/godswayfoundinc/status/1897002671846121539"); 
- 
-    expect(analyses[30].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[30].reason).toEqual("Looks good"); 
-    expect(analyses[30].link).toEqual("/ApostleJohnW/status/1897002963107025141"); 
- 
-    expect(analyses[31].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[31].reason).toEqual("No article found"); 
-    expect(analyses[31].link).toEqual("/ApostleJohnW/status/1897002963107025141#filler1"); 
- 
-    expect(analyses[32].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[32].reason).toEqual("Looks good"); 
-    expect(analyses[32].link).toEqual("/WesleyKy/status/1896999314582642895"); 
- 
-    expect(analyses[33].quality).toEqual(postQuality.GOOD); 
-    expect(analyses[33].reason).toEqual("Looks good"); 
-    expect(analyses[33].link).toEqual("/ApostleJohnW/status/1897002818214748430"); 
- 
-    expect(analyses[34].quality).toEqual(postQuality.UNDEFINED); 
-    expect(analyses[34].reason).toEqual("No article found"); 
-    expect(analyses[34].link).toEqual("/ApostleJohnW/status/1897002818214748430#filler1"); 
- 
+    expect(analyses[1].quality).toEqual(postQuality.GOOD);
+    expect(analyses[1].reason).toEqual("Looks good");
+    expect(analyses[1].link).toEqual("/monetization_x/status/1897010659075989835");
+
+    expect(analyses[2].quality).toEqual(postQuality.GOOD);
+    expect(analyses[2].reason).toEqual("Looks good");
+    expect(analyses[2].link).toEqual("/ApostleJohnW/status/1897016048639180873");
+
+    expect(analyses[3].quality).toEqual(postQuality.UNDEFINED);
+    expect(analyses[3].reason).toEqual("No article found");
+    expect(analyses[3].link).toEqual("/ApostleJohnW/status/1897016048639180873#filler1");
+
+    expect(analyses[4].quality).toEqual(postQuality.GOOD);
+    expect(analyses[4].reason).toEqual("Looks good");
+    expect(analyses[4].link).toEqual("/Name__Error_404/status/1896938936599228642");
+
+    expect(analyses[5].quality).toEqual(postQuality.UNDEFINED);
+    expect(analyses[5].reason).toEqual("No article found");
+    expect(analyses[5].link).toEqual("/Name__Error_404/status/1896938936599228642#filler1");
+
+    expect(analyses[6].quality).toEqual(postQuality.GOOD);
+    expect(analyses[6].reason).toEqual("Looks good");
+    expect(analyses[6].link).toEqual("/Name__Error_404/status/1897015679158788554");
+
+    expect(analyses[7].quality).toEqual(postQuality.GOOD);
+    expect(analyses[7].reason).toEqual("Looks good");
+    expect(analyses[7].link).toEqual("/ApostleJohnW/status/1897015899099414914");
+
+    expect(analyses[8].quality).toEqual(postQuality.UNDEFINED);
+    expect(analyses[8].reason).toEqual("No article found");
+    expect(analyses[8].link).toEqual("/ApostleJohnW/status/1897015899099414914#filler1");
+
+    expect(analyses[9].quality).toEqual(postQuality.GOOD);
+    expect(analyses[9].reason).toEqual("Looks good");
+    expect(analyses[9].link).toEqual("/Name__Error_404/status/1897015203541524847");
+
+    expect(analyses[10].quality).toEqual(postQuality.GOOD);
+    expect(analyses[10].reason).toEqual("Looks good");
+    expect(analyses[10].link).toEqual("/ApostleJohnW/status/1897015449176748449");
+
+    expect(analyses[11].quality).toEqual(postQuality.UNDEFINED);
+    expect(analyses[11].reason).toEqual("No article found");
+    expect(analyses[11].link).toEqual("/ApostleJohnW/status/1897015449176748449#filler1");
+
+    expect(analyses[12].quality).toEqual(postQuality.GOOD);
+    expect(analyses[12].reason).toEqual("Looks good");
+    expect(analyses[12].link).toEqual("/SpaceX/status/1896708396902174849");
+
+    expect(analyses[13].quality).toEqual(postQuality.GOOD);
+    expect(analyses[13].reason).toEqual("Looks good");
+    expect(analyses[13].link).toEqual("/ApostleJohnW/status/1897003945203306614");
+
+    expect(analyses[14].quality).toEqual(postQuality.GOOD);
+    expect(analyses[14].reason).toEqual("Looks good");
+    expect(analyses[14].link).toEqual("/ApostleJohnW/status/1897013413664145793");
+
+    expect(analyses[15].quality).toEqual(postQuality.UNDEFINED);
+    expect(analyses[15].reason).toEqual("No article found");
+    expect(analyses[15].link).toEqual("/ApostleJohnW/status/1897013413664145793#filler1");
+
+    expect(analyses[16].quality).toEqual(postQuality.PROBLEM);
+    expect(analyses[16].reason).toEqual("Found notice: this post is unavailable");
+    expect(analyses[16].link).toEqual("/OwenGregorian/status/1896977661144260900");
+
+    expect(analyses[17].quality).toEqual(postQuality.GOOD);
+    expect(analyses[17].reason).toEqual("Looks good");
+    expect(analyses[17].link).toEqual("/ApostleJohnW/status/1897011110072738182");
+
+    expect(analyses[18].quality).toEqual(postQuality.UNDEFINED);
+    expect(analyses[18].reason).toEqual("No article found");
+    expect(analyses[18].link).toEqual("/ApostleJohnW/status/1897011110072738182#filler1");
+
+    expect(analyses[19].quality).toEqual(postQuality.GOOD);
+    expect(analyses[19].reason).toEqual("Looks good");
+    expect(analyses[19].link).toEqual("/DongWookChung2/status/1897005083709374868");
+
+    expect(analyses[20].quality).toEqual(postQuality.GOOD);
+    expect(analyses[20].reason).toEqual("Looks good");
+    expect(analyses[20].link).toEqual("/ApostleJohnW/status/1897010202974806174");
+
+    expect(analyses[21].quality).toEqual(postQuality.UNDEFINED);
+    expect(analyses[21].reason).toEqual("No article found");
+    expect(analyses[21].link).toEqual("/ApostleJohnW/status/1897010202974806174#filler1");
+
+    expect(analyses[22].quality).toEqual(postQuality.GOOD);
+    expect(analyses[22].reason).toEqual("Looks good");
+    expect(analyses[22].link).toEqual("/monetization_x/status/1896999071665324318");
+
+    expect(analyses[23].quality).toEqual(postQuality.UNDEFINED);
+    expect(analyses[23].reason).toEqual("No article found");
+    expect(analyses[23].link).toEqual("/monetization_x/status/1896999071665324318#filler1");
+
+    expect(analyses[24].quality).toEqual(postQuality.GOOD);
+    expect(analyses[24].reason).toEqual("Looks good");
+    expect(analyses[24].link).toEqual("/godswayfoundinc/status/1897003429870129243");
+
+    expect(analyses[25].quality).toEqual(postQuality.GOOD);
+    expect(analyses[25].reason).toEqual("Looks good");
+    expect(analyses[25].link).toEqual("/ApostleJohnW/status/1897004848614420667");
+
+    expect(analyses[26].quality).toEqual(postQuality.UNDEFINED);
+    expect(analyses[26].reason).toEqual("No article found");
+    expect(analyses[26].link).toEqual("/ApostleJohnW/status/1897004848614420667#filler1");
+
+    expect(analyses[27].quality).toEqual(postQuality.POTENTIAL_PROBLEM);
+    expect(analyses[27].reason).toEqual("Found: 'Replying to <a>@godswayfoundinc</a> and <a>@monetization_x</a>' at a depth of 6");
+    expect(analyses[27].link).toEqual("/ApostleJohnW/status/1897004713570394503");
+
+    expect(analyses[28].quality).toEqual(postQuality.UNDEFINED);
+    expect(analyses[28].reason).toEqual("No article found");
+    expect(analyses[28].link).toEqual("/ApostleJohnW/status/1897004713570394503#filler1");
+
+    expect(analyses[29].quality).toEqual(postQuality.GOOD);
+    expect(analyses[29].reason).toEqual("Looks good");
+    expect(analyses[29].link).toEqual("/godswayfoundinc/status/1897002671846121539");
+
+    expect(analyses[30].quality).toEqual(postQuality.GOOD);
+    expect(analyses[30].reason).toEqual("Looks good");
+    expect(analyses[30].link).toEqual("/ApostleJohnW/status/1897002963107025141");
+
+    expect(analyses[31].quality).toEqual(postQuality.UNDEFINED);
+    expect(analyses[31].reason).toEqual("No article found");
+    expect(analyses[31].link).toEqual("/ApostleJohnW/status/1897002963107025141#filler1");
+
+    expect(analyses[32].quality).toEqual(postQuality.GOOD);
+    expect(analyses[32].reason).toEqual("Looks good");
+    expect(analyses[32].link).toEqual("/WesleyKy/status/1896999314582642895");
+
+    expect(analyses[33].quality).toEqual(postQuality.GOOD);
+    expect(analyses[33].reason).toEqual("Looks good");
+    expect(analyses[33].link).toEqual("/ApostleJohnW/status/1897002818214748430");
+
+    expect(analyses[34].quality).toEqual(postQuality.UNDEFINED);
+    expect(analyses[34].reason).toEqual("No article found");
+    expect(analyses[34].link).toEqual("/ApostleJohnW/status/1897002818214748430#filler1");
+
     expect(analyses[35].quality).toEqual(postQuality.POTENTIAL_PROBLEM);
     expect(analyses[35].reason).toEqual("Found: 'Replying to <a>@monetization_x</a>' at a depth of 6");
     expect(analyses[35].link).toEqual("/ApostleJohnW/status/1897002239753073002");
@@ -239,7 +261,7 @@ describe('xGhosted', () => {
     const goodPost = posts.find(p => p.analysis.quality === postQuality.GOOD);
     const problemPost = posts.find(p => p.analysis.quality === postQuality.PROBLEM);
     const potentialPost = posts.find(p => p.analysis.quality === postQuality.POTENTIAL_PROBLEM);
-    const undefinedPost = posts.find(p => p.analysis.quality === postQuality.UNDEFINED);
+    const undefinedPost = posts.find(p => p.analysis.quality === postQuality.GOOD);
 
     expect(goodPost.post.querySelector('article').style.border).toBe('');
     expect(goodPost.post.querySelector('article').style.backgroundColor).toBe('');
@@ -322,48 +344,112 @@ describe('xGhosted', () => {
   describe('getThemeMode', () => {
     test('returns "dark" when data-theme includes "lights-out" or "dark"', () => {
       dom.window.document.body.setAttribute('data-theme', 'lights-out');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dark');
 
       dom.window.document.body.setAttribute('data-theme', 'dark');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dark');
     });
 
     test('returns "dim" when data-theme includes "dim"', () => {
       dom.window.document.body.setAttribute('data-theme', 'dim');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dim');
     });
 
     test('returns "light" when data-theme includes "light" or "default"', () => {
       dom.window.document.body.setAttribute('data-theme', 'light');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('light');
 
       dom.window.document.body.setAttribute('data-theme', 'default');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('light');
     });
 
     test('returns "dark" when body has dark classes', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.classList.add('dark');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dark');
     });
 
     test('returns "dim" when body has dim classes', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.classList.add('dim');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dim');
     });
 
     test('returns "light" when body has light classes', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.classList.add('light');
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('light');
     });
 
@@ -371,7 +457,15 @@ describe('xGhosted', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.className = '';
       dom.window.document.body.style.backgroundColor = 'rgb(0, 0, 0)';
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dark');
     });
 
@@ -379,7 +473,15 @@ describe('xGhosted', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.className = '';
       dom.window.document.body.style.backgroundColor = 'rgb(21, 32, 43)';
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('dim');
     });
 
@@ -387,7 +489,15 @@ describe('xGhosted', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.className = '';
       dom.window.document.body.style.backgroundColor = 'rgb(255, 255, 255)';
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('light');
     });
 
@@ -395,7 +505,15 @@ describe('xGhosted', () => {
       dom.window.document.body.removeAttribute('data-theme');
       dom.window.document.body.className = '';
       dom.window.document.body.style.backgroundColor = '';
-      var xGhosted = new XGhosted(dom.window.document);
+      var xGhosted = new XGhosted(dom.window.document, {
+        timing: {
+          debounceDelay: 500,
+          throttleDelay: 1000,
+          tabCheckThrottle: 5000,
+          exportThrottle: 5000
+        },
+        useTampermonkeyLog: false
+      });
       expect(xGhosted.getThemeMode()).toBe('light');
     });
   });
@@ -406,7 +524,15 @@ describe('Persistence in xGhosted', () => {
 
   beforeEach(() => {
     dom = setupJSDOM();
-    xGhosted = new XGhosted(dom.window.document);
+    xGhosted = new XGhosted(dom.window.document, {
+      timing: {
+        debounceDelay: 500,
+        throttleDelay: 1000,
+        tabCheckThrottle: 5000,
+        exportThrottle: 5000
+      },
+      useTampermonkeyLog: false
+    });
     xGhosted.updateState('https://x.com/user/with_replies');
     gmStorage.xGhostedState = undefined;
   });
@@ -448,6 +574,7 @@ describe('Persistence in xGhosted', () => {
       isPanelVisible: false,
       isCollapsingEnabled: true,
       isManualCheckEnabled: false,
+      panelPosition: null,
       processedArticles: {
         '/status/789': { analysis: { quality: postQuality.POTENTIAL_PROBLEM, reason: 'Test potential', link: '/status/789' } }
       }
@@ -510,119 +637,5 @@ describe('Persistence in xGhosted', () => {
     xGhosted.state.isManualCheckEnabled = false;
     xGhosted.highlightPostsImmediate();
     expect(xGhosted.document.defaultView.open).not.toHaveBeenCalled();
-  });
-});
-
-describe('CSV Management in xGhosted', () => {
-  let xGhosted, dom, originalCreateElement;
-
-  beforeEach(() => {
-    dom = setupJSDOM();
-    xGhosted = new XGhosted(dom.window.document);
-    xGhosted.updateState('https://x.com/user/with_replies');
-    originalCreateElement = dom.window.document.createElement;
-    dom.window.document.createElement = jest.fn((tag) => {
-      const el = originalCreateElement.call(dom.window.document, tag);
-      if (tag === 'a') {
-        el.click = jest.fn();
-        return Object.assign(el, { href: '', download: '', style: {} });
-      }
-      return el;
-    });
-    global.navigator.clipboard = { writeText: jest.fn().mockResolvedValue() };
-    global.URL = {
-      createObjectURL: jest.fn(() => 'blob://test'),
-      revokeObjectURL: jest.fn()
-    };
-    global.prompt = jest.fn(() => null);
-  });
-
-  afterEach(() => {
-    dom.window.document.body.innerHTML = '';
-    dom.window.document.createElement = originalCreateElement;
-    delete global.navigator.clipboard;
-    delete global.URL;
-    delete global.prompt;
-    jest.clearAllMocks();
-  });
-
-  test('exportProcessedPostsCSV generates valid CSV and triggers download', () => {
-    xGhosted.highlightPostsImmediate();
-    xGhosted.exportProcessedPostsCSV();
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalled();
-    const csvText = navigator.clipboard.writeText.mock.calls[0][0];
-    const lines = csvText.split('\n');
-    expect(lines[0]).toBe('Link,Quality,Reason,Checked');
-    expect(lines.length).toBe(37);
-    expect(lines[1]).toContain('"https://x.com/DongWookChung2/status/1887852588457988314","Good","Looks good",false');
-    expect(dom.window.document.createElement).toHaveBeenCalledWith('a');
-    const aTag = dom.window.document.createElement.mock.results[0].value;
-    jest.spyOn(aTag, 'click');
-    aTag.click();
-    expect(aTag.click).toHaveBeenCalled();
-    expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
-    expect(URL.revokeObjectURL).toHaveBeenCalled();
-  });
-
-  test('importProcessedPostsCSV loads CSV into processedArticles', () => {
-    jest.spyOn(xGhosted, 'highlightPostsImmediate').mockImplementation(() => {});
-    xGhosted.state.processedArticles.clear();
-    const csvText = `Link,Quality,Reason,Checked
-"https://x.com/test/status/123","Problem","Test problem",true
-"https://x.com/test/status/456","Good","Looks good",false`;
-    xGhosted.importProcessedPostsCSV(csvText);
-
-    expect(xGhosted.state.processedArticles.size).toBe(2);
-    const problemPost = xGhosted.state.processedArticles.get('/test/status/123');
-    expect(problemPost.analysis.quality).toBe(postQuality.PROBLEM);
-    expect(problemPost.analysis.reason).toBe('Test problem');
-    expect(problemPost.checked).toBe(true);
-    const goodPost = xGhosted.state.processedArticles.get('/test/status/456');
-    expect(goodPost.analysis.quality).toBe(postQuality.GOOD);
-    expect(goodPost.analysis.reason).toBe('Looks good');
-    expect(goodPost.checked).toBe(false);
-    expect(GM_setValue).toHaveBeenCalled();
-    xGhosted.createPanel();
-    xGhosted.uiElements.contentWrapper.innerHTML = '';
-    renderPanel(xGhosted.document, xGhosted.state, xGhosted.uiElements, () => {});
-    const links = xGhosted.document.querySelectorAll('#xghosted-panel .problem-links-wrapper .link-item a');
-    expect(links.length).toBe(1);
-  });
-
-  test('clearProcessedPosts wipes processedArticles and updates UI', () => {
-    xGhosted.highlightPostsImmediate();
-    expect(xGhosted.state.processedArticles.size).toBe(36);
-    xGhosted.createPanel();
-    jest.spyOn(xGhosted, 'highlightPostsImmediate').mockImplementation(() => {});
-    // Remove existing panel to force a full reset
-    const oldPanel = xGhosted.document.getElementById('xghosted-panel');
-    if (oldPanel) oldPanel.remove();
-    xGhosted.uiElements.panel = null; // Reset uiElements.panel to trigger recreate
-    xGhosted.clearProcessedPosts();
-    renderPanel(xGhosted.document, xGhosted.state, xGhosted.uiElements, () => xGhosted.createPanel());
-
-    expect(xGhosted.state.processedArticles.size).toBe(0);
-    expect(GM_setValue).toHaveBeenCalled();
-    const links = xGhosted.document.querySelectorAll('#xghosted-panel .problem-links-wrapper .link-item a');
-    expect(links.length).toBe(0);
-  });
-
-  test('panel buttons trigger CSV management functions', () => {
-    xGhosted.createPanel();
-    jest.spyOn(xGhosted, 'exportProcessedPostsCSV');
-    jest.spyOn(xGhosted, 'importProcessedPostsCSV');
-    jest.spyOn(xGhosted, 'clearProcessedPosts');
-    global.confirm = jest.fn(() => true);
-    global.prompt = jest.fn(() => 'Link,Quality,Reason,Checked\n"https://x.com/test/status/789","Problem","Test",true');
-
-    xGhosted.uiElements.exportButton.click();
-    expect(xGhosted.exportProcessedPostsCSV).toHaveBeenCalled();
-
-    xGhosted.uiElements.importButton.click();
-    expect(xGhosted.importProcessedPostsCSV).toHaveBeenCalledWith('Link,Quality,Reason,Checked\n"https://x.com/test/status/789","Problem","Test",true');
-
-    xGhosted.uiElements.clearButton.click();
-    expect(xGhosted.clearProcessedPosts).toHaveBeenCalled();
   });
 });

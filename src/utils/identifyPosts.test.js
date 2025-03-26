@@ -1,6 +1,7 @@
-const postQuality = require('./postQuality');
-const identifyPosts = require('./identifyPosts');
-const describeSampleAnalyses = require('./describeSampleAnalyses');
+import { postQuality } from './postQuality';
+import { identifyPosts } from './identifyPosts';
+import { describeSampleAnalyses } from './describeSampleAnalyses';
+import { postHasProblemSystemNotice } from './postHasProblemSystemNotice';
 
 describe('identifyPosts - Good', () => {
 
@@ -748,7 +749,6 @@ describe('identifyPosts - Problems', () => {
       ].join("\n"));
 
       const article = document.querySelector('div[data-testid="cellInnerDiv"]');
-      const postHasProblemSystemNotice = require('./postHasProblemSystemNotice');
       const result = postHasProblemSystemNotice(article);
       expect(result).toBe("this post is unavailable");
 

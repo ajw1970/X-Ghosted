@@ -1,4 +1,5 @@
-const { saveAllPosts } = require('./saveAllPosts');
+import { jest } from '@jest/globals';
+import { saveAllPosts } from './saveAllPosts';
 
 describe('saveAllPosts', () => {
     let state;

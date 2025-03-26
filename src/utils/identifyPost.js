@@ -1,8 +1,8 @@
-const postHasProblemCommunity = require('./postHasProblemCommunity');
-const postHasProblemSystemNotice = require('./postHasProblemSystemNotice');
-const findReplyingToWithDepth = require('./findReplyingToWithDepth');
-const getRelativeLinkToPost = require('./getRelativeLinkToPost');
-const postQuality = require('./postQuality');
+import { postHasProblemCommunity } from './postHasProblemCommunity';
+import { postHasProblemSystemNotice } from './postHasProblemSystemNotice';
+import { findReplyingToWithDepth } from './findReplyingToWithDepth';
+import { getRelativeLinkToPost } from './getRelativeLinkToPost';
+import { postQuality } from './postQuality';
 
 function identifyPost(post, checkReplies = false) {
     // Check for first article (to avoid nested articles)
@@ -70,4 +70,4 @@ function identifyPost(post, checkReplies = false) {
     };
 }
 
-module.exports = identifyPost;
+export { identifyPost };

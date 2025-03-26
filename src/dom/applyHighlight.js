@@ -12,4 +12,4 @@ function applyHighlight(article, status = 'potential') {
     article.style.border = style.border;
   }
   
-  module.exports = applyHighlight;
+  export { applyHighlight };

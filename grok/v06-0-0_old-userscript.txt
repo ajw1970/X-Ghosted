@@ -1,8 +1,3 @@
-Grok Step 4: Reference File 1: (From commit 2ecaf8f)
-grok/pre-release_0-6-0_highlight-potential-problems.js
-
-// File: grok/pre-release_0-6-0_highlight-potential-problems.js
-// --------------------------------
 // ==UserScript==
 // @name         Highlight Potential Problems
 // @namespace    http://tampermonkey.net/
@@ -883,5 +878,3 @@ grok/pre-release_0-6-0_highlight-potential-problems.js
 
   init();
 })();
-
-

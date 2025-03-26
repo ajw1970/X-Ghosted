@@ -1,0 +1,17 @@
+= Snippet 5: CSS for Status Dots and Button Icons
+
+This captures the CSS added to support status dots and button icons.
+
+[source,css]
+----
+.status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+.status-potential { background-color: yellow; }
+.status-problem { background-color: red; }
+.status-safe { background-color: green; }
+.link-row { display: flex; align-items: center; padding: 4px 0; }
+.link-row > div { flex: 1; }
+button span { margin-left: 4px; }
+button svg { width: 12px; height: 12px; }
+.chevron-down { transform: rotate(0deg); }
+.chevron-up { transform: rotate(180deg); }
+----

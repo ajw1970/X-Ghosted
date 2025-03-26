@@ -1,0 +1,46 @@
+= Snippet 4: updatePanel Function (Status Dots in Content Wrapper)
+
+This shows how the content wrapper displays posts with status dots.
+
+[source,javascript]
+----
+function updatePanel() {
+  if (!uiElements.label) {
+    GM_log('Label is undefined, cannot update panel');
+    return;
+  }
+  uiElements.label.textContent = `Posts (${state.allPosts.size}):`;
+  if (!uiElements.contentWrapper) {
+    GM_log('Error: contentWrapper is undefined in updatePanel');
+    return;
+  }
+  uiElements.contentWrapper.innerHTML = '';
+
+  state.allPosts.forEach((status, href) => {
+    const row = document.createElement('div');
+    row.className = 'link-row';
+
+    const dot = document.createElement('span');
+    dot.className = `status-dot status-${status}`;
+    row.appendChild(dot);
+
+    const linkItem = document.createElement('div');
+    const a = Object.assign(document.createElement('a'), {
+      href: `https://x.com${href}`,
+      textContent: `https://x.com${href}`,
+      target: '_blank',
+    });
+    Object.assign(a.style, {
+      color: '#1DA1F2',
+      textDecoration: 'none',
+      wordBreak: 'break-all',
+    });
+    linkItem.appendChild(a);
+    row.appendChild(linkItem);
+
+    uiElements.contentWrapper.appendChild(row);
+  });
+  uiElements.contentWrapper.scrollTop =
+    uiElements.contentWrapper.scrollHeight;
+}
+----

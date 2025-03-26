@@ -1,5 +1,4 @@
-// File: src/xGhosted.template.js
-// --------------------------------
+// src/xGhosted.template.js
 // ==UserScript==
 // @name         xGhosted
 // @namespace    http://tampermonkey.net/
@@ -32,8 +31,16 @@
 
     // --- Initialization with Resource Limits ---
     const MAX_PROCESSED_ARTICLES = 1000; // Cap memory usage
-    const THROTTLE_DELAY = 1000; // 1s throttle for DOM observation
-    const xGhosted = new XGhosted(document);
+    const config = {
+        timing: {
+            debounceDelay: 500,      // ms for highlightPosts debounce
+            throttleDelay: 1000,     // ms for DOM observation throttle
+            tabCheckThrottle: 5000,  // ms for new tab checks
+            exportThrottle: 5000     // ms for CSV export throttle
+        },
+        useTampermonkeyLog: true
+    };
+    const xGhosted = new XGhosted(document, config);
     xGhosted.state.isManualCheckEnabled = true; // Start in manual mode to limit server activity
     xGhosted.init();
 
@@ -42,7 +49,7 @@
     let lastProcessedTime = 0;
     const observer = new MutationObserver(() => {
         const now = Date.now();
-        if (now - lastProcessedTime < THROTTLE_DELAY) {
+        if (now - lastProcessedTime < config.timing.throttleDelay) {
             return; // Skip if too soon
         }
         lastProcessedTime = now;

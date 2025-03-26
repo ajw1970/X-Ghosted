@@ -1,8 +1,7 @@
-const postHasProblemCommunity = require('./postHasProblemCommunity');
+import { postHasProblemCommunity } from './postHasProblemCommunity';
+import { JSDOM } from 'jsdom';
 
 describe('postHasProblemCommunity', () => {
-
-    const { JSDOM } = require('jsdom');
     const dom = new JSDOM('<!DOCTYPE html><div></div>');
     global.document = dom.window.document;
 
