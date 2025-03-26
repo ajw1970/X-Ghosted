@@ -19,9 +19,6 @@
     "url": "https://github.com/ajw1970/X-Ghosted/issues"
   },
   "homepage": "https://github.com/ajw1970/X-Ghosted#readme",
-  "directories": {
-    "test": "test"
-  },
   "devDependencies": {
     "@babel/core": "^7.26.10",
     "@babel/preset-env": "^7.26.9",
