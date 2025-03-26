@@ -518,6 +518,10 @@
       contentWrapper.style.display = 'block';
       toggleButton.textContent = 'Hide';
       panel.style.width = uiElements.config.PANEL.WIDTH;
+      panel.style.maxHeight = uiElements.config.PANEL.MAX_HEIGHT;
+      panel.style.minWidth = '250px';
+      panel.style.minHeight = '150px';
+      panel.style.padding = '12px';
     } else {
       label.style.display = 'none';
       copyButton.style.display = 'none';
@@ -530,6 +534,10 @@
       toggleButton.textContent = 'Show';
       toggleButton.style.display = 'inline-block';
       panel.style.width = 'auto';
+      panel.style.minWidth = '70px';
+      panel.style.minHeight = '0px';
+      panel.style.maxHeight = '60px';
+      panel.style.padding = '6px';
       toggleButton.style.margin = '0';
     }
   }

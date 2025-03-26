@@ -12,6 +12,7 @@ function togglePanelVisibility(state, uiElements) {
     contentWrapper,
     panel
   } = uiElements;
+
   if (state.isPanelVisible) {
     label.style.display = 'inline-block';
     copyButton.style.display = 'inline-block';
@@ -23,6 +24,10 @@ function togglePanelVisibility(state, uiElements) {
     contentWrapper.style.display = 'block';
     toggleButton.textContent = 'Hide';
     panel.style.width = uiElements.config.PANEL.WIDTH;
+    panel.style.maxHeight = uiElements.config.PANEL.MAX_HEIGHT;
+    panel.style.minWidth = '250px';
+    panel.style.minHeight = '150px';
+    panel.style.padding = '12px';
   } else {
     label.style.display = 'none';
     copyButton.style.display = 'none';
@@ -33,8 +38,12 @@ function togglePanelVisibility(state, uiElements) {
     modeSelector.style.display = 'none';
     contentWrapper.style.display = 'none';
     toggleButton.textContent = 'Show';
-    toggleButton.style.display = 'inline-block'; // Ensure toggleButton remains visible
+    toggleButton.style.display = 'inline-block';
     panel.style.width = 'auto';
+    panel.style.minWidth = '70px'; // Ensure enough width for the button
+    panel.style.minHeight = '0px'; // Override minHeight to allow shrinking
+    panel.style.maxHeight = '60px'; // Enough for header (20px), button height (~25px), and padding
+    panel.style.padding = '6px'; // Match button's padding for consistent spacing
     toggleButton.style.margin = '0';
   }
 }

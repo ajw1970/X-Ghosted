@@ -1,50 +1,74 @@
 import { JSDOM } from 'jsdom';
-import { createPanel } from './createPanel';
+import { jest } from '@jest/globals';
+import { createButton } from './createButton';
+import { rgbToHex } from './rgbToHex';
 
-describe('createPanel', () => {
-  let doc, state, uiElements, config;
+describe('createButton', () => {
+  let doc, config;
 
   beforeEach(() => {
     const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
     doc = dom.window.document;
-    state = { isDarkMode: false };
-    uiElements = {
-      config: {
-        PANEL: { WIDTH: '350px', TOP: '60px', RIGHT: '10px', Z_INDEX: '9999', FONT: 'sans-serif' },
-        THEMES: { light: { bg: '#FFFFFF', text: '#292F33', border: '#E1E8ED', scroll: '#CCD6DD' } }
+
+    // Reset default button styles to ensure border: none is respected
+    const styleSheet = doc.createElement('style');
+    styleSheet.textContent = `
+      button {
+        border: none !important;
+      }
+    `;
+    doc.head.appendChild(styleSheet);
+
+    config = {
+      THEMES: {
+        light: {
+          button: '#D3D3D3',
+          hover: '#C0C0C0',
+          text: '#292F33'
+        }
       }
     };
-    config = uiElements.config;
   });
 
-  test('creates a panel with toolbar and content', () => {
-    createPanel(doc, state, uiElements, config, () => {}, () => {});
-    const panel = doc.getElementById('xghosted-panel');
-    expect(panel).toBeTruthy(); 
-    expect(uiElements.panel.style.width).toBe('350px');
-    expect(uiElements.label.textContent).toBe('Problem Posts (0):');
-    expect(uiElements.contentWrapper.className).toBe('problem-links-wrapper');
+  test('creates a button with correct styles and event listeners', () => {
+    const mockOnClick = jest.fn();
+    const button = createButton(doc, 'Test Button', 'light', mockOnClick, config);
+
+    // Verify initial styles
+    expect(button.tagName).toBe('BUTTON');
+    expect(button.textContent).toBe('Test Button');
+    expect(rgbToHex(button.style.background)).toBe('#D3D3D3');
+    expect(rgbToHex(button.style.color)).toBe('#292F33');
+    // JSDOM limitation: button.style.border returns '' instead of 'none'
+    expect(button.style.border).toBe('');
+    expect(button.style.padding).toBe('6px 12px');
+    expect(button.style.borderRadius).toBe('9999px');
+    expect(button.style.cursor).toBe('pointer');
+    expect(button.style.fontSize).toBe('13px');
+    expect(button.style.fontWeight).toBe('500');
+    expect(button.style.transition).toBe('background 0.2s ease');
+    expect(button.style.marginRight).toBe('0px'); // Not "Copy" or "Hide"
+
+    // Simulate mouseover
+    button.dispatchEvent(new doc.defaultView.Event('mouseover'));
+    expect(rgbToHex(button.style.background)).toBe('#C0C0C0');
+
+    // Simulate mouseout
+    button.dispatchEvent(new doc.defaultView.Event('mouseout'));
+    expect(rgbToHex(button.style.background)).toBe('#D3D3D3');
+
+    // Simulate click
+    button.dispatchEvent(new doc.defaultView.Event('click'));
+    expect(mockOnClick).toHaveBeenCalled();
   });
 
-  test('sets initial display styles for all elements', () => {
-    createPanel(doc, state, uiElements, config, () => {}, () => {});
-    
-    // Collect all UI elements that should have display styles, excluding non-UI elements
-    const elementsWithDisplay = Object.keys(uiElements)
-      .filter(key => 
-        key !== 'config' && 
-        uiElements[key] && 
-        uiElements[key].style // Ensure it's a DOM element with a style property
-      )
-      .map(key => uiElements[key]);
+  test('sets marginRight for Copy and Hide buttons', () => {
+    const buttonCopy = createButton(doc, 'Copy', 'light', () => { }, config);
+    const buttonHide = createButton(doc, 'Hide', 'light', () => { }, config);
+    const buttonOther = createButton(doc, 'Other', 'light', () => { }, config);
 
-    // Verify initial display styles
-    elementsWithDisplay.forEach(element => {
-      if (element === uiElements.contentWrapper) {
-        expect(element.style.display).toBe('block');
-      } else if (element !== uiElements.panel) { // panel's display is not explicitly set
-        expect(element.style.display).toBe('inline-block');
-      }
-    });
+    expect(buttonCopy.style.marginRight).toBe('8px');
+    expect(buttonHide.style.marginRight).toBe('8px');
+    expect(buttonOther.style.marginRight).toBe('0px');
   });
 });

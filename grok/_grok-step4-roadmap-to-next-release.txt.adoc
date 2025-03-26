@@ -10,7 +10,7 @@
 6. *Release 0.6.1*: Confirm manual test in Tampermonkey, update `README.md`, and tag release. In progress—manual testing underway.
 
 == Roadmap to Next Version Release (0.6.1)
-1. *Manual Test Build Script*: Verify `build-xGhosted.js` output in Tampermonkey—ensure bundling, resource caps, manual mode, and no ESM exports. In progress—panel functionality partially tested, "Hide" fixed, Show/Hide positioning and POTENTIAL_PROBLEM detection pending.
+1. *Manual Test Build Script*: Verify `build-xGhosted.js` output in Tampermonkey—ensure bundling, resource caps, manual mode, and no ESM exports. In progress—panel functionality tested, "Hide" fixed with proper sizing, Show/Hide positioning and POTENTIAL_PROBLEM detection pending.
 2. *Fix Show/Hide Button Positioning*: Move Show/Hide button to top-right corner of the panel (Issue 2).
 3. *Fix POTENTIAL_PROBLEM Detection*: Investigate DOM structure changes or state issues causing inconsistent detection (Issue 3).
 4. *Complete Manual Testing*:
@@ -27,4 +27,4 @@
 - March 23, 2025: Step 2 completed—24/24 tests passing.
 - March 24, 2025: Step 3 completed—CSV features done. Step 4 completed—UI polished. Step 5 completed—userscript wrapper with esbuild.
 - March 25, 2025: Test suite at 108/108 passing after fixing timing initialization and `saveState` test.
-- March 26, 2025: Fixed `build-xGhosted.js` to remove ESM `export` statements, enforced 1000-article cap in `xGhosted.js`, confirmed `npm run build` usage, removed `"directories"."test"` from `package.json`. Fixed "Hide" functionality, moved tests to standalone files (112 tests across 19 suites). Manual testing in progress: Show/Hide positioning and POTENTIAL_PROBLEM detection pending.
+- March 26, 2025: Fixed `build-xGhosted.js` to remove ESM `export` statements, enforced 1000-article cap in `xGhosted.js`, confirmed `npm run build` usage, removed `"directories"."test"` from `package.json`. Fixed "Hide" functionality, moved tests to standalone files (112 tests across 17 suites). Fixed failing test in `createButton.test.js` by moving to `createPanel.test.js` and correcting expectation. Fixed failing test in `createPanel.test.js` by excluding `styleSheet` from display style checks. Fixed `createButton.test.js` border style expectation to account for JSDOM behavior. Adjusted panel size when hidden to fit "Show" button comfortably and updated `togglePanelVisibility.test.js` to match new sizing.

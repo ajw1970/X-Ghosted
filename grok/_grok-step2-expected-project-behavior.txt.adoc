@@ -3,11 +3,11 @@
 
 == Core Features in Current State
 - *Detection*: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow, with eye icons), GOOD (none), UNDEFINED (none) posts on X’s `/with_replies` pages using local DOM analysis only. POTENTIAL_PROBLEM detection inconsistent due to possible DOM changes.
-- *UI*: Floating panel (resizable, draggable) lists problem/potential posts with Copy, Export CSV (configurable throttle), Import CSV, Clear, and Manual Check buttons. Theme switching (dark/dim/light) is seamless with tooltips. Show/Hide button positioning incorrect (should be top-right, currently bottom-right).
+- *UI*: Floating panel (resizable, draggable) lists problem/potential posts with Copy, Export CSV (configurable throttle), Import CSV, Clear, and Manual Check buttons. Theme switching (dark/dim/light) is seamless with tooltips. Show/Hide button positioning incorrect (should be top-right, currently bottom-right). Panel size when hidden adjusted to fit "Show" button comfortably.
 - *Persistence*: State saved via `GM_setValue`/`GM_getValue`—loads/saves `processedArticles` (capped at 1000), settings, and panel position.
 - *Logging*: Configurable via constructor—uses `GM_log` or `console.log`.
 - *Safety*: Starts with `isManualCheckEnabled` true to limit server activity; configurable debounce/throttle values reduce resource use; 1000-article cap enforced in `identifyPosts`. No server requests beyond page loads.
-- *Tests*: `src/xGhosted.test.js`—24 tests pass, covering core functionality. Total 112 tests across 19 suites, all passing after moving `togglePanelVisibility` test to standalone files.
+- *Tests*: `src/xGhosted.test.js`—24 tests pass, covering core functionality. Total 112 tests across 17 suites, all passing after fixing `createButton.test.js`, `createPanel.test.js`, and updating `togglePanelVisibility.test.js` for new panel sizing.
 - *Build*: `build-xGhosted.js` uses esbuild to bundle `xGhosted.js` with dependencies into `xGhosted.user.js`, removing ESM exports for Tampermonkey compatibility. Timing values configurable via constructor. Run via `npm run build`.
 
 == Next Steps
@@ -23,7 +23,7 @@
 - March 23, 2025: Step 2 completed—24/24 tests pass with Manual Check Mode mocked. CSV export added.
 - March 24, 2025: Step 3 completed—CSV import/clear added. Step 4 completed—UI polished. Step 5 completed—userscript wrapper with resource caps and server safety.
 - March 25, 2025: Test suite at 108/108 passing after fixing `saveState` test. Timing values moved to config object, esbuild adopted.
-- March 26, 2025: Updated `build-xGhosted.js` to remove ESM `export` statements, fixed 1000-article cap enforcement in `identifyPosts`, confirmed `npm run build` usage, and removed `"directories"."test"` from `package.json`. Fixed "Hide" functionality, moved tests to standalone files (112 tests across 19 suites). Manual testing in progress: Show/Hide positioning and POTENTIAL_PROBLEM detection pending.
+- March 26, 2025: Updated `build-xGhosted.js` to remove ESM `export` statements, fixed 1000-article cap enforcement in `identifyPosts`, confirmed `npm run build` usage, and removed `"directories"."test"` from `package.json`. Fixed "Hide" functionality, moved tests to standalone files (112 tests across 17 suites). Adjusted panel size when hidden to fit "Show" button comfortably and updated tests.
 
 == Notes
 Large updates might hit X post size limits—Grok will flag truncation if detected and pause for new prompts.
