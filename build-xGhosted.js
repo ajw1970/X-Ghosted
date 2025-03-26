@@ -1,50 +1,50 @@
-// File: build-xGhosted.js
 import esbuild from 'esbuild';
 import fs from 'fs';
 import path from 'path';
+import { format } from 'prettier';
 
 const SRC_DIR = path.resolve('src');
 const OUTPUT_FILE = path.resolve(SRC_DIR, 'xGhosted.user.js');
 
-// Read template
 const templateContent = fs.readFileSync(
   path.resolve(SRC_DIR, 'xGhosted.template.js'),
   'utf8'
 );
 
-// Build with esbuild
-esbuild
-  .build({
-    entryPoints: [path.resolve(SRC_DIR, 'xGhosted.js')],
-    bundle: true,
-    format: 'esm',           // Use ESM to avoid IIFE wrapping
-    minify: false,           // Keep code readable
-    sourcemap: false,
-    target: ['es2020'],
-    write: false,            // Return output as string
-    outfile: 'xGhosted.js',  // Dummy outfile for clarity, not written
-  })
-  .then((result) => {
+(async () => {
+  try {
+    const result = await esbuild.build({
+      entryPoints: [path.resolve(SRC_DIR, 'xGhosted.js')],
+      bundle: true,
+      format: 'esm',
+      minify: false,
+      sourcemap: false,
+      target: ['es2020'],
+      write: false,
+      outfile: 'xGhosted.js',
+    });
+
     let bundledCode = result.outputFiles[0].text;
 
-    // Post-process to fit userscript context
-    // Remove export statement and assign XGhosted globally
-    bundledCode = bundledCode.replace(
-      /export default XGhosted;/,
-      'var XGhosted = XGhosted;'
-    );
+    // Replace export with global assignment and remove all export statements
+    bundledCode = bundledCode
+      .replace(/export default XGhosted;/, 'var XGhosted = XGhosted;')
+      .replace(/export\s*{[^}]*};/, ''); // Remove any export { ... } statement
 
-    // Inject into template
-    const finalContent = templateContent.replace(
-      '// INJECT: xGhosted',
-      bundledCode
-    );
+    let finalContent = templateContent.replace('// INJECT: xGhosted', bundledCode);
 
-    // Write output
+    finalContent = await format(finalContent, {
+      parser: 'babel',
+      singleQuote: true,
+      tabWidth: 2,
+      trailingComma: 'es5',
+      printWidth: 80,
+    });
+
     fs.writeFileSync(OUTPUT_FILE, finalContent, 'utf8');
-    console.log(`Build complete! Output written to ${OUTPUT_FILE}`);
-  })
-  .catch((err) => {
+    console.log(`Build complete! Formatted output written to ${OUTPUT_FILE}`);
+  } catch (err) {
     console.error('Build failed:', err);
     process.exit(1);
-  });
+  }
+})();

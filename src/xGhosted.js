@@ -179,17 +179,29 @@ XGhosted.prototype.findPostContainer = function () {
 XGhosted.prototype.identifyPosts = function () {
   const container = this.findPostContainer();
   if (!container) return [];
-
+  
   const posts = container.querySelectorAll('div[data-testid="cellInnerDiv"]');
   const results = [];
   let lastLink = null;
   let fillerCount = 0;
 
-  posts.forEach(post => {
-    const analysis = identifyPost(post, this.state.isWithReplies);
+  // Add cap enforcement
+  const MAX_PROCESSED_ARTICLES = 1000;
+  if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) {
+    this.log(`Reached max processed articles (${MAX_PROCESSED_ARTICLES}). Skipping new posts.`);
+    return Array.from(this.state.processedArticles.entries()).map(([id, { analysis, element }]) => ({
+      post: element,
+      analysis,
+    }));
+  }
+
+  posts.forEach((post) => {
+    if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) return;
+
+    const analysis = identifyPost_default(post, this.state.isWithReplies);
     let id = analysis.link;
 
-    if (analysis.quality === UNDEFINED && id === false) {
+    if (analysis.quality === UNDEFINED2 && id === false) {
       if (lastLink) {
         fillerCount++;
         id = `${lastLink}#filler${fillerCount}`;
@@ -203,7 +215,6 @@ XGhosted.prototype.identifyPosts = function () {
     }
 
     const cached = this.state.processedArticles.get(id);
-
     if (cached && cached.element === post) {
       results.push({ post, analysis: cached.analysis });
     } else {
