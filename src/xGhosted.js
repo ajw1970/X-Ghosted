@@ -10,10 +10,10 @@ import { updateTheme } from './dom/updateTheme';
 
 function XGhosted(doc, config = {}) {
   const defaultTiming = {
-    debounceDelay: 500,           // ms for highlightPosts debounce
-    throttleDelay: 1000,          // ms for DOM observation throttle
-    tabCheckThrottle: 5000,       // ms for new tab checks
-    exportThrottle: 5000          // ms for CSV export throttle
+    debounceDelay: 500,
+    throttleDelay: 1000,
+    tabCheckThrottle: 5000,
+    exportThrottle: 5000
   };
 
   this.timing = { ...defaultTiming, ...config.timing };
@@ -51,7 +51,6 @@ function XGhosted(doc, config = {}) {
     },
   };
 
-  // Define debounced methods in constructor to access this.timing
   this.checkPostInNewTabThrottled = debounce((article, href) => {
     this.checkPostInNewTab(article, href);
   }, this.timing.tabCheckThrottle);
@@ -96,23 +95,23 @@ XGhosted.prototype.loadState = function () {
   this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
   this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
   this.state.panelPosition = savedState.panelPosition || null;
-  const savedArticles = savedState.processedArticles || {};
-  for (const [id, data] of Object.entries(savedArticles)) {
-    this.state.processedArticles.set(id, { analysis: data.analysis, element: null });
-  }
+  // const savedArticles = savedState.processedArticles || {};
+  // for (const [id, data] of Object.entries(savedArticles)) {
+  //   this.state.processedArticles.set(id, { analysis: data.analysis, element: null });
+  // }
 };
 
 XGhosted.prototype.saveState = function () {
-  const serializableArticles = {};
-  for (const [id, data] of this.state.processedArticles) {
-    serializableArticles[id] = { analysis: data.analysis };
-  }
+  // const serializableArticles = {};
+  // for (const [id, data] of this.state.processedArticles) {
+  //   serializableArticles[id] = { analysis: data.analysis };
+  // }
   GM_setValue('xGhostedState', {
     isPanelVisible: this.state.isPanelVisible,
     isCollapsingEnabled: this.state.isCollapsingEnabled,
     isManualCheckEnabled: this.state.isManualCheckEnabled,
     panelPosition: this.state.panelPosition,
-    processedArticles: serializableArticles
+    // processedArticles: serializableArticles
   });
 };
 
@@ -187,12 +186,12 @@ XGhosted.prototype.identifyPosts = function () {
     this.log(
       `Reached max processed articles (${MAX_PROCESSED_ARTICLES}). Skipping new posts.`
     );
-    return Array.from(this.state.processedArticles.entries()).map(
-      ([id, { analysis, element }]) => ({
+    return Array.from(this.state.processedArticles.entries())
+      .filter(([_, { element }]) => element && this.document.body.contains(element))
+      .map(([id, { analysis, element }]) => ({
         post: element,
         analysis,
-      })
-    );
+      }));
   }
   posts.forEach((post) => {
     if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) return;
@@ -221,7 +220,7 @@ XGhosted.prototype.identifyPosts = function () {
   return results;
 };
 
-XGhosted.prototype.applyHighlight = function (article, status = 'potential') {
+XGhosted.prototype.applyHighlight = function (element, status = 'potential') {
   const styles = {
     problem: { background: 'rgba(255, 0, 0, 0.3)', border: '2px solid red' },
     potential: { background: 'rgba(255, 255, 0, 0.3)', border: '2px solid yellow' },
@@ -229,15 +228,15 @@ XGhosted.prototype.applyHighlight = function (article, status = 'potential') {
     none: { background: '', border: '' }
   };
   const style = styles[status] || styles.none;
-  article.style.backgroundColor = style.background;
-  article.style.border = style.border;
+  element.style.backgroundColor = style.background;
+  element.style.border = style.border;
 };
 
 XGhosted.prototype.highlightPosts = function () {
   const posts = this.identifyPosts();
   posts.forEach(({ post, analysis }) => {
+    if (!post || !this.document.body.contains(post)) return;
     const article = post.querySelector('article');
-    if (!article) return;
     const statusMap = {
       [postQuality.PROBLEM.name]: 'problem',
       [postQuality.POTENTIAL_PROBLEM.name]: 'potential',
@@ -247,11 +246,11 @@ XGhosted.prototype.highlightPosts = function () {
     const cached = this.state.processedArticles.get(analysis.link);
     let status = statusMap[analysis.quality.name] || 'none';
     if (status === 'good' && (!cached || !cached.checked)) status = 'none';
-    this.applyHighlight(article, status);
+    this.applyHighlight(post, status);
     if (status === 'potential' && this.state.isManualCheckEnabled && !cached?.checked) {
       this.checkPostInNewTabThrottled(article, analysis.link);
     }
-    if (status === 'potential' && !article.querySelector('.eye-icon')) {
+    if (status === 'potential' && article && !article.querySelector('.eye-icon')) {
       const eye = this.document.createElement('span');
       eye.textContent = '👀';
       eye.className = 'eye-icon';

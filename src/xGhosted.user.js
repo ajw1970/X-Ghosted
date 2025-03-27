@@ -344,6 +344,7 @@
       padding: '8px 0',
       borderBottom: `1px solid ${config.THEMES[mode].border}`,
       marginBottom: '16px',
+      position: 'relative',
     });
     uiElements.label = doc.createElement('span');
     uiElements.label.textContent = 'Problem Posts (0):';
@@ -467,7 +468,6 @@
       cursor: 'pointer',
       fontSize: '13px',
       fontWeight: '500',
-      marginRight: '8px',
       minWidth: '80px',
       appearance: 'none',
       outline: 'none',
@@ -483,11 +483,17 @@
       togglePanelVisibility2,
       config
     );
+    const rightButtons = doc.createElement('div');
+    Object.assign(rightButtons.style, {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+    });
+    rightButtons.append(uiElements.modeSelector, uiElements.toggleButton);
     uiElements.toolbar.append(
       uiElements.label,
       uiElements.toolsToggle,
-      uiElements.modeSelector,
-      uiElements.toggleButton
+      rightButtons
     );
     uiElements.controlRow = doc.createElement('div');
     Object.assign(uiElements.controlRow.style, {
@@ -701,9 +707,6 @@
       panel,
     } = uiElements;
     if (state.isPanelVisible) {
-      const buttonRect = toggleButton.getBoundingClientRect();
-      const buttonTop = buttonRect.top;
-      const buttonRight = buttonRect.right;
       state.preHidePosition = {
         top: panel.style.top || uiElements.config.PANEL.TOP,
         right: panel.style.right || uiElements.config.PANEL.RIGHT,
@@ -716,25 +719,17 @@
       controlRow.style.display = 'none';
       toolsSection.style.display = 'none';
       toggleButton.querySelector('span').textContent = 'Show';
-      toggleButton.style.display = 'inline-block';
       panel.style.width = 'auto';
       panel.style.minWidth = '70px';
       panel.style.minHeight = '0px';
-      panel.style.maxHeight = '60px';
+      panel.style.maxHeight = '40px';
       panel.style.padding = '6px';
+      toggleButton.style.position = 'absolute';
+      toggleButton.style.top = '6px';
+      toggleButton.style.right = '6px';
       toggleButton.style.margin = '0';
-      const newButtonRect = toggleButton.getBoundingClientRect();
-      const deltaX = buttonRight - newButtonRect.right;
-      const deltaY = buttonTop - newButtonRect.top;
-      const currentTop = parseFloat(
-        panel.style.top || uiElements.config.PANEL.TOP
-      );
-      const currentRight = parseFloat(
-        panel.style.right || uiElements.config.PANEL.RIGHT
-      );
-      panel.style.top = `${currentTop + deltaY}px`;
-      panel.style.right = `${currentRight - deltaX}px`;
-      panel.style.left = 'auto';
+      toggleButton.style.display = 'inline-block';
+      panel.style.transition = 'max-height 0.2s ease, padding 0.2s ease';
       state.isPanelVisible = false;
     } else {
       label.style.display = 'inline-block';
@@ -749,6 +744,10 @@
       panel.style.minWidth = '250px';
       panel.style.minHeight = '150px';
       panel.style.padding = '16px';
+      toggleButton.style.position = '';
+      toggleButton.style.top = '';
+      toggleButton.style.right = '';
+      toggleButton.style.marginRight = '8px';
       if (state.preHidePosition) {
         panel.style.top = state.preHidePosition.top;
         panel.style.right = state.preHidePosition.right;
@@ -762,6 +761,7 @@
         panel.style.right = uiElements.config.PANEL.RIGHT;
         panel.style.left = 'auto';
       }
+      panel.style.transition = 'max-height 0.2s ease, padding 0.2s ease';
       state.isPanelVisible = true;
     }
   }
@@ -882,13 +882,9 @@
   function XGhosted(doc, config = {}) {
     const defaultTiming = {
       debounceDelay: 500,
-      // ms for highlightPosts debounce
       throttleDelay: 1e3,
-      // ms for DOM observation throttle
       tabCheckThrottle: 5e3,
-      // ms for new tab checks
       exportThrottle: 5e3,
-      // ms for CSV export throttle
     };
     this.timing = { ...defaultTiming, ...config.timing };
     this.state = {
@@ -993,25 +989,14 @@
     this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
     this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
     this.state.panelPosition = savedState.panelPosition || null;
-    const savedArticles = savedState.processedArticles || {};
-    for (const [id, data] of Object.entries(savedArticles)) {
-      this.state.processedArticles.set(id, {
-        analysis: data.analysis,
-        element: null,
-      });
-    }
   };
   XGhosted.prototype.saveState = function () {
-    const serializableArticles = {};
-    for (const [id, data] of this.state.processedArticles) {
-      serializableArticles[id] = { analysis: data.analysis };
-    }
     GM_setValue('xGhostedState', {
       isPanelVisible: this.state.isPanelVisible,
       isCollapsingEnabled: this.state.isCollapsingEnabled,
       isManualCheckEnabled: this.state.isManualCheckEnabled,
       panelPosition: this.state.panelPosition,
-      processedArticles: serializableArticles,
+      // processedArticles: serializableArticles
     });
   };
   XGhosted.prototype.createPanel = function () {
@@ -1097,12 +1082,14 @@
       this.log(
         `Reached max processed articles (${MAX_PROCESSED_ARTICLES}). Skipping new posts.`
       );
-      return Array.from(this.state.processedArticles.entries()).map(
-        ([id, { analysis, element }]) => ({
+      return Array.from(this.state.processedArticles.entries())
+        .filter(
+          ([_, { element }]) => element && this.document.body.contains(element)
+        )
+        .map(([id, { analysis, element }]) => ({
           post: element,
           analysis,
-        })
-      );
+        }));
     }
     posts.forEach((post) => {
       if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) return;
@@ -1130,7 +1117,7 @@
     });
     return results;
   };
-  XGhosted.prototype.applyHighlight = function (article, status = 'potential') {
+  XGhosted.prototype.applyHighlight = function (element, status = 'potential') {
     const styles = {
       problem: { background: 'rgba(255, 0, 0, 0.3)', border: '2px solid red' },
       potential: {
@@ -1141,14 +1128,14 @@
       none: { background: '', border: '' },
     };
     const style = styles[status] || styles.none;
-    article.style.backgroundColor = style.background;
-    article.style.border = style.border;
+    element.style.backgroundColor = style.background;
+    element.style.border = style.border;
   };
   XGhosted.prototype.highlightPosts = function () {
     const posts = this.identifyPosts();
     posts.forEach(({ post, analysis }) => {
+      if (!post || !this.document.body.contains(post)) return;
       const article = post.querySelector('article');
-      if (!article) return;
       const statusMap = {
         [postQuality.PROBLEM.name]: 'problem',
         [postQuality.POTENTIAL_PROBLEM.name]: 'potential',
@@ -1158,7 +1145,7 @@
       const cached = this.state.processedArticles.get(analysis.link);
       let status = statusMap[analysis.quality.name] || 'none';
       if (status === 'good' && (!cached || !cached.checked)) status = 'none';
-      this.applyHighlight(article, status);
+      this.applyHighlight(post, status);
       if (
         status === 'potential' &&
         this.state.isManualCheckEnabled &&
@@ -1166,7 +1153,11 @@
       ) {
         this.checkPostInNewTabThrottled(article, analysis.link);
       }
-      if (status === 'potential' && !article.querySelector('.eye-icon')) {
+      if (
+        status === 'potential' &&
+        article &&
+        !article.querySelector('.eye-icon')
+      ) {
         const eye = this.document.createElement('span');
         eye.textContent = '\u{1F440}';
         eye.className = 'eye-icon';

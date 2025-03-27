@@ -77,6 +77,7 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
     padding: '8px 0',
     borderBottom: `1px solid ${config.THEMES[mode].border}`,
     marginBottom: '16px',
+    position: 'relative'
   });
 
   uiElements.label = doc.createElement('span');
@@ -85,7 +86,7 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
     fontSize: '15px',
     fontWeight: '700',
     color: config.THEMES[mode].text,
-    display: 'inline-block',
+    display: 'inline-block'
   });
 
   uiElements.toolsToggle = createButton(doc, 'Tools', '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="chevron-down"><path d="M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6-6-6z"/></svg>', mode, () => {
@@ -104,7 +105,7 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
     background: `${config.THEMES[mode].bg}CC`,
     borderRadius: '8px',
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    transition: 'all 0.3s ease',
+    transition: 'all 0.3s ease'
   });
 
   const toolsButtonContainer = doc.createElement('div');
@@ -113,7 +114,7 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
     justifyContent: 'center',
     gap: '15px',
     padding: '0 10px',
-    flexWrap: 'wrap',
+    flexWrap: 'wrap'
   });
 
   uiElements.copyButton = createButton(doc, 'Copy', '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>', mode, copyCallback, config);
@@ -163,22 +164,29 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: '500',
-    marginRight: '8px',
     minWidth: '80px',
     appearance: 'none',
     outline: 'none',
     transition: 'background 0.2s ease, color 0.2s ease',
-    display: 'inline-block',
+    display: 'inline-block'
   });
   uiElements.modeSelector.title = 'Switch theme';
 
   uiElements.toggleButton = createButton(doc, 'Hide', '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>', mode, togglePanelVisibility, config);
 
+  // Wrap modeSelector and toggleButton in a flex container for proper alignment
+  const rightButtons = doc.createElement('div');
+  Object.assign(rightButtons.style, {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  });
+  rightButtons.append(uiElements.modeSelector, uiElements.toggleButton);
+
   uiElements.toolbar.append(
     uiElements.label,
     uiElements.toolsToggle,
-    uiElements.modeSelector,
-    uiElements.toggleButton
+    rightButtons
   );
 
   uiElements.controlRow = doc.createElement('div');
