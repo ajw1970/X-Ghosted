@@ -27,7 +27,6 @@
 At the end of the session on March 26, 2025, the following tasks remain unresolved and should be addressed in the next session:
 - Verify the panel’s position persistence and hide behavior: Confirm the panel starts at `top: '60px'`, `right: '10px'`, saves the user’s position after dragging, and the "Hide" button stays fixed while the panel collapses toward it (Issue 2).
 - Debug and fix the highlighting issue for the problem post `/ajweltytest/status/1901080866002014636`: Use console logs to determine why the post isn’t highlighted in the UI, ensuring it displays a red background for PROBLEM status (Issue 3).
-- Polish the UI if necessary: Review button contrast (e.g., ensure `#4A5C6D` buttons are visible against `#15202B` background in dim mode) and spacing to improve readability and aesthetics.
 - Complete manual testing of `xGhosted.user.js` in Tampermonkey:
   - Test remaining button functionality (Copy, Manual Check, Export CSV, Import CSV, Clear).
   - Verify 1000-article cap by loading more posts.

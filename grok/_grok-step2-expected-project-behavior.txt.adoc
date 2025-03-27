@@ -11,20 +11,10 @@
 - *Build*: `build-xGhosted.js` uses esbuild to bundle `xGhosted.js` with dependencies into `xGhosted.user.js`, removing ESM exports for Tampermonkey compatibility. Timing values configurable via constructor. Run via `npm run build`.
 
 == Next Steps
-- Verify the panel’s position persistence and hide behavior: Confirm the panel starts at `top: '60px'`, `right: '10px'`, saves the user’s position after dragging, and the "Hide" button stays fixed while the panel collapses toward it (Issue 2).
-- Debug and fix the highlighting issue for the problem post `/ajweltytest/status/1901080866002014636`: Use console logs to determine why the post isn’t highlighted in the UI, ensuring it displays a red background for PROBLEM status (Issue 3).
-- Complete manual testing of `xGhosted.user.js` in Tampermonkey:
-  - Test remaining button functionality (Copy, Manual Check, Export CSV, Import CSV, Clear).
-  - Verify 1000-article cap by loading more posts.
-  - Fix eye icon visibility for POTENTIAL_PROBLEM posts (add `zIndex: '10000'`).
-- Fix ESM mocking issues in `src/xGhosted.csv.test.js` to restore full test suite (targeting 28/28 passing for CSV functionality), deferred earlier due to `writeToClipboard` issues.
-- Polish the UI if necessary: Review button contrast (e.g., `#4A5C6D` on `#15202B` in dim mode) and spacing to improve readability and aesthetics.
+See `_grok-step4-roadmap-to-next-release.txt.adoc` for current Next Steps.
 
 == Revision History
 - March 23, 2025: Step 2 completed—24/24 tests pass with Manual Check Mode mocked. CSV export added.
 - March 24, 2025: Step 3 completed—CSV import/clear added. Step 4 completed—UI polished. Step 5 completed—userscript wrapper with resource caps and server safety.
 - March 25, 2025: Test suite at 108/108 passing after fixing `saveState` test. Timing values moved to config object, esbuild adopted.
 - March 26, 2025: Updated `build-xGhosted.js` to remove ESM `export` statements, fixed 1000-article cap enforcement in `identifyPosts`, confirmed `npm run build` usage, and removed `"directories"."test"` from `package.json`. Fixed "Hide" functionality, moved tests to standalone files (112 tests across 17 suites). Adjusted panel size when hidden to fit "Show" button comfortably and updated tests.
-
-== Notes
-Large updates might hit X post size limits—Grok will flag truncation if detected and pause for new prompts.

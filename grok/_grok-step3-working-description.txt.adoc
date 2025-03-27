@@ -17,14 +17,12 @@
 - Show/Hide button positioning and POTENTIAL_PROBLEM detection fixes pending.
 
 == Technical Details
-- *Depends On*: `GM_setValue`/`GM_getValue` for persistence, `jest` for testing, JSDOM for DOM mocks, `esbuild` for bundling, `prettier` for formatting.
-- *Modules*: `xGhosted.js`, `createPanel.js`, `renderPanel.js`, `updateTheme.js`, utils like `postQuality.js`.
-- *Build Script*: `build-xGhosted.js` with esbuild, applies resource caps, ensures proper dependency inlining, and removes ESM exports. Rollup transition planned post-manual testing.
+- *Depends On*: `GM_setValue`/`GM_getValue` (persistence), `jest` (testing, see `src/xGhosted.test.js`), JSDOM (DOM mocks), `esbuild` (bundling), `prettier` (formatting).
+- *Modules*: `xGhosted.js`, `createPanel.js` (see `_grok-snippet-1.js.txt.adoc`), `renderPanel.js`, `updateTheme.js`, utils like `postQuality.js`.
+- *Build Script*: `build-xGhosted.js` with esbuild.
 
 == Next Steps
-- Verify the panel’s position persistence and hide behavior: Confirm the panel starts at `top: '60px'`, `right: '10px'`, saves the user’s position after dragging, and the "Hide" button stays fixed while the panel collapses toward it.
-- Debug and fix the highlighting issue for the problem post `/ajweltytest/status/1901080866002014636`: Use console logs to determine why the post isn’t highlighted in the UI, ensuring it displays a red background for PROBLEM status.
-- Polish the UI if necessary: Review button contrast (e.g., `#4A5C6D` on `#15202B` in dim mode) and spacing to improve readability and aesthetics.
+See `_grok-step4-roadmap-to-next-release.txt.adoc` for current Next Steps.
 
 == Revision History
 - March 23, 2025: Updated for 0.6.1—24 tests pass. CSV export and Manual Check Mode added.

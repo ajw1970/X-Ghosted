@@ -1,6 +1,6 @@
 = Snippet 1: createPanel Function (0.6.4 UI Structure)
 
-This defines the "Tools" section, modal for import, and overall panel structure.
+This defines the "Tools" section, modal for import, and overall panel structure. Sourced from `src/createPanel.js`.
 
 [source,javascript]
 ----
@@ -11,7 +11,6 @@ function createPanel() {
 
   try {
     uiElements.panel = document.createElement('div');
-    if (!uiElements.panel) throw new Error('Failed to create panel element');
     Object.assign(uiElements.panel.style, {
       position: 'fixed',
       top: CONFIG.PANEL.TOP,
@@ -30,8 +29,6 @@ function createPanel() {
     });
 
     uiElements.toolbar = document.createElement('div');
-    if (!uiElements.toolbar)
-      throw new Error('Failed to create toolbar element');
     Object.assign(uiElements.toolbar.style, {
       display: 'flex',
       alignItems: 'center',
@@ -42,7 +39,6 @@ function createPanel() {
     });
 
     uiElements.label = document.createElement('span');
-    if (!uiElements.label) throw new Error('Failed to create label element');
     uiElements.label.textContent = 'Posts (0):';
     Object.assign(uiElements.label.style, {
       fontSize: '15px',
@@ -51,8 +47,6 @@ function createPanel() {
     });
 
     uiElements.toolsSection = document.createElement('div');
-    if (!uiElements.toolsSection)
-      throw new Error('Failed to create toolsSection element');
     uiElements.toolsSection.style.display = 'none';
     Object.assign(uiElements.toolsSection.style, {
       padding: '12px 0',
@@ -134,8 +128,6 @@ function createPanel() {
     uiElements.toolsSection.append(toolsButtonContainer);
 
     uiElements.modeSelector = document.createElement('select');
-    if (!uiElements.modeSelector)
-      throw new Error('Failed to create modeSelector element');
     uiElements.modeSelector.innerHTML =
       '<option value="dark">Dark</option><option value="dim">Dim</option><option value="light">Light</option>';
     uiElements.modeSelector.value = mode;
@@ -167,8 +159,6 @@ function createPanel() {
     );
 
     uiElements.controlRow = document.createElement('div');
-    if (!uiElements.controlRow)
-      throw new Error('Failed to create controlRow element');
     Object.assign(uiElements.controlRow.style, {
       display: 'flex',
       justifyContent: 'space-between',
@@ -178,8 +168,6 @@ function createPanel() {
     });
 
     uiElements.controlLabel = document.createElement('span');
-    if (!uiElements.controlLabel)
-      throw new Error('Failed to create controlLabel element');
     uiElements.controlLabel.textContent = 'Auto Collapse Off';
     Object.assign(uiElements.controlLabel.style, {
       fontSize: '13px',
@@ -188,8 +176,6 @@ function createPanel() {
     });
 
     const buttonContainer = document.createElement('div');
-    if (!buttonContainer)
-      throw new Error('Failed to create buttonContainer element');
     Object.assign(buttonContainer.style, { display: 'flex', gap: '8px' });
 
     buttonContainer.append(
@@ -234,8 +220,6 @@ function createPanel() {
     );
 
     uiElements.contentWrapper = document.createElement('div');
-    if (!uiElements.contentWrapper)
-      throw new Error('Failed to create contentWrapper element');
     uiElements.contentWrapper.className = 'problem-links-wrapper';
     Object.assign(uiElements.contentWrapper.style, {
       maxHeight: 'calc(100vh - 150px)',
@@ -263,8 +247,6 @@ function createPanel() {
     document.body.appendChild(modal);
 
     uiElements.styleSheet = document.createElement('style');
-    if (!uiElements.styleSheet)
-      throw new Error('Failed to create styleSheet element');
     uiElements.styleSheet.textContent = `
                 .${CONFIG.HIGHLIGHT_STYLE} { background-color: rgba(255, 255, 0, 0.3); border: 2px solid yellow; }
                 .${CONFIG.COLLAPSE_STYLE} { height: 0; overflow: hidden; margin: 0; padding: 0; transition: height 0.2s ease; }

@@ -1,6 +1,6 @@
 = Snippet 5: CSS for Status Dots and Button Icons
 
-This captures the CSS added to support status dots and button icons.
+This captures the CSS added to support status dots and button icons. Note: This is also injected dynamically via `createPanel`’s `styleSheet` (see `_grok-snippet-1.js.txt.adoc`). Kept separate here for reference and documentation.
 
 [source,css]
 ----

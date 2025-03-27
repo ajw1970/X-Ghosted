@@ -11,6 +11,11 @@ FILES=(
     "grok/_grok-step2-expected-project-behavior.txt.adoc"
     "grok/_grok-step3-working-description.txt.adoc"
     "grok/_grok-step4-roadmap-to-next-release.txt.adoc"
+    "grok/_grok-snippet-1.js.txt.adoc"
+    "grok/_grok-snippet-2.js.txt.adoc"
+    "grok/_grok-snippet-3.js.txt.adoc"
+    "grok/_grok-snippet-4.js.txt.adoc"
+    "grok/_grok-snippet-5.css.txt.adoc"
 )
 
 # Clear output file first (single > overwrites)

@@ -6,6 +6,26 @@
 2. *Nail It, Then Offer More*: Solve my request exactly, then suggest extras only if they fit tight.
 3. *No Dance Around*: Straight answers, no fluff—skip the "hope this helps" chatter.
 4. *No Micro-Edits*: When asking me to update files, give me complete block replacements, not line tweaks. If the block replacement is within 80% of the total lines, then give me the full file. I don’t want to see any "remaining code" placeholders. Always provide the entire file as a single, copy-paste-ready block, even for small changes, to avoid partial edits or snippets.
+
+Example: This should've been two blocks, not one with "[unchanged content...]" placeholder.
+[code]
+----
+= Grok Context for xGhosted Project
+:revision-date: March 26, 2025
+
+== Purpose
+This file supplements `_grok-step[1-4]` with a snapshot of my (Grok 3, built by xAI) understanding of the xGhosted project as of March 26, 2025. Use it for a quick reference, but rely on `_grok-step[1-4]` for authoritative guidance.
+
+== Project Snapshot
+[unchanged content...]
+
+== Code Guidelines
+See `_grok-step1-master-prompt.txt.adoc` for full guidelines. Key points: use full blocks or files, state file locations before blocks, ensure copy-paste readiness.
+
+== Next Steps
+See `_grok-step4-roadmap-to-next-release.txt.adoc` for current Next Steps.
+----
+
 5. *Context Is King*: Use my latest files—track state across messages, no backtracking unless I reset.
 6. *Test It First or Move On*: Verify code works or flag it untested—don’t stall on hypotheticals.
 7. *Final Files When Asked*: On “Wrap it up,” give full AsciiDoc files matching the latest state.
@@ -14,7 +34,7 @@
 10. *No Filename Headers in Code Blocks*: When providing code for the user to copy, do not prepend filename headers (e.g., "// src/dom/createPanel.js") before the code block. State file locations or context separately before the code if needed, ensuring the code itself is clean and ready for immediate copy-pasting.
 
 == Project Context
-The pending 0.6.1 release of `xGhosted.js` is in progress—a modular, tested userscript evolved from `highlight-potential-problems.user.js` 0.6.0. 
+The pending 0.6.1 release of `xGhosted.js` is in progress—a modular, tested userscript. See `_grok-context.txt.adoc` for the latest snapshot (e.g., 112 tests across 17 suites, manual testing in progress).
 - It preserves 0.6.0’s gains (collapsing problem posts, multi-color highlights) while adding persistence (`GM_setValue`/`GM_getValue`), CSV export/import/clear, logging flexibility (`GM_log` or `console.log`), and a 1000-article cap enforced in `identifyPosts`. 
 - Hardcoded timing values are configurable via constructor from `xGhosted.template.js`. 
 - Step 5 (Userscript Wrapper) uses `build-xGhosted.js` with esbuild to bundle `xGhosted.js` into `xGhosted.user.js`, optimized for minimal X.com server activity (manual mode default, DOM-only analysis). Tests in `src/xGhosted.test.js` (24 tests) and 16 other suites (88 tests) total 112 tests across 17 suites, all passing. 
