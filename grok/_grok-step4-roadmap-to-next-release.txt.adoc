@@ -2,27 +2,29 @@
 :revision-date: March 27, 2025
 
 == Roadmap to Next Version Release (0.6.1)
-1. *Manual Test Build Script*: Verify `build-xGhosted.js` output in Tampermonkey—ensure bundling, resource caps, manual mode, and no ESM exports. In progress—panel functionality tested, "Hide" fixed with proper sizing, Show/Hide positioning and POTENTIAL_PROBLEM detection pending.
-2. *Fix Show/Hide Button Positioning*: Move Show/Hide button to top-right corner of the panel (Issue 2).
-3. *Fix POTENTIAL_PROBLEM Detection*: Investigate DOM structure changes or state issues causing inconsistent detection (Issue 3). Highlighting of `/ajweltytest/status/1901080866002014636` fails—check DOM or status assignment.
-4. *Complete Manual Testing*:
-   - Test remaining button functionality (Copy, Manual Check, Export CSV, Import CSV, Clear).
+1. *Manual Test Build Script*: Verify `build-xGhosted.js` output in Tampermonkey—ensure bundling, resource caps, manual mode, and no ESM exports. In progress—panel functionality tested, "Hide" fixed with proper sizing, additional issues identified below.
+2. *Fix Show/Hide Button Positioning and Collapse Behavior (Issue 2)*: Move Show/Hide button to top-right corner of the panel. Current behavior: after moving panel, hiding reverts it to original position (`top: '60px'`, `right: '10px'`) and collapses toward top/left corner. Expected: collapse toward current top/right corner, keeping Show/Hide button stationary on screen.
+3. *Fix POTENTIAL_PROBLEM and PROBLEM Detection (Issue 3)*: Investigate DOM structure changes or state issues causing inconsistent POTENTIAL_PROBLEM detection. Highlighting of `/ajweltytest/status/1901080866002014636` fails—check DOM or status assignment. New finding: PROBLEM posts appear in panel with red dot but lack red highlight in UI.
+4. *Fix Clear Processed Posts Not Resetting Export CSV (Issue 4)*: Current behavior: after Clear button reports processed posts cleared, Export CSV still outputs previous list. Expected: Export CSV reflects cleared state (empty or updated list).
+5. *Complete Manual Testing*:
+   - Test remaining button functionality (Copy, Manual Check, Export CSV, Import CSV, Clear)—Clear and Export CSV issues noted above.
    - Verify 1000-article cap by loading more posts.
    - Fix eye icon visibility for POTENTIAL_PROBLEM posts (add `zIndex: '10000'`).
-5. *Fix Test Suite*: Resolve ESM mocking issues for CSV functionality in `src/xGhosted.csv.test.js`. Current suite at 112/112 passing; CSV tests may increase total if added.
-6. *Transition to Rollup*: Replace esbuild with Rollup for bundling, improving maintainability and output readability. Pending post-manual test.
-7. *Tab Check GOOD Posts*: Implement 10s interval checks, user-triggered for server safety. Pending.
-8. *Performance Pass*: Optimize lookups. Pending.
-9. *Collapse by Default*: Batch-collapse problem posts every 5s. Pending.
+6. *Fix Test Suite*: Resolve ESM mocking issues for CSV functionality in `src/xGhosted.csv.test.js`. Current suite at 112/112 passing; CSV tests may increase total if added.
+7. *Transition to Rollup*: Replace esbuild with Rollup for bundling, improving maintainability and output readability. Pending post-manual test.
+8. *Tab Check GOOD Posts*: Implement 10s interval checks, user-triggered for server safety. Pending.
+9. *Performance Pass*: Optimize lookups. Pending.
+10. *Collapse by Default*: Batch-collapse problem posts every 5s. Pending.
 
 == Next Steps for Continuation
-At the end of the session on March 26, 2025, the following tasks remain unresolved and should be addressed in the next session:
-- Verify panel’s position persistence: Confirm it starts at `top: '60px'`, `right: '10px'`, saves position after dragging, and "Hide" button stays fixed during collapse (Issue 2).
-- Debug highlighting issue for `/ajweltytest/status/1901080866002014636`: Use console logs to check DOM or status assignment (Issue 3).
-- Complete manual testing and fix test suite as outlined in roadmap.
+At the end of the session on March 27, 2025, the following tasks remain unresolved and should be addressed in the next session:
+- Verify and fix panel’s position persistence and collapse behavior: Confirm it saves position after dragging, collapses toward current top/right corner, and keeps Show/Hide button fixed on screen (Issue 2).
+- Debug highlighting issue: Ensure PROBLEM posts highlight red in UI (e.g., `/ajweltytest/status/1901080866002014636`) and fix POTENTIAL_PROBLEM detection (Issue 3).
+- Fix Clear button to fully reset processed posts state, ensuring Export CSV reflects cleared state (Issue 4).
+- Complete manual testing: Test remaining buttons, 1000-article cap, and eye icon visibility.
 
 == Revision History
 - March 23, 2025: Step 2 completed—24/24 tests passing.
 - March 24, 2025: Step 5 completed—userscript wrapper with esbuild.
 - March 26, 2025: Fixed `build-xGhosted.js` to remove ESM `export` statements, enforced 1000-article cap, fixed "Hide" functionality, updated tests (112 tests across 17 suites).
-- March 27, 2025: Clarified test suite status, consolidated Next Steps, added diagnostic note for Issue 3.
+- March 27, 2025: Added manual testing findings: Show/Hide collapse issue, PROBLEM highlighting failure, Clear/Export CSV mismatch.

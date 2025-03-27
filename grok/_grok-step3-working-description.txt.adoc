@@ -2,8 +2,8 @@
 :revision-date: March 27, 2025
 
 == Current State
-- *UI*: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow with eye icons), GOOD (none), UNDEFINED (none) posts. POTENTIAL_PROBLEM detection inconsistent, pending DOM review. Panel (resizable, draggable) lists flagged posts with Copy, Export CSV (configurable throttle), Import CSV, Clear, and Manual Check buttons. Theme switching polished with tooltips. Show/Hide button positioning incorrect (should be top-right). Panel shrinking when hidden fixed—verified with unit test; adjusted size when hidden to fit "Show" button comfortably.
-- *Core*: Detects post quality via `identifyPost.js` using DOM only, persists state (capped at 1000 articles in `identifyPosts`) with `GM_setValue`/`GM_getValue`. Manual mode default minimizes server activity. Timing values (debounce, throttle) configurable via constructor.
+- *UI*: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow with eye icons), GOOD (none), UNDEFINED (none) posts. POTENTIAL_PROBLEM detection inconsistent, pending DOM review. PROBLEM posts appear in panel with red dot but lack red highlight in UI. Panel (resizable, draggable) lists flagged posts with Copy, Export CSV (configurable throttle), Import CSV, Clear, and Manual Check buttons. Theme switching polished with tooltips. Show/Hide button positioning incorrect (should be top-right); after moving panel, hiding reverts to original position (`top: '60px'`, `right: '10px'`) and collapses toward top/left corner (expected: collapse to current top/right, button stationary). Panel shrinking when hidden fixed—verified with unit test; adjusted size when hidden to fit "Show" button comfortably.
+- *Core*: Detects post quality via `identifyPost.js` using DOM only, persists state (capped at 1000 articles in `identifyPosts`) with `GM_setValue`/`GM_getValue`. Manual mode default minimizes server activity. Timing values (debounce, throttle) configurable via constructor. Clear button reports posts cleared, but Export CSV outputs previous list, indicating incomplete state reset.
 - *Tests*: `src/xGhosted.test.js`—24 tests pass, fixed for timing initialization and `saveState` alignment. Total 112 tests across 17 suites passing, with fixes for standalone test files. CSV tests in `src/xGhosted.csv.test.js` deferred due to ESM mocking issues with `writeToClipboard`.
 - *Build*: `build-xGhosted.js` uses esbuild to bundle `xGhosted.js` with dependencies, applies resource caps, removes ESM exports for Tampermonkey compatibility, and formats output with Prettier. Timing configurable via constructor. Run with `npm run build`.
 
@@ -26,4 +26,4 @@ See `_grok-step4-roadmap-to-next-release.txt.adoc` for current Next Steps, inclu
 - March 23, 2025: Updated for 0.6.1—24 tests pass. CSV export and Manual Check Mode added.
 - March 24, 2025: Step 5 done—userscript wrapper with safety optimizations.
 - March 26, 2025: Fixed `build-xGhosted.js` to remove ESM `export` statements, enforced 1000-article cap in `xGhosted.js`. Fixed "Hide" functionality, updated tests (112 tests across 17 suites).
-- March 27, 2025: Consolidated history, clarified POTENTIAL_PROBLEM status, moved roadmap items to Next Steps.
+- March 27, 2025: Added manual testing findings: Show/Hide collapse issue, PROBLEM highlighting failure, Clear/Export CSV mismatch.
