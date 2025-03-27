@@ -17,7 +17,7 @@ function XGhosted(doc, config = {}) {
   };
 
   this.timing = { ...defaultTiming, ...config.timing };
-  
+
   this.state = {
     isWithReplies: false,
     postContainer: null,
@@ -28,6 +28,7 @@ function XGhosted(doc, config = {}) {
     isDarkMode: true,
     isManualCheckEnabled: false,
     panelPosition: null,
+    persistProcessedPosts: config.persistProcessedPosts ?? false // New config option, defaults to false
   };
   this.document = doc;
   this.log = config.useTampermonkeyLog && typeof GM_log !== 'undefined'
@@ -95,23 +96,27 @@ XGhosted.prototype.loadState = function () {
   this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
   this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
   this.state.panelPosition = savedState.panelPosition || null;
-  // const savedArticles = savedState.processedArticles || {};
-  // for (const [id, data] of Object.entries(savedArticles)) {
-  //   this.state.processedArticles.set(id, { analysis: data.analysis, element: null });
-  // }
+  if (this.state.persistProcessedPosts) {
+    const savedArticles = savedState.processedArticles || {};
+    for (const [id, data] of Object.entries(savedArticles)) {
+      this.state.processedArticles.set(id, { analysis: data.analysis, element: null });
+    }
+  }
 };
 
 XGhosted.prototype.saveState = function () {
-  // const serializableArticles = {};
-  // for (const [id, data] of this.state.processedArticles) {
-  //   serializableArticles[id] = { analysis: data.analysis };
-  // }
+  const serializableArticles = {};
+  if (this.state.persistProcessedPosts) {
+    for (const [id, data] of this.state.processedArticles) {
+      serializableArticles[id] = { analysis: data.analysis };
+    }
+  }
   GM_setValue('xGhostedState', {
     isPanelVisible: this.state.isPanelVisible,
     isCollapsingEnabled: this.state.isCollapsingEnabled,
     isManualCheckEnabled: this.state.isManualCheckEnabled,
     panelPosition: this.state.panelPosition,
-    // processedArticles: serializableArticles
+    processedArticles: serializableArticles
   });
 };
 

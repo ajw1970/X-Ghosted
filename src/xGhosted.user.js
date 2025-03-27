@@ -897,6 +897,8 @@
       isDarkMode: true,
       isManualCheckEnabled: false,
       panelPosition: null,
+      persistProcessedPosts: config.persistProcessedPosts ?? false,
+      // New config option, defaults to false
     };
     this.document = doc;
     this.log =
@@ -989,14 +991,29 @@
     this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
     this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
     this.state.panelPosition = savedState.panelPosition || null;
+    if (this.state.persistProcessedPosts) {
+      const savedArticles = savedState.processedArticles || {};
+      for (const [id, data] of Object.entries(savedArticles)) {
+        this.state.processedArticles.set(id, {
+          analysis: data.analysis,
+          element: null,
+        });
+      }
+    }
   };
   XGhosted.prototype.saveState = function () {
+    const serializableArticles = {};
+    if (this.state.persistProcessedPosts) {
+      for (const [id, data] of this.state.processedArticles) {
+        serializableArticles[id] = { analysis: data.analysis };
+      }
+    }
     GM_setValue('xGhostedState', {
       isPanelVisible: this.state.isPanelVisible,
       isCollapsingEnabled: this.state.isCollapsingEnabled,
       isManualCheckEnabled: this.state.isManualCheckEnabled,
       panelPosition: this.state.panelPosition,
-      // processedArticles: serializableArticles
+      processedArticles: serializableArticles,
     });
   };
   XGhosted.prototype.createPanel = function () {
@@ -1269,18 +1286,19 @@
   var XGhosted = XGhosted;
 
   // --- Initialization with Resource Limits ---
-  const MAX_PROCESSED_ARTICLES = 1000; // Cap memory usage
+  const MAX_PROCESSED_ARTICLES = 1000;
   const config = {
     timing: {
-      debounceDelay: 500, // ms for highlightPosts debounce
-      throttleDelay: 1000, // ms for DOM observation throttle
-      tabCheckThrottle: 5000, // ms for new tab checks
-      exportThrottle: 5000, // ms for CSV export throttle
+      debounceDelay: 500,
+      throttleDelay: 1000,
+      tabCheckThrottle: 5000,
+      exportThrottle: 5000,
     },
     useTampermonkeyLog: true,
+    persistProcessedPosts: false, // Explicitly set to false by default
   };
   const xGhosted = new XGhosted(document, config);
-  xGhosted.state.isManualCheckEnabled = true; // Start in manual mode to limit server activity
+  xGhosted.state.isManualCheckEnabled = true;
   xGhosted.init();
 
   // Observe URL changes with throttling

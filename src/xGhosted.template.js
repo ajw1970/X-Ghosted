@@ -30,18 +30,19 @@
     // INJECT: xGhosted
 
     // --- Initialization with Resource Limits ---
-    const MAX_PROCESSED_ARTICLES = 1000; // Cap memory usage
+    const MAX_PROCESSED_ARTICLES = 1000;
     const config = {
         timing: {
-            debounceDelay: 500,      // ms for highlightPosts debounce
-            throttleDelay: 1000,     // ms for DOM observation throttle
-            tabCheckThrottle: 5000,  // ms for new tab checks
-            exportThrottle: 5000     // ms for CSV export throttle
+            debounceDelay: 500,
+            throttleDelay: 1000,
+            tabCheckThrottle: 5000,
+            exportThrottle: 5000
         },
-        useTampermonkeyLog: true
+        useTampermonkeyLog: true,
+        persistProcessedPosts: false // Explicitly set to false by default
     };
     const xGhosted = new XGhosted(document, config);
-    xGhosted.state.isManualCheckEnabled = true; // Start in manual mode to limit server activity
+    xGhosted.state.isManualCheckEnabled = true;
     xGhosted.init();
 
     // Observe URL changes with throttling
