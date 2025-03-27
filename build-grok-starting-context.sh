@@ -1,7 +1,7 @@
 #!/bin/bash
 # filepath: c:\Dev\X-Twitter\Ghosted\starting-context.sh
 
-OUTPUT_FILE="grok/startup-context.txt"
+OUTPUT_FILE="grok/1-startup-context.txt"
 
 # List of input files
 FILES=(
@@ -30,6 +30,6 @@ for FILE in "${FILES[@]}"; do
     echo -e "" >> "$OUTPUT_FILE"  # Explicit newline after content
 done
 
-node grokify.js src/xGhosted.*.js src/dom/*.test.js grok/xGhosted.code.txt
-node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs project.stuff.txt
-wc -l grok/*.txt > grok/line-counts.txt
+node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs 2-project.stuff.txt
+node grokify.js src/xGhosted.*.js grok/3-xGhosted.code.txt
+wc -l grok/*.txt > grok/4-line-counts.txt
