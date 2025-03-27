@@ -5,33 +5,14 @@
 1. *Focus First, Ripple Smart*: Stick to what I ask—full files or blocks, no snippets unless I say so.
 2. *Nail It, Then Offer More*: Solve my request exactly, then suggest extras only if they fit tight.
 3. *No Dance Around*: Straight answers, no fluff—skip the "hope this helps" chatter.
-4. *No Micro-Edits*: When asking me to update files, give me complete block replacements, not line tweaks. If the block replacement is within 80% of the total lines, then give me the full file. I don’t want to see any "remaining code" placeholders. Always provide the entire file as a single, copy-paste-ready block, even for small changes, to avoid partial edits or snippets.
-
-Example: This should’ve been two blocks, not one with "[unchanged content...]" placeholder.
-[code]
-----
-= Grok Context for xGhosted Project
-:revision-date: March 26, 2025
-
-== Purpose
-This file supplements `_grok-step[1-4]` with a snapshot of my (Grok 3, built by xAI) understanding of the xGhosted project as of March 26, 2025. Use it for a quick reference, but rely on `_grok-step[1-4]` for authoritative guidance.
-
-== Project Snapshot
-[unchanged content...]
-
-== Code Guidelines
-See `_grok-step1-master-prompt.txt.adoc` for full guidelines. Key points: use full blocks or files, state file locations before blocks, ensure copy-paste readiness.
-
-== Next Steps
-See `_grok-step4-roadmap-to-next-release.txt.adoc` for current Next Steps.
-----
-
+4. *No Micro-Edits*: When updating files, provide complete block replacements or full files, not line tweaks. If the change affects 80% or more of the file, give the entire file as a single, copy-paste-ready block. Always include the full context to avoid partial edits or snippets—never use "remaining code" placeholders.
 5. *Context Is King*: Use my latest files—track state across messages, no backtracking unless I reset.
 6. *Test It First or Move On*: Verify code works or flag it untested—don’t stall on hypotheticals.
 7. *Final Files When Asked*: On “Wrap it up,” give full AsciiDoc files matching the latest state.
 8. *No Overreach*: Don’t edit my words or guess beyond my input—stick to what’s given.
 9. *Clean Code Blocks*: Don’t add comments like "// In src/xGhosted.js" inside code blocks—state file locations before the block for easy copy-pasting.
-10. *No Filename Headers in Code Blocks*: When providing code for the user to copy, do not prepend filename headers (e.g., "// src/dom/createPanel.js") before the code block. State file locations or context separately before the code if needed, ensuring the code itself is clean and ready for immediate copy-pasting.
+10. *No Filename Headers in Code Blocks*: When providing code for copy-pasting, do not prepend filename headers (e.g., "// src/dom/createPanel.js") before the code block. State file locations or context separately before the code if needed, ensuring the code itself is clean and ready for immediate use.
+11. *Clarify Change Scope*: When modifying a file, always provide the full file with changes unless I request a snippet. Before the code block, clearly describe what’s changed (e.g., “Added X after line Y”), where the change occurs, and what remains unchanged to avoid ambiguity. Keep all explanations and change highlights outside the code block, ensuring it remains clean and ready for direct copy-pasting without line-by-line review.
 
 == Project Context
 The pending 0.6.1 release of `xGhosted.js` is in progress—a modular, tested userscript. See `_grok-context.txt.adoc` for the latest snapshot. It preserves 0.6.0’s gains (collapsing problem posts, multi-color highlights) while adding persistence (`GM_setValue`/`GM_getValue`), CSV export/import/clear, logging flexibility (`GM_log` or `console.log`), and a 1000-article cap enforced in `identifyPosts`. Hardcoded timing values are configurable via constructor from `xGhosted.template.js`. Step 5 (Userscript Wrapper) uses `build-xGhosted.js` with esbuild to bundle `xGhosted.js` into `xGhosted.user.js`, optimized for minimal X.com server activity (manual mode default, DOM-only analysis). Tests total 112 across 17 suites, all passing. Manual testing of `build-xGhosted.js` output is in progress with `npm run build` confirmed as the correct command. The "Hide" functionality is fixed with proper sizing, but Show/Hide button positioning and POTENTIAL_PROBLEM post detection issues remain. Remaining manual tests include button functionality, 1000-article cap, and eye icon visibility.
