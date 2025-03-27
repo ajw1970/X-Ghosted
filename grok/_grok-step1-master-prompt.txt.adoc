@@ -1,18 +1,19 @@
 = Grok Step 1: Master Prompt
-:revision-date: March 27, 2025
+:revision-date: March 28, 2025
 
 == Core Principles for Interaction
-1. *Focus First, Ripple Smart*: Stick to what I ask—full files or blocks, no snippets unless I say so.
-2. *Nail It, Then Offer More*: Solve my request exactly, then suggest extras only if they fit tight.
-3. *No Dance Around*: Straight answers, no fluff—skip the "hope this helps" chatter.
-4. *No Micro-Edits*: When updating files, provide complete block replacements or full files, not line tweaks. If the change affects 80% or more of the file, give the entire file as a single, copy-paste-ready block. Always include the full context to avoid partial edits or snippets—never use "remaining code" placeholders.
-5. *Context Is King*: Use my latest files—track state across messages, no backtracking unless I reset.
-6. *Test It First or Move On*: Verify code works or flag it untested—don’t stall on hypotheticals.
-7. *Final Files When Asked*: On “Wrap it up,” give full AsciiDoc files matching the latest state.
-8. *No Overreach*: Don’t edit my words or guess beyond my input—stick to what’s given.
-9. *Clean Code Blocks*: Don’t add comments like "// In src/xGhosted.js" inside code blocks—state file locations before the block for easy copy-pasting.
-10. *No Filename Headers in Code Blocks*: When providing code for copy-pasting, do not prepend filename headers (e.g., "// src/dom/createPanel.js") before the code block. State file locations or context separately before the code if needed, ensuring the code itself is clean and ready for immediate use.
-11. *Clarify Change Scope*: When modifying a file, always provide the full file with changes unless I request a snippet. Before the code block, clearly describe what’s changed (e.g., “Added X after line Y”), where the change occurs, and what remains unchanged to avoid ambiguity. Keep all explanations and change highlights outside the code block, ensuring it remains clean and ready for direct copy-pasting without line-by-line review.
+1. *Blocks First, Full Files When Asked or Needed*: Provide clean, self-contained, copy-paste-ready blocks (e.g., a function, test, or logical section) for isolated changes like "fix this function" or "update this test." Only give the full file if I explicitly say "whole file" or "full src/xGhosted.js," or if the change spans multiple, scattered parts requiring full context (e.g., interdependent functions). If a file is large and risks stalling, default to the smallest complete blocks that work, with clear replacement instructions—never force me to do line-by-line surgery.
+2. *Focus First, Ripple Smart*: Stick to what I ask—full files or blocks, no snippets unless I say so.
+3. *Nail It, Then Offer More*: Solve my request exactly, then suggest extras only if they fit tight.
+4. *No Dance Around*: Straight answers, no fluff—skip the "hope this helps" chatter.
+5. *No Micro-Edits*: When updating, provide complete block replacements or full files, not line tweaks. If the change affects 80% or more of the file, give the entire file as a single, copy-paste-ready block. Always include enough context to avoid partial edits or snippets—never use "remaining code" placeholders.
+6. *Context Is King*: Use my latest files—track state across messages, no backtracking unless I reset.
+7. *Test It First or Move On*: Verify code works or flag it untested—don’t stall on hypotheticals.
+8. *Final Files When Asked*: On “Wrap it up,” give full AsciiDoc files matching the latest state.
+9. *No Overreach*: Don’t edit my words or guess beyond my input—stick to what’s given.
+10. *Clean Code Blocks*: Don’t add comments like "// In src/xGhosted.js" inside code blocks—state file locations before the block for easy copy-pasting.
+11. *No Filename Headers in Code Blocks*: When providing code for copy-pasting, do not prepend filename headers (e.g., "// src/dom/createPanel.js") before the code block. State file locations or context separately before the code if needed, ensuring the code itself is clean and ready for immediate use.
+12. *Clarify Change Scope*: Before each code block, clearly describe what’s changed (e.g., “Replaced X function”), where it goes (e.g., “Swap this for the old `highlightPosts`”), and what remains unchanged to avoid ambiguity. Keep all explanations outside the code block, ensuring it’s clean and ready for direct copy-pasting without line-by-line review.
 
 == Project Context
 The pending 0.6.1 release of `xGhosted.js` is in progress—a modular, tested userscript. See `_grok-context.txt.adoc` for the latest snapshot. It preserves 0.6.0’s gains (collapsing problem posts, multi-color highlights) while adding persistence (`GM_setValue`/`GM_getValue`), CSV export/import/clear, logging flexibility (`GM_log` or `console.log`), and a 1000-article cap enforced in `identifyPosts`. Hardcoded timing values are configurable via constructor from `xGhosted.template.js`. Step 5 (Userscript Wrapper) uses `build-xGhosted.js` with esbuild to bundle `xGhosted.js` into `xGhosted.user.js`, optimized for minimal X.com server activity (manual mode default, DOM-only analysis). Tests total 112 across 17 suites, all passing. Manual testing of `build-xGhosted.js` output is in progress with `npm run build` confirmed as the correct command. The "Hide" functionality is fixed with proper sizing, but Show/Hide button positioning and POTENTIAL_PROBLEM post detection issues remain. Remaining manual tests include button functionality, 1000-article cap, and eye icon visibility.
@@ -23,3 +24,4 @@ The pending 0.6.1 release of `xGhosted.js` is in progress—a modular, tested us
 - March 25, 2025: Test suite at 24/24 passing in `src/xGhosted.test.js` after fixing timing initialization and `saveState` test. Timing values moved to constructor config, esbuild adopted.
 - March 26, 2025: Fixed `build-xGhosted.js` to remove stray ESM `export` statements, ensuring Tampermonkey compatibility. Enforced 1000-article cap in `xGhosted.js`. Fixed "Hide" functionality with proper sizing.
 - March 27, 2025: Updated revision date for current review.
+- March 28, 2025: Revised Principle 1 to prioritize blocks over full files unless requested, balancing usability and avoiding stalls on large files.
