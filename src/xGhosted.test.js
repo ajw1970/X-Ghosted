@@ -57,15 +57,16 @@ describe('xGhosted', () => {
     dom = setupJSDOM();
     xGhosted = new XGhosted(dom.window.document, {
       timing: {
-        debounceDelay: 500,      // Match new default from constructor
-        throttleDelay: 1000,     // Match new default from constructor
-        tabCheckThrottle: 5000,  // Match new default from constructor
-        exportThrottle: 5000     // Match new default from constructor
+        debounceDelay: 500,
+        throttleDelay: 1000,
+        tabCheckThrottle: 5000,
+        exportThrottle: 5000
       },
       useTampermonkeyLog: false,
-      persistProcessedPosts: true
+      persistProcessedPosts: true // Match original test behavior
     });
     xGhosted.updateState('https://x.com/user/with_replies');
+    xGhosted.highlightPostsDebounced = xGhosted.highlightPostsImmediate; // Synchronous for tests
   });
 
   afterEach(() => {

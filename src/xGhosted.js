@@ -181,41 +181,27 @@ XGhosted.prototype.findPostContainer = function () {
 };
 
 XGhosted.prototype.identifyPosts = function () {
-  const container = this.findPostContainer();
-  if (!container) return [];
-  const posts = container.querySelectorAll('div[data-testid="cellInnerDiv"]');
+  const posts = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
   const results = [];
-  let lastLink = null;
-  let fillerCount = 0;
   const MAX_PROCESSED_ARTICLES = 1e3;
+
   if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) {
-    this.log(
-      `Reached max processed articles (${MAX_PROCESSED_ARTICLES}). Skipping new posts.`
-    );
+    this.log(`Reached max processed articles (${MAX_PROCESSED_ARTICLES}). Skipping new posts.`);
     return Array.from(this.state.processedArticles.entries())
-      .filter(
-        ([_, { element }]) => element && this.document.body.contains(element)
-      )
+      .filter(([_, { element }]) => element && this.document.body.contains(element))
       .map(([id, { analysis, element }]) => ({
         post: element,
         analysis,
       }));
   }
+
   posts.forEach((post) => {
     if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) return;
     const analysis = identifyPost(post, this.state.isWithReplies, this.log);
     let id = analysis.link;
-    if (analysis.quality === postQuality.UNDEFINED && id === false) {
-      if (lastLink) {
-        fillerCount++;
-        id = `${lastLink}#filler${fillerCount}`;
-      } else {
-        id = `#filler${Math.random().toString(36).slice(2)}`;
-      }
+    if (!id) { // Handle UNDEFINED posts
+      id = `#filler${Math.random().toString(36).slice(2)}`;
       analysis.link = id;
-    } else if (id) {
-      lastLink = id;
-      fillerCount = 0;
     }
     const cached = this.state.processedArticles.get(id);
     if (cached && cached.element === post) {
@@ -251,12 +237,13 @@ XGhosted.prototype.highlightPosts = function () {
       [postQuality.GOOD.name]: 'good',
       [postQuality.UNDEFINED.name]: 'none'
     };
-    const cached = this.state.processedArticles.get(analysis.link);
-    let status = statusMap[analysis.quality.name] || 'none';
-    if (status === 'good' && (!cached || !cached.checked)) status = 'none';
-    this.applyHighlight(post, status);
-    if (status === 'potential' && this.state.isManualCheckEnabled && !cached?.checked) {
-      this.checkPostInNewTabThrottled(article, analysis.link);
+    const status = statusMap[analysis.quality.name] || 'none';
+    this.applyHighlight(post, status); // Trust identifyPost’s classification
+    if (status === 'potential' && this.state.isManualCheckEnabled) {
+      const cached = this.state.processedArticles.get(analysis.link);
+      if (!cached?.checked) {
+        this.checkPostInNewTabThrottled(article, analysis.link);
+      }
     }
     if (status === 'potential' && article && !article.querySelector('.eye-icon')) {
       const eye = this.document.createElement('span');
@@ -265,6 +252,7 @@ XGhosted.prototype.highlightPosts = function () {
       eye.style.position = 'absolute';
       eye.style.top = '5px';
       eye.style.right = '5px';
+      eye.style.zIndex = '10000'; // From roadmap fix
       article.appendChild(eye);
     }
   });

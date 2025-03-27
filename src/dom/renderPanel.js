@@ -17,6 +17,7 @@ function renderPanel(doc, state, uiElements, createPanel2) {
     dot.className = `status-dot ${statusClass}`;
     row.appendChild(dot);
     const linkItem = doc.createElement('div');
+    linkItem.className = 'link-item'; // Ensure test selector matches
     const a = Object.assign(doc.createElement('a'), {
       href: `https://x.com${href}`,
       textContent: `${href}`,
