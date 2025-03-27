@@ -4,8 +4,7 @@ import { findReplyingToWithDepth } from './findReplyingToWithDepth';
 import { getRelativeLinkToPost } from './getRelativeLinkToPost';
 import { postQuality } from './postQuality';
 
-function identifyPost(post, checkReplies = false) {
-    // Check for first article (to avoid nested articles)
+function identifyPost(post, checkReplies = false, logger = console.log) {
     const article = post.querySelector('article');
     if (!article) {
         return {
@@ -38,22 +37,26 @@ function identifyPost(post, checkReplies = false) {
     if (checkReplies) {
         // Posts with "Replying to" might be potential problems when found on with_replies page
         const replyingToDepths = findReplyingToWithDepth(article);
+        logger(`Checking replies for post, found ${replyingToDepths.length} "Replying to" instances:`, replyingToDepths);
         if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
             // Posts with replying to found at a depth < 10 are potential problems
-            // console.log(replyingToDepths);
             const replyingTo = replyingToDepths.find(object => object.depth < 10);
             if (replyingTo) {
-
+                logger(`POTENTIAL_PROBLEM detected: '${replyingTo.innerHTML}' at depth ${replyingTo.depth}`);
                 return {
                     quality: postQuality.POTENTIAL_PROBLEM,
                     reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
                     link: getRelativeLinkToPost(post),
                 };
+            } else {
+                logger('No "Replying to" found at depth < 10');
             }
+        } else {
+            logger('No "Replying to" divs found');
         }
     }
 
-    // By process of elimination, this is either good or undefined (likely filler info like "Click to see more replies").
+    // By process of elimination, this is either good or undefined
     const link = getRelativeLinkToPost(post);
     if (link) {
         return {

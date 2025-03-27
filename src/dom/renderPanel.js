@@ -1,22 +1,21 @@
-function renderPanel(doc, state, uiElements, createPanel) {
+function renderPanel(doc, state, uiElements, createPanel2) {
   if (!uiElements.panel || !doc.body.contains(uiElements.panel)) {
-    createPanel(doc, state, uiElements);
+    createPanel2(doc, state, uiElements);
   }
-  const flagged = Array.from(state.processedArticles.entries())
-    .filter(([_, { analysis }]) =>
+  const flagged = Array.from(state.processedArticles.entries()).filter(
+    ([_, { analysis }]) =>
       analysis.quality.name === state.postQuality.PROBLEM.name ||
       analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
-    );
+  );
   uiElements.label.textContent = `Problem Posts (${flagged.length}):`;
   uiElements.contentWrapper.innerHTML = '';
   flagged.forEach(([href, { analysis }]) => {
     const row = doc.createElement('div');
     row.className = 'link-row';
-
     const dot = doc.createElement('span');
-    dot.className = `status-dot status-${analysis.quality.name.toLowerCase()}`;
+    const statusClass = analysis.quality.name === state.postQuality.PROBLEM.name ? 'status-problem' : 'status-potential';
+    dot.className = `status-dot ${statusClass}`;
     row.appendChild(dot);
-
     const linkItem = doc.createElement('div');
     const a = Object.assign(doc.createElement('a'), {
       href: `https://x.com${href}`,
@@ -31,7 +30,6 @@ function renderPanel(doc, state, uiElements, createPanel) {
     });
     linkItem.appendChild(a);
     row.appendChild(linkItem);
-
     uiElements.contentWrapper.appendChild(row);
   });
   uiElements.contentWrapper.scrollTop = uiElements.contentWrapper.scrollHeight;

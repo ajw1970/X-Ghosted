@@ -266,28 +266,28 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
 
   uiElements.styleSheet = doc.createElement('style');
   uiElements.styleSheet.textContent = `
-    .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
-    .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${config.THEMES[mode].scroll}; border-radius: 3px; }
-    .problem-links-wrapper::-webkit-scrollbar-track { background: ${config.THEMES[mode].bg}; }
-    select { background-repeat: no-repeat; background-position: right 8px center; }
-    select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-    select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-    select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-    select:focus { outline: none; box-shadow: 0 0 0 2px ${config.THEMES[mode].scroll}; }
-    .link-item { padding: '6px 0'; }
-    .link-item a:hover { text-decoration: underline; }
-    button:active { transform: scale(0.95); }
-    .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
-    .status-potential { background-color: yellow; }
-    .status-problem { background-color: red; }
-    .status-good { background-color: green; }
-    .link-row { display: flex; align-items: center; padding: 4px 0; }
-    .link-row > div { flex: 1; }
-    button span { margin-left: 4px; }
-    button svg { width: 12px; height: 12px; }
-    .chevron-down { transform: rotate(0deg); }
-    .chevron-up { transform: rotate(180deg); }
-  `;
+  .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
+  .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${config.THEMES[mode].scroll}; border-radius: 3px; }
+  .problem-links-wrapper::-webkit-scrollbar-track { background: ${config.THEMES[mode].bg}; }
+  select { background-repeat: no-repeat; background-position: right 8px center; }
+  select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+  select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+  select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+  select:focus { outline: none; box-shadow: 0 0 0 2px ${config.THEMES[mode].scroll}; }
+  .link-item { padding: '6px 0'; }
+  .link-item a:hover { text-decoration: underline; }
+  button:active { transform: scale(0.95); }
+  .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+  .status-potential { background-color: yellow !important; }
+  .status-problem { background-color: red !important; }
+  .status-good { background-color: green !important; }
+  .link-row { display: flex; align-items: center; padding: 4px 0; }
+  .link-row > div { flex: 1; }
+  button span { margin-left: 4px; }
+  button svg { width: 12px; height: 12px; }
+  .chevron-down { transform: rotate(0deg); }
+  .chevron-up { transform: rotate(180deg); }
+`;
   doc.head.appendChild(uiElements.styleSheet);
 }
 

@@ -131,6 +131,7 @@ XGhosted.prototype.createPanel = function () {
 
 XGhosted.prototype.updateState = function (url) {
   this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(url);
+  this.log(`URL: ${url}, isWithReplies: ${this.state.isWithReplies}`);
   if (this.state.lastUrl !== url) {
     this.state.postContainer = null;
     this.state.processedArticles.clear();
@@ -192,7 +193,9 @@ XGhosted.prototype.identifyPosts = function () {
       `Reached max processed articles (${MAX_PROCESSED_ARTICLES}). Skipping new posts.`
     );
     return Array.from(this.state.processedArticles.entries())
-      .filter(([_, { element }]) => element && this.document.body.contains(element))
+      .filter(
+        ([_, { element }]) => element && this.document.body.contains(element)
+      )
       .map(([id, { analysis, element }]) => ({
         post: element,
         analysis,
@@ -200,7 +203,7 @@ XGhosted.prototype.identifyPosts = function () {
   }
   posts.forEach((post) => {
     if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) return;
-    const analysis = identifyPost(post, this.state.isWithReplies);
+    const analysis = identifyPost(post, this.state.isWithReplies, this.log);
     let id = analysis.link;
     if (analysis.quality === postQuality.UNDEFINED && id === false) {
       if (lastLink) {
@@ -294,24 +297,31 @@ XGhosted.prototype.copyLinks = function () {
 
 XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
   if (!csvText || typeof csvText !== 'string') {
-    console.error('Invalid CSV text provided');
+    this.log('Invalid CSV text provided');
     return;
   }
-  const lines = csvText.trim().split('\n').map(line => line.split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"')));
+  const lines = csvText
+    .trim()
+    .split('\n')
+    .map((line) =>
+      line
+        .split(',')
+        .map((cell) => cell.replace(/^"|"$/g, '').replace(/""/g, '"'))
+    );
   if (lines.length < 2) return;
   const headers = lines[0];
   const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
   if (!expectedHeaders.every((h, i) => h === headers[i])) {
-    console.error('CSV header mismatch');
+    this.log('CSV header mismatch');
     return;
   }
   const qualityMap = {
     [postQuality.UNDEFINED.name]: postQuality.UNDEFINED,
     [postQuality.PROBLEM.name]: postQuality.PROBLEM,
     [postQuality.POTENTIAL_PROBLEM.name]: postQuality.POTENTIAL_PROBLEM,
-    [postQuality.GOOD.name]: postQuality.GOOD
+    [postQuality.GOOD.name]: postQuality.GOOD,
   };
-  lines.slice(1).forEach(row => {
+  lines.slice(1).forEach((row) => {
     const [link, qualityName, reason, checkedStr] = row;
     const quality = qualityMap[qualityName];
     if (!quality) return;
@@ -319,7 +329,7 @@ XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
     this.state.processedArticles.set(id, {
       analysis: { quality, reason, link: id },
       element: null,
-      checked: checkedStr === 'true'
+      checked: checkedStr === 'true',
     });
   });
   this.saveState();
@@ -328,6 +338,8 @@ XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
 
 XGhosted.prototype.clearProcessedPosts = function () {
   this.state.processedArticles.clear();
+  this.state.fullyProcessedArticles = new WeakMap(); // Reset fullyProcessedArticles
+  this.state.problemLinks = new Set(); // Reset problemLinks
   this.saveState();
   this.highlightPostsImmediate();
 };

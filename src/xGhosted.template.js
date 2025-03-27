@@ -17,13 +17,13 @@
     'use strict';
 
     // Safety check: Ensure we're on X.com with a valid document
+    const log = typeof GM_log !== 'undefined' ? GM_log : console.log.bind(console);
     if (!window.location.href.startsWith('https://x.com/') || !document.body) {
-        console.error('xGhosted: Aborting - invalid environment');
+        log('xGhosted: Aborting - invalid environment');
         return;
     }
 
     // Log startup with safety focus
-    const log = typeof GM_log !== 'undefined' ? GM_log : console.log.bind(console);
     log('xGhosted v0.6.1 starting - Manual mode on, resource use capped');
 
     // --- Inject Module (single resolved xGhosted.js with all dependencies inlined) ---

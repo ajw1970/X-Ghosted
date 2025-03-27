@@ -17,14 +17,14 @@
   'use strict';
 
   // Safety check: Ensure we're on X.com with a valid document
+  const log =
+    typeof GM_log !== 'undefined' ? GM_log : console.log.bind(console);
   if (!window.location.href.startsWith('https://x.com/') || !document.body) {
-    console.error('xGhosted: Aborting - invalid environment');
+    log('xGhosted: Aborting - invalid environment');
     return;
   }
 
   // Log startup with safety focus
-  const log =
-    typeof GM_log !== 'undefined' ? GM_log : console.log.bind(console);
   log('xGhosted v0.6.1 starting - Manual mode on, resource use capped');
 
   // --- Inject Module (single resolved xGhosted.js with all dependencies inlined) ---
@@ -134,13 +134,15 @@
     }
     function findDivs(element, depth) {
       if (element.tagName === 'DIV') {
-        if (element.innerHTML.startsWith('Replying to')) {
+        const innerHTML = getInnerHTMLWithoutAttributes(element);
+        const textContent = element.textContent.trim();
+        if (
+          innerHTML.toLowerCase().includes('replying to') ||
+          textContent.toLowerCase().includes('replying to')
+        ) {
           result.push({
             depth,
-            innerHTML: getInnerHTMLWithoutAttributes(element).replace(
-              /<\/?(div|span)>/gi,
-              ''
-            ),
+            innerHTML: innerHTML.replace(/<\/?(div|span)>/gi, ''),
           });
         }
       }
@@ -162,7 +164,7 @@
   }
 
   // src/utils/identifyPost.js
-  function identifyPost(post, checkReplies = false) {
+  function identifyPost(post, checkReplies = false, logger = console.log) {
     const article = post.querySelector('article');
     if (!article) {
       return {
@@ -189,15 +191,26 @@
     }
     if (checkReplies) {
       const replyingToDepths = findReplyingToWithDepth(article);
+      logger(
+        `Checking replies for post, found ${replyingToDepths.length} "Replying to" instances:`,
+        replyingToDepths
+      );
       if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
         const replyingTo = replyingToDepths.find((object) => object.depth < 10);
         if (replyingTo) {
+          logger(
+            `POTENTIAL_PROBLEM detected: '${replyingTo.innerHTML}' at depth ${replyingTo.depth}`
+          );
           return {
             quality: postQuality.POTENTIAL_PROBLEM,
             reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
             link: getRelativeLinkToPost(post),
           };
+        } else {
+          logger('No "Replying to" found at depth < 10');
         }
+      } else {
+        logger('No "Replying to" divs found');
       }
     }
     const link = getRelativeLinkToPost(post);
@@ -591,28 +604,28 @@
     }
     uiElements.styleSheet = doc.createElement('style');
     uiElements.styleSheet.textContent = `
-    .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
-    .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${config.THEMES[mode].scroll}; border-radius: 3px; }
-    .problem-links-wrapper::-webkit-scrollbar-track { background: ${config.THEMES[mode].bg}; }
-    select { background-repeat: no-repeat; background-position: right 8px center; }
-    select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-    select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-    select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-    select:focus { outline: none; box-shadow: 0 0 0 2px ${config.THEMES[mode].scroll}; }
-    .link-item { padding: '6px 0'; }
-    .link-item a:hover { text-decoration: underline; }
-    button:active { transform: scale(0.95); }
-    .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
-    .status-potential { background-color: yellow; }
-    .status-problem { background-color: red; }
-    .status-good { background-color: green; }
-    .link-row { display: flex; align-items: center; padding: 4px 0; }
-    .link-row > div { flex: 1; }
-    button span { margin-left: 4px; }
-    button svg { width: 12px; height: 12px; }
-    .chevron-down { transform: rotate(0deg); }
-    .chevron-up { transform: rotate(180deg); }
-  `;
+  .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
+  .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${config.THEMES[mode].scroll}; border-radius: 3px; }
+  .problem-links-wrapper::-webkit-scrollbar-track { background: ${config.THEMES[mode].bg}; }
+  select { background-repeat: no-repeat; background-position: right 8px center; }
+  select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+  select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+  select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+  select:focus { outline: none; box-shadow: 0 0 0 2px ${config.THEMES[mode].scroll}; }
+  .link-item { padding: '6px 0'; }
+  .link-item a:hover { text-decoration: underline; }
+  button:active { transform: scale(0.95); }
+  .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+  .status-potential { background-color: yellow !important; }
+  .status-problem { background-color: red !important; }
+  .status-good { background-color: green !important; }
+  .link-row { display: flex; align-items: center; padding: 4px 0; }
+  .link-row > div { flex: 1; }
+  button span { margin-left: 4px; }
+  button svg { width: 12px; height: 12px; }
+  .chevron-down { transform: rotate(0deg); }
+  .chevron-up { transform: rotate(180deg); }
+`;
     doc.head.appendChild(uiElements.styleSheet);
   }
   function createModal(doc, state, mode, config) {
@@ -707,10 +720,15 @@
       panel,
     } = uiElements;
     if (state.isPanelVisible) {
+      const rect = panel.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const currentLeft = rect.left;
+      const currentTop = rect.top;
+      const currentRight = viewportWidth - rect.right;
       state.preHidePosition = {
-        top: panel.style.top || uiElements.config.PANEL.TOP,
-        right: panel.style.right || uiElements.config.PANEL.RIGHT,
-        left: panel.style.left || 'auto',
+        left: `${currentLeft}px`,
+        top: `${currentTop}px`,
+        right: `${currentRight}px`,
       };
       label.style.display = 'none';
       toolsToggle.style.display = 'none';
@@ -720,10 +738,19 @@
       toolsSection.style.display = 'none';
       toggleButton.querySelector('span').textContent = 'Show';
       panel.style.width = 'auto';
-      panel.style.minWidth = '70px';
+      panel.style.minWidth = '180px';
       panel.style.minHeight = '0px';
-      panel.style.maxHeight = '40px';
+      panel.style.maxHeight = '80px';
       panel.style.padding = '6px';
+      if (panel.style.left && panel.style.left !== 'auto') {
+        panel.style.left = state.preHidePosition.left;
+        panel.style.top = state.preHidePosition.top;
+        panel.style.right = 'auto';
+      } else {
+        panel.style.left = 'auto';
+        panel.style.right = state.preHidePosition.right;
+        panel.style.top = state.preHidePosition.top;
+      }
       toggleButton.style.position = 'absolute';
       toggleButton.style.top = '6px';
       toggleButton.style.right = '6px';
@@ -748,18 +775,18 @@
       toggleButton.style.top = '';
       toggleButton.style.right = '';
       toggleButton.style.marginRight = '8px';
-      if (state.preHidePosition) {
-        panel.style.top = state.preHidePosition.top;
-        panel.style.right = state.preHidePosition.right;
-        panel.style.left = state.preHidePosition.left;
-      } else if (state.panelPosition) {
-        panel.style.top = state.panelPosition.top;
+      if (state.panelPosition && state.panelPosition.left) {
         panel.style.left = state.panelPosition.left;
+        panel.style.top = state.panelPosition.top;
         panel.style.right = 'auto';
-      } else {
-        panel.style.top = uiElements.config.PANEL.TOP;
-        panel.style.right = uiElements.config.PANEL.RIGHT;
+      } else if (state.preHidePosition && state.preHidePosition.right) {
         panel.style.left = 'auto';
+        panel.style.right = state.preHidePosition.right;
+        panel.style.top = state.preHidePosition.top;
+      } else {
+        panel.style.left = 'auto';
+        panel.style.right = uiElements.config.PANEL.RIGHT;
+        panel.style.top = uiElements.config.PANEL.TOP;
       }
       panel.style.transition = 'max-height 0.2s ease, padding 0.2s ease';
       state.isPanelVisible = true;
@@ -782,7 +809,11 @@
       const row = doc.createElement('div');
       row.className = 'link-row';
       const dot = doc.createElement('span');
-      dot.className = `status-dot status-${analysis.quality.name.toLowerCase()}`;
+      const statusClass =
+        analysis.quality.name === state.postQuality.PROBLEM.name
+          ? 'status-problem'
+          : 'status-potential';
+      dot.className = `status-dot ${statusClass}`;
       row.appendChild(dot);
       const linkItem = doc.createElement('div');
       const a = Object.assign(doc.createElement('a'), {
@@ -1035,6 +1066,7 @@
     this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(
       url
     );
+    this.log(`URL: ${url}, isWithReplies: ${this.state.isWithReplies}`);
     if (this.state.lastUrl !== url) {
       this.state.postContainer = null;
       this.state.processedArticles.clear();
@@ -1110,7 +1142,7 @@
     }
     posts.forEach((post) => {
       if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) return;
-      const analysis = identifyPost(post, this.state.isWithReplies);
+      const analysis = identifyPost(post, this.state.isWithReplies, this.log);
       let id = analysis.link;
       if (analysis.quality === postQuality.UNDEFINED && id === false) {
         if (lastLink) {
@@ -1218,7 +1250,7 @@
   };
   XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
     if (!csvText || typeof csvText !== 'string') {
-      console.error('Invalid CSV text provided');
+      this.log('Invalid CSV text provided');
       return;
     }
     const lines = csvText
@@ -1233,7 +1265,7 @@
     const headers = lines[0];
     const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
     if (!expectedHeaders.every((h, i) => h === headers[i])) {
-      console.error('CSV header mismatch');
+      this.log('CSV header mismatch');
       return;
     }
     const qualityMap = {
@@ -1258,6 +1290,8 @@
   };
   XGhosted.prototype.clearProcessedPosts = function () {
     this.state.processedArticles.clear();
+    this.state.fullyProcessedArticles = /* @__PURE__ */ new WeakMap();
+    this.state.problemLinks = /* @__PURE__ */ new Set();
     this.saveState();
     this.highlightPostsImmediate();
   };
