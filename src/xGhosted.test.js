@@ -62,7 +62,8 @@ describe('xGhosted', () => {
         tabCheckThrottle: 5000,  // Match new default from constructor
         exportThrottle: 5000     // Match new default from constructor
       },
-      useTampermonkeyLog: false
+      useTampermonkeyLog: false,
+      persistProcessedPosts: true
     });
     xGhosted.updateState('https://x.com/user/with_replies');
   });
@@ -351,7 +352,8 @@ describe('xGhosted', () => {
           tabCheckThrottle: 5000,
           exportThrottle: 5000
         },
-        useTampermonkeyLog: false
+        useTampermonkeyLog: false,
+        persistProcessedPosts: false
       });
       expect(xGhosted.getThemeMode()).toBe('dark');
 
@@ -363,7 +365,8 @@ describe('xGhosted', () => {
           tabCheckThrottle: 5000,
           exportThrottle: 5000
         },
-        useTampermonkeyLog: false
+        useTampermonkeyLog: false,
+        persistProcessedPosts: false
       });
       expect(xGhosted.getThemeMode()).toBe('dark');
     });
@@ -377,7 +380,8 @@ describe('xGhosted', () => {
           tabCheckThrottle: 5000,
           exportThrottle: 5000
         },
-        useTampermonkeyLog: false
+        useTampermonkeyLog: false,
+        persistProcessedPosts: false
       });
       expect(xGhosted.getThemeMode()).toBe('dim');
     });
@@ -391,7 +395,8 @@ describe('xGhosted', () => {
           tabCheckThrottle: 5000,
           exportThrottle: 5000
         },
-        useTampermonkeyLog: false
+        useTampermonkeyLog: false,
+        persistProcessedPosts: false
       });
       expect(xGhosted.getThemeMode()).toBe('light');
 
@@ -403,7 +408,8 @@ describe('xGhosted', () => {
           tabCheckThrottle: 5000,
           exportThrottle: 5000
         },
-        useTampermonkeyLog: false
+        useTampermonkeyLog: false,
+        persistProcessedPosts: false
       });
       expect(xGhosted.getThemeMode()).toBe('light');
     });
@@ -418,7 +424,8 @@ describe('xGhosted', () => {
           tabCheckThrottle: 5000,
           exportThrottle: 5000
         },
-        useTampermonkeyLog: false
+        useTampermonkeyLog: false,
+        persistProcessedPosts: false
       });
       expect(xGhosted.getThemeMode()).toBe('dark');
     });
@@ -433,7 +440,8 @@ describe('xGhosted', () => {
           tabCheckThrottle: 5000,
           exportThrottle: 5000
         },
-        useTampermonkeyLog: false
+        useTampermonkeyLog: false,
+        persistProcessedPosts: false
       });
       expect(xGhosted.getThemeMode()).toBe('dim');
     });
@@ -448,7 +456,8 @@ describe('xGhosted', () => {
           tabCheckThrottle: 5000,
           exportThrottle: 5000
         },
-        useTampermonkeyLog: false
+        useTampermonkeyLog: false,
+        persistProcessedPosts: false
       });
       expect(xGhosted.getThemeMode()).toBe('light');
     });
@@ -464,7 +473,8 @@ describe('xGhosted', () => {
           tabCheckThrottle: 5000,
           exportThrottle: 5000
         },
-        useTampermonkeyLog: false
+        useTampermonkeyLog: false,
+        persistProcessedPosts: false
       });
       expect(xGhosted.getThemeMode()).toBe('dark');
     });
@@ -480,7 +490,8 @@ describe('xGhosted', () => {
           tabCheckThrottle: 5000,
           exportThrottle: 5000
         },
-        useTampermonkeyLog: false
+        useTampermonkeyLog: false,
+        persistProcessedPosts: false
       });
       expect(xGhosted.getThemeMode()).toBe('dim');
     });
@@ -496,7 +507,8 @@ describe('xGhosted', () => {
           tabCheckThrottle: 5000,
           exportThrottle: 5000
         },
-        useTampermonkeyLog: false
+        useTampermonkeyLog: false,
+        persistProcessedPosts: false
       });
       expect(xGhosted.getThemeMode()).toBe('light');
     });
@@ -512,7 +524,8 @@ describe('xGhosted', () => {
           tabCheckThrottle: 5000,
           exportThrottle: 5000
         },
-        useTampermonkeyLog: false
+        useTampermonkeyLog: false,
+        persistProcessedPosts: false
       });
       expect(xGhosted.getThemeMode()).toBe('light');
     });
@@ -531,7 +544,8 @@ describe('Persistence in xGhosted', () => {
         tabCheckThrottle: 5000,
         exportThrottle: 5000
       },
-      useTampermonkeyLog: false
+      useTampermonkeyLog: false,
+      persistProcessedPosts: true
     });
     xGhosted.updateState('https://x.com/user/with_replies');
     gmStorage.xGhostedState = undefined;

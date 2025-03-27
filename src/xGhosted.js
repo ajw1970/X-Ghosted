@@ -131,7 +131,7 @@ XGhosted.prototype.createPanel = function () {
 
 XGhosted.prototype.updateState = function (url) {
   this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(url);
-  this.log(`URL: ${url}, isWithReplies: ${this.state.isWithReplies}`);
+  // this.log(`URL: ${url}, isWithReplies: ${this.state.isWithReplies}`);
   if (this.state.lastUrl !== url) {
     this.state.postContainer = null;
     this.state.processedArticles.clear();

@@ -134,15 +134,13 @@
     }
     function findDivs(element, depth) {
       if (element.tagName === 'DIV') {
-        const innerHTML = getInnerHTMLWithoutAttributes(element);
-        const textContent = element.textContent.trim();
-        if (
-          innerHTML.toLowerCase().includes('replying to') ||
-          textContent.toLowerCase().includes('replying to')
-        ) {
+        if (element.innerHTML.startsWith('Replying to')) {
           result.push({
             depth,
-            innerHTML: innerHTML.replace(/<\/?(div|span)>/gi, ''),
+            innerHTML: getInnerHTMLWithoutAttributes(element).replace(
+              /<\/?(div|span)>/gi,
+              ''
+            ),
           });
         }
       }
@@ -191,26 +189,17 @@
     }
     if (checkReplies) {
       const replyingToDepths = findReplyingToWithDepth(article);
-      logger(
-        `Checking replies for post, found ${replyingToDepths.length} "Replying to" instances:`,
-        replyingToDepths
-      );
       if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
         const replyingTo = replyingToDepths.find((object) => object.depth < 10);
         if (replyingTo) {
-          logger(
-            `POTENTIAL_PROBLEM detected: '${replyingTo.innerHTML}' at depth ${replyingTo.depth}`
-          );
           return {
             quality: postQuality.POTENTIAL_PROBLEM,
             reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
             link: getRelativeLinkToPost(post),
           };
         } else {
-          logger('No "Replying to" found at depth < 10');
         }
       } else {
-        logger('No "Replying to" divs found');
       }
     }
     const link = getRelativeLinkToPost(post);
@@ -1066,7 +1055,6 @@
     this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(
       url
     );
-    this.log(`URL: ${url}, isWithReplies: ${this.state.isWithReplies}`);
     if (this.state.lastUrl !== url) {
       this.state.postContainer = null;
       this.state.processedArticles.clear();
