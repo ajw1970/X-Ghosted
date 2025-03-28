@@ -1,13 +1,15 @@
 = Grok Step 4: Roadmap to Next Release
-:revision-date: April 1, 2025
+:revision-date: March 28, 2025
 
 == Roadmap to Next Version Release (0.6.1)
-1. *DOM-Driven Detection*: Tag container (`data-xGhosted="posts-container"`, `tabindex="0"`, log `aria-label`), posts (`data-xGhosted="postquality.<quality>"`, `data-xGhosted-id="link"`, `xGhosted-<quality>` classes). Fail with message if not found. Complete—tested on `/with_replies`.
+1. *DOM-Driven Detection*: Tag container (`data-xGhosted="posts-container"`, `tabindex="0"`, log `aria-label`), posts (`data-xGhosted="postquality.<quality>"`, `data-xGhosted-id="link"`, `xGhosted-<quality>` classes). Fail with message if not found. Complete—implemented in `xGhosted.js`.
 2. *MutationObserver Update*: Watch `[data-xGhosted="posts-container"]` children, re-init on refresh with 5s timeout. DOM-settling check tabled. Complete—implemented in `xGhosted.js`.
-3. *Manual Test*: Verify tagging, highlighting, fail message on 50+ post page. Complete—confirmed consistent behavior.
-4. *Deferred Tasks*: Show/Hide fix (done), POTENTIAL_PROBLEM detection (resolved via DOM tagging), Clear/Export CSV reset (done)—shifted below DOM work.
+3. *Manual Test*: Verify tagging, highlighting, fail message on 50+ post page. Implemented—pending verification.
+4. *Deferred Tasks*: Show/Hide fix (done), POTENTIAL_PROBLEM detection (resolved via DOM tagging and thread check), Clear/Export CSV reset (done)—shifted below DOM work.
 
 == Next Steps for Continuation
+- Update tests for DOM tagging and class-based highlighting.
+- Complete manual testing for 50+ posts on `/with_replies`.
 - Finalize 0.6.1 release with updated documentation.
 - Plan enhancements (e.g., auto-collapse toggle, UI refinements).
 
@@ -16,5 +18,4 @@
 - March 24, 2025: Step 5 completed—userscript wrapper with esbuild.
 - March 26, 2025: Fixed `build-xGhosted.js`, 1000-article cap, "Hide" functionality.
 - March 27, 2025: Added manual testing findings.
-- March 31, 2025: DOM tagging prioritized, fail-on-missing, esbuild stays.
-- April 1, 2025: DOM tagging and observer updates complete; roadmap tasks finalized.
+- March 28, 2025: Refined `checkPostInNewTab` and `highlightPosts`, manual testing implemented but unverified.

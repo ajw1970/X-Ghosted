@@ -1,5 +1,5 @@
 = Grok Step 1: Master Prompt
-:revision-date: April 1, 2025
+:revision-date: March 28, 2025
 
 == Core Principles for Interaction
 1. *Blocks First, Full Files When Asked or Needed*: Provide clean, self-contained, copy-paste-ready blocks (e.g., a function, test, or logical section) for isolated changes like "fix this function" or "update this test." Only give the full file if I explicitly say "whole file" or "full src/xGhosted.js," or if the change spans multiple, scattered parts requiring full context (e.g., interdependent functions). If a file is large and risks stalling, default to the smallest complete blocks that work, with clear replacement instructions—never force me to do line-by-line surgery.
@@ -16,7 +16,7 @@
 12. *Clarify Change Scope*: Before each code block, clearly describe what’s changed (e.g., “Replaced X function”), where it goes (e.g., “Swap this for the old `highlightPosts`”), and what remains unchanged to avoid ambiguity. Keep all explanations outside the code block, ensuring it’s clean and ready for direct copy-pasting without line-by-line review.
 
 == Project Context
-The 0.6.1 release of `xGhosted.js` is a modular, tested userscript, now fully leveraging a DOM-driven approach. Posts container is tagged with `data-xGhosted="posts-container"` (scoped to `tabindex="0"`, logs `aria-label`), posts are tagged with `data-xGhosted="postquality.<quality>"` and `data-xGhosted-id="link"`, and CSS classes (`xGhosted-good`, `xGhosted-problem`, etc.) handle highlighting. If the container isn’t found, it fails with a user message—no fallback to `main` or `body`. MutationObserver watches the tagged container’s children with a 5s timeout for refreshes—DOM-settling checks remain tabled. Esbuild is retained as the build tool—fast and reliable. Tests total 112 across 17 suites, all passing; updates for tagging logic are complete. Manual testing on `/with_replies` verified tagging and refresh handling. Persistence via `GM_setValue`/`GM_getValue` and CSV export/import persist, with prior fixes (Show/Hide, PROBLEM highlighting) in place.
+The 0.6.1 release of `xGhosted.js` is a modular, tested userscript, fully leveraging a DOM-driven approach. Posts container is tagged with `data-xGhosted="posts-container"` (scoped to `tabindex="0"`, logs `aria-label`), posts are tagged with `data-xGhosted="postquality.<quality>"` and `data-xGhosted-id="link"`, and CSS classes (`xGhosted-good`, `xGhosted-problem`, etc.) handle highlighting, replacing inline styles. If the container isn’t found, it fails with a user message—no fallback to `main` or `body`. `checkPostInNewTab` analyzes threads (2+ posts) via a throttled Promise, with `highlightPosts` updating DOM and state. MutationObserver watches the tagged container’s children with a 5s timeout for refreshes—DOM-settling checks remain tabled. Esbuild is retained as the build tool—fast and reliable. Tests total 112 across 17 suites, pending updates for DOM attributes and class checks. Manual testing on `/with_replies` implemented but unverified for 50+ posts. Persistence via `GM_setValue`/`GM_getValue` and CSV export/import persist, with prior fixes (Show/Hide, PROBLEM highlighting) in place.
 
 == Revision History
 - March 23, 2025: Updated for 0.6.1—18 tests pass in `xGhosted.test.js`. Persistence via `GM_setValue`/`GM_getValue` added.
@@ -24,8 +24,4 @@ The 0.6.1 release of `xGhosted.js` is a modular, tested userscript, now fully le
 - March 25, 2025: Test suite at 24/24 passing in `src/xGhosted.test.js` after fixing timing initialization and `saveState` test. Timing values moved to constructor config, esbuild adopted.
 - March 26, 2025: Fixed `build-xGhosted.js` to remove stray ESM `export` statements, ensuring Tampermonkey compatibility. Enforced 1000-article cap in `xGhosted.js`. Fixed "Hide" functionality with proper sizing.
 - March 27, 2025: Updated revision date for current review.
-- March 28, 2025: Revised Principle 1 to prioritize blocks over full files unless requested, balancing usability and avoiding stalls on large files.
-- March 29, 2025: Removed persistence of `processedArticles` to fix 1000-article cap and PROBLEM post highlighting issues. Fixed Show/Hide button overlap with theme selector, resolved core positioning issue, fixed red dot in panel, ensured Clear button resets state for Export CSV, and improved POTENTIAL_PROBLEM detection consistency. Manual testing completed.
-- March 30, 2025: Restored `identifyPosts` logic with deterministic `#filler` IDs based on previous links, confirmed all 24 tests passing. Noted snippet version mismatch (0.6.4 features) for future integration.
-- March 31, 2025: Shifted to DOM-driven approach—container tagging, post attributes, fail-on-missing, observer scoping. Roadmap reprioritized, esbuild retained.
-- April 1, 2025: Confirmed DOM tagging implementation for 0.6.1, resolving POTENTIAL_PROBLEM detection via attributes and CSS classes.
+- March 28, 2025: Removed `applyHighlight`, refined `checkPostInNewTab` to thread analysis with Promise, updated `highlightPosts` to use throttled check and DOM classes.
