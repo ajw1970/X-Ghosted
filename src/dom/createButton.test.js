@@ -1,74 +1,82 @@
-import { JSDOM } from 'jsdom';
 import { jest } from '@jest/globals';
+import { JSDOM } from 'jsdom';
 import { createButton } from './createButton';
 import { rgbToHex } from './rgbToHex';
 
 describe('createButton', () => {
-  let doc, config;
+  let dom, doc, config;
 
   beforeEach(() => {
-    const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
+    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
     doc = dom.window.document;
-
-    // Reset default button styles to ensure border: none is respected
-    const styleSheet = doc.createElement('style');
-    styleSheet.textContent = `
-      button {
-        border: none !important;
-      }
-    `;
-    doc.head.appendChild(styleSheet);
-
     config = {
       THEMES: {
-        light: {
-          button: '#D3D3D3',
-          hover: '#C0C0C0',
-          text: '#292F33'
-        }
-      }
+        light: { button: '#D3D3D3', hover: '#C0C0C0', text: '#292F33' },
+        dark: { button: '#333333', hover: '#444444', text: '#D9D9D9' },
+      },
     };
   });
 
-  test('creates a button with correct styles and event listeners', () => {
-    const mockOnClick = jest.fn();
-    const button = createButton(doc, 'Test Button', 'light', mockOnClick, config);
+  test('creates a button with correct styles and text', () => {
+    const onClick = jest.fn();
+    const button = createButton(doc, 'Test', null, 'light', onClick, config);
 
-    // Verify initial styles
     expect(button.tagName).toBe('BUTTON');
-    expect(button.textContent).toBe('Test Button');
+    expect(button.textContent).toBe('Test');
     expect(rgbToHex(button.style.background)).toBe('#D3D3D3');
     expect(rgbToHex(button.style.color)).toBe('#292F33');
-    // JSDOM limitation: button.style.border returns '' instead of 'none'
-    expect(button.style.border).toBe('');
+    expect(button.style.borderStyle).toBe('none');  // Updated to check borderStyle
     expect(button.style.padding).toBe('6px 12px');
     expect(button.style.borderRadius).toBe('9999px');
     expect(button.style.cursor).toBe('pointer');
     expect(button.style.fontSize).toBe('13px');
     expect(button.style.fontWeight).toBe('500');
-    expect(button.style.transition).toBe('background 0.2s ease');
-    expect(button.style.marginRight).toBe('0px'); // Not "Copy" or "Hide"
+    expect(button.style.display).toBe('flex');
+    expect(button.style.alignItems).toBe('center');
+    expect(button.style.gap).toBe('6px');
+  });
 
-    // Simulate mouseover
-    button.dispatchEvent(new doc.defaultView.Event('mouseover'));
+  test('includes icon SVG when provided', () => {
+    const onClick = jest.fn();
+    const iconSvg = '<svg width="12" height="12"></svg>';
+    const button = createButton(doc, 'Test', iconSvg, 'dark', onClick, config);
+
+    expect(button.innerHTML).toBe(`${iconSvg}<span>Test</span>`);
+    expect(rgbToHex(button.style.background)).toBe('#333333');
+    expect(rgbToHex(button.style.color)).toBe('#D9D9D9');
+  });
+
+  test('applies hover effects on mouseover and mouseout', () => {
+    const onClick = jest.fn();
+    const button = createButton(doc, 'Test', null, 'light', onClick, config);
+
+    const mouseoverEvent = new dom.window.Event('mouseover');
+    button.dispatchEvent(mouseoverEvent);
     expect(rgbToHex(button.style.background)).toBe('#C0C0C0');
+    expect(button.style.transition).toBe('background 0.2s ease');
 
-    // Simulate mouseout
-    button.dispatchEvent(new doc.defaultView.Event('mouseout'));
+    const mouseoutEvent = new dom.window.Event('mouseout');
+    button.dispatchEvent(mouseoutEvent);
     expect(rgbToHex(button.style.background)).toBe('#D3D3D3');
+  });
 
-    // Simulate click
-    button.dispatchEvent(new doc.defaultView.Event('click'));
-    expect(mockOnClick).toHaveBeenCalled();
+  test('triggers onClick when clicked', () => {
+    const onClick = jest.fn();
+    const button = createButton(doc, 'Test', null, 'light', onClick, config);
+
+    const clickEvent = new dom.window.Event('click');
+    button.dispatchEvent(clickEvent);
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   test('sets marginRight for Copy and Hide buttons', () => {
-    const buttonCopy = createButton(doc, 'Copy', 'light', () => { }, config);
-    const buttonHide = createButton(doc, 'Hide', 'light', () => { }, config);
-    const buttonOther = createButton(doc, 'Other', 'light', () => { }, config);
+    const onClick = jest.fn();
+    const copyButton = createButton(doc, 'Copy', null, 'light', onClick, config);
+    const hideButton = createButton(doc, 'Hide', null, 'light', onClick, config);
+    const testButton = createButton(doc, 'Test', null, 'light', onClick, config);
 
-    expect(buttonCopy.style.marginRight).toBe('8px');
-    expect(buttonHide.style.marginRight).toBe('8px');
-    expect(buttonOther.style.marginRight).toBe('0px');
+    expect(copyButton.style.marginRight).toBe('8px');
+    expect(hideButton.style.marginRight).toBe('8px');
+    expect(testButton.style.marginRight).toBe('0px');
   });
 });

@@ -1,56 +1,108 @@
+import { jest } from '@jest/globals';
 import { JSDOM } from 'jsdom';
-import { createPanel } from './createPanel';
+import { togglePanelVisibility } from './togglePanelVisibility';
 
-describe('createPanel', () => {
-  let doc, state, uiElements, config;
+describe('togglePanelVisibility', () => {
+  let dom, doc, state, uiElements;
 
   beforeEach(() => {
-    const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
+    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
     doc = dom.window.document;
-    state = { isDarkMode: false };
+    state = { isPanelVisible: true };
     uiElements = {
+      panel: doc.createElement('div'),
+      label: doc.createElement('span'),
+      toolsToggle: doc.createElement('button'),
+      modeSelector: doc.createElement('select'),
+      toggleButton: doc.createElement('button'),
+      contentWrapper: doc.createElement('div'),
+      controlRow: doc.createElement('div'),
+      toolsSection: doc.createElement('div'),
       config: {
-        PANEL: { WIDTH: '350px', TOP: '60px', RIGHT: '10px', Z_INDEX: '9999', FONT: 'sans-serif', MAX_HEIGHT: 'calc(100vh - 70px)', MIN_WIDTH: '250px', MIN_HEIGHT: '150px' },
-        THEMES: { light: { bg: '#FFFFFF', text: '#292F33', border: '#E1E8ED', scroll: '#CCD6DD', button: '#D3D3D3', hover: '#C0C0C0' } }
-      }
+        PANEL: {
+          WIDTH: '350px',
+          MAX_HEIGHT: 'calc(100vh - 70px)',
+          RIGHT: '10px',
+          TOP: '60px',
+        },
+      },
     };
-    config = uiElements.config;
+    // Set initial styles
+    uiElements.panel.style.width = '350px';
+    uiElements.panel.style.maxHeight = 'calc(100vh - 70px)';
+    uiElements.panel.style.minWidth = '250px';
+    uiElements.panel.style.minHeight = '150px';
+    uiElements.label.style.display = 'inline-block';
+    uiElements.toolsToggle.style.display = 'flex';
+    uiElements.modeSelector.style.display = 'inline-block';
+    uiElements.contentWrapper.style.display = 'block';
+    uiElements.controlRow.style.display = 'flex';
+    uiElements.toolsSection.style.display = 'none';
+    uiElements.toggleButton.innerHTML = '<span>Hide</span>';
+    uiElements.toggleButton.style.display = 'flex';
   });
 
-  test('creates a panel with toolbar and content', () => {
-    createPanel(doc, state, uiElements, config, () => { }, () => { });
-    const panel = doc.getElementById('xghosted-panel');
-    expect(panel).toBeTruthy(); 
+  test('hides panel and updates toggle button text', () => {
+    togglePanelVisibility(state, uiElements);
+    expect(state.isPanelVisible).toBe(false);
+    expect(uiElements.panel.style.width).toBe('auto');
+    expect(uiElements.panel.style.minWidth).toBe('180px');
+    expect(uiElements.panel.style.maxHeight).toBe('80px');
+    expect(uiElements.label.style.display).toBe('none');
+    expect(uiElements.toolsToggle.style.display).toBe('none');
+    expect(uiElements.modeSelector.style.display).toBe('none');
+    expect(uiElements.contentWrapper.style.display).toBe('none');
+    expect(uiElements.controlRow.style.display).toBe('none');
+    expect(uiElements.toolsSection.style.display).toBe('none');
+    expect(uiElements.toggleButton.querySelector('span').textContent).toBe('Show');
+    expect(uiElements.toggleButton.style.display).toBe('inline-block');
+  });
+
+  test('shows panel and restores dimensions', () => {
+    state.isPanelVisible = false;
+    uiElements.panel.style.width = 'auto';
+    uiElements.panel.style.minWidth = '180px';
+    uiElements.panel.style.maxHeight = '80px';
+    uiElements.toggleButton.querySelector('span').textContent = 'Show';
+    togglePanelVisibility(state, uiElements);
+    expect(state.isPanelVisible).toBe(true);
     expect(uiElements.panel.style.width).toBe('350px');
-    expect(uiElements.label.textContent).toBe('Problem Posts (0):');
-    expect(uiElements.contentWrapper.className).toBe('problem-links-wrapper');
+    expect(uiElements.panel.style.maxHeight).toBe('calc(100vh - 70px)');
+    expect(uiElements.panel.style.minWidth).toBe('250px');
+    expect(uiElements.panel.style.minHeight).toBe('150px');
+    expect(uiElements.label.style.display).toBe('inline-block');
+    expect(uiElements.toolsToggle.style.display).toBe('inline-block');
+    expect(uiElements.modeSelector.style.display).toBe('inline-block');
+    expect(uiElements.contentWrapper.style.display).toBe('block');
+    expect(uiElements.controlRow.style.display).toBe('flex');
+    expect(uiElements.toolsSection.style.display).toBe('none');
+    expect(uiElements.toggleButton.querySelector('span').textContent).toBe('Hide');
   });
 
-  test('sets initial display styles for all elements', () => {
-    createPanel(doc, state, uiElements, config, () => {}, () => {});
-    
-    // Collect all UI elements that should have display styles, excluding non-UI elements, containers, and styleSheet
-    const elementsWithDisplay = Object.keys(uiElements)
-      .filter(key => 
-        key !== 'config' && 
-        key !== 'panel' && // panel's display is not explicitly set
-        key !== 'toolbar' && // toolbar should be flex
-        key !== 'styleSheet' && // styleSheet doesn't need a display style
-        uiElements[key] && 
-        uiElements[key].style // Ensure it's a DOM element with a style property
-      )
-      .map(key => uiElements[key]);
+  test('dynamically hides all elements except toggleButton when hiding', () => {
+    togglePanelVisibility(state, uiElements);
+    const hiddenElements = [
+      uiElements.label,
+      uiElements.toolsToggle,
+      uiElements.modeSelector,
+      uiElements.contentWrapper,
+      uiElements.controlRow,
+      uiElements.toolsSection,
+    ];
+    hiddenElements.forEach((el) => expect(el.style.display).toBe('none'));
+    expect(uiElements.toggleButton.style.display).toBe('inline-block');
+  });
 
-    // Verify initial display styles
-    elementsWithDisplay.forEach(element => {
-      if (element === uiElements.contentWrapper) {
-        expect(element.style.display).toBe('block');
-      } else {
-        expect(element.style.display).toBe('inline-block');
-      }
-    });
+  test('shrinks panel dimensions when hiding and restores when showing', () => {
+    togglePanelVisibility(state, uiElements);
+    expect(uiElements.panel.style.width).toBe('auto');
+    expect(uiElements.panel.style.minWidth).toBe('180px');
+    expect(uiElements.panel.style.maxHeight).toBe('80px');
 
-    // Separately verify toolbar's display
-    expect(uiElements.toolbar.style.display).toBe('flex');
+    togglePanelVisibility(state, uiElements);
+    expect(uiElements.panel.style.width).toBe('350px');
+    expect(uiElements.panel.style.maxHeight).toBe('calc(100vh - 70px)');
+    expect(uiElements.panel.style.minWidth).toBe('250px');
+    expect(uiElements.panel.style.minHeight).toBe('150px');
   });
 });

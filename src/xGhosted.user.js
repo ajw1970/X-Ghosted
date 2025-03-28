@@ -805,6 +805,7 @@
       dot.className = `status-dot ${statusClass}`;
       row.appendChild(dot);
       const linkItem = doc.createElement('div');
+      linkItem.className = 'link-item';
       const a = Object.assign(doc.createElement('a'), {
         href: `https://x.com${href}`,
         textContent: `${href}`,
@@ -1108,9 +1109,9 @@
     return this.state.postContainer;
   };
   XGhosted.prototype.identifyPosts = function () {
-    const container = this.findPostContainer();
-    if (!container) return [];
-    const posts = container.querySelectorAll('div[data-testid="cellInnerDiv"]');
+    const posts = this.document.querySelectorAll(
+      'div[data-testid="cellInnerDiv"]'
+    );
     const results = [];
     let lastLink = null;
     let fillerCount = 0;
@@ -1130,14 +1131,14 @@
     }
     posts.forEach((post) => {
       if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) return;
-      const analysis = identifyPost(post, this.state.isWithReplies, this.log);
+      const analysis = identifyPost(post, this.state.isWithReplies);
       let id = analysis.link;
       if (analysis.quality === postQuality.UNDEFINED && id === false) {
         if (lastLink) {
           fillerCount++;
           id = `${lastLink}#filler${fillerCount}`;
         } else {
-          id = `#filler${Math.random().toString(36).slice(2)}`;
+          id = `#filler${fillerCount}`;
         }
         analysis.link = id;
       } else if (id) {
@@ -1172,36 +1173,34 @@
     const posts = this.identifyPosts();
     posts.forEach(({ post, analysis }) => {
       if (!post || !this.document.body.contains(post)) return;
-      const article = post.querySelector('article');
       const statusMap = {
         [postQuality.PROBLEM.name]: 'problem',
         [postQuality.POTENTIAL_PROBLEM.name]: 'potential',
-        [postQuality.GOOD.name]: 'good',
+        [postQuality.GOOD.name]: 'none',
+        // Changed from 'good' to 'none'
         [postQuality.UNDEFINED.name]: 'none',
       };
-      const cached = this.state.processedArticles.get(analysis.link);
-      let status = statusMap[analysis.quality.name] || 'none';
-      if (status === 'good' && (!cached || !cached.checked)) status = 'none';
+      const status = statusMap[analysis.quality.name] || 'none';
       this.applyHighlight(post, status);
-      if (
-        status === 'potential' &&
-        this.state.isManualCheckEnabled &&
-        !cached?.checked
-      ) {
-        this.checkPostInNewTabThrottled(article, analysis.link);
+      this.state.processedArticles.set(analysis.link, {
+        analysis,
+        element: post,
+      });
+      if (status === 'potential' && this.state.isManualCheckEnabled) {
+        const cached = this.state.processedArticles.get(analysis.link);
+        if (!cached?.checked) {
+          this.checkPostInNewTabThrottled(post, analysis.link);
+        }
       }
-      if (
-        status === 'potential' &&
-        article &&
-        !article.querySelector('.eye-icon')
-      ) {
+      if (status === 'potential' && post && !post.querySelector('.eye-icon')) {
         const eye = this.document.createElement('span');
         eye.textContent = '\u{1F440}';
         eye.className = 'eye-icon';
         eye.style.position = 'absolute';
         eye.style.top = '5px';
         eye.style.right = '5px';
-        article.appendChild(eye);
+        eye.style.zIndex = '10000';
+        post.appendChild(eye);
       }
     });
     renderPanel(this.document, this.state, this.uiElements, () =>

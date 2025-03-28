@@ -4,7 +4,7 @@ function createButton(doc, text, iconSvg, mode, onClick, config) {
   Object.assign(button.style, {
     background: config.THEMES[mode].button,
     color: config.THEMES[mode].text,
-    border: 'none',
+    borderStyle: 'none',
     padding: '6px 12px',
     borderRadius: '9999px',
     cursor: 'pointer',
