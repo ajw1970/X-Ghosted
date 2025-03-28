@@ -1,9 +1,5 @@
 #!/bin/bash
 
-node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs grok/project.stuff.txt
-# node grokify.js src/xGhosted.*.js grok/3-xGhosted.code.txt
-node grokify.js src/*/*.test.js src/xGhosted.template.js build-xGhosted.js grok/xGhosted.code.txt
-
 OUTPUT_FILE="grok/startup-context.txt"
 
 # List of input files
@@ -19,8 +15,6 @@ FILES=(
     "grok/_grok-snippet-3.js.txt.adoc"
     "grok/_grok-snippet-4.js.txt.adoc"
     "grok/_grok-snippet-5.css.txt.adoc"
-    "grok/project.stuff.txt"
-    "grok/xGhosted.code.txt"
 )
 
 # Clear output file first (single > overwrites)
@@ -34,5 +28,9 @@ for FILE in "${FILES[@]}"; do
     echo "// End of File: ${FILE}" >> "$OUTPUT_FILE"
     echo -e "" >> "$OUTPUT_FILE"  # Explicit newline after content
 done
+
+node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs grok/project.stuff.txt
+# node grokify.js src/xGhosted.*.js grok/3-xGhosted.code.txt
+node grokify.js src/xGhosted.test.js src/*/*.test.js src/xGhosted.template.js build-xGhosted.js grok/xGhosted.code.txt
 
 wc -l grok/startup-context.txt > grok/line-counts.txt
