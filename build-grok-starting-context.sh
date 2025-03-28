@@ -33,4 +33,4 @@ node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs gro
 # node grokify.js src/xGhosted.*.js grok/3-xGhosted.code.txt
 node grokify.js src/xGhosted.test.js src/*/*.test.js src/xGhosted.template.js build-xGhosted.js grok/xGhosted.code.txt
 
-wc -l grok/startup-context.txt > grok/line-counts.txt
+wc -l grok/startup-context.txt grok/project.stuff.txt grok/xGhosted.code.txt > grok/line-counts.txt
