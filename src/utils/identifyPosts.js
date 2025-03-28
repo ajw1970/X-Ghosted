@@ -25,10 +25,7 @@ function identifyPosts(document, checkReplies = true, startingFillerCount = 0) {
             fillerCount = 0;
         }
 
-        results.push({
-            analysis: analysis,
-            post
-        });
+        results.push(analysis);
     });
 
     return results;

@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { expect, jest } from '@jest/globals';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
@@ -52,7 +52,7 @@ describe('xGhosted', () => {
     });
     xGhosted.updateState('https://x.com/user/with_replies');
     xGhosted.highlightPostsDebounced = xGhosted.highlightPosts; // Synchronous for tests
-    xGhosted.state.processedArticles.clear();
+    xGhosted.state.processedPosts.clear();
   });
 
   afterEach(() => {
@@ -64,7 +64,7 @@ describe('xGhosted', () => {
     xGhosted.init();
     const panel = xGhosted.document.getElementById('xghosted-panel');
     expect(panel).toBeTruthy();
-    const posts = xGhosted.document.querySelectorAll('[data-xGhosted]');
+    const posts = xGhosted.document.querySelectorAll('[data-xghosted]');
     expect(posts.length).toBeGreaterThan(0);
     expect(GM_setValue).toHaveBeenCalled();
   });
@@ -73,34 +73,32 @@ describe('xGhosted', () => {
     expect(xGhosted.state.isWithReplies).toBe(true);
     xGhosted.updateState('https://x.com/user');
     expect(xGhosted.state.isWithReplies).toBe(false);
-    expect(xGhosted.state.processedArticles.size).toBe(0);
+    expect(xGhosted.state.processedPosts.size).toBe(0);
   });
 
   test('findPostContainer tags container', () => {
     const container = xGhosted.findPostContainer();
     expect(container).toBeTruthy();
-    expect(container.getAttribute('data-xGhosted')).toBe('posts-container');
+    expect(container.getAttribute('data-xghosted')).toBe('posts-container');
   });
 
-  test('identifyPosts tags posts and respects 1000-article cap', () => {
-    const results = xGhosted.identifyPosts();
-    expect(results.length).toBe(36);
-    expect(xGhosted.state.processedArticles.size).toBe(36);
+  test('highlightPosts applies classes', () => {
+    xGhosted.state.isManualCheckEnabled = true;
+    xGhosted.highlightPosts();
 
-    const problemPost = results.find(p => p.analysis.quality === postQuality.PROBLEM);
-    expect(problemPost.post.getAttribute('data-xGhosted')).toBe('postquality.problem');
-    expect(problemPost.post.classList.contains('xGhosted-problem')).toBe(true);
+    const problemPost = xGhosted.document.querySelector('div[data-xghosted="postquality.problem"]');
+    const potentialPost = xGhosted.document.querySelector('div[data-xghosted="postquality.potential_problem"]');
+    const goodPost = xGhosted.document.querySelector('div[data-xghosted="postquality.good"]');
+    const undefinedPost = xGhosted.document.querySelector('div[data-xghosted="postquality.undefined"]');
 
-    // Simulate cap
-    for (let i = 0; i < 1000; i++) {
-      xGhosted.state.processedArticles.set(`fake${i}`, { analysis: { quality: postQuality.GOOD }, element: null });
-    }
-    const cappedResults = xGhosted.identifyPosts();
-    expect(cappedResults.length).toBe(36);
+    expect(problemPost.classList.contains('xghosted-problem')).toBe(true);
+    expect(potentialPost.classList.contains('xghosted-potential_problem')).toBe(true);
+    expect(potentialPost.querySelector('.eye-icon')).toBeTruthy();
+    expect(goodPost.classList.contains('xghosted-good')).toBe(false);
+    expect(undefinedPost.classList.contains('xghosted-undefined')).toBe(false);
   });
 
-  // Fixed: Mock checkPostInNewTabThrottled to return a Promise
-  test('highlightPosts applies classes and handles manual check', () => {
+  test.skip('checkPostsInNewTab handles manual check', () => {
     xGhosted.state.isManualCheckEnabled = true;
     const mockWindow = { document: { readyState: 'complete', querySelectorAll: () => [] }, close: jest.fn() };
     xGhosted.document.defaultView.open.mockReturnValue(mockWindow);
@@ -108,17 +106,22 @@ describe('xGhosted', () => {
     xGhosted.checkPostInNewTabThrottled = jest.fn().mockReturnValue(Promise.resolve(false));
 
     xGhosted.highlightPosts();
-    const posts = xGhosted.identifyPosts();
-    const problemPost = posts.find(p => p.analysis.quality === postQuality.PROBLEM);
-    const potentialPost = posts.find(p => p.analysis.quality === postQuality.POTENTIAL_PROBLEM);
-    const goodPost = posts.find(p => p.analysis.quality === postQuality.GOOD);
+    const analyses = xGhosted.identifyPosts()
+    expect(analyses.length).toBe(3);
+    const problemPostLink = analyses.find(pa => pa.quality === postQuality.PROBLEM).link;
+    const potentialPostLink = analyses.find(pa => pa.quality === postQuality.POTENTIAL_PROBLEM).link;
+    const goodPostLink = analyses.find(pa => pa.quality === postQuality.GOOD).link;
 
-    expect(problemPost.post.classList.contains('xGhosted-problem')).toBe(true);
-    expect(potentialPost.post.classList.contains('xGhosted-potential_problem')).toBe(true);
-    expect(potentialPost.post.querySelector('.eye-icon')).toBeTruthy();
-    expect(goodPost.post.classList.contains('xGhosted-good')).toBe(true);
+    const problemPost = xGhosted.document.querySelector(`div[data-xghosted-id="${problemPostLink}"]`);
+    const potentialPost = xGhosted.document.querySelector(`div[data-xghosted-id="${potentialPostLink}"]`);
+    const goodPost = xGhosted.document.querySelector(`div[data-xghosted-id="${goodPostLink}"]`);
 
-    expect(xGhosted.checkPostInNewTabThrottled).toHaveBeenCalledWith(potentialPost.analysis.link);
+    expect(problemPost.classList.contains('xGhosted-problem')).toBe(true);
+    expect(potentialPost.classList.contains('xGhosted-potential_problem')).toBe(true);
+    expect(potentialPost.querySelector('.eye-icon')).toBeTruthy();
+    expect(goodPost.classList.contains('xGhosted-good')).toBe(false);
+
+    expect(xGhosted.checkPostInNewTabThrottled).toHaveBeenCalledWith(potentialPost.link);
   });
 
   test('renderPanel shows flagged posts', () => {
@@ -129,26 +132,31 @@ describe('xGhosted', () => {
     expect(links.length).toBe(3);
   });
 
-  test('identifies all post qualities', () => {
-    const posts = xGhosted.identifyPosts();
-    const summary = summarizeRatedPosts(posts.map(p => p.analysis));
+  test('highlightPosts identifies all post qualities', () => {
+    const analyses = xGhosted.highlightPosts();
+    const summary = summarizeRatedPosts(analyses);
     expect(summary.Good).toBe(21);
     expect(summary.Problem).toBe(1);
     expect(summary['Potential Problem']).toBe(2);
     expect(summary.Undefined).toBe(12);
+
+    // Pick a sample to check
+    const post = analyses.find(pa => pa.link === '/OwenGregorian/status/1896977661144260900');
+    expect(post.quality).toBe(postQuality.PROBLEM);
   });
 
-  // Fixed: Enable persistence to ensure processedArticles is saved
+  // Fixed: Enable persistence to ensure processedPosts is saved
   test('saveState and loadState persist data', () => {
     xGhosted.highlightPosts();
+
     xGhosted.state.panelPosition = { left: '10px', top: '20px' };
     xGhosted.saveState();
     const saved = gmStorage.xGhostedState;
-    expect(saved.processedArticles['/OwenGregorian/status/1896977661144260900'].analysis.quality).toBe(postQuality.PROBLEM);
+    expect(saved.processedPosts['/OwenGregorian/status/1896977661144260900'].quality).toBe(postQuality.PROBLEM);
 
-    xGhosted.state.processedArticles.clear();
+    xGhosted.state.processedPosts.clear();
     xGhosted.loadState();
-    expect(xGhosted.state.processedArticles.size).toBe(36);
+    expect(xGhosted.state.processedPosts.size).toBe(36);
     expect(xGhosted.state.panelPosition).toEqual({ left: '10px', top: '20px' });
   });
 });

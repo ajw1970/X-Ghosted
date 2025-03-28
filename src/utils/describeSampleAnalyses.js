@@ -1,11 +1,11 @@
 import { summarizeRatedPosts } from './summarizeRatedPosts';
 import { postQuality } from './postQuality';
 
-function describeSampleAnalyses(document, analysis) {
+function describeSampleAnalyses(document, analyses) {
   const totalPosts = document.querySelectorAll('div[data-testid="cellInnerDiv"]').length;
   const totalArticles = document.querySelectorAll('article:not(article article)').length;
   const totalNestedArticles = document.querySelectorAll('article article').length;
-  const postQualitySummary = summarizeRatedPosts(analysis);
+  const postQualitySummary = summarizeRatedPosts(analyses);
 
   const $padding = 2;
   const totalGood = postQualitySummary[postQuality.GOOD.name];
@@ -19,7 +19,7 @@ function describeSampleAnalyses(document, analysis) {
     `  ${`${totalArticles}`.padStart($padding, ' ')} Articles`,
     `  ${`${totalNestedArticles}`.padStart($padding, ' ')} Nested Articles`,
     ``,
-    `Rated Post Quality (${analysis ? analysis.length : 0} Total):`,
+    `Rated Post Quality (${analyses ? analyses.length : 0} Total):`,
     `  ${`${totalGood}`.padStart($padding, ' ')} ${postQuality.GOOD.name}`,
     `  ${`${totalPotentialProblems}`.padStart($padding, ' ')} ${postQuality.POTENTIAL_PROBLEM.name}`,
     `  ${`${totalProblems}`.padStart($padding, ' ')} ${postQuality.PROBLEM.name}`,

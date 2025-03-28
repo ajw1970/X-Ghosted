@@ -162,8 +162,8 @@
   }
 
   // src/utils/identifyPost.js
-  function identifyPost(post, checkReplies = false, logger = console.log) {
-    const article = post.querySelector('article');
+  function identifyPost(post2, checkReplies = true, logger = console.log) {
+    const article = post2.querySelector('article');
     if (!article) {
       return {
         quality: postQuality.UNDEFINED,
@@ -176,7 +176,7 @@
       return {
         quality: postQuality.PROBLEM,
         reason: `Found notice: ${noticeFound}`,
-        link: getRelativeLinkToPost(post),
+        link: getRelativeLinkToPost(post2),
       };
     }
     const communityFound = postHasProblemCommunity(article);
@@ -184,7 +184,7 @@
       return {
         quality: postQuality.PROBLEM,
         reason: `Found community: ${communityFound}`,
-        link: getRelativeLinkToPost(post),
+        link: getRelativeLinkToPost(post2),
       };
     }
     if (checkReplies) {
@@ -195,14 +195,14 @@
           return {
             quality: postQuality.POTENTIAL_PROBLEM,
             reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
-            link: getRelativeLinkToPost(post),
+            link: getRelativeLinkToPost(post2),
           };
         } else {
         }
       } else {
       }
     }
-    const link = getRelativeLinkToPost(post);
+    const link = getRelativeLinkToPost(post2);
     if (link) {
       return {
         quality: postQuality.GOOD,
@@ -237,7 +237,7 @@
     Object.assign(button.style, {
       background: config.THEMES[mode].button,
       color: config.THEMES[mode].text,
-      border: 'none',
+      borderStyle: 'none',
       padding: '6px 12px',
       borderRadius: '9999px',
       cursor: 'pointer',
@@ -554,8 +554,8 @@
         doc
           .querySelectorAll('div[data-testid="cellInnerDiv"]')
           .forEach(state.instance.expandArticle);
-        state.processedArticles = /* @__PURE__ */ new WeakMap();
-        state.fullyProcessedArticles.clear();
+        state.processedPosts = /* @__PURE__ */ new WeakMap();
+        state.fullyprocessedPosts.clear();
         state.problemLinks.clear();
       },
       config
@@ -787,19 +787,19 @@
     if (!uiElements.panel || !doc.body.contains(uiElements.panel)) {
       createPanel2(doc, state, uiElements);
     }
-    const flagged = Array.from(state.processedArticles.entries()).filter(
-      ([_, { analysis }]) =>
-        analysis.quality.name === state.postQuality.PROBLEM.name ||
-        analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
+    const flagged = Array.from(state.processedPosts.entries()).filter(
+      ([_, analysis2]) =>
+        analysis2.quality.name === state.postQuality.PROBLEM.name ||
+        analysis2.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
     );
     uiElements.label.textContent = `Problem Posts (${flagged.length}):`;
     uiElements.contentWrapper.innerHTML = '';
-    flagged.forEach(([href, { analysis }]) => {
+    flagged.forEach(([href, analysis2]) => {
       const row = doc.createElement('div');
       row.className = 'link-row';
       const dot = doc.createElement('span');
       const statusClass =
-        analysis.quality.name === state.postQuality.PROBLEM.name
+        analysis2.quality.name === state.postQuality.PROBLEM.name
           ? 'status-problem'
           : 'status-potential';
       dot.className = `status-dot ${statusClass}`;
@@ -912,14 +912,13 @@
       isWithReplies: false,
       postContainer: null,
       lastUrl: '',
-      processedArticles: /* @__PURE__ */ new Map(),
+      processedPosts: /* @__PURE__ */ new Map(),
       postQuality,
       isPanelVisible: true,
       isDarkMode: true,
       isManualCheckEnabled: false,
       panelPosition: null,
       persistProcessedPosts: config.persistProcessedPosts ?? false,
-      // New config option, defaults to false
     };
     this.document = doc;
     this.log =
@@ -964,19 +963,19 @@
         },
       },
     };
-    this.checkPostInNewTabThrottled = debounce((article, href) => {
-      this.checkPostInNewTab(article, href);
+    this.checkPostInNewTabThrottled = debounce((href) => {
+      return this.checkPostInNewTab(href);
     }, this.timing.tabCheckThrottle);
     this.highlightPostsDebounced = debounce(() => {
       this.highlightPosts();
     }, this.timing.debounceDelay);
     this.exportProcessedPostsCSV = () => {
       const headers = ['Link', 'Quality', 'Reason', 'Checked'];
-      const rows = Array.from(this.state.processedArticles.entries()).map(
-        ([link, { analysis, checked }]) => [
+      const rows = Array.from(this.state.processedPosts.entries()).map(
+        ([link, { analysis: analysis2, checked }]) => [
           `"https://x.com${link}"`,
-          `"${analysis.quality.name}"`,
-          `"${analysis.reason.replace(/"/g, '""')}"`,
+          `"${analysis2.quality.name}"`,
+          `"${analysis2.reason.replace(/"/g, '""')}"`,
           checked ? 'true' : 'false',
         ]
       );
@@ -1013,20 +1012,17 @@
     this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
     this.state.panelPosition = savedState.panelPosition || null;
     if (this.state.persistProcessedPosts) {
-      const savedArticles = savedState.processedArticles || {};
-      for (const [id, data] of Object.entries(savedArticles)) {
-        this.state.processedArticles.set(id, {
-          analysis: data.analysis,
-          element: null,
-        });
+      const savedPosts = savedState.processedPosts || {};
+      for (const [id, data] of Object.entries(savedPosts)) {
+        this.state.processedPosts.set(id, data);
       }
     }
   };
   XGhosted.prototype.saveState = function () {
     const serializableArticles = {};
     if (this.state.persistProcessedPosts) {
-      for (const [id, data] of this.state.processedArticles) {
-        serializableArticles[id] = { analysis: data.analysis };
+      for (const [id, data] of this.state.processedPosts) {
+        serializableArticles[id] = data;
       }
     }
     GM_setValue('xGhostedState', {
@@ -1034,7 +1030,7 @@
       isCollapsingEnabled: this.state.isCollapsingEnabled,
       isManualCheckEnabled: this.state.isManualCheckEnabled,
       panelPosition: this.state.panelPosition,
-      processedArticles: serializableArticles,
+      processedPosts: serializableArticles,
     });
   };
   XGhosted.prototype.createPanel = function () {
@@ -1058,141 +1054,153 @@
     );
     if (this.state.lastUrl !== url) {
       this.state.postContainer = null;
-      this.state.processedArticles.clear();
+      this.state.processedPosts.clear();
       this.state.lastUrl = url;
     }
   };
-  XGhosted.prototype.checkPostInNewTab = function (article, href) {
+  XGhosted.prototype.checkPostInNewTab = function (href) {
     const fullUrl = `https://x.com${href}`;
     const newWindow = this.document.defaultView.open(fullUrl, '_blank');
     let attempts = 0,
       maxAttempts = 10;
-    const checkInterval = setInterval(() => {
-      attempts++;
-      if (newWindow && newWindow.document.readyState === 'complete') {
-        clearInterval(checkInterval);
-        const threadArticles = newWindow.document.querySelectorAll(
-          'div[data-testid="cellInnerDiv"]'
-        );
-        let isProblem = false;
-        for (let threadArticle of threadArticles) {
-          const analysis = identifyPost(threadArticle, false);
-          if (analysis.quality === postQuality.PROBLEM) {
-            isProblem = true;
-            break;
+    return new Promise((resolve) => {
+      const checkInterval = setInterval(() => {
+        attempts++;
+        if (newWindow && newWindow.document.readyState === 'complete') {
+          clearInterval(checkInterval);
+          const threadPosts = newWindow.document.querySelectorAll(
+            'div[data-testid="cellInnerDiv"]'
+          );
+          if (threadPosts.length < 2) {
+            this.log(
+              `Thread at ${fullUrl} has fewer than 2 posts (${threadPosts.length})\u2014assuming not a problem`
+            );
+            newWindow.close();
+            resolve(false);
+            return;
           }
+          let isProblem = false;
+          for (let threadPost of threadPosts) {
+            const analysis2 = identifyPost(threadPost, false);
+            if (analysis2.quality === postQuality.PROBLEM) {
+              isProblem = true;
+              break;
+            }
+          }
+          newWindow.close();
+          resolve(isProblem);
         }
-        this.applyHighlight(article, isProblem ? 'problem' : 'good');
-        const cached = this.state.processedArticles.get(href);
-        if (cached) {
+        if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          if (newWindow) newWindow.close();
+          this.log(
+            `Failed to load thread at ${fullUrl} within ${maxAttempts} attempts`
+          );
+          resolve(false);
+        }
+      }, 500);
+    });
+  };
+  XGhosted.prototype.findPostContainer = function () {
+    if (this.state.postContainer) return this.state.postContainer;
+    const firstPost = this.document.querySelector(
+      'div[data-testid="cellInnerDiv"]'
+    );
+    if (!firstPost) {
+      this.log('No posts found with data-testid="cellInnerDiv"');
+      return null;
+    }
+    let currentElement = firstPost.parentElement;
+    while (currentElement) {
+      if (
+        currentElement.hasAttribute('aria-label') &&
+        currentElement.getAttribute('tabindex') === '0'
+      ) {
+        this.state.postContainer = currentElement;
+        this.state.postContainer.setAttribute(
+          'data-xghosted',
+          'posts-container'
+        );
+        const ariaLabel = this.state.postContainer.getAttribute('aria-label');
+        this.log(`Posts container identified with aria-label: "${ariaLabel}"`);
+        return this.state.postContainer;
+      }
+      currentElement = currentElement.parentElement;
+    }
+    this.log('No parent container found with aria-label and tabindex="0"');
+    return null;
+  };
+  XGhosted.prototype.userRequestedPostCheck = function (url) {
+    if (
+      analysis.quality.name === postQuality.POTENTIAL_PROBLEM.name &&
+      this.state.isManualCheckEnabled
+    ) {
+      const cached = this.state.processedPosts.get(analysis.link);
+      if (!cached?.checked) {
+        this.checkPostInNewTabThrottled(analysis.link).then((isProblem) => {
+          post.classList.remove(
+            'xghosted-potential_problem',
+            'xghosted-good',
+            'xghosted-problem'
+          );
+          post.classList.add(isProblem ? 'xghosted-problem' : 'xghosted-good');
+          post.setAttribute(
+            'data-xghosted',
+            `postquality.${isProblem ? 'problem' : 'good'}`
+          );
           cached.analysis.quality = isProblem
             ? postQuality.PROBLEM
             : postQuality.GOOD;
           cached.checked = true;
-        }
-        if (!isProblem) newWindow.close();
-        this.saveState();
+          this.saveState();
+        });
       }
-      if (attempts >= maxAttempts) {
-        clearInterval(checkInterval);
-        if (newWindow) newWindow.close();
-      }
-    }, 500);
+    }
   };
-  XGhosted.prototype.findPostContainer = function () {
-    if (this.state.postContainer) return this.state.postContainer;
-    const posts = this.document.querySelectorAll(
-      'div[data-testid="cellInnerDiv"]'
-    );
-    if (posts.length === 0) return null;
-    this.state.postContainer = posts[0].parentElement;
-    return this.state.postContainer;
-  };
-  XGhosted.prototype.identifyPosts = function () {
-    const posts = this.document.querySelectorAll(
-      'div[data-testid="cellInnerDiv"]'
+  XGhosted.prototype.highlightPosts = function () {
+    const postsContainer = this.findPostContainer();
+    if (!postsContainer) {
+      this.log('No posts container found');
+      return [];
+    }
+    const posts = postsContainer.querySelectorAll(
+      'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])'
     );
     const results = [];
     let lastLink = null;
     let fillerCount = 0;
-    const MAX_PROCESSED_ARTICLES = 1e3;
-    if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) {
-      this.log(
-        `Reached max processed articles (${MAX_PROCESSED_ARTICLES}). Skipping new posts.`
-      );
-      return Array.from(this.state.processedArticles.entries())
-        .filter(
-          ([_, { element }]) => element && this.document.body.contains(element)
-        )
-        .map(([id, { analysis, element }]) => ({
-          post: element,
-          analysis,
-        }));
-    }
-    posts.forEach((post) => {
-      if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) return;
-      const analysis = identifyPost(post, this.state.isWithReplies);
-      let id = analysis.link;
-      if (analysis.quality === postQuality.UNDEFINED && id === false) {
+    posts.forEach((post2) => {
+      const analysis2 = identifyPost(post2, this.state.isWithReplies);
+      let id = analysis2.link;
+      if (analysis2.quality === postQuality.UNDEFINED && id === false) {
         if (lastLink) {
           fillerCount++;
           id = `${lastLink}#filler${fillerCount}`;
         } else {
           id = `#filler${fillerCount}`;
         }
-        analysis.link = id;
+        analysis2.link = id;
       } else if (id) {
         lastLink = id;
         fillerCount = 0;
       }
-      const cached = this.state.processedArticles.get(id);
-      if (cached && cached.element === post) {
-        results.push({ post, analysis: cached.analysis });
-      } else {
-        this.state.processedArticles.set(id, { analysis, element: post });
-        results.push({ post, analysis });
+      const qualityName = analysis2.quality.name
+        .toLowerCase()
+        .replace(' ', '_');
+      post2.setAttribute('data-xghosted', `postquality.${qualityName}`);
+      post2.setAttribute('data-xghosted-id', id);
+      if (analysis2.quality === postQuality.PROBLEM) {
+        post2.classList.add('xghosted-problem');
+      } else if (analysis2.quality === postQuality.POTENTIAL_PROBLEM) {
+        post2.classList.add('xghosted-potential_problem');
       }
-    });
-    return results;
-  };
-  XGhosted.prototype.applyHighlight = function (element, status = 'potential') {
-    const styles = {
-      problem: { background: 'rgba(255, 0, 0, 0.3)', border: '2px solid red' },
-      potential: {
-        background: 'rgba(255, 255, 0, 0.3)',
-        border: '2px solid yellow',
-      },
-      good: { background: 'rgba(0, 255, 0, 0.3)', border: '2px solid green' },
-      none: { background: '', border: '' },
-    };
-    const style = styles[status] || styles.none;
-    element.style.backgroundColor = style.background;
-    element.style.border = style.border;
-  };
-  XGhosted.prototype.highlightPosts = function () {
-    const posts = this.identifyPosts();
-    posts.forEach(({ post, analysis }) => {
-      if (!post || !this.document.body.contains(post)) return;
-      const statusMap = {
-        [postQuality.PROBLEM.name]: 'problem',
-        [postQuality.POTENTIAL_PROBLEM.name]: 'potential',
-        [postQuality.GOOD.name]: 'none',
-        // Changed from 'good' to 'none'
-        [postQuality.UNDEFINED.name]: 'none',
-      };
-      const status = statusMap[analysis.quality.name] || 'none';
-      this.applyHighlight(post, status);
-      this.state.processedArticles.set(analysis.link, {
-        analysis,
-        element: post,
-      });
-      if (status === 'potential' && this.state.isManualCheckEnabled) {
-        const cached = this.state.processedArticles.get(analysis.link);
-        if (!cached?.checked) {
-          this.checkPostInNewTabThrottled(post, analysis.link);
-        }
-      }
-      if (status === 'potential' && post && !post.querySelector('.eye-icon')) {
+      results.push(analysis2);
+      this.state.processedPosts.set(id, analysis2);
+      if (
+        analysis2.quality.name === postQuality.POTENTIAL_PROBLEM.name &&
+        post2 &&
+        !post2.querySelector('.eye-icon')
+      ) {
         const eye = this.document.createElement('span');
         eye.textContent = '\u{1F440}';
         eye.className = 'eye-icon';
@@ -1200,7 +1208,7 @@
         eye.style.top = '5px';
         eye.style.right = '5px';
         eye.style.zIndex = '10000';
-        post.appendChild(eye);
+        post2.appendChild(eye);
       }
     });
     renderPanel(this.document, this.state, this.uiElements, () =>
@@ -1214,6 +1222,7 @@
       )
     );
     this.saveState();
+    return results;
   };
   XGhosted.prototype.highlightPostsImmediate = function () {
     this.highlightPosts();
@@ -1222,11 +1231,11 @@
     return detectTheme(this.document);
   };
   XGhosted.prototype.copyLinks = function () {
-    const linksText = Array.from(this.state.processedArticles.entries())
+    const linksText = Array.from(this.state.processedPosts.entries())
       .filter(
-        ([_, { analysis }]) =>
-          analysis.quality === postQuality.PROBLEM ||
-          analysis.quality === postQuality.POTENTIAL_PROBLEM
+        ([_, { analysis: analysis2 }]) =>
+          analysis2.quality === postQuality.PROBLEM ||
+          analysis2.quality === postQuality.POTENTIAL_PROBLEM
       )
       .map(([link]) => `https://x.com${link}`)
       .join('\n');
@@ -1266,7 +1275,7 @@
       const quality = qualityMap[qualityName];
       if (!quality) return;
       const id = link.replace('https://x.com', '');
-      this.state.processedArticles.set(id, {
+      this.state.processedPosts.set(id, {
         analysis: { quality, reason, link: id },
         element: null,
         checked: checkedStr === 'true',
@@ -1276,8 +1285,8 @@
     this.highlightPostsImmediate();
   };
   XGhosted.prototype.clearProcessedPosts = function () {
-    this.state.processedArticles.clear();
-    this.state.fullyProcessedArticles = /* @__PURE__ */ new WeakMap();
+    this.state.processedPosts.clear();
+    this.state.fullyprocessedPosts = /* @__PURE__ */ new WeakMap();
     this.state.problemLinks = /* @__PURE__ */ new Set();
     this.saveState();
     this.highlightPostsImmediate();
@@ -1301,6 +1310,15 @@
   XGhosted.prototype.init = function () {
     this.loadState();
     this.createPanel();
+    const styleSheet = this.document.createElement('style');
+    styleSheet.textContent = `
+    .xGhosted-problem { border: 2px solid red; }
+    .xGhosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+    .xGhosted-good { /* Optional: subtle styling if desired */ }
+    .xGhosted-undefined { /* No styling needed */ }
+  `;
+    this.document.head.appendChild(styleSheet);
+    this.uiElements.highlightStyleSheet = styleSheet;
     this.highlightPostsDebounced();
     this.saveState();
   };
