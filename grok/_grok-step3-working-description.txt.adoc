@@ -1,29 +1,26 @@
 = Grok Step 3: Working Description
-:revision-date: March 27, 2025
+:revision-date: March 31, 2025
 
 == Current State
-- *UI*: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow with eye icons), GOOD (none), UNDEFINED (none) posts. POTENTIAL_PROBLEM detection inconsistent, pending DOM review. PROBLEM posts appear in panel with red dot but lack red highlight in UI. Panel (resizable, draggable) lists flagged posts with Copy, Export CSV (configurable throttle), Import CSV, Clear, and Manual Check buttons. Theme switching polished with tooltips. Show/Hide button positioning incorrect (should be top-right); after moving panel, hiding reverts to original position (`top: '60px'`, `right: '10px'`) and collapses toward top/left corner (expected: collapse to current top/right, button stationary). Panel shrinking when hidden fixed—verified with unit test; adjusted size when hidden to fit "Show" button comfortably.
-- *Core*: Detects post quality via `identifyPost.js` using DOM only, persists state (capped at 1000 articles in `identifyPosts`) with `GM_setValue`/`GM_getValue`. Manual mode default minimizes server activity. Timing values (debounce, throttle) configurable via constructor. Clear button reports posts cleared, but Export CSV outputs previous list, indicating incomplete state reset.
-- *Tests*: `src/xGhosted.test.js`—24 tests pass, fixed for timing initialization and `saveState` alignment. Total 112 tests across 17 suites passing, with fixes for standalone test files. CSV tests in `src/xGhosted.csv.test.js` deferred due to ESM mocking issues with `writeToClipboard`.
-- *Build*: `build-xGhosted.js` uses esbuild to bundle `xGhosted.js` with dependencies, applies resource caps, removes ESM exports for Tampermonkey compatibility, and formats output with Prettier. Timing configurable via constructor. Run with `npm run build`.
+- *UI*: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow with eye icons), GOOD (none), UNDEFINED (none). Tags container with `data-xGhosted="posts-container"`, posts with `data-xGhosted="postquality.<quality>"` and `data-xGhosted-id="link"`. CSS highlights via `xGhosted-<quality>`. Fails with message if container’s missing. Panel lists posts, Show/Hide fixed.
+- *Core*: Detects post quality via `identifyPost.js`, persists state (1000-article cap) with `GM_setValue`/`GM_getValue`. Manual mode default. Now tags posts, skips tagged ones. Observer on container with 5s timeout—DOM settling tabled.
+- *Tests*: 112 tests passing—update `xGhosted.test.js` for tagging.
+- *Build*: Esbuild bundles `xGhosted.js` with dependencies into `xGhosted.user.js`—Tampermonkey-ready.
 
 == End Goal: Version 0.6.1 Features
-- CSV export/import/clear done—export throttle configurable, immediate in tests (functional but untested in Jest ESM).
-- Manual Check Mode done—toggles via panel, starts enabled, mocked in tests.
-- Configurable logging added—`GM_log` or `console.log` set in constructor.
-- UI polish done—panel resizable/draggable, theme detection seamless, "Hide" functionality fixed with proper shrinking and sizing.
-- Userscript wrapper done—built with resource limits (1000 articles enforced), server safety (no requests beyond page load), and Tampermonkey-ready output.
+- DOM-driven detection with tagging, CSS highlights, fail-on-missing behavior, refresh handling.
 
 == Technical Details
-- *Depends On*: `GM_setValue`/`GM_getValue` (persistence), `jest` (testing, see `src/xGhosted.test.js`), JSDOM (DOM mocks), `esbuild` (bundling), `prettier` (formatting).
-- *Modules*: `xGhosted.js`, `createPanel.js` (see `_grok-snippet-1.js.txt.adoc`), `renderPanel.js`, `updateTheme.js`, utils like `postQuality.js`.
+- *Depends On*: `GM_setValue`/`GM_getValue`, `jest`, JSDOM, `esbuild`, `prettier`.
+- *Modules*: `xGhosted.js`, `createPanel.js`, `renderPanel.js`, utils like `postQuality.js`.
 - *Build Script*: `build-xGhosted.js` with esbuild.
 
 == Next Steps
-See `_grok-step4-roadmap-to-next-release.txt.adoc` for current Next Steps, including tab checks for GOOD posts (10s) and 5s-batched collapsing.
+See `_grok-step4-roadmap-to-next-release.txt.adoc`.
 
 == Revision History
 - March 23, 2025: Updated for 0.6.1—24 tests pass. CSV export and Manual Check Mode added.
 - March 24, 2025: Step 5 done—userscript wrapper with safety optimizations.
-- March 26, 2025: Fixed `build-xGhosted.js` to remove ESM `export` statements, enforced 1000-article cap in `xGhosted.js`. Fixed "Hide" functionality, updated tests (112 tests across 17 suites).
-- March 27, 2025: Added manual testing findings: Show/Hide collapse issue, PROBLEM highlighting failure, Clear/Export CSV mismatch.
+- March 26, 2025: Fixed `build-xGhosted.js`, enforced 1000-article cap, fixed "Hide".
+- March 27, 2025: Added manual testing findings: Show/Hide, PROBLEM highlighting, Clear/Export CSV.
+- March 31, 2025: DOM tagging with fail-on-missing—roadmap shifted.
