@@ -28,7 +28,7 @@ function XGhosted(doc, config = {}) {
     isDarkMode: true,
     isManualCheckEnabled: false,
     panelPosition: null,
-    persistProcessedPosts: config.persistProcessedPosts ?? false // New config option, defaults to false
+    persistProcessedPosts: config.persistProcessedPosts ?? false
   };
   this.document = doc;
   this.log = config.useTampermonkeyLog && typeof GM_log !== 'undefined'
@@ -131,7 +131,6 @@ XGhosted.prototype.createPanel = function () {
 
 XGhosted.prototype.updateState = function (url) {
   this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(url);
-  // this.log(`URL: ${url}, isWithReplies: ${this.state.isWithReplies}`);
   if (this.state.lastUrl !== url) {
     this.state.postContainer = null;
     this.state.processedArticles.clear();
@@ -174,14 +173,41 @@ XGhosted.prototype.checkPostInNewTab = function (article, href) {
 
 XGhosted.prototype.findPostContainer = function () {
   if (this.state.postContainer) return this.state.postContainer;
-  const posts = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
-  if (posts.length === 0) return null;
-  this.state.postContainer = posts[0].parentElement;
-  return this.state.postContainer;
+
+  // Find the first post to start the search
+  const firstPost = this.document.querySelector('div[data-testid="cellInnerDiv"]');
+  if (!firstPost) {
+    this.log('No posts found with data-testid="cellInnerDiv"');
+    return null;
+  }
+
+  // Traverse up to find the first parent with aria-label and tabindex="0"
+  let currentElement = firstPost.parentElement;
+  while (currentElement) {
+    if (
+      currentElement.hasAttribute('aria-label') &&
+      currentElement.getAttribute('tabindex') === '0'
+    ) {
+      this.state.postContainer = currentElement;
+      this.state.postContainer.setAttribute('data-xGhosted', 'posts-container');
+      const ariaLabel = this.state.postContainer.getAttribute('aria-label');
+      this.log(`Posts container identified with aria-label: "${ariaLabel}"`);
+      return this.state.postContainer;
+    }
+    currentElement = currentElement.parentElement;
+  }
+
+  this.log('No parent container found with aria-label and tabindex="0"');
+  return null;
 };
 
 XGhosted.prototype.identifyPosts = function () {
-  const posts = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+  const postsContainer = this.findPostContainer();
+  if (!postsContainer) {
+    this.log('No posts container found');
+    return [];
+  }
+  const posts = postsContainer.querySelectorAll('div[data-testid="cellInnerDiv"]');
   const results = [];
   let lastLink = null;
   let fillerCount = 0;
@@ -213,6 +239,13 @@ XGhosted.prototype.identifyPosts = function () {
       lastLink = id;
       fillerCount = 0;
     }
+
+    // Set DOM attributes and classes
+    const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
+    post.setAttribute('data-xGhosted', `postquality.${qualityName}`);
+    post.setAttribute('data-xGhosted-id', id);
+    post.classList.add(`xGhosted-${qualityName}`);
+
     const cached = this.state.processedArticles.get(id);
     if (cached && cached.element === post) {
       results.push({ post, analysis: cached.analysis });
@@ -244,7 +277,7 @@ XGhosted.prototype.highlightPosts = function () {
     const statusMap = {
       [postQuality.PROBLEM.name]: 'problem',
       [postQuality.POTENTIAL_PROBLEM.name]: 'potential',
-      [postQuality.GOOD.name]: 'none', // Changed from 'good' to 'none'
+      [postQuality.GOOD.name]: 'none',
       [postQuality.UNDEFINED.name]: 'none'
     };
     const status = statusMap[analysis.quality.name] || 'none';
@@ -337,8 +370,8 @@ XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
 
 XGhosted.prototype.clearProcessedPosts = function () {
   this.state.processedArticles.clear();
-  this.state.fullyProcessedArticles = new WeakMap(); // Reset fullyProcessedArticles
-  this.state.problemLinks = new Set(); // Reset problemLinks
+  this.state.fullyProcessedArticles = new WeakMap();
+  this.state.problemLinks = new Set();
   this.saveState();
   this.highlightPostsImmediate();
 };
@@ -359,6 +392,18 @@ XGhosted.prototype.updateTheme = function () {
 XGhosted.prototype.init = function () {
   this.loadState();
   this.createPanel();
+
+  // Inject CSS for DOM-driven highlighting
+  const styleSheet = this.document.createElement('style');
+  styleSheet.textContent = `
+    .xGhosted-problem { border: 2px solid red; }
+    .xGhosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+    .xGhosted-good { /* Optional: subtle styling if desired */ }
+    .xGhosted-undefined { /* No styling needed */ }
+  `;
+  this.document.head.appendChild(styleSheet);
+  this.uiElements.highlightStyleSheet = styleSheet;
+
   this.highlightPostsDebounced();
   this.saveState();
 };
