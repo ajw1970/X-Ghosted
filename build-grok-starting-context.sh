@@ -3,7 +3,7 @@
 
 node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs grok/project.stuff.txt
 # node grokify.js src/xGhosted.*.js grok/3-xGhosted.code.txt
-node grokify.js src/xGhosted.test.js grok/xGhosted.code.txt
+node grokify.js src/*/*.test.js grok/xGhosted.code.txt
 
 OUTPUT_FILE="grok/startup-context.txt"
 
