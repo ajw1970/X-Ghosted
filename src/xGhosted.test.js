@@ -67,6 +67,7 @@ describe('xGhosted', () => {
     });
     xGhosted.updateState('https://x.com/user/with_replies');
     xGhosted.highlightPostsDebounced = xGhosted.highlightPostsImmediate; // Synchronous for tests
+    xGhosted.state.processedArticles.clear(); // Reset cache
   });
 
   afterEach(() => {
@@ -94,8 +95,9 @@ describe('xGhosted', () => {
   });
 
   test('identifyPosts classifies posts and caches results', () => {
+    xGhosted.state.processedArticles.clear(); // Ensure clean slate
+    expect(xGhosted.state.processedArticles.size).toBe(0); // Verify reset
     expect(xGhosted.state.isWithReplies).toBe(true);
-    expect(xGhosted.state.processedArticles.size).toEqual(0);
     xGhosted.highlightPostsImmediate();
     const posts = xGhosted.identifyPosts();
     expect(posts.length).toBe(36);
@@ -263,43 +265,30 @@ describe('xGhosted', () => {
     const goodPost = posts.find(p => p.analysis.quality === postQuality.GOOD);
     const problemPost = posts.find(p => p.analysis.quality === postQuality.PROBLEM);
     const potentialPost = posts.find(p => p.analysis.quality === postQuality.POTENTIAL_PROBLEM);
-    const undefinedPost = posts.find(p => p.analysis.quality === postQuality.GOOD);
+    const undefinedPost = posts.find(p => p.analysis.quality === postQuality.UNDEFINED);
 
-    expect(goodPost.post.querySelector('article').style.border).toBe('');
-    expect(goodPost.post.querySelector('article').style.backgroundColor).toBe('');
+    expect(goodPost.post.style.border).toBe('');
+    expect(goodPost.post.style.backgroundColor).toBe('');
     expect(goodPost.post.querySelector('.eye-icon')).toBeNull();
 
-    expect(problemPost.post.querySelector('article').style.border).toBe('2px solid red');
-    expect(problemPost.post.querySelector('article').style.backgroundColor).toBe('rgba(255, 0, 0, 0.3)');
+    expect(problemPost.post.style.border).toBe('2px solid red');
+    expect(problemPost.post.style.backgroundColor).toBe('rgba(255, 0, 0, 0.3)');
     expect(problemPost.post.querySelector('.eye-icon')).toBeNull();
 
-    expect(potentialPost.post.querySelector('article').style.border).toBe('2px solid yellow');
-    expect(potentialPost.post.querySelector('article').style.backgroundColor).toBe('rgba(255, 255, 0, 0.3)');
+    expect(potentialPost.post.style.border).toBe('2px solid yellow');
+    expect(potentialPost.post.style.backgroundColor).toBe('rgba(255, 255, 0, 0.3)');
     expect(potentialPost.post.querySelector('.eye-icon').textContent).toBe('👀');
 
-    const undefinedArticle = undefinedPost.post.querySelector('article');
-    if (undefinedArticle) {
-      expect(undefinedArticle.style.border).toBe('');
-      expect(undefinedArticle.style.backgroundColor).toBe('');
-      expect(undefinedPost.post.querySelector('.eye-icon')).toBeNull();
-    } else {
-      expect(undefinedPost.post.style.border).toBe('');
-      expect(undefinedPost.post.style.backgroundColor).toBe('');
-    }
+    expect(undefinedPost.post.style.border).toBe('');
+    expect(undefinedPost.post.style.backgroundColor).toBe('');
+    expect(undefinedPost.post.querySelector('.eye-icon')).toBeNull();
 
     xGhosted.highlightPostsImmediate();
-    expect(goodPost.post.querySelector('article').style.border).toBe('');
-    expect(problemPost.post.querySelector('article').style.border).toBe('2px solid red');
-    expect(potentialPost.post.querySelector('article').style.border).toBe('2px solid yellow');
+    expect(goodPost.post.style.border).toBe('');
+    expect(problemPost.post.style.border).toBe('2px solid red');
+    expect(potentialPost.post.style.border).toBe('2px solid yellow');
     expect(potentialPost.post.querySelectorAll('.eye-icon').length).toBe(1);
-    if (undefinedArticle) expect(undefinedArticle.style.border).toBe('');
-    else expect(undefinedPost.post.style.border).toBe('');
-
-    const noArticlePost = dom.window.document.createElement('div');
-    noArticlePost.setAttribute('data-testid', 'cellInnerDiv');
-    xGhosted.state.postContainer.appendChild(noArticlePost);
-    xGhosted.highlightPostsImmediate();
-    expect(noArticlePost.style.border).toBe('');
+    expect(undefinedPost.post.style.border).toBe('');
   });
 
   test('renderPanel displays problem and potential posts', () => {

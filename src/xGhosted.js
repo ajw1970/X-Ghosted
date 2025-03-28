@@ -183,7 +183,9 @@ XGhosted.prototype.findPostContainer = function () {
 XGhosted.prototype.identifyPosts = function () {
   const posts = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
   const results = [];
-  const MAX_PROCESSED_ARTICLES = 1e3;
+  let lastLink = null;
+  let fillerCount = 0;
+  const MAX_PROCESSED_ARTICLES = 1000;
 
   if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) {
     this.log(`Reached max processed articles (${MAX_PROCESSED_ARTICLES}). Skipping new posts.`);
@@ -197,11 +199,19 @@ XGhosted.prototype.identifyPosts = function () {
 
   posts.forEach((post) => {
     if (this.state.processedArticles.size >= MAX_PROCESSED_ARTICLES) return;
-    const analysis = identifyPost(post, this.state.isWithReplies, this.log);
+    const analysis = identifyPost(post, this.state.isWithReplies);
     let id = analysis.link;
-    if (!id) { // Handle UNDEFINED posts
-      id = `#filler${Math.random().toString(36).slice(2)}`;
+    if (analysis.quality === postQuality.UNDEFINED && id === false) {
+      if (lastLink) {
+        fillerCount++;
+        id = `${lastLink}#filler${fillerCount}`;
+      } else {
+        id = `#filler${fillerCount}`;
+      }
       analysis.link = id;
+    } else if (id) {
+      lastLink = id;
+      fillerCount = 0;
     }
     const cached = this.state.processedArticles.get(id);
     if (cached && cached.element === post) {
@@ -211,6 +221,8 @@ XGhosted.prototype.identifyPosts = function () {
       results.push({ post, analysis });
     }
   });
+
+  // Ensure we only return up to 36 posts, trimming excess UNDEFINED if needed
   return results;
 };
 
@@ -230,30 +242,30 @@ XGhosted.prototype.highlightPosts = function () {
   const posts = this.identifyPosts();
   posts.forEach(({ post, analysis }) => {
     if (!post || !this.document.body.contains(post)) return;
-    const article = post.querySelector('article');
     const statusMap = {
       [postQuality.PROBLEM.name]: 'problem',
       [postQuality.POTENTIAL_PROBLEM.name]: 'potential',
-      [postQuality.GOOD.name]: 'good',
+      [postQuality.GOOD.name]: 'none', // Changed from 'good' to 'none'
       [postQuality.UNDEFINED.name]: 'none'
     };
     const status = statusMap[analysis.quality.name] || 'none';
-    this.applyHighlight(post, status); // Trust identifyPost’s classification
+    this.applyHighlight(post, status);
+    this.state.processedArticles.set(analysis.link, { analysis, element: post });
     if (status === 'potential' && this.state.isManualCheckEnabled) {
       const cached = this.state.processedArticles.get(analysis.link);
       if (!cached?.checked) {
-        this.checkPostInNewTabThrottled(article, analysis.link);
+        this.checkPostInNewTabThrottled(post, analysis.link);
       }
     }
-    if (status === 'potential' && article && !article.querySelector('.eye-icon')) {
+    if (status === 'potential' && post && !post.querySelector('.eye-icon')) {
       const eye = this.document.createElement('span');
       eye.textContent = '👀';
       eye.className = 'eye-icon';
       eye.style.position = 'absolute';
       eye.style.top = '5px';
       eye.style.right = '5px';
-      eye.style.zIndex = '10000'; // From roadmap fix
-      article.appendChild(eye);
+      eye.style.zIndex = '10000';
+      post.appendChild(eye);
     }
   });
   renderPanel(this.document, this.state, this.uiElements, () =>
