@@ -1,5 +1,4 @@
 #!/bin/bash
-# filepath: c:\Dev\X-Twitter\Ghosted\starting-context.sh
 
 node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs grok/project.stuff.txt
 # node grokify.js src/xGhosted.*.js grok/3-xGhosted.code.txt
