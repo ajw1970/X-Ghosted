@@ -1,5 +1,7 @@
 = Snippet 3: createModal Function (Modal for CSV Import)
-This defines the modal used for importing CSV data.
+:revision-date: March 31, 2025
+
+This defines the modal used for importing CSV data, updated to match DOM attribute naming.
 
 [source,javascript]
 ----
@@ -70,7 +72,7 @@ function createModal() {
             const href = url.replace('https://x.com', '');
             const status =
               statusWord === 'unverified'
-                ? 'potential'
+                ? 'potential_problem'
                 : statusWord === 'problem'
                   ? 'problem'
                   : statusWord === 'good'

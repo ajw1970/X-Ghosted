@@ -1,6 +1,7 @@
-= Snippet 1: createPanel Function (0.6.4 UI Structure)
+= Snippet 1: createPanel Function (0.6.1 UI Structure)
+:revision-date: March 31, 2025
 
-This defines the "Tools" section, modal for import, and overall panel structure. Sourced from `src/createPanel.js`.
+This defines the "Tools" section, modal for import, and overall panel structure with updated CSS for DOM-driven highlighting. Sourced from `src/createPanel.js`.
 
 [source,javascript]
 ----
@@ -88,7 +89,7 @@ function createPanel() {
         const csvContent = Array.from(state.allPosts)
           .map(([href, status]) => {
             const statusWord =
-              status === 'potential'
+              status === 'potential_problem'
                 ? 'unverified'
                 : status === 'problem'
                   ? 'problem'
@@ -248,28 +249,32 @@ function createPanel() {
 
     uiElements.styleSheet = document.createElement('style');
     uiElements.styleSheet.textContent = `
-                .${CONFIG.HIGHLIGHT_STYLE} { background-color: rgba(255, 255, 0, 0.3); border: 2px solid yellow; }
-                .${CONFIG.COLLAPSE_STYLE} { height: 0; overflow: hidden; margin: 0; padding: 0; transition: height 0.2s ease; }
-                .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
-                .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${CONFIG.THEMES[mode].scroll}; border-radius: 3px; }
-                .problem-links-wrapper::-webkit-scrollbar-track { background: ${CONFIG.THEMES[mode].bg}; }
-                select { background-repeat: no-repeat; background-position: right 8px center; }
-                select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-                select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-                select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-                select:focus { outline: none; box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3); }
-                .link-item { padding: 4px 0; }
-                .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
-                .status-potential { background-color: yellow; }
-                .status-problem { background-color: red; }
-                .status-safe { background-color: green; }
-                .link-row { display: flex; align-items: center; padding: 4px 0; }
-                .link-row > div { flex: 1; }
-                button span { margin-left: 4px; }
-                button svg { width: 12px; height: 12px; }
-                .chevron-down { transform: rotate(0deg); }
-                .chevron-up { transform: rotate(180deg); }
-            `;
+      .${CONFIG.HIGHLIGHT_STYLE} { background-color: rgba(255, 255, 0, 0.3); border: 2px solid yellow; }
+      .${CONFIG.COLLAPSE_STYLE} { height: 0; overflow: hidden; margin: 0; padding: 0; transition: height 0.2s ease; }
+      .xGhosted-problem { border: 2px solid red; }
+      .xGhosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+      .xGhosted-good { /* Optional: subtle styling if desired */ }
+      .xGhosted-undefined { /* No styling needed */ }
+      .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
+      .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${CONFIG.THEMES[mode].scroll}; border-radius: 3px; }
+      .problem-links-wrapper::-webkit-scrollbar-track { background: ${CONFIG.THEMES[mode].bg}; }
+      select { background-repeat: no-repeat; background-position: right 8px center; }
+      select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+      select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+      select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+      select:focus { outline: none; box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.3); }
+      .link-item { padding: 4px 0; }
+      .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+      .status-potential { background-color: yellow; }
+      .status-problem { background-color: red; }
+      .status-safe { background-color: green; }
+      .link-row { display: flex; align-items: center; padding: 4px 0; }
+      .link-row > div { flex: 1; }
+      button span { margin-left: 4px; }
+      button svg { width: 12px; height: 12px; }
+      .chevron-down { transform: rotate(0deg); }
+      .chevron-up { transform: rotate(180deg); }
+    `;
     document.head.appendChild(uiElements.styleSheet);
     updateTheme();
     updateControlLabel();

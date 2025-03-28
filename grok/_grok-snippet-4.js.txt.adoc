@@ -1,6 +1,7 @@
 = Snippet 4: updatePanel Function (Status Dots in Content Wrapper)
+:revision-date: March 31, 2025
 
-This shows how the content wrapper displays posts with status dots.
+This shows how the content wrapper displays posts with status dots, updated for DOM attribute consistency.
 
 [source,javascript]
 ----
