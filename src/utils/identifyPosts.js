@@ -1,16 +1,16 @@
 import { identifyPost } from './identifyPost';
 import { postQuality } from './postQuality';
 
-function identifyPosts(document) {
+function identifyPosts(document, checkReplies = true, startingFillerCount = 0) {
     // Select all posts
     let posts = document.querySelectorAll('div[data-testid="cellInnerDiv"]');
 
     const results = [];
     let lastLink = null;
-    let fillerCount = 0;
+    let fillerCount = startingFillerCount;
 
     posts.forEach((post) => {
-        const analysis = identifyPost(post, true);
+        const analysis = identifyPost(post, checkReplies);
         let id = analysis.link;
         if (analysis.quality === postQuality.UNDEFINED && id === false) {
             if (lastLink) {

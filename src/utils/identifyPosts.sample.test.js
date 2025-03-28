@@ -6,7 +6,9 @@ test('identifyPosts classifies posts', () => {
   // Same sample used in src/xGhosted.test.js
   loadHTML('samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
   const { GOOD, PROBLEM, POTENTIAL_PROBLEM, UNDEFINED } = postQuality;
-  const results = identifyPosts(document);
+  const checkReplies = true;
+  const startingFillerCount = 0;
+  const results = identifyPosts(document, checkReplies, startingFillerCount);
   const analyses = results.map(result => result.analysis);
 
   expect(describeSampleAnalyses(document, analyses)).toBe([

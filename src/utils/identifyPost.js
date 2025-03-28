@@ -4,7 +4,7 @@ import { findReplyingToWithDepth } from './findReplyingToWithDepth';
 import { getRelativeLinkToPost } from './getRelativeLinkToPost';
 import { postQuality } from './postQuality';
 
-function identifyPost(post, checkReplies = false, logger = console.log) {
+function identifyPost(post, checkReplies = true, logger = console.log) {
     const article = post.querySelector('article');
     if (!article) {
         return {
