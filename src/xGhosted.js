@@ -222,7 +222,6 @@ XGhosted.prototype.identifyPosts = function () {
     }
   });
 
-  // Ensure we only return up to 36 posts, trimming excess UNDEFINED if needed
   return results;
 };
 
