@@ -52,8 +52,8 @@ function XGhosted(doc, config = {}) {
     },
   };
 
-  this.checkPostInNewTabThrottled = debounce((article, href) => {
-    this.checkPostInNewTab(article, href);
+  this.checkPostInNewTabThrottled = debounce((href) => {
+    return this.checkPostInNewTab(href); // Return the Promise
   }, this.timing.tabCheckThrottle);
 
   this.highlightPostsDebounced = debounce(() => {
@@ -138,50 +138,52 @@ XGhosted.prototype.updateState = function (url) {
   }
 };
 
-XGhosted.prototype.checkPostInNewTab = function (article, href) {
+XGhosted.prototype.checkPostInNewTab = function (href) {
   const fullUrl = `https://x.com${href}`;
   const newWindow = this.document.defaultView.open(fullUrl, '_blank');
   let attempts = 0, maxAttempts = 10;
-  const checkInterval = setInterval(() => {
-    attempts++;
-    if (newWindow && newWindow.document.readyState === 'complete') {
-      clearInterval(checkInterval);
-      const threadArticles = newWindow.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
-      let isProblem = false;
-      for (let threadArticle of threadArticles) {
-        const analysis = identifyPost(threadArticle, false);
-        if (analysis.quality === postQuality.PROBLEM) {
-          isProblem = true;
-          break;
+  return new Promise((resolve) => {
+    const checkInterval = setInterval(() => {
+      attempts++;
+      if (newWindow && newWindow.document.readyState === 'complete') {
+        clearInterval(checkInterval);
+        const threadPosts = newWindow.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+        if (threadPosts.length < 2) {
+          this.log(`Thread at ${fullUrl} has fewer than 2 posts (${threadPosts.length})—assuming not a problem`);
+          newWindow.close();
+          resolve(false);
+          return;
         }
+        let isProblem = false;
+        for (let threadPost of threadPosts) {
+          const analysis = identifyPost(threadPost, false);
+          if (analysis.quality === postQuality.PROBLEM) {
+            isProblem = true;
+            break;
+          }
+        }
+        newWindow.close();
+        resolve(isProblem);
       }
-      this.applyHighlight(article, isProblem ? 'problem' : 'good');
-      const cached = this.state.processedArticles.get(href);
-      if (cached) {
-        cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
-        cached.checked = true;
+      if (attempts >= maxAttempts) {
+        clearInterval(checkInterval);
+        if (newWindow) newWindow.close();
+        this.log(`Failed to load thread at ${fullUrl} within ${maxAttempts} attempts`);
+        resolve(false);
       }
-      if (!isProblem) newWindow.close();
-      this.saveState();
-    }
-    if (attempts >= maxAttempts) {
-      clearInterval(checkInterval);
-      if (newWindow) newWindow.close();
-    }
-  }, 500);
+    }, 500);
+  });
 };
 
 XGhosted.prototype.findPostContainer = function () {
   if (this.state.postContainer) return this.state.postContainer;
 
-  // Find the first post to start the search
   const firstPost = this.document.querySelector('div[data-testid="cellInnerDiv"]');
   if (!firstPost) {
     this.log('No posts found with data-testid="cellInnerDiv"');
     return null;
   }
 
-  // Traverse up to find the first parent with aria-label and tabindex="0"
   let currentElement = firstPost.parentElement;
   while (currentElement) {
     if (
@@ -240,7 +242,6 @@ XGhosted.prototype.identifyPosts = function () {
       fillerCount = 0;
     }
 
-    // Set DOM attributes and classes
     const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
     post.setAttribute('data-xGhosted', `postquality.${qualityName}`);
     post.setAttribute('data-xGhosted-id', id);
@@ -258,38 +259,25 @@ XGhosted.prototype.identifyPosts = function () {
   return results;
 };
 
-XGhosted.prototype.applyHighlight = function (element, status = 'potential') {
-  const styles = {
-    problem: { background: 'rgba(255, 0, 0, 0.3)', border: '2px solid red' },
-    potential: { background: 'rgba(255, 255, 0, 0.3)', border: '2px solid yellow' },
-    good: { background: 'rgba(0, 255, 0, 0.3)', border: '2px solid green' },
-    none: { background: '', border: '' }
-  };
-  const style = styles[status] || styles.none;
-  element.style.backgroundColor = style.background;
-  element.style.border = style.border;
-};
-
 XGhosted.prototype.highlightPosts = function () {
   const posts = this.identifyPosts();
   posts.forEach(({ post, analysis }) => {
     if (!post || !this.document.body.contains(post)) return;
-    const statusMap = {
-      [postQuality.PROBLEM.name]: 'problem',
-      [postQuality.POTENTIAL_PROBLEM.name]: 'potential',
-      [postQuality.GOOD.name]: 'none',
-      [postQuality.UNDEFINED.name]: 'none'
-    };
-    const status = statusMap[analysis.quality.name] || 'none';
-    this.applyHighlight(post, status);
     this.state.processedArticles.set(analysis.link, { analysis, element: post });
-    if (status === 'potential' && this.state.isManualCheckEnabled) {
+    if (analysis.quality.name === postQuality.POTENTIAL_PROBLEM.name && this.state.isManualCheckEnabled) {
       const cached = this.state.processedArticles.get(analysis.link);
       if (!cached?.checked) {
-        this.checkPostInNewTabThrottled(post, analysis.link);
+        this.checkPostInNewTabThrottled(analysis.link).then((isProblem) => {
+          post.classList.remove('xGhosted-potential_problem', 'xGhosted-good', 'xGhosted-problem');
+          post.classList.add(isProblem ? 'xGhosted-problem' : 'xGhosted-good');
+          post.setAttribute('data-xGhosted', `postquality.${isProblem ? 'problem' : 'good'}`);
+          cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
+          cached.checked = true;
+          this.saveState();
+        });
       }
     }
-    if (status === 'potential' && post && !post.querySelector('.eye-icon')) {
+    if (analysis.quality.name === postQuality.POTENTIAL_PROBLEM.name && post && !post.querySelector('.eye-icon')) {
       const eye = this.document.createElement('span');
       eye.textContent = '👀';
       eye.className = 'eye-icon';
@@ -393,7 +381,6 @@ XGhosted.prototype.init = function () {
   this.loadState();
   this.createPanel();
 
-  // Inject CSS for DOM-driven highlighting
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
     .xGhosted-problem { border: 2px solid red; }
