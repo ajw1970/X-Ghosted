@@ -19,6 +19,7 @@ const __dirname = dirname(__filename);
 let clipboardMock; // Store mock globally for test access
 
 function setupJSDOM() {
+  // Same sample used in src/utils/identifyPosts.test.js
   const samplePath = resolve(__dirname, '../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
   const sampleHtml = readFileSync(samplePath, 'utf8');
   const html = `<!DOCTYPE html><html><body>${sampleHtml}</body></html>`;
