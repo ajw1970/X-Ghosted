@@ -1312,7 +1312,8 @@
       this.log('No posts container found');
       return [];
     }
-    function processPostAnalysis(post, analysis) {
+    this.updateState(this.document.location.href);
+    const processPostAnalysis = (post, analysis) => {
       const id = analysis.link;
       const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
       post.setAttribute('data-xghosted', `postquality.${qualityName}`);
@@ -1324,7 +1325,7 @@
         this.replaceMenuButton(post, id);
       }
       this.state.processedPosts.set(id, { analysis, checked: false });
-    }
+    };
     const results = identifyPosts(
       postsContainer,
       'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',

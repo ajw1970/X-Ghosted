@@ -148,6 +148,7 @@ XGhosted.prototype.createPanel = function () {
 
 XGhosted.prototype.updateState = function (url) {
   this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(url);
+  // this.log(`URL: ${url}, isWithReplies: ${this.state.isWithReplies}`);
   if (this.state.lastUrl !== url) {
     this.state.postContainer = null;
     this.state.processedPosts.clear();
@@ -331,6 +332,9 @@ XGhosted.prototype.highlightPosts = function () {
     return [];
   }
 
+  // Make sure state.isWithReplies is set correctly
+  this.updateState(this.document.location.href);
+
   const processPostAnalysis = (post, analysis) => {
     // Set attributes and classes based on analysis
     const id = analysis.link;
@@ -350,7 +354,12 @@ XGhosted.prototype.highlightPosts = function () {
   }
 
   // Select all posts unprocessed posts and process them while calling processPostAnalysis(analysis) after each post
-  const results = identifyPosts(postsContainer, 'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])', this.state.isWithReplies, this.state.fillerCount, processPostAnalysis);
+  const results = identifyPosts(
+    postsContainer, 
+    'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
+    this.state.isWithReplies, 
+    this.state.fillerCount, 
+    processPostAnalysis);
 
   renderPanel(this.document, this.state, this.uiElements, () =>
     createPanel(this.document, this.state, this.uiElements, this.uiElements.config, this.togglePanelVisibility.bind(this), this.copyLinks.bind(this))
