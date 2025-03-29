@@ -249,8 +249,7 @@ XGhosted.prototype.findPostContainer = function () {
   let currentElement = firstPost.parentElement;
   while (currentElement) {
     if (
-      currentElement.hasAttribute('aria-label') &&
-      currentElement.getAttribute('tabindex') === '0'
+      currentElement.hasAttribute('aria-label')
     ) {
       this.state.postContainer = currentElement;
       this.state.postContainer.setAttribute('data-xghosted', 'posts-container');
@@ -467,10 +466,10 @@ XGhosted.prototype.init = function () {
 
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
-    .xGhosted-problem { border: 2px solid red; }
-    .xGhosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-    .xGhosted-good { /* Optional: subtle styling if desired */ }
-    .xGhosted-undefined { /* No styling needed */ }
+    .xghosted-problem { border: 2px solid red; }
+    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+    .xghosted-good { /* Optional: subtle styling if desired */ }
+    .xghosted-undefined { /* No styling needed */ }
   `;
   this.document.head.appendChild(styleSheet);
   this.uiElements.highlightStyleSheet = styleSheet;
