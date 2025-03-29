@@ -8,8 +8,7 @@ test('identifyPosts classifies posts', () => {
   const { GOOD, PROBLEM, POTENTIAL_PROBLEM, UNDEFINED } = postQuality;
   const checkReplies = true;
   const startingFillerCount = 0;
-  const results = identifyPosts(document, checkReplies, startingFillerCount);
-  const analyses = results.map(result => result.analysis);
+  const analyses = identifyPosts(document, checkReplies, startingFillerCount);
 
   expect(describeSampleAnalyses(document, analyses)).toBe([
     "Structure Summary Totals:",

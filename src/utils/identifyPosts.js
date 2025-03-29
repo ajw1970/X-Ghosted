@@ -1,9 +1,9 @@
 import { identifyPost } from './identifyPost';
 import { postQuality } from './postQuality';
 
-function identifyPosts(document, checkReplies = true, startingFillerCount = 0) {
+function identifyPosts(document, selector='div[data-testid="cellInnerDiv"]', checkReplies = true, startingFillerCount = 0, fn = null) {
     // Select all posts
-    let posts = document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+    let posts = document.querySelectorAll(selector);
 
     const results = [];
     let lastLink = null;
@@ -25,10 +25,12 @@ function identifyPosts(document, checkReplies = true, startingFillerCount = 0) {
             fillerCount = 0;
         }
 
-        results.push({
-            analysis: analysis,
-            post
-        });
+        if (fn) {
+            // This may mutate the post element but we're done with it anyway
+            fn(post, analysis);
+        }
+
+        results.push(analysis);
     });
 
     return results;

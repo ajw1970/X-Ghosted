@@ -228,8 +228,8 @@ function createPanel(doc, state, uiElements, config, togglePanelVisibility, copy
     state.isCollapsingEnabled = false;
     state.isCollapsingRunning = false;
     doc.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(state.instance.expandArticle);
-    state.processedArticles = new WeakMap();
-    state.fullyProcessedArticles.clear();
+    state.processedPosts = new WeakMap();
+    state.fullyprocessedPosts.clear();
     state.problemLinks.clear();
   }, config);
 

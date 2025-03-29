@@ -1,3 +1,7 @@
+= highlight-potential-problems.js: abandoned version 0.6.4 from commit afe72d
+
+[source, javascript]
+----
 // Source: https://raw.githubusercontent.com/ajw1970/X-Ghosted/afe72dfbfc787f4c46a7c309dfcf89c1bb695291/src/highlight-potential-problems.js
 // ==UserScript==
 // @name         Highlight Potential Problems
@@ -1303,3 +1307,4 @@
 
   init();
 })();
+----

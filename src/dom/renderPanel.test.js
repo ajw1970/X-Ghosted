@@ -9,7 +9,7 @@ describe('renderPanel', () => {
     const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
     doc = dom.window.document;
     state = {
-      processedArticles: new Map([
+      processedPosts: new Map([
         ['/test/problem', { analysis: { quality: { name: 'Problem' } } }],
         ['/test/potential', { analysis: { quality: { name: 'Potential Problem' } } }]
       ]),

@@ -13,8 +13,8 @@ describe('saveAllPosts', () => {
 
         // Set up a default state mirroring production
         state = {
-            processedArticles: new WeakSet(),
-            fullyProcessedArticles: new Set(),
+            processedPosts: new WeakSet(),
+            fullyprocessedPosts: new Set(),
             problemLinks: new Set(),
             allPosts: new Map(),
             isDarkMode: true,
@@ -87,29 +87,29 @@ describe('saveAllPosts', () => {
         // Deep copy the state, handling WeakSet, Set, and Map
         const originalState = {
             ...state,
-            fullyProcessedArticles: new Set(state.fullyProcessedArticles),
+            fullyprocessedPosts: new Set(state.fullyprocessedPosts),
             problemLinks: new Set(state.problemLinks),
             allPosts: new Map(state.allPosts),
         };
 
-        // Add items to the processedArticles WeakSet *before* running saveAllPosts
+        // Add items to the processedPosts WeakSet *before* running saveAllPosts
         // to simulate a real-world scenario
         const article1 = { id: 1 };
-        state.processedArticles.add(article1);
+        state.processedPosts.add(article1);
         const article2 = { id: 2 };
-        state.processedArticles.add(article2);
+        state.processedPosts.add(article2);
 
         saveAllPosts(state, gm_setValueFn, gm_logFn);
 
         expect(state.storageAvailable).toEqual(originalState.storageAvailable);
         expect(areMapsEqual(state.allPosts, originalState.allPosts)).toBe(true);
-        expect(areSetsEqual(state.fullyProcessedArticles, originalState.fullyProcessedArticles)).toBe(true);
+        expect(areSetsEqual(state.fullyprocessedPosts, originalState.fullyprocessedPosts)).toBe(true);
         expect(areSetsEqual(state.problemLinks, originalState.problemLinks)).toBe(true);
 
         // Because WeakSet doesn't support iteration or comparison of values,
         // all we can do is ensure that the *reference* hasn't changed.
-        // We want to make sure that we didn't reassign state.processedArticles
-        expect(state.processedArticles).toBe(state.processedArticles);
+        // We want to make sure that we didn't reassign state.processedPosts
+        expect(state.processedPosts).toBe(state.processedPosts);
 
 
     });
