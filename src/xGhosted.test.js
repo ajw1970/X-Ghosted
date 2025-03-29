@@ -16,6 +16,9 @@ global.GM_setValue = jest.fn((key, value) => { gmStorage[key] = value; });
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Mock window.alert to silence JSDOM's "Not implemented" error
+global.alert = jest.fn();
+
 let clipboardMock;
 
 function setupJSDOM() {
@@ -107,6 +110,7 @@ describe('xGhosted', () => {
   test('checkPostInNewTab handles rate limit', async () => {
     xGhosted.state.isManualCheckEnabled = true;
     xGhosted.createPanel(); // Initialize UI elements before test
+  
     const mockWindow = {
       document: {
         readyState: 'complete',
@@ -117,17 +121,27 @@ describe('xGhosted', () => {
     };
     xGhosted.document.defaultView.open.mockReturnValue(mockWindow);
   
+    // Call the method and capture the promise
     const promise = xGhosted.checkPostInNewTab('/test/status/123');
-    jest.advanceTimersByTime(500); // Trigger the interval (set to 500ms)
-    expect(xGhosted.state.isRateLimited).toBe(true); // Check state after interval
-    expect(xGhosted.uiElements.controlLabel.textContent).toBe('Paused (Rate Limit)');
-    jest.advanceTimersByTime(xGhosted.timing.rateLimitPause); // Trigger the timeout (100ms)
-    const result = await promise; // Wait for promise resolution
   
-    expect(xGhosted.state.isRateLimited).toBe(false); // State reset after timeout
-    expect(result).toBe(false); // Promise resolves with false
+    // Advance timers to trigger the rate limit detection
+    jest.advanceTimersByTime(500); // Matches the 500ms interval in checkPostInNewTab
+  
+    // Ensure the state reflects rate limit
+    expect(xGhosted.state.isRateLimited).toBe(true);
+    expect(xGhosted.uiElements.controlLabel.textContent).toBe('Paused (Rate Limit)');
+  
+    // Advance timers past the rate limit pause (100ms in test config)
+    jest.advanceTimersByTime(xGhosted.timing.rateLimitPause);
+  
+    // Wait for the promise to resolve
+    const result = await promise;
+  
+    // Verify the outcome
+    expect(xGhosted.state.isRateLimited).toBe(false);
+    expect(result).toBe(false);
     expect(xGhosted.uiElements.controlLabel.textContent).toBe('Controls');
-    expect(mockWindow.close).toHaveBeenCalled(); // Window closed
+    expect(mockWindow.close).toHaveBeenCalled();
   });
 
   test('renderPanel shows flagged posts', () => {
