@@ -262,7 +262,7 @@ XGhosted.prototype.findPostContainer = function () {
     currentElement = currentElement.parentElement;
   }
 
-  this.log('No parent container found with aria-label and tabindex="0"');
+  this.log('No parent container found with aria-label');
   return null;
 };
 
