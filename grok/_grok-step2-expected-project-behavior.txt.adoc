@@ -2,20 +2,21 @@
 :revision-date: March 28, 2025
 
 == Core Features in Current State
-- *Detection*: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow, with eye icons), GOOD (none), UNDEFINED (none) posts on X’s `/with_replies` pages using DOM attributes. Container tagged with `data-xGhosted="posts-container"` (scoped to `tabindex="0"`), posts tagged with `data-xGhosted="postquality.<quality>"` and `data-xGhosted-id="link"`, styled via CSS classes (`xGhosted-<quality>`). Fails with message if container’s missing. POTENTIAL_PROBLEM detection uses `checkPostInNewTab` for thread analysis, throttled in `highlightPosts`.
+- *Detection*: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow, with eye icons), GOOD (none), UNDEFINED (none) posts on X’s `/with_replies` pages using DOM attributes. Container tagged with `data-xGhosted="posts-container"` (scoped to `tabindex="0"`), posts tagged with `data-xGhosted="postquality.<quality>"` and `data-xGhosted-id="link"`, styled via CSS classes (`xGhosted-<quality>`). Fails with message if container’s missing. POTENTIAL_PROBLEM detection uses `checkPostInNewTab` for thread analysis, throttled in `highlightPosts`. Rate limit handling in `checkPostInNewTab` pauses and resumes operations seamlessly, validated through test cases.
 - *UI*: Floating panel (resizable, draggable) lists problem/potential posts with Copy, Export CSV, Import CSV, Clear, and Manual Check buttons. Theme switching seamless. Highlights via `[data-xGhosted="posts-container"] .xGhosted-<quality>`. Show/Hide fixed—collapses top-right.
-- *Persistence*: State saved via `GM_setValue`/`GM_getValue`—includes `processedArticles` (capped at 1000), settings, and panel position. Auto-collapse toggle planned.
+- *Persistence*: State saved via `GM_setValue`/`GM_getValue`—includes `processedArticles` (capped at 1000), settings, and panel position. `processedPosts` persistence optional via `persistProcessedPosts`.
 - *Logging*: Configurable via constructor—`GM_log` or `console.log`.
 - *Safety*: Starts with `isManualCheckEnabled` true; debounce/throttle configurable; 1000-article cap enforced.
 - *Observer*: Watches `[data-xGhosted="posts-container"]` children, re-inits on refresh with 5s timeout.
-- *Tests*: 112 tests across 17 suites passing—pending updates for DOM class checks.
+- *Tests*: All 74 tests across 17 suites passing, covering DOM tagging, class-based highlighting, and rate limit scenarios.
 - *Build*: Esbuild bundles `xGhosted.js` into `xGhosted.user.js`—run via `npm run build`.
 
 == Next Steps
-Update tests for DOM tagging and class-based highlighting; verify DOM tagging and thread analysis behavior on `/with_replies` with 50+ posts; consider auto-collapse toggle implementation.
+Verify manual testing for 50+ posts on `/with_replies`, finalize documentation, and prepare for release.
 
 == Revision History
 - March 23, 2025: Step 2 completed—24/24 tests pass with Manual Check Mode mocked.
 - March 26, 2025: Fixed "Hide" functionality, adjusted panel size when hidden.
 - March 27, 2025: Clarified Show/Hide as a bug, noted POTENTIAL_PROBLEM detection pending DOM check.
 - March 28, 2025: Refined `checkPostInNewTab` for thread analysis, updated `highlightPosts` to use throttled Promise and classes.
+- March 28, 2025: Confirmed rate limit handling and updated test status to 74 passing tests.

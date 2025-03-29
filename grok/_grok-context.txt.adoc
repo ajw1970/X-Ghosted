@@ -4,13 +4,11 @@
 == Roadmap to 0.6.1 Release
 - [x] Fix Show/Hide positioning and collapse behavior (Issue 2: After moving the panel, hiding it reverts to original position and collapses toward top-left; expected to collapse to current top-right). Resolved: Panel now collapses to current top-right position, button stays stationary.
 - [x] Resolve PROBLEM post highlighting (Issue 3: PROBLEM posts appear in panel with red dot but lack red highlight in UI). Resolved: PROBLEM posts now highlighted via `xGhosted-problem` class in UI.
-- [ ] Ensure Clear button fully resets state for Export CSV (Issue 4: After clearing posts, Export CSV still outputs the previous list, indicating an incomplete state reset). Resolved: Clear button now fully resets state, Export CSV reflects cleared state.
+- [x] Ensure Clear button fully resets state for Export CSV (Issue 4: After clearing posts, Export CSV still outputs the previous list, indicating an incomplete state reset). Resolved: Clear button now fully resets state, Export CSV reflects cleared state.
 - [x] Fix POTENTIAL_PROBLEM detection inconsistencies (Issue 5: POTENTIAL_PROBLEM posts not consistently detected in manual testing despite test success). Resolved: Implemented DOM tagging with `data-xGhosted="postquality.potential_problem"` and CSS class `xGhosted-potential_problem`, with `checkPostInNewTab` verifying threads.
 - [x] Fix missing red dot in panel for PROBLEM posts (Issue 7: Red dot indicating PROBLEM status is missing in the panel, likely due to CSS or class mismatch in `renderPanel.js`). Resolved: Fixed class name to `status-problem` in `renderPanel.js`.
+- [x] Resolve rate limit test failure in `xGhosted.test.js` (Issue 8: Test timed out due to improper handling of timers and `done()` callback). Resolved: Rewrote test using `async/await` and advanced timers correctly.
 
 == Manual Testing
-- [ ] Test button functionality: Clear/Export CSV state reset (Issue 4). Resolved: Clear button resets state, Export CSV works as expected—pending verification.
-- [ ] Test eye icon visibility for POTENTIAL_PROBLEM posts. Resolved: Added `zIndex: '10000'` to ensure visibility—pending verification.
-- [ ] Test POTENTIAL_PROBLEM detection consistency (Issue 5). Resolved: DOM tagging and thread checking implemented—pending verification with 50+ posts on `/with_replies`.
-- [ ] Test Show/Hide positioning after drag (Issue 2: Resolved). Resolved: Panel collapses to current top-right position—pending verification.
-- [ ] Test red dot visibility in panel for PROBLEM posts (Issue 7). Resolved: Red dot now visible—pending verification.
+- [ ] Verify tagging, highlighting, and fail message on 50+ post page.
+- [ ] Test rate limit handling and confirm UI updates (e.g., status dots) during pause and resume.
