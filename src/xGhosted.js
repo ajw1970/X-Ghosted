@@ -1,6 +1,7 @@
 import { postQuality } from './utils/postQuality.js';
 import { detectTheme } from './dom/detectTheme';
 import { identifyPost } from './utils/identifyPost';
+import { identifyPosts } from './utils/identifyPosts';
 import { debounce } from './utils/debounce';
 import { createButton } from './dom/createButton';
 import { createPanel } from './dom/createPanel';
@@ -330,27 +331,9 @@ XGhosted.prototype.highlightPosts = function () {
     return [];
   }
 
-  const posts = postsContainer.querySelectorAll('div[data-testid="cellInnerDiv"]:not([data-xghosted-id])');
-  const results = [];
-  let lastLink = null;
-  let fillerCount = 0;
-
-  posts.forEach(post => {
-    const analysis = identifyPost(post, this.state.isWithReplies);
-    let id = analysis.link;
-    if (analysis.quality === postQuality.UNDEFINED && id === false) {
-      if (lastLink) {
-        fillerCount++;
-        id = `${lastLink}#filler${fillerCount}`;
-      } else {
-        id = `#filler${fillerCount}`;
-      }
-      analysis.link = id;
-    } else if (id) {
-      lastLink = id;
-      fillerCount = 0;
-    }
-
+  const processPostAnalysis = (post, analysis) => {
+    // Set attributes and classes based on analysis
+    const id = analysis.link;
     const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
     post.setAttribute('data-xghosted', `postquality.${qualityName}`);
     post.setAttribute('data-xghosted-id', id);
@@ -362,10 +345,12 @@ XGhosted.prototype.highlightPosts = function () {
       this.replaceMenuButton(post, id);
     }
 
-    results.push(analysis);
     this.state.processedPosts.set(id, { analysis, checked: false });
     // this.log(`Set processedPosts for ${id}: ${JSON.stringify(this.state.processedPosts.get(id))}`); // Debug log
-  });
+  }
+
+  // Select all posts unprocessed posts and process them while calling processPostAnalysis(analysis) after each post
+  const results = identifyPosts(postsContainer, 'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])', this.state.isWithReplies, this.state.fillerCount, processPostAnalysis);
 
   renderPanel(this.document, this.state, this.uiElements, () =>
     createPanel(this.document, this.state, this.uiElements, this.uiElements.config, this.togglePanelVisibility.bind(this), this.copyLinks.bind(this))

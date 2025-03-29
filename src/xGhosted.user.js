@@ -219,6 +219,41 @@
     };
   }
 
+  // src/utils/identifyPosts.js
+  function identifyPosts(
+    document,
+    selector = 'div[data-testid="cellInnerDiv"]',
+    checkReplies = true,
+    startingFillerCount = 0,
+    fn = null
+  ) {
+    let posts = document.querySelectorAll(selector);
+    const results = [];
+    let lastLink = null;
+    let fillerCount = startingFillerCount;
+    posts.forEach((post) => {
+      const analysis = identifyPost(post, checkReplies);
+      let id = analysis.link;
+      if (analysis.quality === postQuality.UNDEFINED && id === false) {
+        if (lastLink) {
+          fillerCount++;
+          id = `${lastLink}#filler${fillerCount}`;
+        } else {
+          id = `#filler${fillerCount}`;
+        }
+        analysis.link = id;
+      } else if (id) {
+        lastLink = id;
+        fillerCount = 0;
+      }
+      if (fn) {
+        fn(post, analysis);
+      }
+      results.push(analysis);
+    });
+    return results;
+  }
+
   // src/utils/debounce.js
   function debounce(func, wait) {
     let timeout;
@@ -1277,27 +1312,8 @@
       this.log('No posts container found');
       return [];
     }
-    const posts = postsContainer.querySelectorAll(
-      'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])'
-    );
-    const results = [];
-    let lastLink = null;
-    let fillerCount = 0;
-    posts.forEach((post) => {
-      const analysis = identifyPost(post, this.state.isWithReplies);
-      let id = analysis.link;
-      if (analysis.quality === postQuality.UNDEFINED && id === false) {
-        if (lastLink) {
-          fillerCount++;
-          id = `${lastLink}#filler${fillerCount}`;
-        } else {
-          id = `#filler${fillerCount}`;
-        }
-        analysis.link = id;
-      } else if (id) {
-        lastLink = id;
-        fillerCount = 0;
-      }
+    function processPostAnalysis(post, analysis) {
+      const id = analysis.link;
       const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
       post.setAttribute('data-xghosted', `postquality.${qualityName}`);
       post.setAttribute('data-xghosted-id', id);
@@ -1307,9 +1323,15 @@
         post.classList.add('xghosted-potential_problem');
         this.replaceMenuButton(post, id);
       }
-      results.push(analysis);
       this.state.processedPosts.set(id, { analysis, checked: false });
-    });
+    }
+    const results = identifyPosts(
+      postsContainer,
+      'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
+      this.state.isWithReplies,
+      this.state.fillerCount,
+      processPostAnalysis
+    );
     renderPanel(this.document, this.state, this.uiElements, () =>
       createPanel(
         this.document,
