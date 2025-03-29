@@ -321,7 +321,7 @@ XGhosted.prototype.replaceMenuButton = function (post, href) {
     this.log(`Eyeball clicked for manual check on href: ${href}`);
   });
   button.parentElement.insertBefore(newLink, button.nextSibling);
-  this.log(`Added eyeball link next to share button for href: ${href}`);
+  // this.log(`Added eyeball link next to share button for href: ${href}`);
 };
 
 XGhosted.prototype.highlightPosts = function () {
@@ -365,7 +365,7 @@ XGhosted.prototype.highlightPosts = function () {
 
     results.push(analysis);
     this.state.processedPosts.set(id, { analysis, checked: false });
-    this.log(`Set processedPosts for ${id}: ${JSON.stringify(this.state.processedPosts.get(id))}`); // Debug log
+    // this.log(`Set processedPosts for ${id}: ${JSON.stringify(this.state.processedPosts.get(id))}`); // Debug log
   });
 
   renderPanel(this.document, this.state, this.uiElements, () =>

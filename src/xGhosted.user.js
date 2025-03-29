@@ -1273,7 +1273,6 @@
       this.log(`Eyeball clicked for manual check on href: ${href}`);
     });
     button.parentElement.insertBefore(newLink, button.nextSibling);
-    this.log(`Added eyeball link next to share button for href: ${href}`);
   };
   XGhosted.prototype.highlightPosts = function () {
     const postsContainer = this.findPostContainer();
@@ -1313,9 +1312,6 @@
       }
       results.push(analysis);
       this.state.processedPosts.set(id, { analysis, checked: false });
-      this.log(
-        `Set processedPosts for ${id}: ${JSON.stringify(this.state.processedPosts.get(id))}`
-      );
     });
     renderPanel(this.document, this.state, this.uiElements, () =>
       createPanel(
