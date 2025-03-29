@@ -28,7 +28,8 @@ function XGhosted(doc, config = {}) {
     isDarkMode: true,
     isManualCheckEnabled: false,
     panelPosition: null,
-    persistProcessedPosts: config.persistProcessedPosts ?? false
+    persistProcessedPosts: config.persistProcessedPosts ?? false,
+    isRateLimited: false
   };
   this.document = doc;
   this.log = config.useTampermonkeyLog && typeof GM_log !== 'undefined'
@@ -90,25 +91,11 @@ function XGhosted(doc, config = {}) {
   };
 }
 
-XGhosted.prototype.loadState = function () {
-  const savedState = GM_getValue('xGhostedState', {});
-  this.state.isPanelVisible = savedState.isPanelVisible ?? true;
-  this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
-  this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
-  this.state.panelPosition = savedState.panelPosition || null;
-  if (this.state.persistProcessedPosts) {
-    const savedPosts = savedState.processedPosts || {};
-    for (const [id, data] of Object.entries(savedPosts)) {
-      this.state.processedPosts.set(id, data);
-    }
-  }
-};
-
 XGhosted.prototype.saveState = function () {
   const serializableArticles = {};
   if (this.state.persistProcessedPosts) {
-    for (const [id, data] of this.state.processedPosts) {
-      serializableArticles[id] = data;
+    for (const [id, { analysis, checked }] of this.state.processedPosts) {
+      serializableArticles[id] = { analysis: { ...analysis }, checked };
     }
   }
   GM_setValue('xGhostedState', {
@@ -118,6 +105,35 @@ XGhosted.prototype.saveState = function () {
     panelPosition: this.state.panelPosition,
     processedPosts: serializableArticles
   });
+};
+
+XGhosted.prototype.loadState = function () {
+  const savedState = GM_getValue('xGhostedState', {});
+  this.state.isPanelVisible = savedState.isPanelVisible ?? true;
+  this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
+  this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
+  this.state.panelPosition = savedState.panelPosition || null;
+  if (this.state.persistProcessedPosts) {
+    const savedPosts = savedState.processedPosts || {};
+    for (const [id, { analysis, checked }] of Object.entries(savedPosts)) {
+      this.state.processedPosts.set(id, {
+        analysis: { ...analysis, quality: postQuality[analysis.quality.name] }, // Restore quality object
+        checked
+      });
+    }
+  }
+};
+
+XGhosted.prototype.updateControlLabel = function () {
+  if (!this.uiElements.controlLabel) {
+    this.log('Error: controlLabel is undefined in updateControlLabel');
+    return;
+  }
+  this.uiElements.controlLabel.textContent = this.state.isRateLimited
+    ? 'Paused (Rate Limit)'
+    : this.state.isCollapsingEnabled
+      ? 'Controls Running'
+      : 'Controls';
 };
 
 XGhosted.prototype.createPanel = function () {
@@ -142,18 +158,63 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
   const fullUrl = `https://x.com${href}`;
   const newWindow = this.document.defaultView.open(fullUrl, '_blank');
   let attempts = 0, maxAttempts = 10;
+  let emptyCount = 0;
+
   return new Promise((resolve) => {
     const checkInterval = setInterval(() => {
       attempts++;
       if (newWindow && newWindow.document.readyState === 'complete') {
+        const doc = newWindow.document;
+        if (doc.body.textContent.includes('Rate limit exceeded')) {
+          clearInterval(checkInterval);
+          this.log('Rate limit detected in tab, pausing operations');
+          // Bypass alert() in Jest environment
+          if (typeof jest === 'undefined') {
+            alert(`Rate limit exceeded by X. Pausing all operations for ${this.timing.rateLimitPause / 1000} seconds.`);
+          } else {
+            this.log(`Rate limit alert: Pausing all operations for ${this.timing.rateLimitPause / 1000} seconds.`);
+          }
+          this.state.isRateLimited = true;
+          this.updateControlLabel(); // Update UI
+          newWindow.close();
+          setTimeout(() => {
+            this.log('Resuming after rate limit pause');
+            this.state.isRateLimited = false;
+            this.updateControlLabel(); // Update UI
+            resolve(false);
+          }, this.timing.rateLimitPause);
+          return;
+        }
+
+        const threadPosts = doc.querySelectorAll('div[data-testid="cellInnerDiv"]');
+        if (threadPosts.length === 0) {
+          emptyCount++;
+          if (emptyCount >= 3) {
+            clearInterval(checkInterval);
+            this.log('Repeated empty results, possible rate limit, pausing operations');
+            alert(`Possible rate limit detected (no articles loaded). Pausing for ${this.timing.rateLimitPause / 1000} seconds.`);
+            this.state.isRateLimited = true;
+            this.updateControlLabel(); // Update UI
+            newWindow.close();
+            setTimeout(() => {
+              this.log('Resuming after empty result pause');
+              this.state.isRateLimited = false;
+              this.updateControlLabel(); // Update UI
+              resolve(false);
+            }, this.timing.rateLimitPause);
+            return;
+          }
+          return;
+        }
+
         clearInterval(checkInterval);
-        const threadPosts = newWindow.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
         if (threadPosts.length < 2) {
           this.log(`Thread at ${fullUrl} has fewer than 2 posts (${threadPosts.length})—assuming not a problem`);
           newWindow.close();
           resolve(false);
           return;
         }
+
         let isProblem = false;
         for (let threadPost of threadPosts) {
           const analysis = identifyPost(threadPost, false);
@@ -165,6 +226,7 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
         newWindow.close();
         resolve(isProblem);
       }
+
       if (attempts >= maxAttempts) {
         clearInterval(checkInterval);
         if (newWindow) newWindow.close();
@@ -203,26 +265,66 @@ XGhosted.prototype.findPostContainer = function () {
   return null;
 };
 
-//This should only be called when a users clicks on the eyeballs icon
-XGhosted.prototype.userRequestedPostCheck = function (url) {
-  if (analysis.quality.name === postQuality.POTENTIAL_PROBLEM.name && this.state.isManualCheckEnabled) {
-    const cached = this.state.processedPosts.get(analysis.link);
-    if (!cached?.checked) {
-      this.checkPostInNewTabThrottled(analysis.link).then((isProblem) => {
-        post.classList.remove('xghosted-potential_problem', 'xghosted-good', 'xghosted-problem');
-        post.classList.add(isProblem ? 'xghosted-problem' : 'xghosted-good');
-        post.setAttribute('data-xghosted', `postquality.${isProblem ? 'problem' : 'good'}`);
-        cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
-        cached.checked = true;
-        this.saveState();
-      });
-    }
+XGhosted.prototype.userRequestedPostCheck = function (href) {
+  const cached = this.state.processedPosts.get(href);
+  if (!cached || cached.analysis.quality.name !== postQuality.POTENTIAL_PROBLEM.name || !this.state.isManualCheckEnabled) {
+    this.log(`Manual check skipped for ${href}: not a potential problem or manual mode off`);
+    return;
   }
-}
+  const post = this.document.querySelector(`div[data-xghosted-id="${href}"]`);
+  if (!post) {
+    this.log(`Post element not found for ${href}`);
+    return;
+  }
+  if (!cached.checked) {
+    this.checkPostInNewTabThrottled(href).then((isProblem) => {
+      if (this.state.isRateLimited) return;  // Skip updates if rate-limited
+      post.classList.remove('xghosted-potential_problem', 'xghosted-good', 'xghosted-problem');
+      post.classList.add(isProblem ? 'xghosted-problem' : 'xghosted-good');
+      post.setAttribute('data-xghosted', `postquality.${isProblem ? 'problem' : 'good'}`);
+      cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
+      cached.checked = true;
+      this.saveState();
+      this.log(`Manual check completed for ${href}: marked as ${isProblem ? 'problem' : 'good'}`);
+    });
+  } else {
+    this.log(`Manual check skipped for ${href}: already checked`);
+  }
+};
+
+XGhosted.prototype.replaceMenuButton = function (post, href) {
+  if (!post) return;
+  const button = post.querySelector('button[aria-label="Share post"]') || post.querySelector('button'); // Fallback to any button
+  if (!button) {
+    this.log(`No share button found for post with href: ${href}`);
+    return;
+  }
+  if (button.nextSibling?.textContent.includes('👀')) return; // Avoid duplicates
+
+  const newLink = Object.assign(this.document.createElement('a'), {
+    textContent: '👀',
+    href: '#',
+  });
+  Object.assign(newLink.style, {
+    color: 'rgb(29, 155, 240)',
+    textDecoration: 'none',
+    padding: '8px',
+    cursor: 'pointer',
+  });
+  newLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (this.state.isRateLimited) {
+      this.log('Tab check skipped due to rate limit pause');
+      return;
+    }
+    this.userRequestedPostCheck(href);
+    this.log(`Eyeball clicked for manual check on href: ${href}`);
+  });
+  button.parentElement.insertBefore(newLink, button.nextSibling);
+  this.log(`Added eyeball link next to share button for href: ${href}`);
+};
 
 XGhosted.prototype.highlightPosts = function () {
-
-  // Identify and Highlight Posts based on Quality Check
   const postsContainer = this.findPostContainer();
   if (!postsContainer) {
     this.log('No posts container found');
@@ -254,33 +356,22 @@ XGhosted.prototype.highlightPosts = function () {
     post.setAttribute('data-xghosted', `postquality.${qualityName}`);
     post.setAttribute('data-xghosted-id', id);
 
-    // Add class based on posts needing attention
     if (analysis.quality === postQuality.PROBLEM) {
       post.classList.add('xghosted-problem');
     } else if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
       post.classList.add('xghosted-potential_problem');
+      this.replaceMenuButton(post, id);
     }
 
     results.push(analysis);
-    this.state.processedPosts.set(id, analysis);
-
-    if (analysis.quality.name === postQuality.POTENTIAL_PROBLEM.name && post && !post.querySelector('.eye-icon')) {
-      const eye = this.document.createElement('span');
-      eye.textContent = '👀';
-      eye.className = 'eye-icon';
-      eye.style.position = 'absolute';
-      eye.style.top = '5px';
-      eye.style.right = '5px';
-      eye.style.zIndex = '10000';
-      post.appendChild(eye);
-    }
-
+    this.state.processedPosts.set(id, { analysis, checked: false });
+    this.log(`Set processedPosts for ${id}: ${JSON.stringify(this.state.processedPosts.get(id))}`); // Debug log
   });
 
   renderPanel(this.document, this.state, this.uiElements, () =>
     createPanel(this.document, this.state, this.uiElements, this.uiElements.config, this.togglePanelVisibility.bind(this), this.copyLinks.bind(this))
   );
-  
+
   this.saveState();
 
   return results;
@@ -372,6 +463,7 @@ XGhosted.prototype.updateTheme = function () {
 XGhosted.prototype.init = function () {
   this.loadState();
   this.createPanel();
+  this.updateControlLabel(); // Initial call
 
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `

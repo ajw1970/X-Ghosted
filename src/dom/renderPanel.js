@@ -3,13 +3,13 @@ function renderPanel(doc, state, uiElements, createPanel2) {
     createPanel2(doc, state, uiElements);
   }
   const flagged = Array.from(state.processedPosts.entries()).filter(
-    ([_,  analysis ]) =>
+    ([_, { analysis }]) => // Destructure correctly
       analysis.quality.name === state.postQuality.PROBLEM.name ||
       analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
   );
   uiElements.label.textContent = `Problem Posts (${flagged.length}):`;
   uiElements.contentWrapper.innerHTML = '';
-  flagged.forEach(([href, analysis]) => {
+  flagged.forEach(([href, { analysis }]) => { // Destructure correctly
     const row = doc.createElement('div');
     row.className = 'link-row';
     const dot = doc.createElement('span');
@@ -17,7 +17,7 @@ function renderPanel(doc, state, uiElements, createPanel2) {
     dot.className = `status-dot ${statusClass}`;
     row.appendChild(dot);
     const linkItem = doc.createElement('div');
-    linkItem.className = 'link-item'; // Ensure test selector matches
+    linkItem.className = 'link-item';
     const a = Object.assign(doc.createElement('a'), {
       href: `https://x.com${href}`,
       textContent: `${href}`,

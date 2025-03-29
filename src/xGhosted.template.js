@@ -24,19 +24,21 @@
     }
 
     // Log startup with safety focus
-    log('xGhosted v0.6.1 starting - Manual mode on, resource use capped');
+    log('xGhosted v0.6.1 starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds');
 
     // --- Inject Module (single resolved xGhosted.js with all dependencies inlined) ---
     // INJECT: xGhosted
 
-    // --- Initialization with Resource Limits ---
+    // --- Initialization with Resource Limits and Rate Limiting ---
     const MAX_PROCESSED_ARTICLES = 1000;
+    const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
     const config = {
         timing: {
             debounceDelay: 500,
             throttleDelay: 1000,
             tabCheckThrottle: 5000,
-            exportThrottle: 5000
+            exportThrottle: 5000,
+            rateLimitPause: RATE_LIMIT_PAUSE  // Added to config
         },
         useTampermonkeyLog: true,
         persistProcessedPosts: false // Explicitly set to false by default

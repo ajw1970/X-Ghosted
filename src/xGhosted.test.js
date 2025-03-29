@@ -30,6 +30,7 @@ function setupJSDOM() {
   global.window = dom.window;
   global.document = dom.window.document;
   dom.window.document.defaultView.open = jest.fn();
+  dom.window.alert = jest.fn(); // Mock alert (though bypassed in test env)
   clipboardMock = { writeText: jest.fn().mockResolvedValue() };
   dom.window.navigator = { clipboard: clipboardMock, userAgent: 'jest' };
   global.navigator = dom.window.navigator;
@@ -43,15 +44,19 @@ function setupJSDOM() {
 describe('xGhosted', () => {
   let xGhosted, dom;
 
+  beforeAll(() => {
+    jest.useFakeTimers();
+  });
+
   beforeEach(() => {
     dom = setupJSDOM();
     xGhosted = new XGhosted(dom.window.document, {
-      timing: { debounceDelay: 0, throttleDelay: 0, tabCheckThrottle: 0, exportThrottle: 0 },
+      timing: { debounceDelay: 0, throttleDelay: 0, tabCheckThrottle: 0, exportThrottle: 0, rateLimitPause: 100 }, // 100ms for test
       useTampermonkeyLog: false,
-      persistProcessedPosts: true, // Enable persistence for save/load tests
+      persistProcessedPosts: true,
     });
     xGhosted.updateState('https://x.com/user/with_replies');
-    xGhosted.highlightPostsDebounced = xGhosted.highlightPosts; // Synchronous for tests
+    xGhosted.highlightPostsDebounced = xGhosted.highlightPosts;
     xGhosted.state.processedPosts.clear();
   });
 
@@ -93,35 +98,36 @@ describe('xGhosted', () => {
 
     expect(problemPost.classList.contains('xghosted-problem')).toBe(true);
     expect(potentialPost.classList.contains('xghosted-potential_problem')).toBe(true);
-    expect(potentialPost.querySelector('.eye-icon')).toBeTruthy();
+    const eyeball = potentialPost.querySelector('button[aria-label="Share post"] ~ a') || potentialPost.querySelector('button ~ a');
+    expect(eyeball?.textContent).toBe('👀');
     expect(goodPost.classList.contains('xghosted-good')).toBe(false);
     expect(undefinedPost.classList.contains('xghosted-undefined')).toBe(false);
   });
 
-  test.skip('checkPostsInNewTab handles manual check', () => {
+  test('checkPostInNewTab handles rate limit', async () => {
     xGhosted.state.isManualCheckEnabled = true;
-    const mockWindow = { document: { readyState: 'complete', querySelectorAll: () => [] }, close: jest.fn() };
+    xGhosted.createPanel(); // Initialize UI elements before test
+    const mockWindow = {
+      document: {
+        readyState: 'complete',
+        querySelectorAll: () => [],
+        body: { textContent: 'Rate limit exceeded' }
+      },
+      close: jest.fn()
+    };
     xGhosted.document.defaultView.open.mockReturnValue(mockWindow);
-    // Mock throttled function to return a Promise synchronously
-    xGhosted.checkPostInNewTabThrottled = jest.fn().mockReturnValue(Promise.resolve(false));
-
-    xGhosted.highlightPosts();
-    const analyses = xGhosted.identifyPosts()
-    expect(analyses.length).toBe(3);
-    const problemPostLink = analyses.find(pa => pa.quality === postQuality.PROBLEM).link;
-    const potentialPostLink = analyses.find(pa => pa.quality === postQuality.POTENTIAL_PROBLEM).link;
-    const goodPostLink = analyses.find(pa => pa.quality === postQuality.GOOD).link;
-
-    const problemPost = xGhosted.document.querySelector(`div[data-xghosted-id="${problemPostLink}"]`);
-    const potentialPost = xGhosted.document.querySelector(`div[data-xghosted-id="${potentialPostLink}"]`);
-    const goodPost = xGhosted.document.querySelector(`div[data-xghosted-id="${goodPostLink}"]`);
-
-    expect(problemPost.classList.contains('xGhosted-problem')).toBe(true);
-    expect(potentialPost.classList.contains('xGhosted-potential_problem')).toBe(true);
-    expect(potentialPost.querySelector('.eye-icon')).toBeTruthy();
-    expect(goodPost.classList.contains('xGhosted-good')).toBe(false);
-
-    expect(xGhosted.checkPostInNewTabThrottled).toHaveBeenCalledWith(potentialPost.link);
+  
+    const promise = xGhosted.checkPostInNewTab('/test/status/123');
+    jest.advanceTimersByTime(500); // Trigger the interval (set to 500ms)
+    expect(xGhosted.state.isRateLimited).toBe(true); // Check state after interval
+    expect(xGhosted.uiElements.controlLabel.textContent).toBe('Paused (Rate Limit)');
+    jest.advanceTimersByTime(xGhosted.timing.rateLimitPause); // Trigger the timeout (100ms)
+    const result = await promise; // Wait for promise resolution
+  
+    expect(xGhosted.state.isRateLimited).toBe(false); // State reset after timeout
+    expect(result).toBe(false); // Promise resolves with false
+    expect(xGhosted.uiElements.controlLabel.textContent).toBe('Controls');
+    expect(mockWindow.close).toHaveBeenCalled(); // Window closed
   });
 
   test('renderPanel shows flagged posts', () => {
@@ -140,19 +146,17 @@ describe('xGhosted', () => {
     expect(summary['Potential Problem']).toBe(2);
     expect(summary.Undefined).toBe(12);
 
-    // Pick a sample to check
     const post = analyses.find(pa => pa.link === '/OwenGregorian/status/1896977661144260900');
     expect(post.quality).toBe(postQuality.PROBLEM);
   });
 
-  // Fixed: Enable persistence to ensure processedPosts is saved
   test('saveState and loadState persist data', () => {
     xGhosted.highlightPosts();
 
     xGhosted.state.panelPosition = { left: '10px', top: '20px' };
     xGhosted.saveState();
     const saved = gmStorage.xGhostedState;
-    expect(saved.processedPosts['/OwenGregorian/status/1896977661144260900'].quality).toBe(postQuality.PROBLEM);
+    expect(saved.processedPosts['/OwenGregorian/status/1896977661144260900'].analysis.quality).toBe(postQuality.PROBLEM);
 
     xGhosted.state.processedPosts.clear();
     xGhosted.loadState();
