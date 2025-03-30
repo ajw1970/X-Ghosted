@@ -352,6 +352,54 @@ XGhosted.prototype.replaceMenuButton = function (post, href) {
   // this.log(`Added eyeball link next to share button for href: ${href}`);
 };
 
+XGhosted.prototype.refreshPanel = function () {
+  if (!this.uiElements.panel) return; // Safety check
+
+  const { h, render } = window.preact;
+  render(
+    h(window.Panel, {
+      state: this.state,
+      uiElements: this.uiElements,
+      config: this.uiElements.config,
+      togglePanelVisibility: this.togglePanelVisibility.bind(this),
+      copyCallback: this.copyLinks.bind(this),
+      mode: this.getThemeMode(),
+      onModeChange: (newMode) => {
+        this.state.isDarkMode = newMode !== 'light';
+        this.createPanel(); // Re-render with new mode
+      },
+      onStart: () => {
+        this.state.isCollapsingEnabled = true;
+        this.state.isCollapsingRunning = true;
+        const articles = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+        this.collapseArticlesWithDelay(articles);
+      },
+      onStop: () => {
+        this.state.isCollapsingEnabled = false;
+      },
+      onReset: () => {
+        this.state.isCollapsingEnabled = false;
+        this.state.isCollapsingRunning = false;
+        this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(this.expandArticle);
+        this.state.processedPosts = new Map();
+        this.state.fullyprocessedPosts.clear();
+        this.state.problemLinks.clear();
+      },
+      onExportCSV: this.exportProcessedPostsCSV.bind(this),
+      onImportCSV: this.importProcessedPostsCSV.bind(this),
+      onClear: () => {
+        if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
+      },
+      onManualCheckToggle: () => {
+        this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
+        this.createPanel(); // Re-render to update button text
+      },
+      refresh: Date.now() // Trigger useEffect in Panel component
+    }),
+    this.uiElements.panel
+  );
+};
+
 XGhosted.prototype.highlightPosts = function () {
   const postsContainer = this.findPostContainer();
   if (!postsContainer) {
