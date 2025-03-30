@@ -1,15 +1,16 @@
-function renderPanel(doc, state, uiElements, createPanel2) {
+function renderPanel(doc, state, uiElements) {
   if (!uiElements.panel || !doc.body.contains(uiElements.panel)) {
-    createPanel2(doc, state, uiElements);
+    // Panel should already be created by XGhosted.prototype.createPanel
+    return;
   }
   const flagged = Array.from(state.processedPosts.entries()).filter(
-    ([_, { analysis }]) => // Destructure correctly
+    ([_, { analysis }]) => 
       analysis.quality.name === state.postQuality.PROBLEM.name ||
       analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
   );
   uiElements.label.textContent = `Problem Posts (${flagged.length}):`;
   uiElements.contentWrapper.innerHTML = '';
-  flagged.forEach(([href, { analysis }]) => { // Destructure correctly
+  flagged.forEach(([href, { analysis }]) => {
     const row = doc.createElement('div');
     row.className = 'link-row';
     const dot = doc.createElement('span');

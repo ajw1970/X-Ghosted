@@ -10,6 +10,8 @@
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_log
+// @require      https://unpkg.com/preact@10.26.4/dist/preact.min.js
+// @require      https://unpkg.com/htm@3.1.1/dist/htm.umd.js
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -26,6 +28,14 @@
     // Log startup with safety focus
     log('xGhosted v0.6.1 starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds');
 
+    // Check if Preact and HTM dependencies loaded
+    if (!window.preact || !window.htm) {
+        log('xGhosted: Aborting - Failed to load dependencies. Preact: ' + 
+            (window.preact ? 'loaded' : 'missing') + ', HTM: ' + 
+            (window.htm ? 'loaded' : 'missing'));
+        return;
+    }
+
     // --- Inject Module (single resolved xGhosted.js with all dependencies inlined) ---
     // INJECT: xGhosted
 
@@ -38,10 +48,10 @@
             throttleDelay: 1000,
             tabCheckThrottle: 5000,
             exportThrottle: 5000,
-            rateLimitPause: RATE_LIMIT_PAUSE  // Added to config
+            rateLimitPause: RATE_LIMIT_PAUSE
         },
         useTampermonkeyLog: true,
-        persistProcessedPosts: false // Explicitly set to false by default
+        persistProcessedPosts: false
     };
     const xGhosted = new XGhosted(document, config);
     xGhosted.state.isManualCheckEnabled = true;

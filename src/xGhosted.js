@@ -4,11 +4,10 @@ import { identifyPost } from './utils/identifyPost';
 import { identifyPosts } from './utils/identifyPosts';
 import { debounce } from './utils/debounce';
 import { createButton } from './dom/createButton';
-import { createPanel } from './dom/createPanel';
 import { togglePanelVisibility } from './dom/togglePanelVisibility';
 import { renderPanel } from './dom/renderPanel';
 import { updateTheme } from './dom/updateTheme';
-
+import './ui/Components.js';
 function XGhosted(doc, config = {}) {
   const defaultTiming = {
     debounceDelay: 500,
@@ -138,12 +137,62 @@ XGhosted.prototype.updateControlLabel = function () {
 };
 
 XGhosted.prototype.createPanel = function () {
+  const { h, render } = window.preact;
   this.state.instance = this;
-  createPanel(this.document, this.state, this.uiElements, this.uiElements.config, this.togglePanelVisibility.bind(this), this.copyLinks.bind(this));
-  this.uiElements.modeSelector.addEventListener('change', () => {
-    this.updateTheme();
-    this.saveState();
-  });
+  const mode = this.getThemeMode();
+  this.state.isDarkMode = mode !== 'light';
+
+  // Create or reuse the panel container
+  if (!this.uiElements.panel) {
+    this.uiElements.panel = this.document.createElement('div');
+    this.document.body.appendChild(this.uiElements.panel);
+  }
+
+  // Render the Panel component
+  render(
+    h(window.Panel, {
+      state: this.state,
+      uiElements: this.uiElements,
+      config: this.uiElements.config,
+      togglePanelVisibility: this.togglePanelVisibility.bind(this),
+      copyCallback: this.copyLinks.bind(this),
+      mode: mode,
+      onModeChange: (newMode) => {
+        this.uiElements.modeSelector.value = newMode;
+        this.updateTheme();
+        this.createPanel(); // Re-render with new theme
+      },
+      onStart: () => {
+        this.state.isCollapsingEnabled = true;
+        this.state.isCollapsingRunning = true;
+        const articles = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+        this.collapseArticlesWithDelay(articles);
+      },
+      onStop: () => {
+        this.state.isCollapsingEnabled = false;
+      },
+      onReset: () => {
+        this.state.isCollapsingEnabled = false;
+        this.state.isCollapsingRunning = false;
+        this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(this.expandArticle);
+        this.state.processedPosts = new Map();
+        this.state.fullyprocessedPosts.clear();
+        this.state.problemLinks.clear();
+      },
+      onExportCSV: this.exportProcessedPostsCSV.bind(this),
+      onImportCSV: this.importProcessedPostsCSV.bind(this),
+      onClear: () => {
+        if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
+      },
+      onManualCheckToggle: () => {
+        this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
+        this.createPanel(); // Re-render to update button text
+      }
+    }),
+    this.uiElements.panel
+  );
+
+  this.updateControlLabel(); // Ensure label reflects initial state
 };
 
 XGhosted.prototype.updateState = function (url) {
@@ -355,10 +404,10 @@ XGhosted.prototype.highlightPosts = function () {
 
   // Select all posts unprocessed posts and process them while calling processPostAnalysis(analysis) after each post
   const results = identifyPosts(
-    postsContainer, 
+    postsContainer,
     'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
-    this.state.isWithReplies, 
-    this.state.fillerCount, 
+    this.state.isWithReplies,
+    this.state.fillerCount,
     processPostAnalysis);
 
   renderPanel(this.document, this.state, this.uiElements, () =>
