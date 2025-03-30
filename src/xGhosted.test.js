@@ -1,4 +1,3 @@
-import { expect, jest } from '@jest/globals';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
@@ -9,15 +8,15 @@ import { summarizeRatedPosts } from './utils/summarizeRatedPosts.js';
 
 // Mock Tampermonkey GM_* functions
 const gmStorage = {};
-global.GM_getValue = jest.fn((key, defaultValue) => gmStorage[key] ?? defaultValue);
-global.GM_setValue = jest.fn((key, value) => { gmStorage[key] = value; });
+global.GM_getValue = vi.fn((key, defaultValue) => gmStorage[key] ?? defaultValue);
+global.GM_setValue = vi.fn((key, value) => { gmStorage[key] = value; });
 
 // ES6-compatible __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Mock window.alert to silence JSDOM's "Not implemented" error
-global.alert = jest.fn();
+global.alert = vi.fn();
 
 let clipboardMock;
 
@@ -32,14 +31,14 @@ function setupJSDOM() {
   });
   global.window = dom.window;
   global.document = dom.window.document;
-  dom.window.document.defaultView.open = jest.fn();
-  dom.window.alert = jest.fn(); // Mock alert (though bypassed in test env)
-  clipboardMock = { writeText: jest.fn().mockResolvedValue() };
-  dom.window.navigator = { clipboard: clipboardMock, userAgent: 'jest' };
+  dom.window.document.defaultView.open = vi.fn();
+  dom.window.alert = vi.fn(); // Mock alert (though bypassed in test env)
+  clipboardMock = { writeText: vi.fn().mockResolvedValue() };
+  dom.window.navigator = { clipboard: clipboardMock, userAgent: 'vitest' };
   global.navigator = dom.window.navigator;
   dom.window.URL = {
-    createObjectURL: jest.fn(() => 'blob://test'),
-    revokeObjectURL: jest.fn(),
+    createObjectURL: vi.fn(() => 'blob://test'),
+    revokeObjectURL: vi.fn(),
   };
   return dom;
 }
@@ -48,7 +47,7 @@ describe('xGhosted', () => {
   let xGhosted, dom;
 
   beforeAll(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   beforeEach(() => {
@@ -65,7 +64,7 @@ describe('xGhosted', () => {
 
   afterEach(() => {
     dom.window.document.body.innerHTML = '';
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('init creates panel and tags posts', () => {
@@ -117,27 +116,21 @@ describe('xGhosted', () => {
         querySelectorAll: () => [],
         body: { textContent: 'Rate limit exceeded' }
       },
-      close: jest.fn()
+      close: vi.fn()
     };
     xGhosted.document.defaultView.open.mockReturnValue(mockWindow);
   
-    // Call the method and capture the promise
     const promise = xGhosted.checkPostInNewTab('/test/status/123');
   
-    // Advance timers to trigger the rate limit detection
-    jest.advanceTimersByTime(500); // Matches the 500ms interval in checkPostInNewTab
+    vi.advanceTimersByTime(500); // Matches the 500ms interval in checkPostInNewTab
   
-    // Ensure the state reflects rate limit
     expect(xGhosted.state.isRateLimited).toBe(true);
     expect(xGhosted.uiElements.controlLabel.textContent).toBe('Paused (Rate Limit)');
   
-    // Advance timers past the rate limit pause (100ms in test config)
-    jest.advanceTimersByTime(xGhosted.timing.rateLimitPause);
+    vi.advanceTimersByTime(xGhosted.timing.rateLimitPause);
   
-    // Wait for the promise to resolve
     const result = await promise;
   
-    // Verify the outcome
     expect(xGhosted.state.isRateLimited).toBe(false);
     expect(result).toBe(false);
     expect(xGhosted.uiElements.controlLabel.textContent).toBe('Controls');

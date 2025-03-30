@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { saveAllPosts } from './saveAllPosts';
 
 describe('saveAllPosts', () => {
@@ -7,11 +6,8 @@ describe('saveAllPosts', () => {
     let gm_logFn;
 
     beforeEach(() => {
-        // Reset mocks and state before each test
-        gm_logFn = jest.fn();
-        gm_setValueFn = jest.fn();
-
-        // Set up a default state mirroring production
+        gm_logFn = vi.fn();
+        gm_setValueFn = vi.fn();
         state = {
             processedPosts: new WeakSet(),
             fullyprocessedPosts: new Set(),

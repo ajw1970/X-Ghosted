@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { loadAllPosts } from './loadAllPosts';
 
 describe('loadAllPosts', () => {
@@ -9,14 +8,13 @@ describe('loadAllPosts', () => {
     let mockDocument;
 
     beforeEach(() => {
-        // Reset mocks before each test
-        mockGM_getValue = jest.fn();
-        mockGM_log = jest.fn();
+        mockGM_getValue = vi.fn();
+        mockGM_log = vi.fn();
         mockState = { storageAvailable: true, allPosts: new Map() };
         mockUiElements = { panel: document.createElement('div'), toolsSection: document.createElement('div'), storageWarning: null };
         mockDocument = {
-            createElement: jest.fn().mockReturnValue({ style: {}, textContent: '' }), // Mock createElement
-            body: { appendChild: jest.fn() } // Mock appendChild on document.body
+            createElement: vi.fn().mockReturnValue({ style: {}, textContent: '' }),
+            body: { appendChild: vi.fn() }
         };
     });
 
@@ -34,14 +32,14 @@ describe('loadAllPosts', () => {
 
     test('Storage Available, Load Fails (JSON Parsing Error)', () => {
         mockGM_getValue.mockReturnValue('{invalid: json}');
-        mockDocument.body.insertBefore = jest.fn();
+        mockDocument.body.insertBefore = vi.fn();
         const mockStorageWarning = {
             style: {},
             textContent: '',
         };
 
         mockDocument.createElement.mockReturnValue(mockStorageWarning); // Mock the result of createElement
-        mockUiElements.panel = { insertBefore: jest.fn() };
+        mockUiElements.panel = { insertBefore: vi.fn() };
         mockUiElements.toolsSection = {};
 
         loadAllPosts(mockGM_getValue, mockGM_log, mockState, mockUiElements, mockDocument);

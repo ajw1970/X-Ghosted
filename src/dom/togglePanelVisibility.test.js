@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { JSDOM } from 'jsdom';
 import { togglePanelVisibility } from './togglePanelVisibility';
 

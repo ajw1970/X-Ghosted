@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { JSDOM } from 'jsdom';
 import { createButton } from './createButton';
 import { rgbToHex } from './rgbToHex';
@@ -18,7 +17,7 @@ describe('createButton', () => {
   });
 
   test('creates a button with correct styles and text', () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     const button = createButton(doc, 'Test', null, 'light', onClick, config);
 
     expect(button.tagName).toBe('BUTTON');
@@ -37,7 +36,7 @@ describe('createButton', () => {
   });
 
   test('includes icon SVG when provided', () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     const iconSvg = '<svg width="12" height="12"></svg>';
     const button = createButton(doc, 'Test', iconSvg, 'dark', onClick, config);
 
@@ -47,7 +46,7 @@ describe('createButton', () => {
   });
 
   test('applies hover effects on mouseover and mouseout', () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     const button = createButton(doc, 'Test', null, 'light', onClick, config);
 
     const mouseoverEvent = new dom.window.Event('mouseover');
@@ -61,7 +60,7 @@ describe('createButton', () => {
   });
 
   test('triggers onClick when clicked', () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     const button = createButton(doc, 'Test', null, 'light', onClick, config);
 
     const clickEvent = new dom.window.Event('click');
@@ -70,7 +69,7 @@ describe('createButton', () => {
   });
 
   test('sets marginRight for Copy and Hide buttons', () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     const copyButton = createButton(doc, 'Copy', null, 'light', onClick, config);
     const hideButton = createButton(doc, 'Hide', null, 'light', onClick, config);
     const testButton = createButton(doc, 'Test', null, 'light', onClick, config);
