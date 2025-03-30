@@ -8,6 +8,7 @@
 - [x] Fix POTENTIAL_PROBLEM detection inconsistencies (Issue 5: POTENTIAL_PROBLEM posts not consistently detected in manual testing despite test success). Resolved: Implemented DOM tagging with `data-xGhosted="postquality.potential_problem"` and CSS class `xGhosted-potential_problem`, with `checkPostInNewTab` verifying threads.
 - [x] Fix missing red dot in panel for PROBLEM posts (Issue 7: Red dot indicating PROBLEM status is missing in the panel, likely due to CSS or class mismatch in `renderPanel.js`). Resolved: Fixed class name to `status-problem` in `renderPanel.js`.
 - [x] Resolve rate limit test failure in `xGhosted.test.js` (Issue 8: Test timed out due to improper handling of timers and `done()` callback). Resolved: Rewrote test using `async/await` and advanced timers correctly.
+- [x] Remove `createPanel` import from `src/xGhosted.js` (March 30, 2025): Resolved build error (`Could not resolve "./dom/createPanel"`) by removing `import { createPanel } from './dom/createPanel'`. `npm run build` now generates a clean `xGhosted.user.js`.
 - [ ] Implement Preact-based UI/UX with HTM and CDN loading for a modular and clean userscript. See Goals for xGhosted UI/UX Enhancement below.
 
 == Manual Testing
@@ -57,19 +58,19 @@ window.htm = htm.bind(h);
 == Goals for xGhosted UI/UX Enhancement
 
 === Overview
-You want to improve the UI/UX for your project (`src/xGhosted.js`) while keeping the final userscript (`src/xGhosted.user.js`) clean and free of direct dependencies on Preact or HTM. Here’s what you’ve outlined:
+You want to improve the UI/UX for your project (`src/xGhosted.js`) while keeping the final userscript (`src/xGhosted.user.js`) clean and free of direct dependencies on Preact or HTM. You prefer a methodical, conversational approach to this transition, taking one step at a time with clear discussion and confirmation at each stage.
 
 === Replace UI/UX with Preact and HTM
 - Use Preact with HTM (instead of JSX) for simplicity in your UI/UX components.
 - Keep the final `src/xGhosted.user.js` lightweight and unmodified by loading Preact and HTM from a CDN.
 
 === Modularity and Cleanliness
-- Extract UI/UX logic and styles from `src/xGhosted.js` into separate ES6 modules (e.g., under `src/utils/`).
+- Extract UI/UX logic and styles from `src/xGhosted.js` into separate ES6 modules (e.g., under `src/utils/` or `src/ui/`).
 - Ensure the production code (`src/xGhosted.js`) doesn’t directly depend on Preact or HTM.
 
 === Testing with Vitest
 - Use Preact and HTM in unit tests without mocking them, leveraging Vitest (since you’re committed to ES6 and ESBuild).
-- Introduce a wrapper (`src/utils/wrapper.js`) to bridge the gap between tests (which use Preact/HTM) and production code (which avoids direct Preact/HTM imports).
+- Introduce a wrapper (`src/utils/wrapper.js`) to bridge the gap between tests (which use Preact/HTM) and production code (which avoids direct Preact/HTM imports)—if needed, after discussion.
 
 === Build Process
 - Use ESBuild to generate `src/xGhosted.user.js` in a straightforward way, relying on a CDN for Preact and HTM in production, keeping the bundled code pure.
