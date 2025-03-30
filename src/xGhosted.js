@@ -5,7 +5,6 @@ import { identifyPosts } from './utils/identifyPosts';
 import { debounce } from './utils/debounce';
 import { createButton } from './dom/createButton';
 import { togglePanelVisibility } from './dom/togglePanelVisibility';
-import { renderPanel } from './dom/renderPanel';
 import { updateTheme } from './dom/updateTheme';
 import './ui/Components.js';
 function XGhosted(doc, config = {}) {
@@ -142,13 +141,11 @@ XGhosted.prototype.createPanel = function () {
   const mode = this.getThemeMode();
   this.state.isDarkMode = mode !== 'light';
 
-  // Create or reuse the panel container
   if (!this.uiElements.panel) {
     this.uiElements.panel = this.document.createElement('div');
     this.document.body.appendChild(this.uiElements.panel);
   }
 
-  // Render the Panel component
   render(
     h(window.Panel, {
       state: this.state,
@@ -158,7 +155,6 @@ XGhosted.prototype.createPanel = function () {
       copyCallback: this.copyLinks.bind(this),
       mode: mode,
       onModeChange: (newMode) => {
-        this.uiElements.modeSelector.value = newMode;
         this.updateTheme();
         this.createPanel(); // Re-render with new theme
       },
@@ -191,8 +187,6 @@ XGhosted.prototype.createPanel = function () {
     }),
     this.uiElements.panel
   );
-
-  this.updateControlLabel(); // Ensure label reflects initial state
 };
 
 XGhosted.prototype.updateState = function (url) {
@@ -381,11 +375,9 @@ XGhosted.prototype.highlightPosts = function () {
     return [];
   }
 
-  // Make sure state.isWithReplies is set correctly
   this.updateState(this.document.location.href);
 
   const processPostAnalysis = (post, analysis) => {
-    // Set attributes and classes based on analysis
     const id = analysis.link;
     const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
     post.setAttribute('data-xghosted', `postquality.${qualityName}`);
@@ -399,21 +391,17 @@ XGhosted.prototype.highlightPosts = function () {
     }
 
     this.state.processedPosts.set(id, { analysis, checked: false });
-    // this.log(`Set processedPosts for ${id}: ${JSON.stringify(this.state.processedPosts.get(id))}`); // Debug log
-  }
+  };
 
-  // Select all posts unprocessed posts and process them while calling processPostAnalysis(analysis) after each post
   const results = identifyPosts(
     postsContainer,
     'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
     this.state.isWithReplies,
     this.state.fillerCount,
-    processPostAnalysis);
-
-  renderPanel(this.document, this.state, this.uiElements, () =>
-    createPanel(this.document, this.state, this.uiElements, this.uiElements.config, this.togglePanelVisibility.bind(this), this.copyLinks.bind(this))
+    processPostAnalysis
   );
 
+  this.createPanel(); // Re-render Panel with updated processedPosts
   this.saveState();
 
   return results;

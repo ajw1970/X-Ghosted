@@ -1,4 +1,3 @@
-// src/xGhosted.template.js
 // ==UserScript==
 // @name         xGhosted
 // @namespace    http://tampermonkey.net/
@@ -12,6 +11,7 @@
 // @grant        GM_log
 // @require      https://unpkg.com/preact@10.26.4/dist/preact.min.js
 // @require      https://unpkg.com/htm@3.1.1/dist/htm.umd.js
+// @require      https://unpkg.com/preact@10.26.4/hooks/dist/hooks.umd.js
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -400,49 +400,6 @@
     }
   }
 
-  // src/dom/renderPanel.js
-  function renderPanel(doc, state, uiElements) {
-    if (!uiElements.panel || !doc.body.contains(uiElements.panel)) {
-      return;
-    }
-    const flagged = Array.from(state.processedPosts.entries()).filter(
-      ([_, { analysis }]) =>
-        analysis.quality.name === state.postQuality.PROBLEM.name ||
-        analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
-    );
-    uiElements.label.textContent = `Problem Posts (${flagged.length}):`;
-    uiElements.contentWrapper.innerHTML = '';
-    flagged.forEach(([href, { analysis }]) => {
-      const row = doc.createElement('div');
-      row.className = 'link-row';
-      const dot = doc.createElement('span');
-      const statusClass =
-        analysis.quality.name === state.postQuality.PROBLEM.name
-          ? 'status-problem'
-          : 'status-potential';
-      dot.className = `status-dot ${statusClass}`;
-      row.appendChild(dot);
-      const linkItem = doc.createElement('div');
-      linkItem.className = 'link-item';
-      const a = Object.assign(doc.createElement('a'), {
-        href: `https://x.com${href}`,
-        textContent: `${href}`,
-        target: '_blank',
-      });
-      Object.assign(a.style, {
-        display: 'block',
-        color: '#1DA1F2',
-        textDecoration: 'none',
-        wordBreak: 'break-all',
-      });
-      linkItem.appendChild(a);
-      row.appendChild(linkItem);
-      uiElements.contentWrapper.appendChild(row);
-    });
-    uiElements.contentWrapper.scrollTop =
-      uiElements.contentWrapper.scrollHeight;
-  }
-
   // src/dom/updateTheme.js
   function updateTheme(uiElements, config) {
     const {
@@ -519,6 +476,7 @@
 
   // src/ui/Components.js
   var { h, render } = window.preact;
+  var { useState, useEffect } = window.preactHooks;
   var html = window.htm.bind(h);
   function Panel({
     state,
@@ -536,11 +494,22 @@
     onClear,
     onManualCheckToggle,
   }) {
-    const flagged = Array.from(state.processedPosts.entries()).filter(
-      ([_, { analysis }]) =>
-        analysis.quality.name === state.postQuality.PROBLEM.name ||
-        analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
+    const [flagged, setFlagged] = useState(
+      Array.from(state.processedPosts.entries()).filter(
+        ([_, { analysis }]) =>
+          analysis.quality.name === state.postQuality.PROBLEM.name ||
+          analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
+      )
     );
+    useEffect(() => {
+      setFlagged(
+        Array.from(state.processedPosts.entries()).filter(
+          ([_, { analysis }]) =>
+            analysis.quality.name === state.postQuality.PROBLEM.name ||
+            analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
+        )
+      );
+    }, [state.processedPosts]);
     return html`
       <div
         id="xghosted-panel"
@@ -972,7 +941,6 @@
         copyCallback: this.copyLinks.bind(this),
         mode,
         onModeChange: (newMode) => {
-          this.uiElements.modeSelector.value = newMode;
           this.updateTheme();
           this.createPanel();
         },
@@ -1009,7 +977,6 @@
       }),
       this.uiElements.panel
     );
-    this.updateControlLabel();
   };
   XGhosted.prototype.updateState = function (url) {
     this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(
@@ -1239,16 +1206,7 @@
       this.state.fillerCount,
       processPostAnalysis
     );
-    renderPanel(this.document, this.state, this.uiElements, () =>
-      createPanel(
-        this.document,
-        this.state,
-        this.uiElements,
-        this.uiElements.config,
-        this.togglePanelVisibility.bind(this),
-        this.copyLinks.bind(this)
-      )
-    );
+    this.createPanel();
     this.saveState();
     return results;
   };

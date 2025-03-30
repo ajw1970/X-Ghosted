@@ -1,4 +1,5 @@
 const { h, render } = window.preact;
+const { useState, useEffect } = window.preactHooks;
 const html = window.htm.bind(h);
 
 function Panel({
@@ -17,11 +18,23 @@ function Panel({
   onClear,
   onManualCheckToggle
 }) {
-  const flagged = Array.from(state.processedPosts.entries()).filter(
-    ([_, { analysis }]) => 
-      analysis.quality.name === state.postQuality.PROBLEM.name ||
-      analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
+  const [flagged, setFlagged] = useState(
+    Array.from(state.processedPosts.entries()).filter(
+      ([_, { analysis }]) =>
+        analysis.quality.name === state.postQuality.PROBLEM.name ||
+        analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
+    )
   );
+
+  useEffect(() => {
+    setFlagged(
+      Array.from(state.processedPosts.entries()).filter(
+        ([_, { analysis }]) =>
+          analysis.quality.name === state.postQuality.PROBLEM.name ||
+          analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
+      )
+    );
+  }, [state.processedPosts]);
 
   return html`
     <div
@@ -67,7 +80,7 @@ function Panel({
           const startY = e.clientY;
           const initialLeft = parseInt(uiElements.panel.style.left) || 0;
           const initialTop = parseInt(uiElements.panel.style.top) || parseInt(config.PANEL.TOP);
-          
+
           const onMouseMove = (e) => {
             if (!isDragging) return;
             const dx = e.clientX - startX;
@@ -76,7 +89,7 @@ function Panel({
             uiElements.panel.style.top = `${Math.max(0, initialTop + dy)}px`;
             uiElements.panel.style.right = 'auto';
           };
-          
+
           const onMouseUp = () => {
             isDragging = false;
             document.removeEventListener('mousemove', onMouseMove);
@@ -87,7 +100,7 @@ function Panel({
             };
             state.instance.saveState();
           };
-          
+
           document.addEventListener('mousemove', onMouseMove);
           document.addEventListener('mouseup', onMouseUp);
         }}
