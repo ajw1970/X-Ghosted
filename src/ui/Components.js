@@ -25,6 +25,7 @@ function Panel({
         analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
     )
   );
+  const [localMode, setLocalMode] = useState(mode);
 
   useEffect(() => {
     setFlagged(
@@ -40,110 +41,113 @@ function Panel({
     <div
       id="xghosted-panel"
       style=${{
-        position: 'fixed',
-        top: state.panelPosition?.top || config.PANEL.TOP,
-        left: state.panelPosition?.left || 'auto',
-        right: state.panelPosition ? 'auto' : config.PANEL.RIGHT,
-        width: config.PANEL.WIDTH,
-        maxHeight: config.PANEL.MAX_HEIGHT,
-        minWidth: '250px',
-        minHeight: '150px',
-        zIndex: config.PANEL.Z_INDEX,
-        background: config.THEMES[mode].bg,
-        color: config.THEMES[mode].text,
-        border: `1px solid ${config.THEMES[mode].border}`,
-        borderRadius: '12px',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
-        fontFamily: config.PANEL.FONT,
-        padding: '16px',
-        transition: 'background 0.2s ease, color 0.2s ease, border 0.2s ease',
-        resize: 'both',
-        overflow: 'hidden',
-        userSelect: 'none'
-      }}
+      position: 'fixed',
+      top: state.panelPosition?.top || config.PANEL.TOP,
+      left: state.panelPosition?.left || 'auto',
+      right: state.panelPosition ? 'auto' : config.PANEL.RIGHT,
+      width: config.PANEL.WIDTH,
+      maxHeight: config.PANEL.MAX_HEIGHT,
+      minWidth: '250px',
+      minHeight: '150px',
+      zIndex: config.PANEL.Z_INDEX,
+      background: config.THEMES[localMode].bg,
+      color: config.THEMES[localMode].text,
+      border: `1px solid ${config.THEMES[localMode].border}`,
+      borderRadius: '12px',
+      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+      fontFamily: config.PANEL.FONT,
+      padding: '16px',
+      transition: 'background 0.2s ease, color 0.2s ease, border 0.2s ease',
+      resize: 'both',
+      overflow: 'hidden',
+      userSelect: 'none'
+    }}
     >
       <div
         class="header"
         style=${{
-          position: 'absolute',
-          top: '0',
-          left: '0',
-          right: '0',
-          height: '20px',
-          background: config.THEMES[mode].border,
-          cursor: 'move',
-          borderRadius: '12px 12px 0 0'
-        }}
+      position: 'absolute',
+      top: '0',
+      left: '0',
+      right: '0',
+      height: '20px',
+      background: config.THEMES[localMode].border,
+      cursor: 'move',
+      borderRadius: '12px 12px 0 0'
+    }}
         onMouseDown=${(e) => {
-          let isDragging = true;
-          const startX = e.clientX;
-          const startY = e.clientY;
-          const initialLeft = parseInt(uiElements.panel.style.left) || 0;
-          const initialTop = parseInt(uiElements.panel.style.top) || parseInt(config.PANEL.TOP);
+      let isDragging = true;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const initialLeft = parseInt(uiElements.panel.style.left) || 0;
+      const initialTop = parseInt(uiElements.panel.style.top) || parseInt(config.PANEL.TOP);
 
-          const onMouseMove = (e) => {
-            if (!isDragging) return;
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
-            uiElements.panel.style.left = `${initialLeft + dx}px`;
-            uiElements.panel.style.top = `${Math.max(0, initialTop + dy)}px`;
-            uiElements.panel.style.right = 'auto';
-          };
+      const onMouseMove = (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        uiElements.panel.style.left = `${initialLeft + dx}px`;
+        uiElements.panel.style.top = `${Math.max(0, initialTop + dy)}px`;
+        uiElements.panel.style.right = 'auto';
+      };
 
-          const onMouseUp = () => {
-            isDragging = false;
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-            state.panelPosition = {
-              left: uiElements.panel.style.left,
-              top: uiElements.panel.style.top
-            };
-            state.instance.saveState();
-          };
+      const onMouseUp = () => {
+        isDragging = false;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        state.panelPosition = {
+          left: uiElements.panel.style.left,
+          top: uiElements.panel.style.top
+        };
+        state.instance.saveState();
+      };
 
-          document.addEventListener('mousemove', onMouseMove);
-          document.addEventListener('mouseup', onMouseUp);
-        }}
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    }}
       ></div>
 
       <div
         class="toolbar"
         style=${{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px 0',
-          borderBottom: `1px solid ${config.THEMES[mode].border}`,
-          marginBottom: '16px'
-        }}
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '8px 0',
+      borderBottom: `1px solid ${config.THEMES[localMode].border}`,
+      marginBottom: '16px'
+    }}
       >
         <span style=${{ fontSize: '15px', fontWeight: '700' }}>
           Problem Posts (${flagged.length}):
         </span>
         <button
           onClick=${() => {
-            const toolsSection = uiElements.panel.querySelector('.tools-section');
-            const isExpanded = toolsSection.style.display === 'block';
-            toolsSection.style.display = isExpanded ? 'none' : 'block';
-          }}
+      const toolsSection = uiElements.panel.querySelector('.tools-section');
+      const isExpanded = toolsSection.style.display === 'block';
+      toolsSection.style.display = isExpanded ? 'none' : 'block';
+    }}
         >
           Tools
         </button>
         <div style=${{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <select
-            value=${mode}
-            onChange=${(e) => onModeChange(e.target.value)}
+            value=${localMode}
+            onChange=${(e) => {
+      setLocalMode(e.target.value);
+      onModeChange(e.target.value);
+    }}
             style=${{
-              background: config.THEMES[mode].button,
-              color: config.THEMES[mode].text,
-              border: 'none',
-              padding: '6px 24px 6px 12px',
-              borderRadius: '9999px',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: '500',
-              minWidth: '80px'
-            }}
+      background: config.THEMES[localMode].button,
+      color: config.THEMES[localMode].text,
+      border: 'none',
+      padding: '6px 24px 6px 12px',
+      borderRadius: '9999px',
+      cursor: 'pointer',
+      fontSize: '13px',
+      fontWeight: '500',
+      minWidth: '80px'
+    }}
           >
             <option value="dark">Dark</option>
             <option value="dim">Dim</option>
@@ -156,12 +160,12 @@ function Panel({
       <div
         class="tools-section"
         style=${{
-          display: 'none',
-          padding: '12px 0',
-          borderBottom: `1px solid ${config.THEMES[mode].border}`,
-          marginBottom: '16px',
-          background: `${config.THEMES[mode].bg}CC`
-        }}
+      display: 'none',
+      padding: '12px 0',
+      borderBottom: `1px solid ${config.THEMES[localMode].border}`,
+      marginBottom: '16px',
+      background: `${config.THEMES[localMode].bg}CC`
+    }}
       >
         <div style=${{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
           <button onClick=${copyCallback}>Copy</button>
@@ -179,12 +183,12 @@ function Panel({
       <div
         class="control-row"
         style=${{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px 0',
-          marginBottom: '16px'
-        }}
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '8px 0',
+      marginBottom: '16px'
+    }}
       >
         <span style=${{ fontSize: '15px', fontWeight: '700' }}>
           ${state.isRateLimited ? 'Paused (Rate Limit)' : state.isCollapsingEnabled ? 'Controls Running' : 'Controls'}
@@ -199,13 +203,13 @@ function Panel({
       <div
         class="problem-links-wrapper"
         style=${{
-          maxHeight: 'calc(100% - 70px)',
-          overflowY: 'auto',
-          fontSize: '14px',
-          lineHeight: '1.4',
-          scrollbarWidth: 'thin',
-          scrollbarColor: `${config.THEMES[mode].scroll} ${config.THEMES[mode].bg}`
-        }}
+      maxHeight: 'calc(100% - 70px)',
+      overflowY: 'auto',
+      fontSize: '14px',
+      lineHeight: '1.4',
+      scrollbarWidth: 'thin',
+      scrollbarColor: `${config.THEMES[localMode].scroll} ${config.THEMES[localMode].bg}`
+    }}
       >
         ${flagged.map(([href, { analysis }]) => html`
           <div class="link-row">
@@ -222,53 +226,53 @@ function Panel({
       <div
         class="modal"
         style=${{
-          display: 'none',
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          background: config.THEMES[mode].bg,
-          color: config.THEMES[mode].text,
-          border: `1px solid ${config.THEMES[mode].border}`,
-          borderRadius: '8px',
-          padding: '20px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-          zIndex: '10000',
-          width: '300px'
-        }}
+      display: 'none',
+      position: 'fixed',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      background: config.THEMES[localMode].bg,
+      color: config.THEMES[localMode].text,
+      border: `1px solid ${config.THEMES[localMode].border}`,
+      borderRadius: '8px',
+      padding: '20px',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+      zIndex: '10000',
+      width: '300px'
+    }}
       >
         <textarea
           style=${{
-            width: '100%',
-            height: '100px',
-            marginBottom: '15px',
-            background: config.THEMES[mode].bg,
-            color: config.THEMES[mode].text,
-            border: `1px solid ${config.THEMES[mode].border}`,
-            borderRadius: '4px',
-            padding: '4px',
-            resize: 'none'
-          }}
+      width: '100%',
+      height: '100px',
+      marginBottom: '15px',
+      background: config.THEMES[localMode].bg,
+      color: config.THEMES[localMode].text,
+      border: `1px solid ${config.THEMES[localMode].border}`,
+      borderRadius: '4px',
+      padding: '4px',
+      resize: 'none'
+    }}
         ></textarea>
         <div style=${{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
           <button
             onClick=${() => {
-              const textarea = uiElements.panel.querySelector('textarea');
-              const csvText = textarea.value.trim();
-              if (csvText) {
-                onImportCSV(csvText);
-                textarea.value = '';
-              }
-              uiElements.panel.querySelector('.modal').style.display = 'none';
-            }}
+      const textarea = uiElements.panel.querySelector('textarea');
+      const csvText = textarea.value.trim();
+      if (csvText) {
+        onImportCSV(csvText);
+        textarea.value = '';
+      }
+      uiElements.panel.querySelector('.modal').style.display = 'none';
+    }}
           >
             Submit
           </button>
           <button
             onClick=${() => {
-              uiElements.panel.querySelector('.modal').style.display = 'none';
-              uiElements.panel.querySelector('textarea').value = '';
-            }}
+      uiElements.panel.querySelector('.modal').style.display = 'none';
+      uiElements.panel.querySelector('textarea').value = '';
+    }}
           >
             Close
           </button>

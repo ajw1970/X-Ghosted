@@ -501,6 +501,7 @@
           analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
       )
     );
+    const [localMode, setLocalMode] = useState(mode);
     useEffect(() => {
       setFlagged(
         Array.from(state.processedPosts.entries()).filter(
@@ -523,9 +524,9 @@
           minWidth: '250px',
           minHeight: '150px',
           zIndex: config.PANEL.Z_INDEX,
-          background: config.THEMES[mode].bg,
-          color: config.THEMES[mode].text,
-          border: `1px solid ${config.THEMES[mode].border}`,
+          background: config.THEMES[localMode].bg,
+          color: config.THEMES[localMode].text,
+          border: `1px solid ${config.THEMES[localMode].border}`,
           borderRadius: '12px',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
           fontFamily: config.PANEL.FONT,
@@ -544,7 +545,7 @@
             left: '0',
             right: '0',
             height: '20px',
-            background: config.THEMES[mode].border,
+            background: config.THEMES[localMode].border,
             cursor: 'move',
             borderRadius: '12px 12px 0 0',
           }}
@@ -586,7 +587,7 @@
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '8px 0',
-            borderBottom: `1px solid ${config.THEMES[mode].border}`,
+            borderBottom: `1px solid ${config.THEMES[localMode].border}`,
             marginBottom: '16px',
           }}
         >
@@ -605,11 +606,14 @@
           </button>
           <div style=${{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <select
-              value=${mode}
-              onChange=${(e) => onModeChange(e.target.value)}
+              value=${localMode}
+              onChange=${(e) => {
+                setLocalMode(e.target.value);
+                onModeChange(e.target.value);
+              }}
               style=${{
-                background: config.THEMES[mode].button,
-                color: config.THEMES[mode].text,
+                background: config.THEMES[localMode].button,
+                color: config.THEMES[localMode].text,
                 border: 'none',
                 padding: '6px 24px 6px 12px',
                 borderRadius: '9999px',
@@ -632,9 +636,9 @@
           style=${{
             display: 'none',
             padding: '12px 0',
-            borderBottom: `1px solid ${config.THEMES[mode].border}`,
+            borderBottom: `1px solid ${config.THEMES[localMode].border}`,
             marginBottom: '16px',
-            background: `${config.THEMES[mode].bg}CC`,
+            background: `${config.THEMES[localMode].bg}CC`,
           }}
         >
           <div
@@ -688,7 +692,7 @@
             fontSize: '14px',
             lineHeight: '1.4',
             scrollbarWidth: 'thin',
-            scrollbarColor: `${config.THEMES[mode].scroll} ${config.THEMES[mode].bg}`,
+            scrollbarColor: `${config.THEMES[localMode].scroll} ${config.THEMES[localMode].bg}`,
           }}
         >
           ${flagged.map(
@@ -716,9 +720,9 @@
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            background: config.THEMES[mode].bg,
-            color: config.THEMES[mode].text,
-            border: `1px solid ${config.THEMES[mode].border}`,
+            background: config.THEMES[localMode].bg,
+            color: config.THEMES[localMode].text,
+            border: `1px solid ${config.THEMES[localMode].border}`,
             borderRadius: '8px',
             padding: '20px',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
@@ -731,9 +735,9 @@
               width: '100%',
               height: '100px',
               marginBottom: '15px',
-              background: config.THEMES[mode].bg,
-              color: config.THEMES[mode].text,
-              border: `1px solid ${config.THEMES[mode].border}`,
+              background: config.THEMES[localMode].bg,
+              color: config.THEMES[localMode].text,
+              border: `1px solid ${config.THEMES[localMode].border}`,
               borderRadius: '4px',
               padding: '4px',
               resize: 'none',
@@ -912,17 +916,6 @@
       }
     }
   };
-  XGhosted.prototype.updateControlLabel = function () {
-    if (!this.uiElements.controlLabel) {
-      this.log('Error: controlLabel is undefined in updateControlLabel');
-      return;
-    }
-    this.uiElements.controlLabel.textContent = this.state.isRateLimited
-      ? 'Paused (Rate Limit)'
-      : this.state.isCollapsingEnabled
-        ? 'Controls Running'
-        : 'Controls';
-  };
   XGhosted.prototype.createPanel = function () {
     const { h: h2, render: render2 } = window.preact;
     this.state.instance = this;
@@ -941,7 +934,7 @@
         copyCallback: this.copyLinks.bind(this),
         mode,
         onModeChange: (newMode) => {
-          this.updateTheme();
+          this.state.isDarkMode = newMode !== 'light';
           this.createPanel();
         },
         onStart: () => {
@@ -1012,12 +1005,10 @@
               );
             }
             this.state.isRateLimited = true;
-            this.updateControlLabel();
             newWindow.close();
             setTimeout(() => {
               this.log('Resuming after rate limit pause');
               this.state.isRateLimited = false;
-              this.updateControlLabel();
               resolve(false);
             }, this.timing.rateLimitPause);
             return;
@@ -1036,12 +1027,10 @@
                 `Possible rate limit detected (no articles loaded). Pausing for ${this.timing.rateLimitPause / 1e3} seconds.`
               );
               this.state.isRateLimited = true;
-              this.updateControlLabel();
               newWindow.close();
               setTimeout(() => {
                 this.log('Resuming after empty result pause');
                 this.state.isRateLimited = false;
-                this.updateControlLabel();
                 resolve(false);
               }, this.timing.rateLimitPause);
               return;
@@ -1296,7 +1285,6 @@
   XGhosted.prototype.init = function () {
     this.loadState();
     this.createPanel();
-    this.updateControlLabel();
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
     .xghosted-problem { border: 2px solid red; }

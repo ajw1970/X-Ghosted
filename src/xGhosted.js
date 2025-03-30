@@ -123,18 +123,6 @@ XGhosted.prototype.loadState = function () {
   }
 };
 
-XGhosted.prototype.updateControlLabel = function () {
-  if (!this.uiElements.controlLabel) {
-    this.log('Error: controlLabel is undefined in updateControlLabel');
-    return;
-  }
-  this.uiElements.controlLabel.textContent = this.state.isRateLimited
-    ? 'Paused (Rate Limit)'
-    : this.state.isCollapsingEnabled
-      ? 'Controls Running'
-      : 'Controls';
-};
-
 XGhosted.prototype.createPanel = function () {
   const { h, render } = window.preact;
   this.state.instance = this;
@@ -155,8 +143,8 @@ XGhosted.prototype.createPanel = function () {
       copyCallback: this.copyLinks.bind(this),
       mode: mode,
       onModeChange: (newMode) => {
-        this.updateTheme();
-        this.createPanel(); // Re-render with new theme
+        this.state.isDarkMode = newMode !== 'light';
+        this.createPanel(); // Re-render with new mode
       },
       onStart: () => {
         this.state.isCollapsingEnabled = true;
@@ -220,12 +208,10 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
             this.log(`Rate limit alert: Pausing all operations for ${this.timing.rateLimitPause / 1000} seconds.`);
           }
           this.state.isRateLimited = true;
-          this.updateControlLabel(); // Update UI
           newWindow.close();
           setTimeout(() => {
             this.log('Resuming after rate limit pause');
             this.state.isRateLimited = false;
-            this.updateControlLabel(); // Update UI
             resolve(false);
           }, this.timing.rateLimitPause);
           return;
@@ -239,12 +225,10 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
             this.log('Repeated empty results, possible rate limit, pausing operations');
             alert(`Possible rate limit detected (no articles loaded). Pausing for ${this.timing.rateLimitPause / 1000} seconds.`);
             this.state.isRateLimited = true;
-            this.updateControlLabel(); // Update UI
             newWindow.close();
             setTimeout(() => {
               this.log('Resuming after empty result pause');
               this.state.isRateLimited = false;
-              this.updateControlLabel(); // Update UI
               resolve(false);
             }, this.timing.rateLimitPause);
             return;
@@ -493,8 +477,7 @@ XGhosted.prototype.updateTheme = function () {
 XGhosted.prototype.init = function () {
   this.loadState();
   this.createPanel();
-  this.updateControlLabel(); // Initial call
-
+  
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
     .xghosted-problem { border: 2px solid red; }
