@@ -460,18 +460,19 @@
     });
     modeSelector.className = mode;
     styleSheet.textContent = `
-    .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
-    .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${theme.scroll}; border-radius: 3px; }
-    .problem-links-wrapper::-webkit-scrollbar-track { background: ${theme.bg}; }
-    select { background-repeat: no-repeat; background-position: right 8px center; }
-    select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-    select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-    select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-    select:focus { outline: none; box-shadow: 0 0 0 2px ${theme.scroll}; }
-    .link-item { padding: 6px 0; }
-    .link-item a:hover { text-decoration: underline; }
-    button:active { transform: scale(0.95); }
-  `;
+  .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
+  .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${theme.scroll}; border-radius: 3px; }
+  .problem-links-wrapper::-webkit-scrollbar-track { background: ${theme.bg}; }
+  select { background-repeat: no-repeat; background-position: right 8px center; }
+  select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+  select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+  select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+  select:focus { outline: none; box-shadow: 0 0 0 2px ${theme.scroll}; }
+  .link-row { display: flex; align-items: center; gap: 6px; }
+  .link-item { padding: 2px 0; flex: 1; }
+  .link-item a:hover { text-decoration: underline; }
+  button:active { transform: scale(0.95); }
+`;
   }
 
   // src/ui/Components.js
@@ -1351,11 +1352,14 @@
     this.createPanel();
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
-    .xghosted-problem { border: 2px solid red; }
-    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-    .xghosted-good { /* Optional: subtle styling if desired */ }
-    .xghosted-undefined { /* No styling needed */ }
-  `;
+  .xghosted-problem { border: 2px solid red; }
+  .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+  .xghosted-good { /* Optional: subtle styling if desired */ }
+  .xghosted-undefined { /* No styling needed */ }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .status-problem { background-color: red; }
+  .status-potential { background-color: yellow; }
+`;
     this.document.head.appendChild(styleSheet);
     this.uiElements.highlightStyleSheet = styleSheet;
     this.highlightPostsDebounced();

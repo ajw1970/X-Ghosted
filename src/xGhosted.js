@@ -531,11 +531,14 @@ XGhosted.prototype.init = function () {
 
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
-    .xghosted-problem { border: 2px solid red; }
-    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-    .xghosted-good { /* Optional: subtle styling if desired */ }
-    .xghosted-undefined { /* No styling needed */ }
-  `;
+  .xghosted-problem { border: 2px solid red; }
+  .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+  .xghosted-good { /* Optional: subtle styling if desired */ }
+  .xghosted-undefined { /* No styling needed */ }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .status-problem { background-color: red; }
+  .status-potential { background-color: yellow; }
+`;
   this.document.head.appendChild(styleSheet);
   this.uiElements.highlightStyleSheet = styleSheet;
 
