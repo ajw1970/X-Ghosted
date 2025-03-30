@@ -375,6 +375,7 @@ XGhosted.prototype.highlightPosts = function () {
     }
 
     this.state.processedPosts.set(id, { analysis, checked: false });
+    this.log('Set post:', id, 'Quality:', analysis.quality.name); // Debug log
   };
 
   const results = identifyPosts(
@@ -385,7 +386,9 @@ XGhosted.prototype.highlightPosts = function () {
     processPostAnalysis
   );
 
-  this.createPanel(); // Re-render Panel with updated processedPosts
+  this.log('Processed posts total:', this.state.processedPosts.size); // Total count
+  this.log('Processed posts entries:', Array.from(this.state.processedPosts.entries())); // Full content
+  this.refreshPanel();
   this.saveState();
 
   return results;
@@ -477,7 +480,7 @@ XGhosted.prototype.updateTheme = function () {
 XGhosted.prototype.init = function () {
   this.loadState();
   this.createPanel();
-  
+
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
     .xghosted-problem { border: 2px solid red; }

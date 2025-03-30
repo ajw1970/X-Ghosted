@@ -16,7 +16,8 @@ function Panel({
   onExportCSV,
   onImportCSV,
   onClear,
-  onManualCheckToggle
+  onManualCheckToggle,
+  refresh
 }) {
   const [flagged, setFlagged] = useState(
     Array.from(state.processedPosts.entries()).filter(
@@ -26,16 +27,23 @@ function Panel({
     )
   );
   const [localMode, setLocalMode] = useState(mode);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    setFlagged(
-      Array.from(state.processedPosts.entries()).filter(
-        ([_, { analysis }]) =>
-          analysis.quality.name === state.postQuality.PROBLEM.name ||
-          analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
-      )
+    const newFlagged = Array.from(state.processedPosts.entries()).filter(
+      ([_, { analysis }]) =>
+        analysis.quality.name === state.postQuality.PROBLEM.name ||
+        analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
     );
-  }, [state.processedPosts]);
+    setFlagged(newFlagged);
+    console.log('Flagged posts updated:', newFlagged.length, newFlagged); // Debug log
+  }, [state.processedPosts, refreshKey]);
+
+  useEffect(() => {
+    if (refresh) {
+      setRefreshKey(prev => prev + 1);
+    }
+  }, [refresh]);
 
   return html`
     <div

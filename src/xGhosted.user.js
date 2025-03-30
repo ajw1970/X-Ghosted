@@ -493,6 +493,7 @@
     onImportCSV,
     onClear,
     onManualCheckToggle,
+    refresh,
   }) {
     const [flagged, setFlagged] = useState(
       Array.from(state.processedPosts.entries()).filter(
@@ -502,15 +503,21 @@
       )
     );
     const [localMode, setLocalMode] = useState(mode);
+    const [refreshKey, setRefreshKey] = useState(0);
     useEffect(() => {
-      setFlagged(
-        Array.from(state.processedPosts.entries()).filter(
-          ([_, { analysis }]) =>
-            analysis.quality.name === state.postQuality.PROBLEM.name ||
-            analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
-        )
+      const newFlagged = Array.from(state.processedPosts.entries()).filter(
+        ([_, { analysis }]) =>
+          analysis.quality.name === state.postQuality.PROBLEM.name ||
+          analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
       );
-    }, [state.processedPosts]);
+      setFlagged(newFlagged);
+      console.log('Flagged posts updated:', newFlagged.length, newFlagged);
+    }, [state.processedPosts, refreshKey]);
+    useEffect(() => {
+      if (refresh) {
+        setRefreshKey((prev) => prev + 1);
+      }
+    }, [refresh]);
     return html`
       <div
         id="xghosted-panel"
@@ -1187,6 +1194,7 @@
         this.replaceMenuButton(post, id);
       }
       this.state.processedPosts.set(id, { analysis, checked: false });
+      this.log('Set post:', id, 'Quality:', analysis.quality.name);
     };
     const results = identifyPosts(
       postsContainer,
@@ -1195,7 +1203,12 @@
       this.state.fillerCount,
       processPostAnalysis
     );
-    this.createPanel();
+    this.log('Processed posts total:', this.state.processedPosts.size);
+    this.log(
+      'Processed posts entries:',
+      Array.from(this.state.processedPosts.entries())
+    );
+    this.refreshPanel();
     this.saveState();
     return results;
   };
