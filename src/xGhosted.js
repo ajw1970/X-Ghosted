@@ -45,10 +45,10 @@ function XGhosted(doc, config = {}) {
         FONT: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
       },
       THEMES: {
-        light: { bg: '#FFFFFF', text: '#292F33', border: '#E1E8ED', button: '#D3D3D3', hover: '#C0C0C0', scroll: '#CCD6DD' },
-        dim: { bg: '#15202B', text: '#D9D9D9', border: '#38444D', button: '#38444D', hover: '#4A5C6D', scroll: '#4A5C6D' },
-        dark: { bg: '#000000', text: '#D9D9D9', border: '#333333', button: '#333333', hover: '#444444', scroll: '#666666' },
-      },
+        light: { bg: '#FFFFFF', text: '#292F33', buttonText: '#000000', border: '#E1E8ED', button: '#E8ECEF', hover: '#D3D3D3', scroll: '#CCD6DD' },
+        dim: { bg: '#15202B', text: '#D9D9D9', buttonText: '#D9D9D9', border: '#38444D', button: '#38444D', hover: '#4A5C6D', scroll: '#4A5C6D' },
+        dark: { bg: '#000000', text: '#D9D9D9', buttonText: '#D9D9D9', border: '#333333', button: '#333333', hover: '#444444', scroll: '#666666' },
+      }
     },
   };
 
@@ -535,9 +535,10 @@ XGhosted.prototype.init = function () {
   .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
   .xghosted-good { /* Optional: subtle styling if desired */ }
   .xghosted-undefined { /* No styling needed */ }
-  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; justify-self: center; }
   .status-problem { background-color: red; }
   .status-potential { background-color: yellow; }
+  .link-row { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; }
 `;
   this.document.head.appendChild(styleSheet);
   this.uiElements.highlightStyleSheet = styleSheet;

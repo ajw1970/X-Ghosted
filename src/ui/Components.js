@@ -59,7 +59,7 @@ function Panel({
       minHeight: '150px',
       zIndex: config.PANEL.Z_INDEX,
       background: config.THEMES[localMode].bg,
-      color: config.THEMES[localMode].text,
+      color: `${config.THEMES[localMode].text} !important`,
       border: `1px solid ${config.THEMES[localMode].border}`,
       borderRadius: '12px',
       boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
@@ -209,8 +209,8 @@ function Panel({
       </div>
 
       <div
-        class="problem-links-wrapper"
-        style=${{
+  class="problem-links-wrapper"
+  style=${{
       maxHeight: 'calc(100% - 70px)',
       overflowY: 'auto',
       fontSize: '14px',
@@ -218,18 +218,18 @@ function Panel({
       scrollbarWidth: 'thin',
       scrollbarColor: `${config.THEMES[localMode].scroll} ${config.THEMES[localMode].bg}`
     }}
-      >
-        ${flagged.map(([href, { analysis }]) => html`
-          <div class="link-row">
-            <span
-              class="status-dot ${analysis.quality.name === state.postQuality.PROBLEM.name ? 'status-problem' : 'status-potential'}"
-            ></span>
-            <div class="link-item">
-              <a href="https://x.com${href}" target="_blank">${href}</a>
-            </div>
-          </div>
-        `)}
+>
+  ${flagged.map(([href, { analysis }]) => html`
+    <div class="link-row">
+      <span
+        class="status-dot ${analysis.quality.name === state.postQuality.PROBLEM.name ? 'status-problem' : 'status-potential'}"
+      ></span>
+      <div class="link-item">
+        <a href="https://x.com${href}" target="_blank" style=${{ display: 'block', textDecoration: 'none', wordBreak: 'break-all' }}>${href}</a>
       </div>
+    </div>
+  `)}
+</div>
 
       <div
         class="modal"

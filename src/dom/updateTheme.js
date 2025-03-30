@@ -1,4 +1,3 @@
-// src/dom/updateTheme.js
 function updateTheme(uiElements, config) {
   const { panel, toolbar, label, contentWrapper, styleSheet, modeSelector, toggleButton, copyButton, manualCheckButton, exportButton, importButton, clearButton } = uiElements;
   if (!panel || !toolbar || !label || !contentWrapper || !styleSheet || !modeSelector) return;
@@ -23,8 +22,9 @@ function updateTheme(uiElements, config) {
     if (!btn) return;
     Object.assign(btn.style, {
       background: theme.button,
-      color: theme.text,
+      color: theme.buttonText,
       transition: 'background 0.2s ease, transform 0.1s ease',
+      fontSize: '14px',
     });
     btn.onmouseover = () => btn.style.background = theme.hover;
     btn.onmouseout = () => btn.style.background = theme.button;
@@ -33,23 +33,27 @@ function updateTheme(uiElements, config) {
   // Update mode selector
   Object.assign(modeSelector.style, {
     background: theme.button,
-    color: theme.text,
+    color: theme.buttonText,
+    fontSize: '14px',
   });
   modeSelector.className = mode;
 
   styleSheet.textContent = `
-  .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
-  .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${theme.scroll}; border-radius: 3px; }
-  .problem-links-wrapper::-webkit-scrollbar-track { background: ${theme.bg}; }
-  select { background-repeat: no-repeat; background-position: right 8px center; }
-  select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-  select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-  select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-  select:focus { outline: none; box-shadow: 0 0 0 2px ${theme.scroll}; }
-  .link-row { display: flex; align-items: center; gap: 6px; }
-  .link-item { padding: 2px 0; flex: 1; }
-  .link-item a:hover { text-decoration: underline; }
-  button:active { transform: scale(0.95); }
+.problem-links-wrapper::-webkit-scrollbar { width: 6px; }
+.problem-links-wrapper::-webkit-scrollbar-thumb { background: ${theme.scroll}; border-radius: 3px; }
+.problem-links-wrapper::-webkit-scrollbar-track { background: ${theme.bg}; }
+select { background-repeat: no-repeat; background-position: right 8px center; }
+select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23000000' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+select:focus { outline: none; box-shadow: 0 0 0 2px ${theme.scroll}; }
+.link-row { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; justify-self: center; }
+.link-item { padding: 2px 0; overflow-wrap: break-word; }
+.link-item a:hover { text-decoration: underline; }
+.problem-links-wrapper { color: ${theme.text}; }
+.problem-links-wrapper a { color: ${mode === 'light' ? '#0A66C2' : '#1DA1F2'}; }
+button:active { transform: scale(0.95); }
 `;
 }
 

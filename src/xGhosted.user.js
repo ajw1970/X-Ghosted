@@ -448,30 +448,35 @@
       if (!btn) return;
       Object.assign(btn.style, {
         background: theme.button,
-        color: theme.text,
+        color: theme.buttonText,
         transition: 'background 0.2s ease, transform 0.1s ease',
+        fontSize: '14px',
       });
       btn.onmouseover = () => (btn.style.background = theme.hover);
       btn.onmouseout = () => (btn.style.background = theme.button);
     });
     Object.assign(modeSelector.style, {
       background: theme.button,
-      color: theme.text,
+      color: theme.buttonText,
+      fontSize: '14px',
     });
     modeSelector.className = mode;
     styleSheet.textContent = `
-  .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
-  .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${theme.scroll}; border-radius: 3px; }
-  .problem-links-wrapper::-webkit-scrollbar-track { background: ${theme.bg}; }
-  select { background-repeat: no-repeat; background-position: right 8px center; }
-  select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-  select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-  select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-  select:focus { outline: none; box-shadow: 0 0 0 2px ${theme.scroll}; }
-  .link-row { display: flex; align-items: center; gap: 6px; }
-  .link-item { padding: 2px 0; flex: 1; }
-  .link-item a:hover { text-decoration: underline; }
-  button:active { transform: scale(0.95); }
+.problem-links-wrapper::-webkit-scrollbar { width: 6px; }
+.problem-links-wrapper::-webkit-scrollbar-thumb { background: ${theme.scroll}; border-radius: 3px; }
+.problem-links-wrapper::-webkit-scrollbar-track { background: ${theme.bg}; }
+select { background-repeat: no-repeat; background-position: right 8px center; }
+select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23000000' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
+select:focus { outline: none; box-shadow: 0 0 0 2px ${theme.scroll}; }
+.link-row { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; justify-self: center; }
+.link-item { padding: 2px 0; overflow-wrap: break-word; }
+.link-item a:hover { text-decoration: underline; }
+.problem-links-wrapper { color: ${theme.text}; }
+.problem-links-wrapper a { color: ${mode === 'light' ? '#0A66C2' : '#1DA1F2'}; }
+button:active { transform: scale(0.95); }
 `;
   }
 
@@ -533,7 +538,7 @@
           minHeight: '150px',
           zIndex: config.PANEL.Z_INDEX,
           background: config.THEMES[localMode].bg,
-          color: config.THEMES[localMode].text,
+          color: `${config.THEMES[localMode].text} !important`,
           border: `1px solid ${config.THEMES[localMode].border}`,
           borderRadius: '12px',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
@@ -713,7 +718,16 @@
                     : 'status-potential'}"
                 ></span>
                 <div class="link-item">
-                  <a href="https://x.com${href}" target="_blank">${href}</a>
+                  <a
+                    href="https://x.com${href}"
+                    target="_blank"
+                    style=${{
+                      display: 'block',
+                      textDecoration: 'none',
+                      wordBreak: 'break-all',
+                    }}
+                    >${href}</a
+                  >
                 </div>
               </div>
             `
@@ -823,14 +837,16 @@
           light: {
             bg: '#FFFFFF',
             text: '#292F33',
+            buttonText: '#000000',
             border: '#E1E8ED',
-            button: '#D3D3D3',
-            hover: '#C0C0C0',
+            button: '#E8ECEF',
+            hover: '#D3D3D3',
             scroll: '#CCD6DD',
           },
           dim: {
             bg: '#15202B',
             text: '#D9D9D9',
+            buttonText: '#D9D9D9',
             border: '#38444D',
             button: '#38444D',
             hover: '#4A5C6D',
@@ -839,6 +855,7 @@
           dark: {
             bg: '#000000',
             text: '#D9D9D9',
+            buttonText: '#D9D9D9',
             border: '#333333',
             button: '#333333',
             hover: '#444444',
@@ -1356,9 +1373,10 @@
   .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
   .xghosted-good { /* Optional: subtle styling if desired */ }
   .xghosted-undefined { /* No styling needed */ }
-  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; justify-self: center; }
   .status-problem { background-color: red; }
   .status-potential { background-color: yellow; }
+  .link-row { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; }
 `;
     this.document.head.appendChild(styleSheet);
     this.uiElements.highlightStyleSheet = styleSheet;
