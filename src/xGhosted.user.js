@@ -839,8 +839,10 @@ button:active { transform: scale(0.95); }
             text: '#292F33',
             buttonText: '#000000',
             border: '#E1E8ED',
-            button: '#E8ECEF',
-            hover: '#D3D3D3',
+            button: '#B0BEC5',
+            // Changed from #E8ECEF for better contrast
+            hover: '#90A4AE',
+            // Changed from #D3D3D3 for a clearer hover effect
             scroll: '#CCD6DD',
           },
           dim: {

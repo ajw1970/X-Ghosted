@@ -45,9 +45,33 @@ function XGhosted(doc, config = {}) {
         FONT: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
       },
       THEMES: {
-        light: { bg: '#FFFFFF', text: '#292F33', buttonText: '#000000', border: '#E1E8ED', button: '#E8ECEF', hover: '#D3D3D3', scroll: '#CCD6DD' },
-        dim: { bg: '#15202B', text: '#D9D9D9', buttonText: '#D9D9D9', border: '#38444D', button: '#38444D', hover: '#4A5C6D', scroll: '#4A5C6D' },
-        dark: { bg: '#000000', text: '#D9D9D9', buttonText: '#D9D9D9', border: '#333333', button: '#333333', hover: '#444444', scroll: '#666666' },
+        light: { 
+          bg: '#FFFFFF', 
+          text: '#292F33', 
+          buttonText: '#000000', 
+          border: '#E1E8ED', 
+          button: '#B0BEC5', // Changed from #E8ECEF for better contrast
+          hover: '#90A4AE',  // Changed from #D3D3D3 for a clearer hover effect
+          scroll: '#CCD6DD' 
+        },
+        dim: { 
+          bg: '#15202B', 
+          text: '#D9D9D9', 
+          buttonText: '#D9D9D9', 
+          border: '#38444D', 
+          button: '#38444D', 
+          hover: '#4A5C6D', 
+          scroll: '#4A5C6D' 
+        },
+        dark: { 
+          bg: '#000000', 
+          text: '#D9D9D9', 
+          buttonText: '#D9D9D9', 
+          border: '#333333', 
+          button: '#333333', 
+          hover: '#444444', 
+          scroll: '#666666' 
+        },
       }
     },
   };
