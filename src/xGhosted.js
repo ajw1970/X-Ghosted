@@ -427,6 +427,7 @@ XGhosted.prototype.handleClear = function () {
 
 XGhosted.prototype.handleManualCheckToggle = function () {
   this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
+  this.log(`Manual Check toggled to ${this.state.isManualCheckEnabled}`);
   this.createPanel();
 };
 
@@ -500,6 +501,14 @@ XGhosted.prototype.copyLinks = function () {
 };
 
 XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
+  this.log('Import CSV button clicked'); // Confirm the button was clicked
+  if (typeof csvText !== 'string') {
+    csvText = prompt('Please paste the CSV content to import (e.g., Link,Quality,Reason,Checked\\n"https://x.com/test/status/123","Problem","Test reason",true):');
+    if (!csvText) {
+      this.log('Import CSV cancelled or no input provided');
+      return;
+    }
+  }
   if (!csvText || typeof csvText !== 'string') {
     this.log('Invalid CSV text provided');
     return;
@@ -512,7 +521,10 @@ XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
         .split(',')
         .map((cell) => cell.replace(/^"|"$/g, '').replace(/""/g, '"'))
     );
-  if (lines.length < 2) return;
+  if (lines.length < 2) {
+    this.log('CSV must have at least one data row');
+    return;
+  }
   const headers = lines[0];
   const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
   if (!expectedHeaders.every((h, i) => h === headers[i])) {
@@ -536,6 +548,7 @@ XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
       checked: checkedStr === 'true',
     });
   });
+  this.log(`Imported ${lines.length - 1} posts from CSV`);
   this.saveState();
   this.highlightPostsImmediate();
 };

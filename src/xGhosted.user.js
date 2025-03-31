@@ -333,6 +333,7 @@
     onToggle,
   }) {
     console.log('Components.js loaded, window.Panel:', window.Panel);
+    console.log('Panel rendering with mode:', mode);
     const [flagged, setFlagged] = useState(
       Array.from(state.processedPosts.entries()).filter(
         ([_, { analysis }]) =>
@@ -368,7 +369,8 @@
       maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '80px',
       minWidth: isVisible ? '250px' : '180px',
       minHeight: isVisible ? '150px' : '0px',
-      padding: isVisible ? '16px' : '6px',
+      padding: isVisible ? '16px' : '8px',
+      // Increased padding when visible
       transition: 'max-height 0.2s ease, padding 0.2s ease',
       position: 'fixed',
       top: state.panelPosition?.top || config.PANEL.TOP,
@@ -378,25 +380,50 @@
       background: config.THEMES[mode].bg,
       color: config.THEMES[mode].text,
       border: `1px solid ${config.THEMES[mode].border}`,
+      borderRadius: '8px',
+      // Added for smoother edges
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+      // Added subtle shadow
     };
     const toggleButtonStyle = !isVisible
       ? {
           position: 'absolute',
-          top: '6px',
-          right: '6px',
+          top: '8px',
+          right: '8px',
           margin: '0',
           display: 'inline-block',
+          background: config.THEMES[mode].button,
+          color: config.THEMES[mode].buttonText,
+          borderStyle: 'none',
+          padding: '6px 12px',
+          borderRadius: '9999px',
+          cursor: 'pointer',
+          fontSize: '13px',
+          fontWeight: '500',
+          transition: 'background 0.2s ease',
         }
-      : { marginRight: '8px' };
+      : {
+          marginRight: '8px',
+          background: config.THEMES[mode].button,
+          color: config.THEMES[mode].buttonText,
+          borderStyle: 'none',
+          padding: '6px 12px',
+          borderRadius: '9999px',
+          cursor: 'pointer',
+          fontSize: '13px',
+          fontWeight: '500',
+          transition: 'background 0.2s ease',
+        };
     const toolbarStyle = {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '8px',
+      marginBottom: '12px',
+      // Increased spacing below toolbar
     };
     const buttonStyle = {
       background: config.THEMES[mode].button,
-      color: config.THEMES[mode].text,
+      color: config.THEMES[mode].buttonText,
       borderStyle: 'none',
       padding: '6px 12px',
       borderRadius: '9999px',
@@ -404,12 +431,27 @@
       fontSize: '13px',
       fontWeight: '500',
       transition: 'background 0.2s ease',
-      marginRight: '8px',
+      marginRight: '12px',
+      // Increased spacing between buttons
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
     };
     const linksWrapperStyle = {
       maxHeight: 'calc(100vh - 150px)',
       overflowY: 'auto',
-      paddingRight: '6px',
+      paddingRight: '8px',
+      // Increased padding for scrollbar
+      marginBottom: '12px',
+      // Added spacing below links
+    };
+    const linkRowStyle = {
+      display: 'grid',
+      gridTemplateColumns: '20px 1fr',
+      alignItems: 'center',
+      gap: '10px',
+      padding: '4px 0',
+      // Added padding for better spacing
     };
     return html`
       <div id="xghosted-panel" style=${panelStyle}>
@@ -418,17 +460,54 @@
               <div class="toolbar" style=${toolbarStyle}>
                 <span>Problem Posts (${flagged.length}):</span>
                 <div>
-                  <button style=${buttonStyle} onClick=${copyCallback}>
+                  <button
+                    style=${buttonStyle}
+                    onClick=${copyCallback}
+                    onMouseOver=${(e) =>
+                      (e.target.style.background = config.THEMES[mode].hover)}
+                    onMouseOut=${(e) =>
+                      (e.target.style.background = config.THEMES[mode].button)}
+                  >
                     Copy
                   </button>
-                  <button style=${buttonStyle} onClick=${onExportCSV}>
+                  <button
+                    style=${buttonStyle}
+                    onClick=${onExportCSV}
+                    onMouseOver=${(e) =>
+                      (e.target.style.background = config.THEMES[mode].hover)}
+                    onMouseOut=${(e) =>
+                      (e.target.style.background = config.THEMES[mode].button)}
+                  >
                     Export CSV
                   </button>
-                  <button style=${buttonStyle} onClick=${onImportCSV}>
+                  <button
+                    style=${buttonStyle}
+                    onClick=${onImportCSV}
+                    onMouseOver=${(e) =>
+                      (e.target.style.background = config.THEMES[mode].hover)}
+                    onMouseOut=${(e) =>
+                      (e.target.style.background = config.THEMES[mode].button)}
+                  >
                     Import CSV
                   </button>
-                  <button style=${buttonStyle} onClick=${onClear}>Clear</button>
-                  <button style=${buttonStyle} onClick=${onManualCheckToggle}>
+                  <button
+                    style=${buttonStyle}
+                    onClick=${onClear}
+                    onMouseOver=${(e) =>
+                      (e.target.style.background = config.THEMES[mode].hover)}
+                    onMouseOut=${(e) =>
+                      (e.target.style.background = config.THEMES[mode].button)}
+                  >
+                    Clear
+                  </button>
+                  <button
+                    style=${buttonStyle}
+                    onClick=${onManualCheckToggle}
+                    onMouseOver=${(e) =>
+                      (e.target.style.background = config.THEMES[mode].hover)}
+                    onMouseOut=${(e) =>
+                      (e.target.style.background = config.THEMES[mode].button)}
+                  >
                     Manual Check: ${state.isManualCheckEnabled ? 'On' : 'Off'}
                   </button>
                 </div>
@@ -436,7 +515,7 @@
               <div class="problem-links-wrapper" style=${linksWrapperStyle}>
                 ${flagged.map(
                   ([href, { analysis }]) => html`
-                    <div class="link-row">
+                    <div class="link-row" style=${linkRowStyle}>
                       <span
                         class="status-dot ${analysis.quality.name ===
                         state.postQuality.PROBLEM.name
@@ -454,7 +533,14 @@
               </div>
             `
           : ''}
-        <button style=${toggleButtonStyle} onClick=${toggleVisibility}>
+        <button
+          style=${toggleButtonStyle}
+          onClick=${toggleVisibility}
+          onMouseOver=${(e) =>
+            (e.target.style.background = config.THEMES[mode].hover)}
+          onMouseOut=${(e) =>
+            (e.target.style.background = config.THEMES[mode].button)}
+        >
           <span>${isVisible ? 'Hide' : 'Show'}</span>
         </button>
       </div>
@@ -904,6 +990,7 @@
   };
   XGhosted.prototype.handleManualCheckToggle = function () {
     this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
+    this.log(`Manual Check toggled to ${this.state.isManualCheckEnabled}`);
     this.createPanel();
   };
   XGhosted.prototype.highlightPosts = function () {
@@ -968,6 +1055,16 @@
       .catch((err) => this.log(`Copy failed: ${err}`));
   };
   XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
+    this.log('Import CSV button clicked');
+    if (typeof csvText !== 'string') {
+      csvText = prompt(
+        'Please paste the CSV content to import (e.g., Link,Quality,Reason,Checked\\n"https://x.com/test/status/123","Problem","Test reason",true):'
+      );
+      if (!csvText) {
+        this.log('Import CSV cancelled or no input provided');
+        return;
+      }
+    }
     if (!csvText || typeof csvText !== 'string') {
       this.log('Invalid CSV text provided');
       return;
@@ -980,7 +1077,10 @@
           .split(',')
           .map((cell) => cell.replace(/^"|"$/g, '').replace(/""/g, '"'))
       );
-    if (lines.length < 2) return;
+    if (lines.length < 2) {
+      this.log('CSV must have at least one data row');
+      return;
+    }
     const headers = lines[0];
     const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
     if (!expectedHeaders.every((h2, i) => h2 === headers[i])) {
@@ -1004,6 +1104,7 @@
         checked: checkedStr === 'true',
       });
     });
+    this.log(`Imported ${lines.length - 1} posts from CSV`);
     this.saveState();
     this.highlightPostsImmediate();
   };
