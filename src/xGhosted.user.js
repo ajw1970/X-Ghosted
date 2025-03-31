@@ -10,8 +10,8 @@
 // @grant        GM_getValue
 // @grant        GM_log
 // @require      https://unpkg.com/preact@10.26.4/dist/preact.min.js
-// @require      https://unpkg.com/htm@3.1.1/dist/htm.umd.js
 // @require      https://unpkg.com/preact@10.26.4/hooks/dist/hooks.umd.js
+// @require      https://unpkg.com/htm@3.1.1/dist/htm.umd.js
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -31,11 +31,13 @@
     'xGhosted v0.6.1 starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds'
   );
 
-  // Check if Preact and HTM dependencies loaded
-  if (!window.preact || !window.htm) {
+  // Check if Preact, Preact Hooks, and HTM dependencies loaded
+  if (!window.preact || !window.preactHooks || !window.htm) {
     log(
       'xGhosted: Aborting - Failed to load dependencies. Preact: ' +
         (window.preact ? 'loaded' : 'missing') +
+        ', Preact Hooks: ' +
+        (window.preactHooks ? 'loaded' : 'missing') +
         ', HTM: ' +
         (window.htm ? 'loaded' : 'missing')
     );
@@ -234,13 +236,13 @@
 
   // src/utils/identifyPosts.js
   function identifyPosts(
-    document2,
+    document,
     selector = 'div[data-testid="cellInnerDiv"]',
     checkReplies = true,
     startingFillerCount = 0,
     fn = null
   ) {
-    let posts = document2.querySelectorAll(selector);
+    let posts = document.querySelectorAll(selector);
     const results = [];
     let lastLink = null;
     let fillerCount = startingFillerCount;
@@ -400,95 +402,13 @@
     }
   }
 
-  // src/dom/updateTheme.js
-  function updateTheme(uiElements, config) {
-    const {
-      panel,
-      toolbar,
-      label,
-      contentWrapper,
-      styleSheet,
-      modeSelector,
-      toggleButton,
-      copyButton,
-      manualCheckButton,
-      exportButton,
-      importButton,
-      clearButton,
-    } = uiElements;
-    if (
-      !panel ||
-      !toolbar ||
-      !label ||
-      !contentWrapper ||
-      !styleSheet ||
-      !modeSelector
-    )
-      return;
-    const mode = modeSelector.value;
-    const theme = config.THEMES[mode];
-    if (!theme) return;
-    Object.assign(panel.style, {
-      background: theme.bg,
-      color: theme.text,
-      border: `1px solid ${theme.border}`,
-    });
-    toolbar.style.borderBottom = `1px solid ${theme.border}`;
-    label.style.color = theme.text;
-    contentWrapper.style.scrollbarColor = `${theme.scroll} ${theme.bg}`;
-    const buttons = [
-      toggleButton,
-      copyButton,
-      manualCheckButton,
-      exportButton,
-      importButton,
-      clearButton,
-    ];
-    buttons.forEach((btn) => {
-      if (!btn) return;
-      Object.assign(btn.style, {
-        background: theme.button,
-        color: theme.buttonText,
-        transition: 'background 0.2s ease, transform 0.1s ease',
-        fontSize: '14px',
-      });
-      btn.onmouseover = () => (btn.style.background = theme.hover);
-      btn.onmouseout = () => (btn.style.background = theme.button);
-    });
-    Object.assign(modeSelector.style, {
-      background: theme.button,
-      color: theme.buttonText,
-      fontSize: '14px',
-    });
-    modeSelector.className = mode;
-    styleSheet.textContent = `
-.problem-links-wrapper::-webkit-scrollbar { width: 6px; }
-.problem-links-wrapper::-webkit-scrollbar-thumb { background: ${theme.scroll}; border-radius: 3px; }
-.problem-links-wrapper::-webkit-scrollbar-track { background: ${theme.bg}; }
-select { background-repeat: no-repeat; background-position: right 8px center; }
-select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23000000' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-select:focus { outline: none; box-shadow: 0 0 0 2px ${theme.scroll}; }
-.link-row { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; }
-.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; justify-self: center; }
-.link-item { padding: 2px 0; overflow-wrap: break-word; }
-.link-item a:hover { text-decoration: underline; }
-.problem-links-wrapper { color: ${theme.text}; }
-.problem-links-wrapper a { color: ${mode === 'light' ? '#0A66C2' : '#1DA1F2'}; }
-button:active { transform: scale(0.95); }
-`;
-  }
-
   // src/ui/Components.js
-  var { h, render } = window.preact;
+  var { h } = window.preact;
   var { useState, useEffect } = window.preactHooks;
   var html = window.htm.bind(h);
   function Panel({
     state,
-    uiElements,
     config,
-    togglePanelVisibility: togglePanelVisibility2,
     copyCallback,
     mode,
     onModeChange,
@@ -499,8 +419,8 @@ button:active { transform: scale(0.95); }
     onImportCSV,
     onClear,
     onManualCheckToggle,
-    refresh,
   }) {
+    console.log('Components.js loaded, window.Panel:', window.Panel);
     const [flagged, setFlagged] = useState(
       Array.from(state.processedPosts.entries()).filter(
         ([_, { analysis }]) =>
@@ -508,8 +428,6 @@ button:active { transform: scale(0.95); }
           analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
       )
     );
-    const [localMode, setLocalMode] = useState(mode);
-    const [refreshKey, setRefreshKey] = useState(0);
     useEffect(() => {
       const newFlagged = Array.from(state.processedPosts.entries()).filter(
         ([_, { analysis }]) =>
@@ -518,196 +436,13 @@ button:active { transform: scale(0.95); }
       );
       setFlagged(newFlagged);
       console.log('Flagged posts updated:', newFlagged.length, newFlagged);
-    }, [state.processedPosts, refreshKey]);
-    useEffect(() => {
-      if (refresh) {
-        setRefreshKey((prev) => prev + 1);
-      }
-    }, [refresh]);
+    }, [state.processedPosts]);
     return html`
-      <div
-        id="xghosted-panel"
-        style=${{
-          position: 'fixed',
-          top: state.panelPosition?.top || config.PANEL.TOP,
-          left: state.panelPosition?.left || 'auto',
-          right: state.panelPosition ? 'auto' : config.PANEL.RIGHT,
-          width: config.PANEL.WIDTH,
-          maxHeight: config.PANEL.MAX_HEIGHT,
-          minWidth: '250px',
-          minHeight: '150px',
-          zIndex: config.PANEL.Z_INDEX,
-          background: config.THEMES[localMode].bg,
-          color: `${config.THEMES[localMode].text} !important`,
-          border: `1px solid ${config.THEMES[localMode].border}`,
-          borderRadius: '12px',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
-          fontFamily: config.PANEL.FONT,
-          padding: '16px',
-          transition: 'background 0.2s ease, color 0.2s ease, border 0.2s ease',
-          resize: 'both',
-          overflow: 'hidden',
-          userSelect: 'none',
-        }}
-      >
-        <div
-          class="header"
-          style=${{
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            right: '0',
-            height: '20px',
-            background: config.THEMES[localMode].border,
-            cursor: 'move',
-            borderRadius: '12px 12px 0 0',
-          }}
-          onMouseDown=${(e) => {
-            let isDragging = true;
-            const startX = e.clientX;
-            const startY = e.clientY;
-            const initialLeft = parseInt(uiElements.panel.style.left) || 0;
-            const initialTop =
-              parseInt(uiElements.panel.style.top) ||
-              parseInt(config.PANEL.TOP);
-            const onMouseMove = (e2) => {
-              if (!isDragging) return;
-              const dx = e2.clientX - startX;
-              const dy = e2.clientY - startY;
-              uiElements.panel.style.left = `${initialLeft + dx}px`;
-              uiElements.panel.style.top = `${Math.max(0, initialTop + dy)}px`;
-              uiElements.panel.style.right = 'auto';
-            };
-            const onMouseUp = () => {
-              isDragging = false;
-              document.removeEventListener('mousemove', onMouseMove);
-              document.removeEventListener('mouseup', onMouseUp);
-              state.panelPosition = {
-                left: uiElements.panel.style.left,
-                top: uiElements.panel.style.top,
-              };
-              state.instance.saveState();
-            };
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
-          }}
-        ></div>
-
-        <div
-          class="toolbar"
-          style=${{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 0',
-            borderBottom: `1px solid ${config.THEMES[localMode].border}`,
-            marginBottom: '16px',
-          }}
-        >
-          <span style=${{ fontSize: '15px', fontWeight: '700' }}>
-            Problem Posts (${flagged.length}):
-          </span>
-          <button
-            onClick=${() => {
-              const toolsSection =
-                uiElements.panel.querySelector('.tools-section');
-              const isExpanded = toolsSection.style.display === 'block';
-              toolsSection.style.display = isExpanded ? 'none' : 'block';
-            }}
-          >
-            Tools
-          </button>
-          <div style=${{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <select
-              value=${localMode}
-              onChange=${(e) => {
-                setLocalMode(e.target.value);
-                onModeChange(e.target.value);
-              }}
-              style=${{
-                background: config.THEMES[localMode].button,
-                color: config.THEMES[localMode].text,
-                border: 'none',
-                padding: '6px 24px 6px 12px',
-                borderRadius: '9999px',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: '500',
-                minWidth: '80px',
-              }}
-            >
-              <option value="dark">Dark</option>
-              <option value="dim">Dim</option>
-              <option value="light">Light</option>
-            </select>
-            <button onClick=${togglePanelVisibility2}>Hide</button>
-          </div>
+      <div id="xghosted-panel">
+        <div class="toolbar">
+          <span>Problem Posts (${flagged.length}):</span>
         </div>
-
-        <div
-          class="tools-section"
-          style=${{
-            display: 'none',
-            padding: '12px 0',
-            borderBottom: `1px solid ${config.THEMES[localMode].border}`,
-            marginBottom: '16px',
-            background: `${config.THEMES[localMode].bg}CC`,
-          }}
-        >
-          <div
-            style=${{ display: 'flex', justifyContent: 'center', gap: '15px' }}
-          >
-            <button onClick=${copyCallback}>Copy</button>
-            <button onClick=${onManualCheckToggle}>
-              ${state.isManualCheckEnabled ? 'Stop Manual' : 'Manual Check'}
-            </button>
-            <button onClick=${onExportCSV}>Export CSV</button>
-            <button
-              onClick=${() =>
-                (uiElements.panel.querySelector('.modal').style.display =
-                  'block')}
-            >
-              Import CSV
-            </button>
-            <button onClick=${onClear}>Clear</button>
-          </div>
-        </div>
-
-        <div
-          class="control-row"
-          style=${{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 0',
-            marginBottom: '16px',
-          }}
-        >
-          <span style=${{ fontSize: '15px', fontWeight: '700' }}>
-            ${state.isRateLimited
-              ? 'Paused (Rate Limit)'
-              : state.isCollapsingEnabled
-                ? 'Controls Running'
-                : 'Controls'}
-          </span>
-          <div style=${{ display: 'flex', gap: '10px' }}>
-            <button onClick=${onStart}>Start</button>
-            <button onClick=${onStop}>Stop</button>
-            <button onClick=${onReset}>Reset</button>
-          </div>
-        </div>
-
-        <div
-          class="problem-links-wrapper"
-          style=${{
-            maxHeight: 'calc(100% - 70px)',
-            overflowY: 'auto',
-            fontSize: '14px',
-            lineHeight: '1.4',
-            scrollbarWidth: 'thin',
-            scrollbarColor: `${config.THEMES[localMode].scroll} ${config.THEMES[localMode].bg}`,
-          }}
-        >
+        <div class="problem-links-wrapper">
           ${flagged.map(
             ([href, { analysis }]) => html`
               <div class="link-row">
@@ -718,78 +453,11 @@ button:active { transform: scale(0.95); }
                     : 'status-potential'}"
                 ></span>
                 <div class="link-item">
-                  <a
-                    href="https://x.com${href}"
-                    target="_blank"
-                    style=${{
-                      display: 'block',
-                      textDecoration: 'none',
-                      wordBreak: 'break-all',
-                    }}
-                    >${href}</a
-                  >
+                  <a href="https://x.com${href}" target="_blank">${href}</a>
                 </div>
               </div>
             `
           )}
-        </div>
-
-        <div
-          class="modal"
-          style=${{
-            display: 'none',
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            background: config.THEMES[localMode].bg,
-            color: config.THEMES[localMode].text,
-            border: `1px solid ${config.THEMES[localMode].border}`,
-            borderRadius: '8px',
-            padding: '20px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-            zIndex: '10000',
-            width: '300px',
-          }}
-        >
-          <textarea
-            style=${{
-              width: '100%',
-              height: '100px',
-              marginBottom: '15px',
-              background: config.THEMES[localMode].bg,
-              color: config.THEMES[localMode].text,
-              border: `1px solid ${config.THEMES[localMode].border}`,
-              borderRadius: '4px',
-              padding: '4px',
-              resize: 'none',
-            }}
-          ></textarea>
-          <div
-            style=${{ display: 'flex', justifyContent: 'center', gap: '15px' }}
-          >
-            <button
-              onClick=${() => {
-                const textarea = uiElements.panel.querySelector('textarea');
-                const csvText = textarea.value.trim();
-                if (csvText) {
-                  onImportCSV(csvText);
-                  textarea.value = '';
-                }
-                uiElements.panel.querySelector('.modal').style.display = 'none';
-              }}
-            >
-              Submit
-            </button>
-            <button
-              onClick=${() => {
-                uiElements.panel.querySelector('.modal').style.display = 'none';
-                uiElements.panel.querySelector('textarea').value = '';
-              }}
-            >
-              Close
-            </button>
-          </div>
         </div>
       </div>
     `;
@@ -840,9 +508,7 @@ button:active { transform: scale(0.95); }
             buttonText: '#000000',
             border: '#E1E8ED',
             button: '#B0BEC5',
-            // Changed from #E8ECEF for better contrast
             hover: '#90A4AE',
-            // Changed from #D3D3D3 for a clearer hover effect
             scroll: '#CCD6DD',
           },
           dim: {
@@ -865,6 +531,7 @@ button:active { transform: scale(0.95); }
           },
         },
       },
+      panel: null,
     };
     this.checkPostInNewTabThrottled = debounce((href) => {
       return this.checkPostInNewTab(href);
@@ -937,14 +604,13 @@ button:active { transform: scale(0.95); }
             ...analysis,
             quality: postQuality[analysis.quality.name],
           },
-          // Restore quality object
           checked,
         });
       }
     }
   };
   XGhosted.prototype.createPanel = function () {
-    const { h: h2, render: render2 } = window.preact;
+    const { h: h2, render } = window.preact;
     this.state.instance = this;
     const mode = this.getThemeMode();
     this.state.isDarkMode = mode !== 'light';
@@ -952,48 +618,21 @@ button:active { transform: scale(0.95); }
       this.uiElements.panel = this.document.createElement('div');
       this.document.body.appendChild(this.uiElements.panel);
     }
-    render2(
+    this.log('window.Panel in createPanel:', window.Panel);
+    render(
       h2(window.Panel, {
         state: this.state,
-        uiElements: this.uiElements,
         config: this.uiElements.config,
-        togglePanelVisibility: this.togglePanelVisibility.bind(this),
         copyCallback: this.copyLinks.bind(this),
         mode,
-        onModeChange: (newMode) => {
-          this.state.isDarkMode = newMode !== 'light';
-          this.createPanel();
-        },
-        onStart: () => {
-          this.state.isCollapsingEnabled = true;
-          this.state.isCollapsingRunning = true;
-          const articles = this.document.querySelectorAll(
-            'div[data-testid="cellInnerDiv"]'
-          );
-          this.collapseArticlesWithDelay(articles);
-        },
-        onStop: () => {
-          this.state.isCollapsingEnabled = false;
-        },
-        onReset: () => {
-          this.state.isCollapsingEnabled = false;
-          this.state.isCollapsingRunning = false;
-          this.document
-            .querySelectorAll('div[data-testid="cellInnerDiv"]')
-            .forEach(this.expandArticle);
-          this.state.processedPosts = /* @__PURE__ */ new Map();
-          this.state.fullyprocessedPosts.clear();
-          this.state.problemLinks.clear();
-        },
+        onModeChange: this.handleModeChange.bind(this),
+        onStart: this.handleStart.bind(this),
+        onStop: this.handleStop.bind(this),
+        onReset: this.handleReset.bind(this),
         onExportCSV: this.exportProcessedPostsCSV.bind(this),
         onImportCSV: this.importProcessedPostsCSV.bind(this),
-        onClear: () => {
-          if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
-        },
-        onManualCheckToggle: () => {
-          this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
-          this.createPanel();
-        },
+        onClear: this.handleClear.bind(this),
+        onManualCheckToggle: this.handleManualCheckToggle.bind(this),
       }),
       this.uiElements.panel
     );
@@ -1196,55 +835,68 @@ button:active { transform: scale(0.95); }
     button.parentElement.insertBefore(newLink, button.nextSibling);
   };
   XGhosted.prototype.refreshPanel = function () {
-    if (!this.uiElements.panel) return;
-    const { h: h2, render: render2 } = window.preact;
-    render2(
-      h2(window.Panel, {
-        state: this.state,
-        uiElements: this.uiElements,
-        config: this.uiElements.config,
-        togglePanelVisibility: this.togglePanelVisibility.bind(this),
-        copyCallback: this.copyLinks.bind(this),
-        mode: this.getThemeMode(),
-        onModeChange: (newMode) => {
-          this.state.isDarkMode = newMode !== 'light';
-          this.createPanel();
-        },
-        onStart: () => {
-          this.state.isCollapsingEnabled = true;
-          this.state.isCollapsingRunning = true;
-          const articles = this.document.querySelectorAll(
-            'div[data-testid="cellInnerDiv"]'
-          );
-          this.collapseArticlesWithDelay(articles);
-        },
-        onStop: () => {
-          this.state.isCollapsingEnabled = false;
-        },
-        onReset: () => {
-          this.state.isCollapsingEnabled = false;
-          this.state.isCollapsingRunning = false;
-          this.document
-            .querySelectorAll('div[data-testid="cellInnerDiv"]')
-            .forEach(this.expandArticle);
-          this.state.processedPosts = /* @__PURE__ */ new Map();
-          this.state.fullyprocessedPosts.clear();
-          this.state.problemLinks.clear();
-        },
-        onExportCSV: this.exportProcessedPostsCSV.bind(this),
-        onImportCSV: this.importProcessedPostsCSV.bind(this),
-        onClear: () => {
-          if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
-        },
-        onManualCheckToggle: () => {
-          this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
-          this.createPanel();
-        },
-        refresh: Date.now(),
-        // Trigger useEffect in Panel component
-      }),
-      this.uiElements.panel
+    if (!this.uiElements.panel) {
+      this.log('No panel element found for rendering');
+      return;
+    }
+    this.log('Starting panel refresh');
+    const { h: h2, render } = window.preact;
+    this.log('window.Panel in refreshPanel:', window.Panel);
+    try {
+      render(
+        h2(window.Panel, {
+          state: this.state,
+          config: this.uiElements.config,
+          copyCallback: this.copyLinks.bind(this),
+          mode: this.getThemeMode(),
+          onModeChange: this.handleModeChange.bind(this),
+          onStart: this.handleStart.bind(this),
+          onStop: this.handleStop.bind(this),
+          onReset: this.handleReset.bind(this),
+          onExportCSV: this.exportProcessedPostsCSV.bind(this),
+          onImportCSV: this.importProcessedPostsCSV.bind(this),
+          onClear: this.handleClear.bind(this),
+          onManualCheckToggle: this.handleManualCheckToggle.bind(this),
+        }),
+        this.uiElements.panel
+      );
+      this.log('Panel refresh completed');
+    } catch (error) {
+      this.log('Error during panel refresh:', error);
+      throw error;
+    }
+  };
+  XGhosted.prototype.handleModeChange = function (newMode) {
+    this.state.isDarkMode = newMode !== 'light';
+    this.createPanel();
+  };
+  XGhosted.prototype.handleStart = function () {
+    this.state.isCollapsingEnabled = true;
+    this.state.isCollapsingRunning = true;
+    const articles = this.document.querySelectorAll(
+      'div[data-testid="cellInnerDiv"]'
     );
+    this.collapseArticlesWithDelay(articles);
+  };
+  XGhosted.prototype.handleStop = function () {
+    this.state.isCollapsingEnabled = false;
+  };
+  XGhosted.prototype.handleReset = function () {
+    this.state.isCollapsingEnabled = false;
+    this.state.isCollapsingRunning = false;
+    this.document
+      .querySelectorAll('div[data-testid="cellInnerDiv"]')
+      .forEach(this.expandArticle);
+    this.state.processedPosts = /* @__PURE__ */ new Map();
+    this.state.fullyprocessedPosts.clear();
+    this.state.problemLinks.clear();
+  };
+  XGhosted.prototype.handleClear = function () {
+    if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
+  };
+  XGhosted.prototype.handleManualCheckToggle = function () {
+    this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
+    this.createPanel();
   };
   XGhosted.prototype.highlightPosts = function () {
     const postsContainer = this.findPostContainer();
@@ -1254,6 +906,10 @@ button:active { transform: scale(0.95); }
     }
     this.updateState(this.document.location.href);
     const processPostAnalysis = (post, analysis) => {
+      if (!(post instanceof this.document.defaultView.Element)) {
+        this.log('Skipping invalid DOM element:', post);
+        return;
+      }
       const id = analysis.link;
       const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
       post.setAttribute('data-xghosted', `postquality.${qualityName}`);
@@ -1363,23 +1019,31 @@ button:active { transform: scale(0.95); }
     togglePanelVisibility(this.state, this.uiElements);
     this.saveState();
   };
-  XGhosted.prototype.updateTheme = function () {
-    updateTheme(this.uiElements, this.uiElements.config);
-  };
   XGhosted.prototype.init = function () {
     this.loadState();
+    if (!this.uiElements.panel) {
+      this.uiElements.panel = this.document.createElement('div');
+      this.document.body.appendChild(this.uiElements.panel);
+    }
     this.createPanel();
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
-  .xghosted-problem { border: 2px solid red; }
-  .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-  .xghosted-good { /* Optional: subtle styling if desired */ }
-  .xghosted-undefined { /* No styling needed */ }
-  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; justify-self: center; }
-  .status-problem { background-color: red; }
-  .status-potential { background-color: yellow; }
-  .link-row { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; }
-`;
+    .xghosted-problem { border: 2px solid red; }
+    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+    .xghosted-good { /* Optional: subtle styling if desired */ }
+    .xghosted-undefined { /* No styling needed */ }
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; justify-self: center; }
+    .status-problem { background-color: red; }
+    .status-potential { background-color: yellow; }
+    .link-row { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; }
+    .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
+    .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${this.uiElements.config.THEMES[this.getThemeMode()].scroll}; border-radius: 3px; }
+    .problem-links-wrapper::-webkit-scrollbar-track { background: ${this.uiElements.config.THEMES[this.getThemeMode()].bg}; }
+    select:focus { outline: none; box-shadow: 0 0 0 2px ${this.uiElements.config.THEMES[this.getThemeMode()].scroll}; }
+    .link-item { padding: 2px 0; overflow-wrap: break-word; }
+    .link-item a:hover { text-decoration: underline; }
+    button:active { transform: scale(0.95); }
+  `;
     this.document.head.appendChild(styleSheet);
     this.uiElements.highlightStyleSheet = styleSheet;
     this.highlightPostsDebounced();

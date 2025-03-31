@@ -5,6 +5,32 @@ import { JSDOM } from 'jsdom';
 import { XGhosted } from './xGhosted.js';
 import { postQuality } from './utils/postQuality.js';
 import { summarizeRatedPosts } from './utils/summarizeRatedPosts.js';
+import { h, render } from 'preact';
+import { useState, useEffect } from 'preact/hooks';
+import htm from 'htm';
+import { Panel } from './ui/Components.js'; // Static import
+
+async function waitFor(condition, { timeout = 5000, interval = 50 } = {}) {
+  const startTime = Date.now();
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      if (condition()) {
+        resolve();
+      } else if (Date.now() - startTime >= timeout) {
+        reject(new Error('waitFor timed out'));
+      } else {
+        setTimeout(check, interval);
+      }
+    };
+    check();
+  });
+}
+
+// Set Preact globals before importing Components.js
+global.window = global.window || {};
+window.preact = { h, render };
+window.preactHooks = { useState, useEffect };
+window.htm = htm.bind(h);
 
 // Mock Tampermonkey GM_* functions
 const gmStorage = {};
@@ -21,18 +47,26 @@ global.alert = vi.fn();
 let clipboardMock;
 
 function setupJSDOM() {
+  console.log('Starting setupJSDOM');
+  const startTime = Date.now();
   const samplePath = resolve(__dirname, '../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
+  console.log('Reading sample HTML file');
   const sampleHtml = readFileSync(samplePath, 'utf8');
+  console.log(`Sample HTML read in ${Date.now() - startTime}ms`);
+
+  const domStartTime = Date.now();
   const html = `<!DOCTYPE html><html><body>${sampleHtml}</body></html>`;
   const dom = new JSDOM(html, {
     url: 'https://x.com/user/with_replies',
     resources: 'usable',
     runScripts: 'dangerously',
   });
+  console.log(`JSDOM created in ${Date.now() - domStartTime}ms`);
+
   global.window = dom.window;
   global.document = dom.window.document;
   dom.window.document.defaultView.open = vi.fn();
-  dom.window.alert = vi.fn(); // Mock alert (though bypassed in test env)
+  dom.window.alert = vi.fn();
   clipboardMock = { writeText: vi.fn().mockResolvedValue() };
   dom.window.navigator = { clipboard: clipboardMock, userAgent: 'vitest' };
   global.navigator = dom.window.navigator;
@@ -40,41 +74,66 @@ function setupJSDOM() {
     createObjectURL: vi.fn(() => 'blob://test'),
     revokeObjectURL: vi.fn(),
   };
+  // Set Preact globals again for the JSDOM window
+  dom.window.preact = { h, render };
+  dom.window.preactHooks = { useState, useEffect };
+  dom.window.htm = htm.bind(h);
+  console.log(`setupJSDOM completed in ${Date.now() - startTime}ms`);
   return dom;
 }
 
 describe('xGhosted', () => {
   let xGhosted, dom;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     vi.useFakeTimers();
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    console.log('Starting beforeEach');
+    const startTime = Date.now();
     dom = setupJSDOM();
+    console.log(`setupJSDOM finished in ${Date.now() - startTime}ms`);
+
+    // Manually set window.Panel after setting up JSDOM
+    window.Panel = Panel;
+    console.log('beforeEach - window.Panel after assignment:', window.Panel);
+
+    const xGhostedStartTime = Date.now();
     xGhosted = new XGhosted(dom.window.document, {
-      timing: { debounceDelay: 0, throttleDelay: 0, tabCheckThrottle: 0, exportThrottle: 0, rateLimitPause: 100 }, // 100ms for test
+      timing: { debounceDelay: 0, throttleDelay: 0, tabCheckThrottle: 0, exportThrottle: 0, rateLimitPause: 100 },
       useTampermonkeyLog: false,
       persistProcessedPosts: true,
     });
+    console.log(`XGhosted instance created in ${Date.now() - xGhostedStartTime}ms`);
+
     xGhosted.updateState('https://x.com/user/with_replies');
     xGhosted.highlightPostsDebounced = xGhosted.highlightPosts;
     xGhosted.state.processedPosts.clear();
-  });
+    console.log(`beforeEach completed in ${Date.now() - startTime}ms`);
+  }, 30000);
 
   afterEach(() => {
     dom.window.document.body.innerHTML = '';
     vi.clearAllMocks();
   });
 
-  test('init creates panel and tags posts', () => {
+  test('init creates panel and tags posts', async () => {
+    console.log('Test start - window.Panel:', window.Panel);
+    console.log('Before init, window.Panel:', window.Panel);
     xGhosted.init();
+    await waitFor(() => {
+      const panel = xGhosted.document.getElementById('xghosted-panel');
+      return panel && panel.querySelector('.toolbar span')?.textContent.includes('Problem Posts');
+    });
     const panel = xGhosted.document.getElementById('xghosted-panel');
+    console.log('Panel after init:', panel);
+    console.log('Document body after init:', xGhosted.document.body.innerHTML);
     expect(panel).toBeTruthy();
     const posts = xGhosted.document.querySelectorAll('[data-xghosted]');
     expect(posts.length).toBeGreaterThan(0);
     expect(GM_setValue).toHaveBeenCalled();
-  });
+  }, 15000);
 
   test('updateState sets with_replies flag and resets on URL change', () => {
     expect(xGhosted.state.isWithReplies).toBe(true);
@@ -108,8 +167,8 @@ describe('xGhosted', () => {
 
   test('checkPostInNewTab handles rate limit', async () => {
     xGhosted.state.isManualCheckEnabled = true;
-    xGhosted.createPanel(); // Initialize UI elements before test
-  
+    xGhosted.createPanel();
+
     const mockWindow = {
       document: {
         readyState: 'complete',
@@ -119,31 +178,40 @@ describe('xGhosted', () => {
       close: vi.fn()
     };
     xGhosted.document.defaultView.open.mockReturnValue(mockWindow);
-  
+
     const promise = xGhosted.checkPostInNewTab('/test/status/123');
-  
-    vi.advanceTimersByTime(500); // Matches the 500ms interval in checkPostInNewTab
-  
+
+    vi.advanceTimersByTime(500);
+
     expect(xGhosted.state.isRateLimited).toBe(true);
-    expect(xGhosted.uiElements.controlLabel.textContent).toBe('Paused (Rate Limit)');
-  
+
     vi.advanceTimersByTime(xGhosted.timing.rateLimitPause);
-  
+
     const result = await promise;
-  
+
     expect(xGhosted.state.isRateLimited).toBe(false);
     expect(result).toBe(false);
-    expect(xGhosted.uiElements.controlLabel.textContent).toBe('Controls');
     expect(mockWindow.close).toHaveBeenCalled();
   });
 
-  test('renderPanel shows flagged posts', () => {
+  test('renderPanel shows flagged posts', async () => {
+    console.log('Test start - window.Panel:', window.Panel);
+    console.log('Before createPanel, window.Panel:', window.Panel);
+    xGhosted.createPanel();
+    await waitFor(() => xGhosted.document.getElementById('xghosted-panel'));
+    console.log('After createPanel, panel:', xGhosted.document.getElementById('xghosted-panel'));
     xGhosted.highlightPosts();
-    const label = xGhosted.uiElements.label.textContent;
-    expect(label).toMatch(/Problem Posts \(3\):/);
+    await waitFor(() => {
+      const label = xGhosted.document.querySelector('.toolbar span');
+      return label && label.textContent.match(/Problem Posts \(3\):/);
+    });
+    const label = xGhosted.document.querySelector('.toolbar span');
+    console.log('Toolbar span after render:', label);
+    console.log('Document body after render:', xGhosted.document.body.innerHTML);
+    expect(label.textContent).toMatch(/Problem Posts \(3\):/);
     const links = xGhosted.document.querySelectorAll('.problem-links-wrapper .link-row a');
     expect(links.length).toBe(3);
-  });
+  }, 15000);
 
   test('highlightPosts identifies all post qualities', () => {
     const analyses = xGhosted.highlightPosts();

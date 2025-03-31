@@ -4,6 +4,7 @@ import { TextEncoder, TextDecoder } from 'util';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { h, render } from 'preact';
+import { useState, useEffect } from 'preact/hooks';
 import htm from 'htm';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -19,7 +20,8 @@ global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 global.__dirname = __dirname;
 
-// Set Preact and HTM globals for production code compatibility in tests
+// Set Preact, Preact Hooks, and HTM globals for production code compatibility in tests
 global.window = global.window || {};
 window.preact = { h, render };
+window.preactHooks = { useState, useEffect };
 window.htm = htm.bind(h);

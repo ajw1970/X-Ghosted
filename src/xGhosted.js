@@ -1,3 +1,4 @@
+// Replacement for the entire src/xGhosted.js file
 import { postQuality } from './utils/postQuality.js';
 import { detectTheme } from './dom/detectTheme';
 import { identifyPost } from './utils/identifyPost';
@@ -5,8 +6,8 @@ import { identifyPosts } from './utils/identifyPosts';
 import { debounce } from './utils/debounce';
 import { createButton } from './dom/createButton';
 import { togglePanelVisibility } from './dom/togglePanelVisibility';
-import { updateTheme } from './dom/updateTheme';
 import './ui/Components.js';
+
 function XGhosted(doc, config = {}) {
   const defaultTiming = {
     debounceDelay: 500,
@@ -50,8 +51,8 @@ function XGhosted(doc, config = {}) {
           text: '#292F33', 
           buttonText: '#000000', 
           border: '#E1E8ED', 
-          button: '#B0BEC5', // Changed from #E8ECEF for better contrast
-          hover: '#90A4AE',  // Changed from #D3D3D3 for a clearer hover effect
+          button: '#B0BEC5',
+          hover: '#90A4AE',
           scroll: '#CCD6DD' 
         },
         dim: { 
@@ -74,10 +75,11 @@ function XGhosted(doc, config = {}) {
         },
       }
     },
+    panel: null
   };
 
   this.checkPostInNewTabThrottled = debounce((href) => {
-    return this.checkPostInNewTab(href); // Return the Promise
+    return this.checkPostInNewTab(href);
   }, this.timing.tabCheckThrottle);
 
   this.highlightPostsDebounced = debounce(() => {
@@ -140,7 +142,7 @@ XGhosted.prototype.loadState = function () {
     const savedPosts = savedState.processedPosts || {};
     for (const [id, { analysis, checked }] of Object.entries(savedPosts)) {
       this.state.processedPosts.set(id, {
-        analysis: { ...analysis, quality: postQuality[analysis.quality.name] }, // Restore quality object
+        analysis: { ...analysis, quality: postQuality[analysis.quality.name] },
         checked
       });
     }
@@ -158,44 +160,21 @@ XGhosted.prototype.createPanel = function () {
     this.document.body.appendChild(this.uiElements.panel);
   }
 
+  this.log('window.Panel in createPanel:', window.Panel);
   render(
     h(window.Panel, {
       state: this.state,
-      uiElements: this.uiElements,
       config: this.uiElements.config,
-      togglePanelVisibility: this.togglePanelVisibility.bind(this),
       copyCallback: this.copyLinks.bind(this),
       mode: mode,
-      onModeChange: (newMode) => {
-        this.state.isDarkMode = newMode !== 'light';
-        this.createPanel(); // Re-render with new mode
-      },
-      onStart: () => {
-        this.state.isCollapsingEnabled = true;
-        this.state.isCollapsingRunning = true;
-        const articles = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
-        this.collapseArticlesWithDelay(articles);
-      },
-      onStop: () => {
-        this.state.isCollapsingEnabled = false;
-      },
-      onReset: () => {
-        this.state.isCollapsingEnabled = false;
-        this.state.isCollapsingRunning = false;
-        this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(this.expandArticle);
-        this.state.processedPosts = new Map();
-        this.state.fullyprocessedPosts.clear();
-        this.state.problemLinks.clear();
-      },
+      onModeChange: this.handleModeChange.bind(this),
+      onStart: this.handleStart.bind(this),
+      onStop: this.handleStop.bind(this),
+      onReset: this.handleReset.bind(this),
       onExportCSV: this.exportProcessedPostsCSV.bind(this),
       onImportCSV: this.importProcessedPostsCSV.bind(this),
-      onClear: () => {
-        if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
-      },
-      onManualCheckToggle: () => {
-        this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
-        this.createPanel(); // Re-render to update button text
-      }
+      onClear: this.handleClear.bind(this),
+      onManualCheckToggle: this.handleManualCheckToggle.bind(this)
     }),
     this.uiElements.panel
   );
@@ -203,7 +182,6 @@ XGhosted.prototype.createPanel = function () {
 
 XGhosted.prototype.updateState = function (url) {
   this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(url);
-  // this.log(`URL: ${url}, isWithReplies: ${this.state.isWithReplies}`);
   if (this.state.lastUrl !== url) {
     this.state.postContainer = null;
     this.state.processedPosts.clear();
@@ -225,7 +203,6 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
         if (doc.body.textContent.includes('Rate limit exceeded')) {
           clearInterval(checkInterval);
           this.log('Rate limit detected in tab, pausing operations');
-          // Bypass alert() in Jest environment
           if (typeof jest === 'undefined') {
             alert(`Rate limit exceeded by X. Pausing all operations for ${this.timing.rateLimitPause / 1000} seconds.`);
           } else {
@@ -330,7 +307,7 @@ XGhosted.prototype.userRequestedPostCheck = function (href) {
   }
   if (!cached.checked) {
     this.checkPostInNewTabThrottled(href).then((isProblem) => {
-      if (this.state.isRateLimited) return;  // Skip updates if rate-limited
+      if (this.state.isRateLimited) return;
       post.classList.remove('xghosted-potential_problem', 'xghosted-good', 'xghosted-problem');
       post.classList.add(isProblem ? 'xghosted-problem' : 'xghosted-good');
       post.setAttribute('data-xghosted', `postquality.${isProblem ? 'problem' : 'good'}`);
@@ -346,12 +323,12 @@ XGhosted.prototype.userRequestedPostCheck = function (href) {
 
 XGhosted.prototype.replaceMenuButton = function (post, href) {
   if (!post) return;
-  const button = post.querySelector('button[aria-label="Share post"]') || post.querySelector('button'); // Fallback to any button
+  const button = post.querySelector('button[aria-label="Share post"]') || post.querySelector('button');
   if (!button) {
     this.log(`No share button found for post with href: ${href}`);
     return;
   }
-  if (button.nextSibling?.textContent.includes('👀')) return; // Avoid duplicates
+  if (button.nextSibling?.textContent.includes('👀')) return;
 
   const newLink = Object.assign(this.document.createElement('a'), {
     textContent: '👀',
@@ -373,55 +350,75 @@ XGhosted.prototype.replaceMenuButton = function (post, href) {
     this.log(`Eyeball clicked for manual check on href: ${href}`);
   });
   button.parentElement.insertBefore(newLink, button.nextSibling);
-  // this.log(`Added eyeball link next to share button for href: ${href}`);
 };
 
 XGhosted.prototype.refreshPanel = function () {
-  if (!this.uiElements.panel) return; // Safety check
+  if (!this.uiElements.panel) {
+    this.log('No panel element found for rendering');
+    return;
+  }
 
+  this.log('Starting panel refresh');
   const { h, render } = window.preact;
-  render(
-    h(window.Panel, {
-      state: this.state,
-      uiElements: this.uiElements,
-      config: this.uiElements.config,
-      togglePanelVisibility: this.togglePanelVisibility.bind(this),
-      copyCallback: this.copyLinks.bind(this),
-      mode: this.getThemeMode(),
-      onModeChange: (newMode) => {
-        this.state.isDarkMode = newMode !== 'light';
-        this.createPanel(); // Re-render with new mode
-      },
-      onStart: () => {
-        this.state.isCollapsingEnabled = true;
-        this.state.isCollapsingRunning = true;
-        const articles = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
-        this.collapseArticlesWithDelay(articles);
-      },
-      onStop: () => {
-        this.state.isCollapsingEnabled = false;
-      },
-      onReset: () => {
-        this.state.isCollapsingEnabled = false;
-        this.state.isCollapsingRunning = false;
-        this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(this.expandArticle);
-        this.state.processedPosts = new Map();
-        this.state.fullyprocessedPosts.clear();
-        this.state.problemLinks.clear();
-      },
-      onExportCSV: this.exportProcessedPostsCSV.bind(this),
-      onImportCSV: this.importProcessedPostsCSV.bind(this),
-      onClear: () => {
-        if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
-      },
-      onManualCheckToggle: () => {
-        this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
-        this.createPanel(); // Re-render to update button text
-      },
-      refresh: Date.now() // Trigger useEffect in Panel component
-    }),
-    this.uiElements.panel
-  );
+  this.log('window.Panel in refreshPanel:', window.Panel);
+  try {
+    render(
+      h(window.Panel, {
+        state: this.state,
+        config: this.uiElements.config,
+        copyCallback: this.copyLinks.bind(this),
+        mode: this.getThemeMode(),
+        onModeChange: this.handleModeChange.bind(this),
+        onStart: this.handleStart.bind(this),
+        onStop: this.handleStop.bind(this),
+        onReset: this.handleReset.bind(this),
+        onExportCSV: this.exportProcessedPostsCSV.bind(this),
+        onImportCSV: this.importProcessedPostsCSV.bind(this),
+        onClear: this.handleClear.bind(this),
+        onManualCheckToggle: this.handleManualCheckToggle.bind(this)
+      }),
+      this.uiElements.panel
+    );
+    this.log('Panel refresh completed');
+  } catch (error) {
+    this.log('Error during panel refresh:', error);
+    throw error;
+  }
+};
+
+// Add handler methods to XGhosted prototype
+XGhosted.prototype.handleModeChange = function (newMode) {
+  this.state.isDarkMode = newMode !== 'light';
+  this.createPanel();
+};
+
+XGhosted.prototype.handleStart = function () {
+  this.state.isCollapsingEnabled = true;
+  this.state.isCollapsingRunning = true;
+  const articles = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+  this.collapseArticlesWithDelay(articles);
+};
+
+XGhosted.prototype.handleStop = function () {
+  this.state.isCollapsingEnabled = false;
+};
+
+XGhosted.prototype.handleReset = function () {
+  this.state.isCollapsingEnabled = false;
+  this.state.isCollapsingRunning = false;
+  this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(this.expandArticle);
+  this.state.processedPosts = new Map();
+  this.state.fullyprocessedPosts.clear();
+  this.state.problemLinks.clear();
+};
+
+XGhosted.prototype.handleClear = function () {
+  if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
+};
+
+XGhosted.prototype.handleManualCheckToggle = function () {
+  this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
+  this.createPanel();
 };
 
 XGhosted.prototype.highlightPosts = function () {
@@ -434,6 +431,12 @@ XGhosted.prototype.highlightPosts = function () {
   this.updateState(this.document.location.href);
 
   const processPostAnalysis = (post, analysis) => {
+    // Validate that post is a proper DOM element
+    if (!(post instanceof this.document.defaultView.Element)) {
+      this.log('Skipping invalid DOM element:', post);
+      return;
+    }
+
     const id = analysis.link;
     const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
     post.setAttribute('data-xghosted', `postquality.${qualityName}`);
@@ -447,7 +450,7 @@ XGhosted.prototype.highlightPosts = function () {
     }
 
     this.state.processedPosts.set(id, { analysis, checked: false });
-    this.log('Set post:', id, 'Quality:', analysis.quality.name); // Debug log
+    this.log('Set post:', id, 'Quality:', analysis.quality.name);
   };
 
   const results = identifyPosts(
@@ -458,8 +461,8 @@ XGhosted.prototype.highlightPosts = function () {
     processPostAnalysis
   );
 
-  this.log('Processed posts total:', this.state.processedPosts.size); // Total count
-  this.log('Processed posts entries:', Array.from(this.state.processedPosts.entries())); // Full content
+  this.log('Processed posts total:', this.state.processedPosts.size);
+  this.log('Processed posts entries:', Array.from(this.state.processedPosts.entries()));
   this.refreshPanel();
   this.saveState();
 
@@ -545,25 +548,34 @@ XGhosted.prototype.togglePanelVisibility = function () {
   this.saveState();
 };
 
-XGhosted.prototype.updateTheme = function () {
-  updateTheme(this.uiElements, this.uiElements.config);
-};
-
 XGhosted.prototype.init = function () {
   this.loadState();
+
+  // Ensure panel exists before rendering
+  if (!this.uiElements.panel) {
+    this.uiElements.panel = this.document.createElement('div');
+    this.document.body.appendChild(this.uiElements.panel);
+  }
   this.createPanel();
 
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
-  .xghosted-problem { border: 2px solid red; }
-  .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-  .xghosted-good { /* Optional: subtle styling if desired */ }
-  .xghosted-undefined { /* No styling needed */ }
-  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; justify-self: center; }
-  .status-problem { background-color: red; }
-  .status-potential { background-color: yellow; }
-  .link-row { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; }
-`;
+    .xghosted-problem { border: 2px solid red; }
+    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+    .xghosted-good { /* Optional: subtle styling if desired */ }
+    .xghosted-undefined { /* No styling needed */ }
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; justify-self: center; }
+    .status-problem { background-color: red; }
+    .status-potential { background-color: yellow; }
+    .link-row { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; }
+    .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
+    .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${this.uiElements.config.THEMES[this.getThemeMode()].scroll}; border-radius: 3px; }
+    .problem-links-wrapper::-webkit-scrollbar-track { background: ${this.uiElements.config.THEMES[this.getThemeMode()].bg}; }
+    select:focus { outline: none; box-shadow: 0 0 0 2px ${this.uiElements.config.THEMES[this.getThemeMode()].scroll}; }
+    .link-item { padding: 2px 0; overflow-wrap: break-word; }
+    .link-item a:hover { text-decoration: underline; }
+    button:active { transform: scale(0.95); }
+  `;
   this.document.head.appendChild(styleSheet);
   this.uiElements.highlightStyleSheet = styleSheet;
 
