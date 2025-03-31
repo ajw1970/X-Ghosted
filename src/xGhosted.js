@@ -5,7 +5,6 @@ import { identifyPost } from './utils/identifyPost';
 import { identifyPosts } from './utils/identifyPosts';
 import { debounce } from './utils/debounce';
 import { createButton } from './dom/createButton';
-import { togglePanelVisibility } from './dom/togglePanelVisibility';
 import './ui/Components.js';
 
 function XGhosted(doc, config = {}) {
@@ -46,32 +45,32 @@ function XGhosted(doc, config = {}) {
         FONT: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
       },
       THEMES: {
-        light: { 
-          bg: '#FFFFFF', 
-          text: '#292F33', 
-          buttonText: '#000000', 
-          border: '#E1E8ED', 
+        light: {
+          bg: '#FFFFFF',
+          text: '#292F33',
+          buttonText: '#000000',
+          border: '#E1E8ED',
           button: '#B0BEC5',
           hover: '#90A4AE',
-          scroll: '#CCD6DD' 
+          scroll: '#CCD6DD'
         },
-        dim: { 
-          bg: '#15202B', 
-          text: '#D9D9D9', 
-          buttonText: '#D9D9D9', 
-          border: '#38444D', 
-          button: '#38444D', 
-          hover: '#4A5C6D', 
-          scroll: '#4A5C6D' 
+        dim: {
+          bg: '#15202B',
+          text: '#D9D9D9',
+          buttonText: '#D9D9D9',
+          border: '#38444D',
+          button: '#38444D',
+          hover: '#4A5C6D',
+          scroll: '#4A5C6D'
         },
-        dark: { 
-          bg: '#000000', 
-          text: '#D9D9D9', 
-          buttonText: '#D9D9D9', 
-          border: '#333333', 
-          button: '#333333', 
-          hover: '#444444', 
-          scroll: '#666666' 
+        dark: {
+          bg: '#000000',
+          text: '#D9D9D9',
+          buttonText: '#D9D9D9',
+          border: '#333333',
+          button: '#333333',
+          hover: '#444444',
+          scroll: '#666666'
         },
       }
     },
@@ -380,7 +379,12 @@ XGhosted.prototype.refreshPanel = function () {
         onExportCSV: this.exportProcessedPostsCSV.bind(this),
         onImportCSV: this.importProcessedPostsCSV.bind(this),
         onClear: this.handleClear.bind(this),
-        onManualCheckToggle: this.handleManualCheckToggle.bind(this)
+        onManualCheckToggle: this.handleManualCheckToggle.bind(this),
+        onToggle: (newVisibility) => {
+          this.state.isPanelVisible = newVisibility;
+          this.saveState();
+          this.log(`Panel visibility toggled to ${newVisibility}`);
+        }
       }),
       this.uiElements.panel
     );
@@ -549,8 +553,10 @@ XGhosted.prototype.createButton = function (text, mode, onClick) {
 };
 
 XGhosted.prototype.togglePanelVisibility = function () {
-  // Re-render the panel, letting Preact handle the toggle via Panel's state
+  this.state.isPanelVisible = !this.state.isPanelVisible;
   this.createPanel();
+  this.saveState();
+  this.log(`Panel visibility toggled to ${this.state.isPanelVisible}`);
 };
 
 XGhosted.prototype.init = function () {

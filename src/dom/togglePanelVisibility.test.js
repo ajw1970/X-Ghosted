@@ -1,107 +1,135 @@
 import { JSDOM } from 'jsdom';
-import { togglePanelVisibility } from './togglePanelVisibility';
+import { XGhosted } from '../xGhosted.js';
+import { postQuality } from '../utils/postQuality';
+import { h, render } from 'preact';
+import { useState, useEffect } from 'preact/hooks';
+import htm from 'htm';
+
+// Set up Preact and HTM globals
+const html = htm.bind(h);
+window.preact = { h, render };
+window.preactHooks = { useState, useEffect };
+window.htm = html;
+
+// Import the Panel component
+import '../ui/Components.js';
 
 describe('togglePanelVisibility', () => {
-  let dom, doc, state, uiElements;
+  let dom, doc, xGhosted;
 
   beforeEach(() => {
     dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
     doc = dom.window.document;
-    state = { isPanelVisible: true };
-    uiElements = {
+
+    // Mock Tampermonkey GM_* functions
+    const gmStorage = {};
+    global.GM_getValue = vi.fn((key, defaultValue) => gmStorage[key] ?? defaultValue);
+    global.GM_setValue = vi.fn((key, value) => { gmStorage[key] = value; });
+
+    xGhosted = new XGhosted(doc, { timing: { debounceDelay: 0 } });
+    xGhosted.state = {
+      processedPosts: new Map(),
+      postQuality: postQuality,
+      instance: { saveState: vi.fn() },
+      isPanelVisible: true,
+    };
+    xGhosted.uiElements = {
       panel: doc.createElement('div'),
-      label: doc.createElement('span'),
-      toolsToggle: doc.createElement('button'),
-      modeSelector: doc.createElement('select'),
-      toggleButton: doc.createElement('button'),
-      contentWrapper: doc.createElement('div'),
-      controlRow: doc.createElement('div'),
-      toolsSection: doc.createElement('div'),
       config: {
         PANEL: {
           WIDTH: '350px',
           MAX_HEIGHT: 'calc(100vh - 70px)',
           RIGHT: '10px',
           TOP: '60px',
+          Z_INDEX: '9999',
+          FONT: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        },
+        THEMES: {
+          light: {
+            bg: '#FFFFFF',
+            text: '#292F33',
+            buttonText: '#000000',
+            border: '#E1E8ED',
+            button: '#B0BEC5',
+            hover: '#90A4AE',
+            scroll: '#CCD6DD',
+          },
+          dim: {
+            bg: '#15202B',
+            text: '#D9D9D9',
+            buttonText: '#D9D9D9',
+            border: '#38444D',
+            button: '#38444D',
+            hover: '#4A5C6D',
+            scroll: '#4A5C6D',
+          },
+          dark: {
+            bg: '#000000',
+            text: '#D9D9D9',
+            buttonText: '#D9D9D9',
+            border: '#333333',
+            button: '#333333',
+            hover: '#444444',
+            scroll: '#666666',
+          },
         },
       },
     };
-    // Set initial styles
-    uiElements.panel.style.width = '350px';
-    uiElements.panel.style.maxHeight = 'calc(100vh - 70px)';
-    uiElements.panel.style.minWidth = '250px';
-    uiElements.panel.style.minHeight = '150px';
-    uiElements.label.style.display = 'inline-block';
-    uiElements.toolsToggle.style.display = 'flex';
-    uiElements.modeSelector.style.display = 'inline-block';
-    uiElements.contentWrapper.style.display = 'block';
-    uiElements.controlRow.style.display = 'flex';
-    uiElements.toolsSection.style.display = 'none';
-    uiElements.toggleButton.innerHTML = '<span>Hide</span>';
-    uiElements.toggleButton.style.display = 'flex';
+    doc.body.appendChild(xGhosted.uiElements.panel);
+    xGhosted.document = doc;
   });
 
-  test('hides panel and updates toggle button text', () => {
-    togglePanelVisibility(state, uiElements);
-    expect(state.isPanelVisible).toBe(false);
-    expect(uiElements.panel.style.width).toBe('auto');
-    expect(uiElements.panel.style.minWidth).toBe('180px');
-    expect(uiElements.panel.style.maxHeight).toBe('80px');
-    expect(uiElements.label.style.display).toBe('none');
-    expect(uiElements.toolsToggle.style.display).toBe('none');
-    expect(uiElements.modeSelector.style.display).toBe('none');
-    expect(uiElements.contentWrapper.style.display).toBe('none');
-    expect(uiElements.controlRow.style.display).toBe('none');
-    expect(uiElements.toolsSection.style.display).toBe('none');
-    expect(uiElements.toggleButton.querySelector('span').textContent).toBe('Show');
-    expect(uiElements.toggleButton.style.display).toBe('inline-block');
+  test('toggles panel visibility and updates state', () => {
+    // Initial render
+    xGhosted.createPanel();
+    let panel = doc.getElementById('xghosted-panel');
+    expect(panel.style.width).toBe('350px');
+    expect(panel.style.maxHeight).toBe('calc(100vh - 70px)');
+    expect(panel.querySelector('button span').textContent).toBe('Hide');
+    expect(xGhosted.state.isPanelVisible).toBe(true);
+
+    // Hide
+    xGhosted.togglePanelVisibility();
+    panel = doc.getElementById('xghosted-panel');
+    expect(xGhosted.state.isPanelVisible).toBe(false);
+    expect(panel.style.width).toBe('auto');
+    expect(panel.style.maxHeight).toBe('80px');
+    expect(panel.querySelector('button span').textContent).toBe('Show');
+
+    // Show
+    xGhosted.togglePanelVisibility();
+    panel = doc.getElementById('xghosted-panel');
+    expect(xGhosted.state.isPanelVisible).toBe(true);
+    expect(panel.style.width).toBe('350px');
+    expect(panel.style.maxHeight).toBe('calc(100vh - 70px)');
+    expect(panel.querySelector('button span').textContent).toBe('Hide');
   });
 
-  test('shows panel and restores dimensions', () => {
-    state.isPanelVisible = false;
-    uiElements.panel.style.width = 'auto';
-    uiElements.panel.style.minWidth = '180px';
-    uiElements.panel.style.maxHeight = '80px';
-    uiElements.toggleButton.querySelector('span').textContent = 'Show';
-    togglePanelVisibility(state, uiElements);
-    expect(state.isPanelVisible).toBe(true);
-    expect(uiElements.panel.style.width).toBe('350px');
-    expect(uiElements.panel.style.maxHeight).toBe('calc(100vh - 70px)');
-    expect(uiElements.panel.style.minWidth).toBe('250px');
-    expect(uiElements.panel.style.minHeight).toBe('150px');
-    expect(uiElements.label.style.display).toBe('inline-block');
-    expect(uiElements.toolsToggle.style.display).toBe('inline-block');
-    expect(uiElements.modeSelector.style.display).toBe('inline-block');
-    expect(uiElements.contentWrapper.style.display).toBe('block');
-    expect(uiElements.controlRow.style.display).toBe('flex');
-    expect(uiElements.toolsSection.style.display).toBe('none');
-    expect(uiElements.toggleButton.querySelector('span').textContent).toBe('Hide');
+  test('hides panel contents when toggled off', () => {
+    xGhosted.createPanel();
+    let panel = doc.getElementById('xghosted-panel');
+    expect(panel.querySelector('.toolbar')).toBeTruthy();
+    expect(panel.querySelector('.problem-links-wrapper')).toBeTruthy();
+
+    xGhosted.togglePanelVisibility();
+    panel = doc.getElementById('xghosted-panel');
+    expect(panel.querySelector('.toolbar')).toBeNull();
+    expect(panel.querySelector('.problem-links-wrapper')).toBeNull();
+    expect(panel.querySelector('button')).toBeTruthy(); // Button remains
   });
 
-  test('dynamically hides all elements except toggleButton when hiding', () => {
-    togglePanelVisibility(state, uiElements);
-    const hiddenElements = [
-      uiElements.label,
-      uiElements.toolsToggle,
-      uiElements.modeSelector,
-      uiElements.contentWrapper,
-      uiElements.controlRow,
-      uiElements.toolsSection,
-    ];
-    hiddenElements.forEach((el) => expect(el.style.display).toBe('none'));
-    expect(uiElements.toggleButton.style.display).toBe('inline-block');
-  });
+  test('persists visibility state', () => {
+    xGhosted.createPanel();
+    xGhosted.togglePanelVisibility();
+    expect(xGhosted.state.isPanelVisible).toBe(false);
+    expect(GM_setValue).toHaveBeenCalledWith('xGhostedState', expect.objectContaining({
+      isPanelVisible: false
+    }));
 
-  test('shrinks panel dimensions when hiding and restores when showing', () => {
-    togglePanelVisibility(state, uiElements);
-    expect(uiElements.panel.style.width).toBe('auto');
-    expect(uiElements.panel.style.minWidth).toBe('180px');
-    expect(uiElements.panel.style.maxHeight).toBe('80px');
-
-    togglePanelVisibility(state, uiElements);
-    expect(uiElements.panel.style.width).toBe('350px');
-    expect(uiElements.panel.style.maxHeight).toBe('calc(100vh - 70px)');
-    expect(uiElements.panel.style.minWidth).toBe('250px');
-    expect(uiElements.panel.style.minHeight).toBe('150px');
+    xGhosted.togglePanelVisibility();
+    expect(xGhosted.state.isPanelVisible).toBe(true);
+    expect(GM_setValue).toHaveBeenCalledWith('xGhostedState', expect.objectContaining({
+      isPanelVisible: true
+    }));
   });
 });
