@@ -4,6 +4,31 @@ import { postQuality } from '../utils/postQuality';
 import { h, render } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 import htm from 'htm';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// Define waitFor utility
+async function waitFor(condition, { timeout = 15000, interval = 50 } = {}) {
+  const startTime = Date.now();
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      if (condition()) {
+        resolve();
+      } else if (Date.now() - startTime >= timeout) {
+        reject(new Error('waitFor timed out'));
+      } else {
+        setTimeout(check, interval);
+      }
+    };
+    check();
+  });
+}
+
+// ES6-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Set up Preact and HTM globals
 const html = htm.bind(h);
@@ -18,15 +43,31 @@ describe('renderPanel', () => {
   let doc, state, uiElements, dom, xGhosted;
 
   beforeEach(() => {
-    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
+    // Mock Tampermonkey GM_* functions
+    const gmStorage = {};
+    global.GM_getValue = vi.fn((key, defaultValue) => gmStorage[key] ?? defaultValue);
+    global.GM_setValue = vi.fn((key, value) => { gmStorage[key] = value; });
+
+    // Load the full sample HTML
+    const samplePath = resolve(__dirname, '../../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
+    console.log('Attempting to load sample HTML from:', samplePath);
+    let sampleHtml;
+    try {
+      sampleHtml = readFileSync(samplePath, 'utf8');
+      console.log('Sample HTML loaded successfully, length:', sampleHtml.length);
+    } catch (err) {
+      console.error('Failed to load sample HTML:', err.message);
+      throw err;
+    }
+    const html = `<!DOCTYPE html><html><body>${sampleHtml}</body></html>`;
+    dom = new JSDOM(html, { url: 'https://x.com/user/with_replies' });
     doc = dom.window.document;
+
     state = {
-      processedPosts: new Map([
-        ['/test/problem', { analysis: { quality: { name: 'Problem' } } }],
-        ['/test/potential', { analysis: { quality: { name: 'Potential Problem' } } }],
-      ]),
+      processedPosts: new Map(),
       postQuality: postQuality,
       instance: { saveState: vi.fn() },
+      isPanelVisible: true,
     };
     uiElements = {
       panel: doc.createElement('div'),
@@ -75,13 +116,25 @@ describe('renderPanel', () => {
     xGhosted.state = state;
     xGhosted.uiElements = uiElements;
     xGhosted.document = doc;
+    xGhosted.updateState('https://x.com/user/with_replies'); // Match xGhosted.test.js
   });
 
-  test('renderPanel shows flagged posts', () => {
+  test('renderPanel shows flagged posts', async () => {
     xGhosted.createPanel();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    xGhosted.highlightPosts();
+    console.log('Processed posts after highlight:', Array.from(xGhosted.state.processedPosts.entries()));
+    xGhosted.refreshPanel();
+    await waitFor(() => {
+      const label = doc.querySelector('.toolbar span');
+      console.log('Checking DOM - Label:', label ? label.textContent : 'null');
+      console.log('Panel HTML:', doc.getElementById('xghosted-panel')?.innerHTML || 'null');
+      return label && label.textContent.match(/Problem Posts \(3\):/);
+    });
     const label = doc.querySelector('.toolbar span').textContent;
-    expect(label).toMatch(/Problem Posts \(2\):/); // Adjusted to 2 based on state
+    console.log('Final label:', label);
+    expect(label).toMatch(/Problem Posts \(3\):/);
     const links = doc.querySelectorAll('.problem-links-wrapper .link-row a');
-    expect(links.length).toBe(2);
-  });
+    expect(links.length).toBe(3);
+  }, 20000);
 });

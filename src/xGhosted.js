@@ -174,7 +174,12 @@ XGhosted.prototype.createPanel = function () {
       onExportCSV: this.exportProcessedPostsCSV.bind(this),
       onImportCSV: this.importProcessedPostsCSV.bind(this),
       onClear: this.handleClear.bind(this),
-      onManualCheckToggle: this.handleManualCheckToggle.bind(this)
+      onManualCheckToggle: this.handleManualCheckToggle.bind(this),
+      onToggle: (newVisibility) => {
+        this.state.isPanelVisible = newVisibility;
+        this.saveState();
+        this.log(`Panel visibility toggled to ${newVisibility}`);
+      }
     }),
     this.uiElements.panel
   );
@@ -544,8 +549,8 @@ XGhosted.prototype.createButton = function (text, mode, onClick) {
 };
 
 XGhosted.prototype.togglePanelVisibility = function () {
-  togglePanelVisibility(this.state, this.uiElements);
-  this.saveState();
+  // Re-render the panel, letting Preact handle the toggle via Panel's state
+  this.createPanel();
 };
 
 XGhosted.prototype.init = function () {
