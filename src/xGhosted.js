@@ -1,4 +1,3 @@
-// Replacement for the entire src/xGhosted.js file
 import { postQuality } from './utils/postQuality.js';
 import { detectTheme } from './dom/detectTheme';
 import { identifyPost } from './utils/identifyPost';
@@ -22,13 +21,17 @@ function XGhosted(doc, config = {}) {
     postContainer: null,
     lastUrl: '',
     processedPosts: new Map(),
+    fullyprocessedPosts: new Set(), // Added for collapseArticlesWithDelay
+    problemLinks: new Set(), // Added for collapseArticlesWithDelay
     postQuality,
     isPanelVisible: true,
     isDarkMode: true,
     isManualCheckEnabled: false,
     panelPosition: null,
     persistProcessedPosts: config.persistProcessedPosts ?? false,
-    isRateLimited: false
+    isRateLimited: false,
+    isCollapsingEnabled: false,
+    isCollapsingRunning: false,
   };
   this.document = doc;
   this.log = config.useTampermonkeyLog && typeof GM_log !== 'undefined'
@@ -154,12 +157,9 @@ XGhosted.prototype.createPanel = function () {
   const mode = this.getThemeMode();
   this.state.isDarkMode = mode !== 'light';
 
-  if (!this.uiElements.panel) {
-    this.uiElements.panel = this.document.createElement('div');
-    this.document.body.appendChild(this.uiElements.panel);
-  }
+  this.uiElements.panel = this.document.createElement('div');
+  this.document.body.appendChild(this.uiElements.panel);
 
-  this.log('window.Panel in createPanel:', window.Panel);
   render(
     h(window.Panel, {
       state: this.state,
@@ -172,7 +172,7 @@ XGhosted.prototype.createPanel = function () {
       onReset: this.handleReset.bind(this),
       onExportCSV: this.exportProcessedPostsCSV.bind(this),
       onImportCSV: this.importProcessedPostsCSV.bind(this),
-      onClear: this.handleClear.bind(this),
+      onClear: this.handleClear.bind(this), // Error: this.handleClear is undefined
       onManualCheckToggle: this.handleManualCheckToggle.bind(this),
       onToggle: (newVisibility) => {
         this.state.isPanelVisible = newVisibility;
@@ -356,49 +356,8 @@ XGhosted.prototype.replaceMenuButton = function (post, href) {
   button.parentElement.insertBefore(newLink, button.nextSibling);
 };
 
-XGhosted.prototype.refreshPanel = function () {
-  if (!this.uiElements.panel) {
-    this.log('No panel element found for rendering');
-    return;
-  }
-
-  this.log('Starting panel refresh');
-  const { h, render } = window.preact;
-  this.log('window.Panel in refreshPanel:', window.Panel);
-  try {
-    render(
-      h(window.Panel, {
-        state: this.state,
-        config: this.uiElements.config,
-        copyCallback: this.copyLinks.bind(this),
-        mode: this.getThemeMode(),
-        onModeChange: this.handleModeChange.bind(this),
-        onStart: this.handleStart.bind(this),
-        onStop: this.handleStop.bind(this),
-        onReset: this.handleReset.bind(this),
-        onExportCSV: this.exportProcessedPostsCSV.bind(this),
-        onImportCSV: this.importProcessedPostsCSV.bind(this),
-        onClear: this.handleClear.bind(this),
-        onManualCheckToggle: this.handleManualCheckToggle.bind(this),
-        onToggle: (newVisibility) => {
-          this.state.isPanelVisible = newVisibility;
-          this.saveState();
-          this.log(`Panel visibility toggled to ${newVisibility}`);
-        }
-      }),
-      this.uiElements.panel
-    );
-    this.log('Panel refresh completed');
-  } catch (error) {
-    this.log('Error during panel refresh:', error);
-    throw error;
-  }
-};
-
-// Add handler methods to XGhosted prototype
 XGhosted.prototype.handleModeChange = function (newMode) {
   this.state.isDarkMode = newMode !== 'light';
-  this.createPanel();
 };
 
 XGhosted.prototype.handleStart = function () {
@@ -417,18 +376,67 @@ XGhosted.prototype.handleReset = function () {
   this.state.isCollapsingRunning = false;
   this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(this.expandArticle);
   this.state.processedPosts = new Map();
+  this.state.fullyprocessedPosts = new Set();
+  this.state.problemLinks = new Set();
+};
+
+XGhosted.prototype.clearProcessedPosts = function () {
+  this.state.processedPosts.clear();
   this.state.fullyprocessedPosts.clear();
   this.state.problemLinks.clear();
+  this.saveState();
+  this.highlightPostsImmediate();
+};
+
+XGhosted.prototype.handleManualCheckToggle = function () {
+  this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
+  this.log(`Manual Check toggled to ${this.state.isManualCheckEnabled}`);
 };
 
 XGhosted.prototype.handleClear = function () {
   if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
 };
 
-XGhosted.prototype.handleManualCheckToggle = function () {
-  this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
-  this.log(`Manual Check toggled to ${this.state.isManualCheckEnabled}`);
-  this.createPanel();
+XGhosted.prototype.collapseArticlesWithDelay = function (articles) {
+  let index = 0;
+  const interval = setInterval(() => {
+    if (
+      index >= articles.length ||
+      !this.state.isCollapsingEnabled ||
+      this.state.isRateLimited
+    ) {
+      clearInterval(interval);
+      this.state.isCollapsingRunning = false;
+      this.log('Collapsing completed or stopped');
+      return;
+    }
+    const article = articles[index];
+    const timeElement = article.querySelector('.css-146c3p1.r-1loqt21 time');
+    const href = timeElement?.parentElement?.getAttribute('href');
+    if (href && !this.state.fullyprocessedPosts.has(href)) {
+      // Collapse the article if it's a problem or potential problem
+      const analysis = this.state.processedPosts.get(href)?.analysis;
+      if (analysis && (analysis.quality === this.state.postQuality.PROBLEM || analysis.quality === this.state.postQuality.POTENTIAL_PROBLEM)) {
+        article.style.height = '0px';
+        article.style.overflow = 'hidden';
+        article.style.margin = '0';
+        article.style.padding = '0';
+        this.state.problemLinks.add(href);
+        this.log(`Collapsed article with href: ${href}`);
+      }
+      this.state.fullyprocessedPosts.add(href);
+    }
+    index++;
+  }, 200);
+};
+
+XGhosted.prototype.expandArticle = function (article) {
+  if (article) {
+    article.style.height = 'auto';
+    article.style.overflow = 'visible';
+    article.style.margin = 'auto';
+    article.style.padding = 'auto';
+  }
 };
 
 XGhosted.prototype.highlightPosts = function () {
@@ -441,7 +449,6 @@ XGhosted.prototype.highlightPosts = function () {
   this.updateState(this.document.location.href);
 
   const processPostAnalysis = (post, analysis) => {
-    // Validate that post is a proper DOM element
     if (!(post instanceof this.document.defaultView.Element)) {
       this.log('Skipping invalid DOM element:', post);
       return;
@@ -473,7 +480,9 @@ XGhosted.prototype.highlightPosts = function () {
 
   this.log('Processed posts total:', this.state.processedPosts.size);
   this.log('Processed posts entries:', Array.from(this.state.processedPosts.entries()));
-  this.refreshPanel();
+  
+  // Create a new state object to force a re-render
+  this.state = { ...this.state, processedPosts: new Map(this.state.processedPosts) };
   this.saveState();
 
   return results;
@@ -501,13 +510,10 @@ XGhosted.prototype.copyLinks = function () {
 };
 
 XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
-  this.log('Import CSV button clicked'); // Confirm the button was clicked
+  this.log('Import CSV button clicked');
   if (typeof csvText !== 'string') {
-    csvText = prompt('Please paste the CSV content to import (e.g., Link,Quality,Reason,Checked\\n"https://x.com/test/status/123","Problem","Test reason",true):');
-    if (!csvText) {
-      this.log('Import CSV cancelled or no input provided');
-      return;
-    }
+    this.log('Import CSV requires CSV text input');
+    return;
   }
   if (!csvText || typeof csvText !== 'string') {
     this.log('Invalid CSV text provided');
@@ -555,8 +561,6 @@ XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
 
 XGhosted.prototype.clearProcessedPosts = function () {
   this.state.processedPosts.clear();
-  this.state.fullyprocessedPosts = new WeakMap();
-  this.state.problemLinks = new Set();
   this.saveState();
   this.highlightPostsImmediate();
 };
@@ -567,7 +571,6 @@ XGhosted.prototype.createButton = function (text, mode, onClick) {
 
 XGhosted.prototype.togglePanelVisibility = function () {
   this.state.isPanelVisible = !this.state.isPanelVisible;
-  this.createPanel();
   this.saveState();
   this.log(`Panel visibility toggled to ${this.state.isPanelVisible}`);
 };
@@ -575,11 +578,6 @@ XGhosted.prototype.togglePanelVisibility = function () {
 XGhosted.prototype.init = function () {
   this.loadState();
 
-  // Ensure panel exists before rendering
-  if (!this.uiElements.panel) {
-    this.uiElements.panel = this.document.createElement('div');
-    this.document.body.appendChild(this.uiElements.panel);
-  }
   this.createPanel();
 
   const styleSheet = this.document.createElement('style');
@@ -588,16 +586,6 @@ XGhosted.prototype.init = function () {
     .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
     .xghosted-good { /* Optional: subtle styling if desired */ }
     .xghosted-undefined { /* No styling needed */ }
-    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; justify-self: center; }
-    .status-problem { background-color: red; }
-    .status-potential { background-color: yellow; }
-    .link-row { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; }
-    .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
-    .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${this.uiElements.config.THEMES[this.getThemeMode()].scroll}; border-radius: 3px; }
-    .problem-links-wrapper::-webkit-scrollbar-track { background: ${this.uiElements.config.THEMES[this.getThemeMode()].bg}; }
-    select:focus { outline: none; box-shadow: 0 0 0 2px ${this.uiElements.config.THEMES[this.getThemeMode()].scroll}; }
-    .link-item { padding: 2px 0; overflow-wrap: break-word; }
-    .link-item a:hover { text-decoration: underline; }
     button:active { transform: scale(0.95); }
   `;
   this.document.head.appendChild(styleSheet);
