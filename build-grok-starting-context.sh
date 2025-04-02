@@ -35,6 +35,9 @@ show_progress "Initializing output file: $OUTPUT_FILE"
     echo ""
 } > "$OUTPUT_FILE" || { show_progress "Error: Cannot write to $OUTPUT_FILE"; exit 1; }
 
+# Make sure any adoc.txt files are txt.adoc as we expect
+node redoc 
+
 # Process each file with error checking
 for FILE in "${FILES[@]}"; do
     if [ -f "$FILE" ]; then
@@ -74,6 +77,9 @@ show_progress "Generating table of contents and line counts..."
 find grok -maxdepth 1 -type f -name "*.txt" ! -name "$(basename "$TOC_FILE")" | sort | xargs wc -l > "$TOC_FILE" || {
     show_progress "Warning: Failed to generate TOC and line counts"
 }
+
+# Make sure txt.adoc files are available for individual sharing with Grok
+node undoc
 
 show_progress "Script completed successfully!"
 show_progress "Output files available in grok/ directory"
