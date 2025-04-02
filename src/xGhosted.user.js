@@ -314,6 +314,72 @@
     return button;
   }
 
+  // src/dom/domUtils.js
+  function findPostContainer(doc, log) {
+    const firstPost = doc.querySelector('div[data-testid="cellInnerDiv"]');
+    if (!firstPost) {
+      log('No posts found with data-testid="cellInnerDiv"');
+      return null;
+    }
+    let currentElement = firstPost.parentElement;
+    while (currentElement) {
+      if (currentElement.hasAttribute('aria-label')) {
+        currentElement.setAttribute('data-xghosted', 'posts-container');
+        const ariaLabel = currentElement.getAttribute('aria-label');
+        log(`Posts container identified with aria-label: "${ariaLabel}"`);
+        return currentElement;
+      }
+      currentElement = currentElement.parentElement;
+    }
+    log('No parent container found with aria-label');
+    return null;
+  }
+  function replaceMenuButton(post, href, doc, log, onClickCallback) {
+    if (!post) return;
+    const button =
+      post.querySelector('button[aria-label="Share post"]') ||
+      post.querySelector('button');
+    if (!button) {
+      log(`No share button found for post with href: ${href}`);
+      return;
+    }
+    if (button.nextSibling?.textContent.includes('\u{1F440}')) return;
+    const newLink = Object.assign(doc.createElement('a'), {
+      textContent: '\u{1F440}',
+      href: '#',
+    });
+    Object.assign(newLink.style, {
+      color: 'rgb(29, 155, 240)',
+      textDecoration: 'none',
+      padding: '8px',
+      cursor: 'pointer',
+    });
+    newLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      onClickCallback(href);
+      log(`Eyeball clicked for manual check on href: ${href}`);
+    });
+    button.parentElement.insertBefore(newLink, button.nextSibling);
+  }
+
+  // src/utils/clipboardUtils.js
+  function copyTextToClipboard(text, log) {
+    return navigator.clipboard
+      .writeText(text)
+      .then(() => log('Text copied to clipboard'))
+      .catch((err) => log(`Clipboard copy failed: ${err}`));
+  }
+  function exportToCSV(data, filename, doc, log) {
+    const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = doc.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    log(`Exported CSV: ${filename}`);
+  }
+
   // src/ui/styles.js
   function getModalStyles(mode, config, isOpen) {
     return {
@@ -949,7 +1015,7 @@
     this.highlightPostsDebounced = debounce(() => {
       this.highlightPosts();
     }, this.timing.debounceDelay);
-    this.exportProcessedPostsCSV = () => {
+    XGhosted.prototype.exportProcessedPostsCSV = function () {
       const headers = ['Link', 'Quality', 'Reason', 'Checked'];
       const rows = Array.from(this.state.processedPosts.entries()).map(
         ([link, { analysis, checked }]) => [
@@ -964,19 +1030,13 @@
         ...rows.map((row) => row.join(',')),
       ].join('\n');
       const exportFn = () => {
-        navigator.clipboard
-          .writeText(csvContent)
-          .then(() => this.log('Processed posts CSV copied to clipboard'))
-          .catch((err) => this.log(`CSV export failed: ${err}`));
-        const blob = new Blob([csvContent], {
-          type: 'text/csv;charset=utf-8;',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = this.document.createElement('a');
-        a.href = url;
-        a.download = 'xghosted_processed_posts.csv';
-        a.click();
-        URL.revokeObjectURL(url);
+        copyTextToClipboard(csvContent, this.log);
+        exportToCSV(
+          csvContent,
+          'xghosted_processed_posts.csv',
+          this.document,
+          this.log
+        );
       };
       if (typeof jest === 'undefined') {
         debounce(exportFn, this.timing.exportThrottle)();
@@ -1149,29 +1209,8 @@
   };
   XGhosted.prototype.findPostContainer = function () {
     if (this.state.postContainer) return this.state.postContainer;
-    const firstPost = this.document.querySelector(
-      'div[data-testid="cellInnerDiv"]'
-    );
-    if (!firstPost) {
-      this.log('No posts found with data-testid="cellInnerDiv"');
-      return null;
-    }
-    let currentElement = firstPost.parentElement;
-    while (currentElement) {
-      if (currentElement.hasAttribute('aria-label')) {
-        this.state.postContainer = currentElement;
-        this.state.postContainer.setAttribute(
-          'data-xghosted',
-          'posts-container'
-        );
-        const ariaLabel = this.state.postContainer.getAttribute('aria-label');
-        this.log(`Posts container identified with aria-label: "${ariaLabel}"`);
-        return this.state.postContainer;
-      }
-      currentElement = currentElement.parentElement;
-    }
-    this.log('No parent container found with aria-label');
-    return null;
+    this.state.postContainer = findPostContainer(this.document, this.log);
+    return this.state.postContainer;
   };
   XGhosted.prototype.userRequestedPostCheck = function (href) {
     const cached = this.state.processedPosts.get(href);
@@ -1217,35 +1256,13 @@
     }
   };
   XGhosted.prototype.replaceMenuButton = function (post, href) {
-    if (!post) return;
-    const button =
-      post.querySelector('button[aria-label="Share post"]') ||
-      post.querySelector('button');
-    if (!button) {
-      this.log(`No share button found for post with href: ${href}`);
-      return;
-    }
-    if (button.nextSibling?.textContent.includes('\u{1F440}')) return;
-    const newLink = Object.assign(this.document.createElement('a'), {
-      textContent: '\u{1F440}',
-      href: '#',
-    });
-    Object.assign(newLink.style, {
-      color: 'rgb(29, 155, 240)',
-      textDecoration: 'none',
-      padding: '8px',
-      cursor: 'pointer',
-    });
-    newLink.addEventListener('click', (e) => {
-      e.preventDefault();
+    replaceMenuButton(post, href, this.document, this.log, (href2) => {
       if (this.state.isRateLimited) {
         this.log('Tab check skipped due to rate limit pause');
         return;
       }
-      this.userRequestedPostCheck(href);
-      this.log(`Eyeball clicked for manual check on href: ${href}`);
+      this.userRequestedPostCheck(href2);
     });
-    button.parentElement.insertBefore(newLink, button.nextSibling);
   };
   XGhosted.prototype.handleModeChange = function (newMode) {
     this.state.isDarkMode = newMode !== 'light';
@@ -1387,10 +1404,7 @@
       )
       .map(([link]) => `https://x.com${link}`)
       .join('\n');
-    navigator.clipboard
-      .writeText(linksText)
-      .then(() => this.log('Links copied'))
-      .catch((err) => this.log(`Copy failed: ${err}`));
+    copyTextToClipboard(linksText, this.log);
   };
   XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
     this.log('Import CSV button clicked');
