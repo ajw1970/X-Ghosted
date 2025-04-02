@@ -90,7 +90,7 @@ function Panel({
     );
     setFlagged(newFlagged);
     setUpdateCounter((prev) => prev + 1);
-  }, [state.processedPosts]);
+  }, [Array.from(state.processedPosts.entries())]); // Serialize Map to array for dependency
 
   useEffect(() => {
     setIsVisible(state.isPanelVisible);

@@ -594,7 +594,7 @@
       );
       setFlagged(newFlagged);
       setUpdateCounter((prev) => prev + 1);
-    }, [state.processedPosts]);
+    }, [Array.from(state.processedPosts.entries())]);
     useEffect(() => {
       setIsVisible(state.isPanelVisible);
     }, [state.isPanelVisible]);
