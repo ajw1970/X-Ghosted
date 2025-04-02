@@ -1548,7 +1548,6 @@
   var XGhosted = XGhosted;
 
   // --- Initialization with Resource Limits and Rate Limiting ---
-  const MAX_PROCESSED_ARTICLES = 1000;
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
   const config = {
     timing: {
