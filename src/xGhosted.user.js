@@ -314,70 +314,151 @@
     return button;
   }
 
+  // src/ui/styles.js
+  function getModalStyles(mode, config, isOpen) {
+    return {
+      modal: {
+        display: isOpen ? 'block' : 'none',
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        background: config.THEMES[mode].bg,
+        color: config.THEMES[mode].text,
+        border: `1px solid ${config.THEMES[mode].border}`,
+        borderRadius: '8px',
+        padding: '20px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+        zIndex: '10000',
+        width: '300px',
+      },
+      textarea: {
+        width: '100%',
+        height: '100px',
+        marginBottom: '15px',
+        background: config.THEMES[mode].bg,
+        color: config.THEMES[mode].text,
+        border: `1px solid ${config.THEMES[mode].border}`,
+        borderRadius: '4px',
+        padding: '4px',
+        resize: 'none',
+      },
+      buttonContainer: {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '15px',
+      },
+    };
+  }
+  function getPanelStyles(mode, config, isVisible, currentMode) {
+    return {
+      panel: {
+        width: isVisible ? config.PANEL.WIDTH : 'auto',
+        maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '80px',
+        minWidth: isVisible ? '250px' : '180px',
+        padding: isVisible ? '12px' : '8px',
+        transition: 'all 0.2s ease',
+        position: 'fixed',
+        top: config.PANEL.TOP,
+        right: config.PANEL.RIGHT,
+        zIndex: config.PANEL.Z_INDEX,
+        fontFamily: config.PANEL.FONT,
+        background: config.THEMES[currentMode].bg,
+        color: config.THEMES[currentMode].text,
+        border: `1px solid ${config.THEMES[currentMode].border}`,
+        borderRadius: '12px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+      },
+      toolbar: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingBottom: '12px',
+        borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
+        marginBottom: '12px',
+      },
+      toolsSection: {
+        display: 'none',
+        // Controlled by isToolsExpanded in Panel
+        padding: '12px 0',
+        borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
+        marginBottom: '12px',
+        background:
+          currentMode === 'light'
+            ? '#E1E8EDCC'
+            : `${config.THEMES[currentMode].bg}CC`,
+        borderRadius: '8px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+      controlRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingBottom: '8px',
+        marginBottom: '12px',
+      },
+      contentWrapper: {
+        maxHeight: 'calc(100vh - 150px)',
+        overflowY: 'auto',
+        paddingRight: '8px',
+        marginBottom: '12px',
+      },
+      button: {
+        background: config.THEMES[currentMode].button,
+        color: config.THEMES[currentMode].buttonText,
+        border: 'none',
+        padding: '6px 10px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: '500',
+        transition: 'background 0.2s ease, transform 0.1s ease',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        marginRight: '8px',
+      },
+      modeSelector: {
+        background: config.THEMES[currentMode].button,
+        color: config.THEMES[currentMode].text,
+        border: 'none',
+        padding: '6px 24px 6px 12px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: '500',
+        marginRight: '8px',
+        minWidth: '80px',
+        appearance: 'none',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+      statusLabel: {
+        fontSize: '13px',
+        fontWeight: '500',
+        color: config.THEMES[currentMode].text,
+      },
+    };
+  }
+
   // src/ui/Components.js
-  var { h } = window.preact;
   var { useState, useEffect } = window.preactHooks;
-  var html = window.htm.bind(h);
+  var html = window.htm.bind(window.preact.h);
   function Modal({ isOpen, onClose, onSubmit, mode, config }) {
     const [csvText, setCsvText] = useState('');
-    const modalStyle = {
-      display: isOpen ? 'block' : 'none',
-      position: 'fixed',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      background: config.THEMES[mode].bg,
-      color: config.THEMES[mode].text,
-      border: `1px solid ${config.THEMES[mode].border}`,
-      borderRadius: '8px',
-      padding: '20px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-      zIndex: '10000',
-      width: '300px',
-    };
-    const textareaStyle = {
-      width: '100%',
-      height: '100px',
-      marginBottom: '15px',
-      background: config.THEMES[mode].bg,
-      color: config.THEMES[mode].text,
-      border: `1px solid ${config.THEMES[mode].border}`,
-      borderRadius: '4px',
-      padding: '4px',
-      resize: 'none',
-    };
-    const buttonContainerStyle = {
-      display: 'flex',
-      justifyContent: 'center',
-      gap: '15px',
-    };
-    const buttonStyle = {
-      background: config.THEMES[mode].button,
-      color: config.THEMES[mode].buttonText,
-      border: 'none',
-      padding: '6px 10px',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '12px',
-      fontWeight: '500',
-      transition: 'background 0.2s ease, transform 0.1s ease',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    };
+    const styles = getModalStyles(mode, config, isOpen);
     return html`
-      <div style=${modalStyle}>
+      <div style=${styles.modal}>
         <div>
           <textarea
-            style=${textareaStyle}
+            style=${styles.textarea}
             value=${csvText}
             onInput=${(e) => setCsvText(e.target.value)}
             placeholder="Paste CSV content (e.g. Link Quality Reason Checked)"
           ></textarea>
-          <div style=${buttonContainerStyle}>
+          <div style=${styles.buttonContainer}>
             <button
-              style=${buttonStyle}
+              style=${styles.button}
               onClick=${() => onSubmit(csvText)}
               onMouseOver=${(e) => {
                 e.target.style.background = config.THEMES[mode].hover;
@@ -391,7 +472,7 @@
               <i className="fas fa-check" style="marginRight: 6px;"></i> Submit
             </button>
             <button
-              style=${buttonStyle}
+              style=${styles.button}
               onClick=${() => {
                 setCsvText('');
                 onClose();
@@ -474,91 +555,8 @@
       onImportCSV(csvText);
       setIsModalOpen(false);
     };
-    const panelStyle = {
-      width: isVisible ? config.PANEL.WIDTH : 'auto',
-      maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '80px',
-      minWidth: isVisible ? '250px' : '180px',
-      padding: isVisible ? '12px' : '8px',
-      transition: 'all 0.2s ease',
-      position: 'fixed',
-      top: config.PANEL.TOP,
-      right: config.PANEL.RIGHT,
-      zIndex: config.PANEL.Z_INDEX,
-      fontFamily: config.PANEL.FONT,
-      background: config.THEMES[currentMode].bg,
-      color: config.THEMES[currentMode].text,
-      border: `1px solid ${config.THEMES[currentMode].border}`,
-      borderRadius: '12px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-    };
-    const toolbarStyle = {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingBottom: '12px',
-      borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
-      marginBottom: '12px',
-    };
-    const toolsSectionStyle = {
-      display: isToolsExpanded ? 'block' : 'none',
-      padding: '12px 0',
-      borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
-      marginBottom: '12px',
-      background:
-        currentMode === 'light'
-          ? '#E1E8EDCC'
-          : `${config.THEMES[currentMode].bg}CC`,
-      borderRadius: '8px',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    };
-    const controlRowStyle = {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingBottom: '8px',
-      marginBottom: '12px',
-    };
-    const contentWrapperStyle = {
-      maxHeight: 'calc(100vh - 150px)',
-      overflowY: 'auto',
-      paddingRight: '8px',
-      marginBottom: '12px',
-    };
-    const buttonStyle = {
-      background: config.THEMES[currentMode].button,
-      color: config.THEMES[currentMode].buttonText,
-      border: 'none',
-      padding: '6px 10px',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '12px',
-      fontWeight: '500',
-      transition: 'background 0.2s ease, transform 0.1s ease',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      marginRight: '8px',
-    };
-    const modeSelectorStyle = {
-      background: config.THEMES[currentMode].button,
-      color: config.THEMES[currentMode].text,
-      border: 'none',
-      padding: '6px 24px 6px 12px',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '12px',
-      fontWeight: '500',
-      marginRight: '8px',
-      minWidth: '80px',
-      appearance: 'none',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    };
-    const statusLabelStyle = {
-      fontSize: '13px',
-      fontWeight: '500',
-      color: config.THEMES[currentMode].text,
-    };
+    const styles = getPanelStyles(mode, config, isVisible, currentMode);
+    styles.toolsSection.display = isToolsExpanded ? 'block' : 'none';
     return html`
       <div>
         <style>
@@ -607,14 +605,14 @@
             transform: scale(0.95);
           }
         </style>
-        <div id="xghosted-panel" style=${panelStyle}>
+        <div id="xghosted-panel" style=${styles.panel}>
           ${isVisible
             ? html`
-                <div class="toolbar" style=${toolbarStyle}>
+                <div class="toolbar" style=${styles.toolbar}>
                   <span>Problem Posts (${flagged.length}):</span>
                   <div style="display: flex; align-items: center;">
                     <button
-                      style=${buttonStyle}
+                      style=${styles.button}
                       onClick=${toggleTools}
                       onMouseOver=${(e) => {
                         e.target.style.background =
@@ -634,7 +632,7 @@
                       Tools
                     </button>
                     <select
-                      style=${modeSelectorStyle}
+                      style=${styles.modeSelector}
                       value=${currentMode}
                       onChange=${handleModeChange}
                     >
@@ -644,12 +642,12 @@
                     </select>
                   </div>
                 </div>
-                <div class="tools-section" style=${toolsSectionStyle}>
+                <div class="tools-section" style=${styles.toolsSection}>
                   <div
                     style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;"
                   >
                     <button
-                      style=${buttonStyle}
+                      style=${styles.button}
                       onClick=${copyCallback}
                       onMouseOver=${(e) => {
                         e.target.style.background =
@@ -666,7 +664,7 @@
                       Copy
                     </button>
                     <button
-                      style=${buttonStyle}
+                      style=${styles.button}
                       onClick=${onExportCSV}
                       onMouseOver=${(e) => {
                         e.target.style.background =
@@ -686,7 +684,7 @@
                       Export CSV
                     </button>
                     <button
-                      style=${buttonStyle}
+                      style=${styles.button}
                       onClick=${handleImportCSV}
                       onMouseOver=${(e) => {
                         e.target.style.background =
@@ -706,7 +704,7 @@
                       Import CSV
                     </button>
                     <button
-                      style=${buttonStyle}
+                      style=${styles.button}
                       onClick=${onClear}
                       onMouseOver=${(e) => {
                         e.target.style.background =
@@ -723,7 +721,7 @@
                       Clear
                     </button>
                     <button
-                      style=${buttonStyle}
+                      style=${styles.button}
                       onClick=${onManualCheckToggle}
                       onMouseOver=${(e) => {
                         e.target.style.background =
@@ -744,8 +742,8 @@
                     </button>
                   </div>
                 </div>
-                <div class="control-row" style=${controlRowStyle}>
-                  <span style=${statusLabelStyle}>
+                <div class="control-row" style=${styles.controlRow}>
+                  <span style=${styles.statusLabel}>
                     ${state.isRateLimited
                       ? 'Paused (Rate Limit)'
                       : state.isCollapsingEnabled
@@ -754,7 +752,7 @@
                   </span>
                   <div style="display: flex; gap: 8px;">
                     <button
-                      style=${buttonStyle}
+                      style=${styles.button}
                       onClick=${onStart}
                       onMouseOver=${(e) => {
                         e.target.style.background =
@@ -771,7 +769,7 @@
                       Start
                     </button>
                     <button
-                      style=${buttonStyle}
+                      style=${styles.button}
                       onClick=${onStop}
                       onMouseOver=${(e) => {
                         e.target.style.background =
@@ -788,7 +786,7 @@
                       Stop
                     </button>
                     <button
-                      style=${buttonStyle}
+                      style=${styles.button}
                       onClick=${onReset}
                       onMouseOver=${(e) => {
                         e.target.style.background =
@@ -806,7 +804,10 @@
                     </button>
                   </div>
                 </div>
-                <div class="problem-links-wrapper" style=${contentWrapperStyle}>
+                <div
+                  class="problem-links-wrapper"
+                  style=${styles.contentWrapper}
+                >
                   ${flagged.map(
                     ([href, { analysis }]) => html`
                       <div
@@ -832,7 +833,7 @@
             : ''}
           <button
             style=${{
-              ...buttonStyle,
+              ...styles.button,
               marginRight: isVisible ? '8px' : '0',
               position: isVisible ? 'static' : 'absolute',
               top: isVisible ? 'auto' : '8px',
@@ -849,7 +850,7 @@
             }}
           >
             <i
-              className="fas ${isVisible ? 'fa-eye-slash' : 'fa-eye'}"
+              className=${'fas ' + (isVisible ? 'fa-eye-slash' : 'fa-eye')}
               style="marginRight: 6px;"
             ></i>
             ${isVisible ? 'Hide' : 'Show'}
@@ -1019,14 +1020,14 @@
     }
   };
   XGhosted.prototype.createPanel = function () {
-    const { h: h2, render } = window.preact;
+    const { h, render } = window.preact;
     this.state.instance = this;
     const mode = this.getThemeMode();
     this.state.isDarkMode = mode !== 'light';
     this.uiElements.panel = this.document.createElement('div');
     this.document.body.appendChild(this.uiElements.panel);
     render(
-      h2(window.Panel, {
+      h(window.Panel, {
         state: this.state,
         config: this.uiElements.config,
         copyCallback: this.copyLinks.bind(this),
@@ -1415,7 +1416,7 @@
     }
     const headers = lines[0];
     const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
-    if (!expectedHeaders.every((h2, i) => h2 === headers[i])) {
+    if (!expectedHeaders.every((h, i) => h === headers[i])) {
       this.log('CSV header mismatch');
       return;
     }
