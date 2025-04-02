@@ -72,6 +72,10 @@ node grokify.js src/xGhosted.test.js src/*/*.test.js src/xGhosted.template.js bu
     show_progress "Error: Second grokify.js execution failed"; exit 1;
 }
 
+# Replace large file with smaller chunks
+split -l 1000 grok/4-xGhosted.code.txt -d --additional-suffix=.txt grok/4-xGhosted.code-part-
+rm grok/4-xGhosted.code.txt
+
 # Generate TOC and line count, excluding the TOC file itself
 show_progress "Generating table of contents and line counts..."
 find grok -maxdepth 1 -type f -name "*.txt" ! -name "$(basename "$TOC_FILE")" | sort | xargs wc -l > "$TOC_FILE" || {
