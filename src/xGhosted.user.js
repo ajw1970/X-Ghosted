@@ -12,6 +12,7 @@
 // @require      https://unpkg.com/preact@10.26.4/dist/preact.min.js
 // @require      https://unpkg.com/preact@10.26.4/hooks/dist/hooks.umd.js
 // @require      https://unpkg.com/htm@3.1.1/dist/htm.umd.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -365,26 +366,6 @@
       gap: '6px',
       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
     };
-    const getSvgIcon = (name) => {
-      const fillColor = mode === 'light' ? '#292F33' : 'currentColor';
-      const icons = {
-        check: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [h('path', { d: 'M9 16.2l-3.5-3.5-1.4 1.4 4.9 4.9 10-10-1.4-1.4z' })]
-        ),
-        close: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M19 6.41l-1.41-1.41-5.59 5.59-5.59-5.59-1.41 1.41 5.59 5.59-5.59 5.59 1.41 1.41 5.59-5.59 5.59 5.59 1.41-1.41-5.59-5.59z',
-            }),
-          ]
-        ),
-      };
-      return icons[name] || null;
-    };
     return html`
       <div style=${modalStyle}>
         <div>
@@ -407,7 +388,7 @@
                 e.target.style.transform = 'translateY(0)';
               }}
             >
-              ${getSvgIcon('check')} Submit
+              <i className="fas fa-check" style="marginRight: 6px;"></i> Submit
             </button>
             <button
               style=${buttonStyle}
@@ -424,7 +405,7 @@
                 e.target.style.transform = 'translateY(0)';
               }}
             >
-              ${getSvgIcon('close')} Close
+              <i className="fas fa-times" style="marginRight: 6px;"></i> Close
             </button>
           </div>
         </div>
@@ -578,81 +559,6 @@
       fontWeight: '500',
       color: config.THEMES[currentMode].text,
     };
-    const getSvgIcon = (name) => {
-      const fillColor = currentMode === 'light' ? '#292F33' : 'currentColor';
-      const icons = {
-        chevronDown: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [h('path', { d: 'M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6-6-6z' })]
-        ),
-        copy: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z',
-            }),
-          ]
-        ),
-        play: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [h('path', { d: 'M8 5v14l11-7z' })]
-        ),
-        pause: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [h('path', { d: 'M6 19h4V5H6v14zm8-14v14h4V5h-4z' })]
-        ),
-        reset: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M12 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z',
-            }),
-          ]
-        ),
-        import: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z',
-            }),
-          ]
-        ),
-        export: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l-2.59-2.58L7 11.5l5 5 5-5-1.41-1.41L13 12.67V3h-2v9.67z',
-            }),
-          ]
-        ),
-        clear: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M19 6.41l-1.41-1.41-5.59 5.59-5.59-5.59-1.41 1.41 5.59 5.59-5.59 5.59 1.41 1.41 5.59-5.59 5.59 5.59 1.41-1.41-5.59-5.59z',
-            }),
-          ]
-        ),
-        toggle: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z',
-            }),
-          ]
-        ),
-      };
-      return icons[name] || null;
-    };
     return html`
       <div>
         <style>
@@ -721,7 +627,11 @@
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
-                      ${getSvgIcon('chevronDown')} Tools
+                      <i
+                        className="fas fa-chevron-down"
+                        style="marginRight: 6px;"
+                      ></i>
+                      Tools
                     </button>
                     <select
                       style=${modeSelectorStyle}
@@ -752,7 +662,8 @@
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
-                      ${getSvgIcon('copy')} Copy
+                      <i className="fas fa-copy" style="marginRight: 6px;"></i>
+                      Copy
                     </button>
                     <button
                       style=${buttonStyle}
@@ -768,7 +679,11 @@
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
-                      ${getSvgIcon('export')} Export CSV
+                      <i
+                        className="fas fa-file-export"
+                        style="marginRight: 6px;"
+                      ></i>
+                      Export CSV
                     </button>
                     <button
                       style=${buttonStyle}
@@ -784,7 +699,11 @@
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
-                      ${getSvgIcon('import')} Import CSV
+                      <i
+                        className="fas fa-file-import"
+                        style="marginRight: 6px;"
+                      ></i>
+                      Import CSV
                     </button>
                     <button
                       style=${buttonStyle}
@@ -800,7 +719,8 @@
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
-                      ${getSvgIcon('clear')} Clear
+                      <i className="fas fa-trash" style="marginRight: 6px;"></i>
+                      Clear
                     </button>
                     <button
                       style=${buttonStyle}
@@ -816,8 +736,11 @@
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
-                      ${getSvgIcon('toggle')} Manual Check:
-                      ${state.isManualCheckEnabled ? 'On' : 'Off'}
+                      <i
+                        className="fas fa-toggle-on"
+                        style="marginRight: 6px;"
+                      ></i>
+                      Manual Check: ${state.isManualCheckEnabled ? 'On' : 'Off'}
                     </button>
                   </div>
                 </div>
@@ -844,7 +767,8 @@
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
-                      ${getSvgIcon('play')} Start
+                      <i className="fas fa-play" style="marginRight: 6px;"></i>
+                      Start
                     </button>
                     <button
                       style=${buttonStyle}
@@ -860,7 +784,8 @@
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
-                      ${getSvgIcon('pause')} Stop
+                      <i className="fas fa-pause" style="marginRight: 6px;"></i>
+                      Stop
                     </button>
                     <button
                       style=${buttonStyle}
@@ -876,7 +801,8 @@
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
-                      ${getSvgIcon('reset')} Reset
+                      <i className="fas fa-undo" style="marginRight: 6px;"></i>
+                      Reset
                     </button>
                   </div>
                 </div>
@@ -922,7 +848,11 @@
               e.target.style.transform = 'translateY(0)';
             }}
           >
-            <span>${isVisible ? 'Hide' : 'Show'}</span>
+            <i
+              className="fas ${isVisible ? 'fa-eye-slash' : 'fa-eye'}"
+              style="marginRight: 6px;"
+            ></i>
+            ${isVisible ? 'Hide' : 'Show'}
           </button>
         </div>
         <${Modal}

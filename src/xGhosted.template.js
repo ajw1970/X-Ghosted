@@ -12,6 +12,7 @@
 // @require      https://unpkg.com/preact@10.26.4/dist/preact.min.js
 // @require      https://unpkg.com/preact@10.26.4/hooks/dist/hooks.umd.js
 // @require      https://unpkg.com/htm@3.1.1/dist/htm.umd.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js
 // @run-at       document-idle
 // ==/UserScript==
 
