@@ -312,48 +312,6 @@ function Panel({
                 >
                   <i className="fas fa-toggle-on" style="marginRight: 8px;"></i> Manual Check: ${state.isManualCheckEnabled ? 'On' : 'Off'}
                 </button>
-                <button
-                  style=${styles.button}
-                  onClick=${onStart}
-                  onMouseOver=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].hover;
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseOut=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].button;
-                    e.target.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <i className="fas fa-play" style="marginRight: 8px;"></i> Start
-                </button>
-                <button
-                  style=${styles.button}
-                  onClick=${onStop}
-                  onMouseOver=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].hover;
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseOut=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].button;
-                    e.target.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <i className="fas fa-pause" style="marginRight: 8px;"></i> Stop
-                </button>
-                <button
-                  style=${styles.button}
-                  onClick=${onReset}
-                  onMouseOver=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].hover;
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseOut=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].button;
-                    e.target.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <i className="fas fa-undo" style="marginRight: 8px;"></i> Reset
-                </button>
               </div>
             </div>
           </div>
