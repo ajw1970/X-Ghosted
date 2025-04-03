@@ -385,7 +385,7 @@
         background: config.THEMES[mode].button,
         color: config.THEMES[mode].buttonText,
         border: 'none',
-        padding: '6px 10px',
+        padding: '8px 12px',
         borderRadius: '8px',
         cursor: 'pointer',
         fontSize: '12px',
@@ -403,7 +403,6 @@
       panel: {
         width: isVisible ? config.PANEL.WIDTH : '80px',
         maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
-        // Increased from 40px
         minWidth: isVisible ? '250px' : '80px',
         padding: isVisible ? '12px' : '4px',
         transition: 'all 0.2s ease',
@@ -425,19 +424,18 @@
         paddingBottom: '12px',
         borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
         marginBottom: '12px',
+        paddingLeft: '10px',
+        // Added to give left-side spacing
       },
       toolsSection: {
         display: 'none',
         // Controlled by isToolsExpanded in Panel
-        padding: '12px 0',
-        borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
-        marginBottom: '12px',
-        background:
-          currentMode === 'light'
-            ? '#E1E8EDCC'
-            : `${config.THEMES[currentMode].bg}CC`,
+        padding: '12px',
         borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        background: `${config.THEMES[currentMode].bg}F0`,
+        // Solid background with slight opacity
+        boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
+        marginBottom: '12px',
       },
       controlRow: {
         display: 'flex',
@@ -456,7 +454,7 @@
         background: config.THEMES[currentMode].button,
         color: config.THEMES[currentMode].buttonText,
         border: 'none',
-        padding: '6px 10px',
+        padding: '8px 12px',
         borderRadius: '8px',
         cursor: 'pointer',
         fontSize: '12px',
@@ -466,18 +464,16 @@
         alignItems: 'center',
         gap: '6px',
         boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-        marginRight: '8px',
       },
       modeSelector: {
         background: config.THEMES[currentMode].button,
         color: config.THEMES[currentMode].text,
         border: 'none',
-        padding: '6px 24px 6px 12px',
+        padding: '8px 12px',
         borderRadius: '8px',
         cursor: 'pointer',
-        fontSize: '12px',
+        fontSize: '14px',
         fontWeight: '500',
-        marginRight: '8px',
         minWidth: '80px',
         appearance: 'none',
         boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
@@ -659,7 +655,9 @@
             ? html`
                 <div class="toolbar" style=${styles.toolbar}>
                   <span>Problem Posts (${flagged.length}):</span>
-                  <div style="display: flex; align-items: center;">
+                  <div
+                    style="display: flex; align-items: center; gap: 10px; padding-left: 10px;"
+                  >
                     <button
                       style=${styles.button}
                       onClick=${toggleTools}
@@ -704,120 +702,205 @@
                 </div>
                 <div class="tools-section" style=${styles.toolsSection}>
                   <div
-                    style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;"
+                    style="display: flex; flex-direction: column; gap: 12px; padding: 15px;"
                   >
-                    <select
-                      style=${styles.modeSelector}
-                      value=${currentMode}
-                      onChange=${handleModeChange}
+                    <div
+                      style="padding-bottom: 12px; border-bottom: 1px solid ${config
+                        .THEMES[currentMode].border};"
                     >
-                      <option value="dark">Dark</option>
-                      <option value="dim">Dim</option>
-                      <option value="light">Light</option>
-                    </select>
-                    <button
-                      style=${styles.button}
-                      onClick=${copyCallback}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
+                      <select
+                        style=${{
+                          ...styles.modeSelector,
+                          width: '100%',
+                          padding: '8px 12px',
+                          fontSize: '14px',
+                        }}
+                        value=${currentMode}
+                        onChange=${handleModeChange}
+                      >
+                        <option value="dark">Dark</option>
+                        <option value="dim">Dim</option>
+                        <option value="light">Light</option>
+                      </select>
+                    </div>
+                    <div
+                      style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;"
                     >
-                      <i className="fas fa-copy" style="marginRight: 6px;"></i>
-                      Copy
-                    </button>
-                    <button
-                      style=${styles.button}
-                      onClick=${onExportCSV}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
+                      <button
+                        style=${styles.button}
+                        onClick=${copyCallback}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-copy"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Copy
+                      </button>
+                      <button
+                        style=${styles.button}
+                        onClick=${onExportCSV}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-file-export"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Export CSV
+                      </button>
+                      <button
+                        style=${styles.button}
+                        onClick=${handleImportCSV}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-file-import"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Import CSV
+                      </button>
+                      <button
+                        style=${styles.button}
+                        onClick=${onClear}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-trash"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Clear
+                      </button>
+                    </div>
+                    <div
+                      style="display: flex; flex-direction: column; gap: 12px;"
                     >
-                      <i
-                        className="fas fa-file-export"
-                        style="marginRight: 6px;"
-                      ></i>
-                      Export CSV
-                    </button>
-                    <button
-                      style=${styles.button}
-                      onClick=${handleImportCSV}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      <i
-                        className="fas fa-file-import"
-                        style="marginRight: 6px;"
-                      ></i>
-                      Import CSV
-                    </button>
-                    <button
-                      style=${styles.button}
-                      onClick=${onClear}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      <i className="fas fa-trash" style="marginRight: 6px;"></i>
-                      Clear
-                    </button>
-                    <button
-                      style=${{
-                        ...styles.button,
-                        background: state.isManualCheckEnabled
-                          ? config.THEMES[currentMode].hover
-                          : config.THEMES[currentMode].button,
-                        border: state.isManualCheckEnabled
-                          ? `1px solid ${config.THEMES[currentMode].hover}`
-                          : `1px solid ${config.THEMES[currentMode].border}`,
-                      }}
-                      onClick=${onManualCheckToggle}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background = state.isManualCheckEnabled
-                          ? config.THEMES[currentMode].hover
-                          : config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      <i
-                        className="fas fa-toggle-on"
-                        style="marginRight: 6px;"
-                      ></i>
-                      Manual Check: ${state.isManualCheckEnabled ? 'On' : 'Off'}
-                    </button>
+                      <button
+                        style=${{
+                          ...styles.button,
+                          background: state.isManualCheckEnabled
+                            ? config.THEMES[currentMode].hover
+                            : config.THEMES[currentMode].button,
+                          border: state.isManualCheckEnabled
+                            ? `1px solid ${config.THEMES[currentMode].hover}`
+                            : `1px solid ${config.THEMES[currentMode].border}`,
+                        }}
+                        onClick=${onManualCheckToggle}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background = state.isManualCheckEnabled
+                            ? config.THEMES[currentMode].hover
+                            : config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-toggle-on"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Manual Check:
+                        ${state.isManualCheckEnabled ? 'On' : 'Off'}
+                      </button>
+                      <button
+                        style=${styles.button}
+                        onClick=${onStart}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-play"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Start
+                      </button>
+                      <button
+                        style=${styles.button}
+                        onClick=${onStop}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-pause"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Stop
+                      </button>
+                      <button
+                        style=${styles.button}
+                        onClick=${onReset}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-undo"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Reset
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div class="control-row" style=${styles.controlRow}>

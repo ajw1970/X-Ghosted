@@ -35,7 +35,7 @@ function getModalStyles(mode, config, isOpen) {
       background: config.THEMES[mode].button,
       color: config.THEMES[mode].buttonText,
       border: 'none',
-      padding: '6px 10px',
+      padding: '8px 12px',
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '12px',
@@ -53,7 +53,7 @@ function getPanelStyles(mode, config, isVisible, currentMode) {
   return {
     panel: {
       width: isVisible ? config.PANEL.WIDTH : '80px',
-      maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px', // Increased from 40px
+      maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
       minWidth: isVisible ? '250px' : '80px',
       padding: isVisible ? '12px' : '4px',
       transition: 'all 0.2s ease',
@@ -75,15 +75,15 @@ function getPanelStyles(mode, config, isVisible, currentMode) {
       paddingBottom: '12px',
       borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
       marginBottom: '12px',
+      paddingLeft: '10px', // Added to give left-side spacing
     },
     toolsSection: {
       display: 'none', // Controlled by isToolsExpanded in Panel
-      padding: '12px 0',
-      borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
-      marginBottom: '12px',
-      background: currentMode === 'light' ? '#E1E8EDCC' : `${config.THEMES[currentMode].bg}CC`,
+      padding: '12px',
       borderRadius: '8px',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      background: `${config.THEMES[currentMode].bg}F0`, // Solid background with slight opacity
+      boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
+      marginBottom: '12px',
     },
     controlRow: {
       display: 'flex',
@@ -102,7 +102,7 @@ function getPanelStyles(mode, config, isVisible, currentMode) {
       background: config.THEMES[currentMode].button,
       color: config.THEMES[currentMode].buttonText,
       border: 'none',
-      padding: '6px 10px',
+      padding: '8px 12px',
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '12px',
@@ -112,18 +112,16 @@ function getPanelStyles(mode, config, isVisible, currentMode) {
       alignItems: 'center',
       gap: '6px',
       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      marginRight: '8px',
     },
     modeSelector: {
       background: config.THEMES[currentMode].button,
       color: config.THEMES[currentMode].text,
       border: 'none',
-      padding: '6px 24px 6px 12px',
+      padding: '8px 12px',
       borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '12px',
+      fontSize: '14px',
       fontWeight: '500',
-      marginRight: '8px',
       minWidth: '80px',
       appearance: 'none',
       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
