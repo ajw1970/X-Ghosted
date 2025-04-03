@@ -3,7 +3,6 @@ import { detectTheme } from './dom/detectTheme';
 import { identifyPost } from './utils/identifyPost';
 import { identifyPosts } from './utils/identifyPosts';
 import { debounce } from './utils/debounce';
-import { createButton } from './dom/createButton';
 import { findPostContainer, replaceMenuButton } from './dom/domUtils.js'; // New import
 import { copyTextToClipboard, exportToCSV } from './utils/clipboardUtils.js'; // New import
 import './ui/Components.js';
@@ -513,10 +512,6 @@ XGhosted.prototype.clearProcessedPosts = function () {
   this.state.processedPosts.clear();
   this.saveState();
   this.highlightPostsImmediate();
-};
-
-XGhosted.prototype.createButton = function (text, mode, onClick) {
-  return createButton(this.document, text, mode, onClick, this.uiElements.config);
 };
 
 XGhosted.prototype.togglePanelVisibility = function () {
