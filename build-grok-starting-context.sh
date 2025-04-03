@@ -6,12 +6,12 @@ TOC_FILE="grok/5-toc-and-line-count-check.txt"
 
 # List of input files
 FILES=(
-    "grok/_grok-readme-first.txt.adoc"
-    "grok/_grok-context.txt.adoc"
+#    "grok/_grok-readme-first.txt.adoc"
+#    "grok/_grok-context.txt.adoc"
     "grok/_grok-step1-master-prompt.txt.adoc"
-    "grok/_grok-step2-expected-project-behavior.txt.adoc"
-    "grok/_grok-step3-working-description.txt.adoc"
-    "grok/_grok-step4-roadmap-to-next-release.txt.adoc"
+#    "grok/_grok-step2-expected-project-behavior.txt.adoc"
+#    "grok/_grok-step3-working-description.txt.adoc"
+#    "grok/_grok-step4-roadmap-to-next-release.txt.adoc"
 )
 
 # Function to display progress messages with consistent formatting
