@@ -340,7 +340,10 @@ XGhosted.prototype.clearProcessedPosts = function () {
 };
 
 XGhosted.prototype.handleManualCheckToggle = function () {
-  this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
+  this.state = {
+    ...this.state,
+    isManualCheckEnabled: !this.state.isManualCheckEnabled,
+  };
   this.log(`Manual Check toggled to ${this.state.isManualCheckEnabled}`);
 };
 

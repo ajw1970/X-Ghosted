@@ -21,30 +21,30 @@ function Modal({ isOpen, onClose, onSubmit, mode, config }) {
             style=${styles.button}
             onClick=${() => onSubmit(csvText)}
             onMouseOver=${(e) => {
-              e.target.style.background = config.THEMES[mode].hover;
-              e.target.style.transform = 'translateY(-1px)';
-            }}
+      e.target.style.background = config.THEMES[mode].hover;
+      e.target.style.transform = 'translateY(-1px)';
+    }}
             onMouseOut=${(e) => {
-              e.target.style.background = config.THEMES[mode].button;
-              e.target.style.transform = 'translateY(0)';
-            }}
+      e.target.style.background = config.THEMES[mode].button;
+      e.target.style.transform = 'translateY(0)';
+    }}
           >
             <i className="fas fa-check" style="marginRight: 6px;"></i> Submit
           </button>
           <button
             style=${styles.button}
             onClick=${() => {
-              setCsvText('');
-              onClose();
-            }}
+      setCsvText('');
+      onClose();
+    }}
             onMouseOver=${(e) => {
-              e.target.style.background = config.THEMES[mode].hover;
-              e.target.style.transform = 'translateY(-1px)';
-            }}
+      e.target.style.background = config.THEMES[mode].hover;
+      e.target.style.transform = 'translateY(-1px)';
+    }}
             onMouseOut=${(e) => {
-              e.target.style.background = config.THEMES[mode].button;
-              e.target.style.transform = 'translateY(0)';
-            }}
+      e.target.style.background = config.THEMES[mode].button;
+      e.target.style.transform = 'translateY(0)';
+    }}
           >
             <i className="fas fa-times" style="marginRight: 6px;"></i> Close
           </button>
@@ -195,6 +195,24 @@ function Panel({
               >
                 <i className="fas fa-chevron-down" style="marginRight: 6px;"></i> Tools
               </button>
+              <button
+                style=${styles.button}
+                onClick=${toggleVisibility}
+                onMouseOver=${(e) => {
+                  e.target.style.background = config.THEMES[currentMode].hover;
+                  e.target.style.transform = 'translateY(-1px)';
+                }}
+                onMouseOut=${(e) => {
+                  e.target.style.background = config.THEMES[currentMode].button;
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                <i className="fas fa-eye-slash" style="marginRight: 6px;"></i> Hide
+              </button>
+            </div>
+          </div>
+          <div class="tools-section" style=${styles.toolsSection}>
+            <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
               <select
                 style=${styles.modeSelector}
                 value=${currentMode}
@@ -204,10 +222,6 @@ function Panel({
                 <option value="dim">Dim</option>
                 <option value="light">Light</option>
               </select>
-            </div>
-          </div>
-          <div class="tools-section" style=${styles.toolsSection}>
-            <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
               <button
                 style=${styles.button}
                 onClick=${copyCallback}
@@ -265,14 +279,24 @@ function Panel({
                 <i className="fas fa-trash" style="marginRight: 6px;"></i> Clear
               </button>
               <button
-                style=${styles.button}
+                style=${{
+                  ...styles.button,
+                  background: state.isManualCheckEnabled
+                    ? config.THEMES[currentMode].hover
+                    : config.THEMES[currentMode].button,
+                  border: state.isManualCheckEnabled
+                    ? `1px solid ${config.THEMES[currentMode].hover}`
+                    : `1px solid ${config.THEMES[currentMode].border}`,
+                }}
                 onClick=${onManualCheckToggle}
                 onMouseOver=${(e) => {
                   e.target.style.background = config.THEMES[currentMode].hover;
                   e.target.style.transform = 'translateY(-1px)';
                 }}
                 onMouseOut=${(e) => {
-                  e.target.style.background = config.THEMES[currentMode].button;
+                  e.target.style.background = state.isManualCheckEnabled
+                    ? config.THEMES[currentMode].hover
+                    : config.THEMES[currentMode].button;
                   e.target.style.transform = 'translateY(0)';
                 }}
               >
@@ -339,27 +363,22 @@ function Panel({
               </div>
             `)}
           </div>
-        ` : ''}
-        <button
-          style=${{
-            ...styles.button,
-            marginRight: isVisible ? '8px' : '0',
-            position: isVisible ? 'static' : 'absolute',
-            top: isVisible ? 'auto' : '8px',
-            right: isVisible ? 'auto' : '8px',
-          }}
-          onClick=${toggleVisibility}
-          onMouseOver=${(e) => {
-            e.target.style.background = config.THEMES[currentMode].hover;
-            e.target.style.transform = 'translateY(-1px)';
-          }}
-          onMouseOut=${(e) => {
-            e.target.style.background = config.THEMES[currentMode].button;
-            e.target.style.transform = 'translateY(0)';
-          }}
-        >
-          <i className=${"fas " + (isVisible ? 'fa-eye-slash' : 'fa-eye')} style="marginRight: 6px;"></i> ${isVisible ? 'Hide' : 'Show'}
-        </button>
+        ` : html`
+          <button
+            style=${styles.button}
+            onClick=${toggleVisibility}
+            onMouseOver=${(e) => {
+              e.target.style.background = config.THEMES[currentMode].hover;
+              e.target.style.transform = 'translateY(-1px)';
+            }}
+            onMouseOut=${(e) => {
+              e.target.style.background = config.THEMES[currentMode].button;
+              e.target.style.transform = 'translateY(0)';
+            }}
+          >
+            <i className="fas fa-eye" style="marginRight: 6px;"></i> Show
+          </button>
+        `}
       </div>
       <${Modal}
         isOpen=${isModalOpen}
