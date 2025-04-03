@@ -418,7 +418,7 @@ XGhosted.prototype.highlightPosts = function () {
     }
 
     this.state.processedPosts.set(id, { analysis, checked: false });
-    this.log('Set post:', id, 'Quality:', analysis.quality.name);
+    // this.log('Set post:', id, 'Quality:', analysis.quality.name);
   };
 
   const results = identifyPosts(
@@ -429,8 +429,8 @@ XGhosted.prototype.highlightPosts = function () {
     processPostAnalysis
   );
 
-  this.log('Processed posts total:', this.state.processedPosts.size);
-  this.log('Processed posts entries:', Array.from(this.state.processedPosts.entries()));
+  // this.log('Processed posts total:', this.state.processedPosts.size);
+  // this.log('Processed posts entries:', Array.from(this.state.processedPosts.entries()));
   
   // Create a new state object to force a re-render
   this.state = { ...this.state, processedPosts: new Map(this.state.processedPosts) };

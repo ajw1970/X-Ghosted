@@ -1335,7 +1335,6 @@
         this.replaceMenuButton(post, id);
       }
       this.state.processedPosts.set(id, { analysis, checked: false });
-      this.log('Set post:', id, 'Quality:', analysis.quality.name);
     };
     const results = identifyPosts(
       postsContainer,
@@ -1343,11 +1342,6 @@
       this.state.isWithReplies,
       this.state.fillerCount,
       processPostAnalysis
-    );
-    this.log('Processed posts total:', this.state.processedPosts.size);
-    this.log(
-      'Processed posts entries:',
-      Array.from(this.state.processedPosts.entries())
     );
     this.state = {
       ...this.state,

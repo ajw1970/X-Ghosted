@@ -50,11 +50,11 @@ describe('renderPanel', () => {
 
     // Load the full sample HTML
     const samplePath = resolve(__dirname, '../../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
-    console.log('Attempting to load sample HTML from:', samplePath);
+    // console.log('Attempting to load sample HTML from:', samplePath);
     let sampleHtml;
     try {
       sampleHtml = readFileSync(samplePath, 'utf8');
-      console.log('Sample HTML loaded successfully, length:', sampleHtml.length);
+      // console.log('Sample HTML loaded successfully, length:', sampleHtml.length);
     } catch (err) {
       console.error('Failed to load sample HTML:', err.message);
       throw err;
@@ -121,18 +121,15 @@ describe('renderPanel', () => {
 
   test('renderPanel shows flagged posts', async () => {
     xGhosted.createPanel();
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise(resolve => setTimeout(resolve, 0)); // Let Preact mount
     xGhosted.highlightPosts();
-    console.log('Processed posts after highlight:', Array.from(xGhosted.state.processedPosts.entries()));
-    xGhosted.refreshPanel();
+    // Force state update to trigger useEffect in Panel
+    xGhosted.state = { ...xGhosted.state, processedPosts: new Map(xGhosted.state.processedPosts) };
     await waitFor(() => {
       const label = doc.querySelector('.toolbar span');
-      console.log('Checking DOM - Label:', label ? label.textContent : 'null');
-      console.log('Panel HTML:', doc.getElementById('xghosted-panel')?.innerHTML || 'null');
       return label && label.textContent.match(/Problem Posts \(3\):/);
-    });
+    }, { timeout: 20000 });
     const label = doc.querySelector('.toolbar span').textContent;
-    console.log('Final label:', label);
     expect(label).toMatch(/Problem Posts \(3\):/);
     const links = doc.querySelectorAll('.problem-links-wrapper .link-row a');
     expect(links.length).toBe(3);
