@@ -1,5 +1,8 @@
 = Things we'll want to ask Grok to do
 
+* Can we make src/ui/Components.js smaller without causing problems with src/xGhosted.user.js being minified?
+** Maybe the return html stuff can be built from blocks of html files marked up with HTM instead?
+
 * Clarify dom for post container and X.com behavior
 
 * Ensure separation of concerns
