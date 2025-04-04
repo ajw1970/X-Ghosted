@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Function to display progress messages with consistent formatting
+show_progress() {
+    printf "[%s] %s\n" "$(date '+%H:%M:%S')" "$1"
+}
+
 show_progress "Running build-grok-files..."
 ./build-grok-files.sh
 

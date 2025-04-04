@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Function to display progress messages with consistent formatting
+show_progress() {
+    printf "[%s] %s\n" "$(date '+%H:%M:%S')" "$1"
+}
+
 # Build and test steps
 show_progress "Running npm build..."
 npm run build || { show_progress "Error: npm build failed"; exit 1; }
