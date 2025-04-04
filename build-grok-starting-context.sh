@@ -11,8 +11,8 @@ show_progress "Running build-grok-files..."
 show_progress "Running build-grok-code-files..."
 ./build-grok-code-files.sh
 
-show_progress "Running tests and saving results to grok/2-test.results.txt..."
-npm test > grok/4-test.results.txt 2>&1 || show_progress "Warning: Tests completed with possible failures"
+show_progress "Running build-grok-test-results..."
+./build-grok-test-results.sh
 
 # Generate TOC and line count, excluding the TOC file itself
 TOC_FILE="grok/5-toc-and-line-count-check.txt"
