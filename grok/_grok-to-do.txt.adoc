@@ -1,10 +1,5 @@
 = Things we'll want to ask Grok to do
 
-* Can we make src/ui/Components.js smaller without causing problems with src/xGhosted.user.js being minified?
-** Maybe the return html stuff can be built from blocks of html files marked up with HTM instead?
-
-* Clarify dom for post container and X.com behavior
-
 * Ensure separation of concerns
 ** src/xGhosted.js:: Domain logic and app state controller
 *** no knowledge of preact/HTM or Tampermonkey
@@ -14,6 +9,18 @@
 *** No domain state management.
 ** xGhosted hands app startup state expectations to preact
 ** Preact can manage operational UI/UX state
+
+*MERGE*: breaking-up into Preact-HTM
+
+* Clarify dom for post container and X.com behavior
+
+*MERGE*: Preact-HTM into collapsing
+
+* Get collapsing feature working
+
+*MERGE*: collapsing into main
+
+* Switch from HTM to JSX for Preact
 
 * Push list of bad communities and system notice strings into editable data with a default starting set of data.
 
