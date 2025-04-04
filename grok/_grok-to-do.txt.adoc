@@ -10,6 +10,10 @@
 ** xGhosted hands app startup state expectations to preact
 ** Preact can manage operational UI/UX state
 
+* Make sure all UI/UX works
+
+* Draggable panel
+
 *MERGE*: breaking-up into Preact-HTM
 
 * Clarify dom for post container and X.com behavior
