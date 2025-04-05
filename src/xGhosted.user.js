@@ -1,4 +1,3 @@
-// src/xGhosted.template.js
 // ==UserScript==
 // @name         xGhosted
 // @namespace    http://tampermonkey.net/
@@ -10,6 +9,10 @@
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_log
+// @require      https://unpkg.com/preact@10.26.4/dist/preact.min.js
+// @require      https://unpkg.com/preact@10.26.4/hooks/dist/hooks.umd.js
+// @require      https://unpkg.com/htm@3.1.1/dist/htm.umd.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -28,6 +31,19 @@
   log(
     'xGhosted v0.6.1 starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds'
   );
+
+  // Check if Preact, Preact Hooks, and HTM dependencies loaded
+  if (!window.preact || !window.preactHooks || !window.htm) {
+    log(
+      'xGhosted: Aborting - Failed to load dependencies. Preact: ' +
+        (window.preact ? 'loaded' : 'missing') +
+        ', Preact Hooks: ' +
+        (window.preactHooks ? 'loaded' : 'missing') +
+        ', HTM: ' +
+        (window.htm ? 'loaded' : 'missing')
+    );
+    return;
+  }
 
   // --- Inject Module (single resolved xGhosted.js with all dependencies inlined) ---
   // src/utils/postQuality.js
@@ -157,9 +173,7 @@
 
   // src/utils/getRelativeLinkToPost.js
   function getRelativeLinkToPost(element) {
-    const link = element
-      .querySelector('.css-146c3p1.r-1loqt21 time')
-      ?.parentElement?.getAttribute('href');
+    const link = element.querySelector('a:has(time)').getAttribute('href');
     return link || false;
   }
 
@@ -267,703 +281,698 @@
     };
   }
 
-  // src/dom/createButton.js
-  function createButton(doc, text, iconSvg, mode, onClick, config) {
-    const button = doc.createElement('button');
-    button.innerHTML = iconSvg ? `${iconSvg}<span>${text}</span>` : text;
-    Object.assign(button.style, {
-      background: config.THEMES[mode].button,
-      color: config.THEMES[mode].text,
-      borderStyle: 'none',
-      padding: '6px 12px',
-      borderRadius: '9999px',
-      cursor: 'pointer',
-      fontSize: '13px',
-      fontWeight: '500',
-      transition: 'background 0.2s ease',
-      marginRight: text === 'Copy' || text === 'Hide' ? '8px' : '0',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-    });
-    button.addEventListener(
-      'mouseover',
-      () => (button.style.background = config.THEMES[mode].hover)
-    );
-    button.addEventListener(
-      'mouseout',
-      () => (button.style.background = config.THEMES[mode].button)
-    );
-    button.addEventListener('click', onClick);
-    return button;
-  }
-
-  // src/dom/createPanel.js
-  function createPanel(
-    doc,
-    state,
-    uiElements,
-    config,
-    togglePanelVisibility2,
-    copyCallback
-  ) {
-    const mode = detectTheme(doc);
-    state.isDarkMode = mode !== 'light';
-    uiElements.panel = doc.createElement('div');
-    uiElements.panel.id = 'xghosted-panel';
-    Object.assign(uiElements.panel.style, {
-      position: 'fixed',
-      top: config.PANEL.TOP,
-      right: config.PANEL.RIGHT,
-      width: config.PANEL.WIDTH,
-      maxHeight: config.PANEL.MAX_HEIGHT,
-      minWidth: '250px',
-      minHeight: '150px',
-      zIndex: config.PANEL.Z_INDEX,
-      background: config.THEMES[mode].bg,
-      color: config.THEMES[mode].text,
-      border: `1px solid ${config.THEMES[mode].border}`,
-      borderRadius: '12px',
-      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
-      fontFamily: config.PANEL.FONT,
-      padding: '16px',
-      transition: 'background 0.2s ease, color 0.2s ease, border 0.2s ease',
-      resize: 'both',
-      overflow: 'hidden',
-      userSelect: 'none',
-    });
-    const header = doc.createElement('div');
-    Object.assign(header.style, {
-      position: 'absolute',
-      top: '0',
-      left: '0',
-      right: '0',
-      height: '20px',
-      background: config.THEMES[mode].border,
-      cursor: 'move',
-      borderRadius: '12px 12px 0 0',
-    });
-    uiElements.panel.appendChild(header);
-    let isDragging = false,
-      startX,
-      startY,
-      initialLeft,
-      initialTop;
-    header.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
-      initialLeft = parseInt(uiElements.panel.style.left) || 0;
-      initialTop =
-        parseInt(uiElements.panel.style.top) || parseInt(config.PANEL.TOP);
-      doc.body.style.userSelect = 'none';
-    });
-    doc.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      uiElements.panel.style.left = `${initialLeft + dx}px`;
-      uiElements.panel.style.top = `${Math.max(0, initialTop + dy)}px`;
-      uiElements.panel.style.right = 'auto';
-    });
-    doc.addEventListener('mouseup', () => {
-      isDragging = false;
-      doc.body.style.userSelect = '';
-      state.panelPosition = {
-        left: uiElements.panel.style.left,
-        top: uiElements.panel.style.top,
-      };
-      state.instance.saveState();
-    });
-    uiElements.toolbar = doc.createElement('div');
-    Object.assign(uiElements.toolbar.style, {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '8px 0',
-      borderBottom: `1px solid ${config.THEMES[mode].border}`,
-      marginBottom: '16px',
-      position: 'relative',
-    });
-    uiElements.label = doc.createElement('span');
-    uiElements.label.textContent = 'Problem Posts (0):';
-    Object.assign(uiElements.label.style, {
-      fontSize: '15px',
-      fontWeight: '700',
-      color: config.THEMES[mode].text,
-      display: 'inline-block',
-    });
-    uiElements.toolsToggle = createButton(
-      doc,
-      'Tools',
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="chevron-down"><path d="M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6-6-6z"/></svg>',
-      mode,
-      () => {
-        const isExpanded = uiElements.toolsSection.style.display === 'block';
-        uiElements.toolsSection.style.display = isExpanded ? 'none' : 'block';
-        uiElements.toolsToggle.querySelector('svg').style.transform = isExpanded
-          ? 'rotate(0deg)'
-          : 'rotate(180deg)';
-      },
-      config
-    );
-    uiElements.toolsToggle.querySelector('svg').style.transition =
-      'transform 0.3s ease';
-    uiElements.toolsSection = doc.createElement('div');
-    Object.assign(uiElements.toolsSection.style, {
-      display: 'none',
-      padding: '12px 0',
-      borderBottom: `1px solid ${config.THEMES[mode].border}`,
-      marginBottom: '16px',
-      background: `${config.THEMES[mode].bg}CC`,
-      borderRadius: '8px',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      transition: 'all 0.3s ease',
-    });
-    const toolsButtonContainer = doc.createElement('div');
-    Object.assign(toolsButtonContainer.style, {
-      display: 'flex',
-      justifyContent: 'center',
-      gap: '15px',
-      padding: '0 10px',
-      flexWrap: 'wrap',
-    });
-    uiElements.copyButton = createButton(
-      doc,
-      'Copy',
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>',
-      mode,
-      copyCallback,
-      config
-    );
-    uiElements.copyButton.title = 'Copy flagged post links';
-    uiElements.manualCheckButton = createButton(
-      doc,
-      'Manual Check',
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>',
-      mode,
-      () => {
-        state.isManualCheckEnabled = !state.isManualCheckEnabled;
-        uiElements.manualCheckButton.querySelector('span').textContent =
-          state.isManualCheckEnabled ? 'Stop Manual' : 'Manual Check';
-      },
-      config
-    );
-    uiElements.manualCheckButton.title = 'Toggle manual post checking';
-    uiElements.exportButton = createButton(
-      doc,
-      'Export CSV',
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>',
-      mode,
-      () => {
-        state.instance.exportProcessedPostsCSV();
-      },
-      config
-    );
-    uiElements.exportButton.title = 'Export flagged posts as CSV';
-    const { modal, textarea } = createModal(doc, state, mode, config);
-    uiElements.importButton = createButton(
-      doc,
-      'Import CSV',
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>',
-      mode,
-      () => {
-        modal.style.display = 'block';
-        textarea.focus();
-      },
-      config
-    );
-    uiElements.importButton.title = 'Import flagged posts from CSV';
-    uiElements.clearButton = createButton(
-      doc,
-      'Clear',
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>',
-      mode,
-      () => {
-        if (confirm('Clear all processed posts?'))
-          state.instance.clearProcessedPosts();
-      },
-      config
-    );
-    uiElements.clearButton.title = 'Clear all processed posts';
-    toolsButtonContainer.append(
-      uiElements.copyButton,
-      uiElements.manualCheckButton,
-      uiElements.exportButton,
-      uiElements.importButton,
-      uiElements.clearButton
-    );
-    uiElements.toolsSection.append(toolsButtonContainer);
-    uiElements.modeSelector = doc.createElement('select');
-    uiElements.modeSelector.innerHTML =
-      '<option value="dark">Dark</option><option value="dim">Dim</option><option value="light">Light</option>';
-    uiElements.modeSelector.value = mode;
-    Object.assign(uiElements.modeSelector.style, {
-      background: config.THEMES[mode].button,
-      color: config.THEMES[mode].text,
-      border: 'none',
-      padding: '6px 24px 6px 12px',
-      borderRadius: '9999px',
-      cursor: 'pointer',
-      fontSize: '13px',
-      fontWeight: '500',
-      minWidth: '80px',
-      appearance: 'none',
-      outline: 'none',
-      transition: 'background 0.2s ease, color 0.2s ease',
-      display: 'inline-block',
-    });
-    uiElements.modeSelector.title = 'Switch theme';
-    uiElements.toggleButton = createButton(
-      doc,
-      'Hide',
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>',
-      mode,
-      togglePanelVisibility2,
-      config
-    );
-    const rightButtons = doc.createElement('div');
-    Object.assign(rightButtons.style, {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-    });
-    rightButtons.append(uiElements.modeSelector, uiElements.toggleButton);
-    uiElements.toolbar.append(
-      uiElements.label,
-      uiElements.toolsToggle,
-      rightButtons
-    );
-    uiElements.controlRow = doc.createElement('div');
-    Object.assign(uiElements.controlRow.style, {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '8px 0',
-      marginBottom: '16px',
-    });
-    uiElements.controlLabel = doc.createElement('span');
-    uiElements.controlLabel.textContent = 'Controls';
-    Object.assign(uiElements.controlLabel.style, {
-      fontSize: '15px',
-      fontWeight: '700',
-      color: config.THEMES[mode].text,
-      display: 'inline-block',
-    });
-    const buttonContainer = doc.createElement('div');
-    Object.assign(buttonContainer.style, {
-      display: 'flex',
-      gap: '10px',
-    });
-    uiElements.startButton = createButton(
-      doc,
-      'Start',
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
-      mode,
-      () => {
-        state.isCollapsingEnabled = true;
-        state.isCollapsingRunning = true;
-        const articles = doc.querySelectorAll(
-          'div[data-testid="cellInnerDiv"]'
-        );
-        state.instance.collapseArticlesWithDelay(articles);
-      },
-      config
-    );
-    uiElements.stopButton = createButton(
-      doc,
-      'Stop',
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>',
-      mode,
-      () => {
-        state.isCollapsingEnabled = false;
-      },
-      config
-    );
-    uiElements.resetButton = createButton(
-      doc,
-      'Reset',
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>',
-      mode,
-      () => {
-        state.isCollapsingEnabled = false;
-        state.isCollapsingRunning = false;
-        doc
-          .querySelectorAll('div[data-testid="cellInnerDiv"]')
-          .forEach(state.instance.expandArticle);
-        state.processedPosts = /* @__PURE__ */ new WeakMap();
-        state.fullyprocessedPosts.clear();
-        state.problemLinks.clear();
-      },
-      config
-    );
-    buttonContainer.append(
-      uiElements.startButton,
-      uiElements.stopButton,
-      uiElements.resetButton
-    );
-    uiElements.controlRow.append(uiElements.controlLabel, buttonContainer);
-    uiElements.contentWrapper = doc.createElement('div');
-    uiElements.contentWrapper.className = 'problem-links-wrapper';
-    Object.assign(uiElements.contentWrapper.style, {
-      maxHeight: 'calc(100% - 70px)',
-      overflowY: 'auto',
-      fontSize: '14px',
-      lineHeight: '1.4',
-      scrollbarWidth: 'thin',
-      scrollbarColor: `${config.THEMES[mode].scroll} ${config.THEMES[mode].bg}`,
-      paddingRight: '4px',
-      display: 'block',
-    });
-    uiElements.panel.append(
-      uiElements.toolbar,
-      uiElements.toolsSection,
-      uiElements.controlRow,
-      uiElements.contentWrapper
-    );
-    doc.body.appendChild(uiElements.panel);
-    doc.body.appendChild(modal);
-    if (state.panelPosition) {
-      uiElements.panel.style.left = state.panelPosition.left;
-      uiElements.panel.style.top = state.panelPosition.top;
-      uiElements.panel.style.right = 'auto';
+  // src/dom/domUtils.js
+  function findPostContainer(doc, log) {
+    const firstPost = doc.querySelector('div[data-testid="cellInnerDiv"]');
+    if (!firstPost) {
+      log('No posts found with data-testid="cellInnerDiv"');
+      return null;
     }
-    uiElements.styleSheet = doc.createElement('style');
-    uiElements.styleSheet.textContent = `
-  .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
-  .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${config.THEMES[mode].scroll}; border-radius: 3px; }
-  .problem-links-wrapper::-webkit-scrollbar-track { background: ${config.THEMES[mode].bg}; }
-  select { background-repeat: no-repeat; background-position: right 8px center; }
-  select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-  select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-  select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-  select:focus { outline: none; box-shadow: 0 0 0 2px ${config.THEMES[mode].scroll}; }
-  .link-item { padding: '6px 0'; }
-  .link-item a:hover { text-decoration: underline; }
-  button:active { transform: scale(0.95); }
-  .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
-  .status-potential { background-color: yellow !important; }
-  .status-problem { background-color: red !important; }
-  .status-good { background-color: green !important; }
-  .link-row { display: flex; align-items: center; padding: 4px 0; }
-  .link-row > div { flex: 1; }
-  button span { margin-left: 4px; }
-  button svg { width: 12px; height: 12px; }
-  .chevron-down { transform: rotate(0deg); }
-  .chevron-up { transform: rotate(180deg); }
-`;
-    doc.head.appendChild(uiElements.styleSheet);
-  }
-  function createModal(doc, state, mode, config) {
-    const modal = doc.createElement('div');
-    Object.assign(modal.style, {
-      display: 'none',
-      position: 'fixed',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      background: config.THEMES[mode].bg,
-      color: config.THEMES[mode].text,
-      border: `1px solid ${config.THEMES[mode].border}`,
-      borderRadius: '8px',
-      padding: '20px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-      zIndex: '10000',
-      width: '300px',
-    });
-    const content = doc.createElement('div');
-    const textarea = doc.createElement('textarea');
-    Object.assign(textarea.style, {
-      width: '100%',
-      height: '100px',
-      marginBottom: '15px',
-      background: config.THEMES[mode].bg,
-      color: config.THEMES[mode].text,
-      border: `1px solid ${config.THEMES[mode].border}`,
-      borderRadius: '4px',
-      padding: '4px',
-      resize: 'none',
-    });
-    const buttonContainer = doc.createElement('div');
-    Object.assign(buttonContainer.style, {
-      display: 'flex',
-      justifyContent: 'center',
-      gap: '15px',
-    });
-    const submitButton = createButton(
-      doc,
-      'Submit',
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2l-3.5-3.5-1.4 1.4 4.9 4.9 10-10-1.4-1.4z"/></svg>',
-      mode,
-      () => {
-        const csvText = textarea.value.trim();
-        if (!csvText) {
-          alert('Please paste CSV data to import.');
-          return;
-        }
-        try {
-          state.instance.importProcessedPostsCSV(csvText);
-          modal.style.display = 'none';
-          textarea.value = '';
-        } catch (e) {
-          alert(
-            'Error importing CSV data. Please ensure it matches the expected format.'
-          );
-        }
-      },
-      config
-    );
-    const closeButton = createButton(
-      doc,
-      'Close',
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41l-1.41-1.41-5.59 5.59-5.59-5.59-1.41 1.41 5.59 5.59-5.59 5.59 1.41 1.41 5.59-5.59 5.59 5.59 1.41-1.41-5.59-5.59z"/></svg>',
-      mode,
-      () => {
-        modal.style.display = 'none';
-        textarea.value = '';
-      },
-      config
-    );
-    buttonContainer.append(submitButton, closeButton);
-    content.append(textarea, buttonContainer);
-    modal.appendChild(content);
-    return { modal, textarea };
-  }
-
-  // src/dom/togglePanelVisibility.js
-  function togglePanelVisibility(state, uiElements) {
-    const {
-      label,
-      toolsToggle,
-      modeSelector,
-      toggleButton,
-      contentWrapper,
-      controlRow,
-      toolsSection,
-      startButton,
-      stopButton,
-      resetButton,
-      panel,
-    } = uiElements;
-    if (state.isPanelVisible) {
-      const rect = panel.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const currentLeft = rect.left;
-      const currentTop = rect.top;
-      const currentRight = viewportWidth - rect.right;
-      state.preHidePosition = {
-        left: `${currentLeft}px`,
-        top: `${currentTop}px`,
-        right: `${currentRight}px`,
-      };
-      label.style.display = 'none';
-      toolsToggle.style.display = 'none';
-      modeSelector.style.display = 'none';
-      contentWrapper.style.display = 'none';
-      controlRow.style.display = 'none';
-      toolsSection.style.display = 'none';
-      toggleButton.querySelector('span').textContent = 'Show';
-      panel.style.width = 'auto';
-      panel.style.minWidth = '180px';
-      panel.style.minHeight = '0px';
-      panel.style.maxHeight = '80px';
-      panel.style.padding = '6px';
-      if (panel.style.left && panel.style.left !== 'auto') {
-        panel.style.left = state.preHidePosition.left;
-        panel.style.top = state.preHidePosition.top;
-        panel.style.right = 'auto';
-      } else {
-        panel.style.left = 'auto';
-        panel.style.right = state.preHidePosition.right;
-        panel.style.top = state.preHidePosition.top;
+    let currentElement = firstPost.parentElement;
+    while (currentElement) {
+      if (currentElement.hasAttribute('aria-label')) {
+        currentElement.setAttribute('data-xghosted', 'posts-container');
+        const ariaLabel = currentElement.getAttribute('aria-label');
+        log(`Posts container identified with aria-label: "${ariaLabel}"`);
+        return currentElement;
       }
-      toggleButton.style.position = 'absolute';
-      toggleButton.style.top = '6px';
-      toggleButton.style.right = '6px';
-      toggleButton.style.margin = '0';
-      toggleButton.style.display = 'inline-block';
-      panel.style.transition = 'max-height 0.2s ease, padding 0.2s ease';
-      state.isPanelVisible = false;
-    } else {
-      label.style.display = 'inline-block';
-      toolsToggle.style.display = 'inline-block';
-      modeSelector.style.display = 'inline-block';
-      contentWrapper.style.display = 'block';
-      controlRow.style.display = 'flex';
-      toolsSection.style.display = 'none';
-      toggleButton.querySelector('span').textContent = 'Hide';
-      panel.style.width = uiElements.config.PANEL.WIDTH;
-      panel.style.maxHeight = uiElements.config.PANEL.MAX_HEIGHT;
-      panel.style.minWidth = '250px';
-      panel.style.minHeight = '150px';
-      panel.style.padding = '16px';
-      toggleButton.style.position = '';
-      toggleButton.style.top = '';
-      toggleButton.style.right = '';
-      toggleButton.style.marginRight = '8px';
-      if (state.panelPosition && state.panelPosition.left) {
-        panel.style.left = state.panelPosition.left;
-        panel.style.top = state.panelPosition.top;
-        panel.style.right = 'auto';
-      } else if (state.preHidePosition && state.preHidePosition.right) {
-        panel.style.left = 'auto';
-        panel.style.right = state.preHidePosition.right;
-        panel.style.top = state.preHidePosition.top;
-      } else {
-        panel.style.left = 'auto';
-        panel.style.right = uiElements.config.PANEL.RIGHT;
-        panel.style.top = uiElements.config.PANEL.TOP;
-      }
-      panel.style.transition = 'max-height 0.2s ease, padding 0.2s ease';
-      state.isPanelVisible = true;
+      currentElement = currentElement.parentElement;
     }
+    log('No parent container found with aria-label');
+    return null;
   }
-
-  // src/dom/renderPanel.js
-  function renderPanel(doc, state, uiElements, createPanel2) {
-    if (!uiElements.panel || !doc.body.contains(uiElements.panel)) {
-      createPanel2(doc, state, uiElements);
-    }
-    const flagged = Array.from(state.processedPosts.entries()).filter(
-      ([_, { analysis }]) =>
-        // Destructure correctly
-        analysis.quality.name === state.postQuality.PROBLEM.name ||
-        analysis.quality.name === state.postQuality.POTENTIAL_PROBLEM.name
-    );
-    uiElements.label.textContent = `Problem Posts (${flagged.length}):`;
-    uiElements.contentWrapper.innerHTML = '';
-    flagged.forEach(([href, { analysis }]) => {
-      const row = doc.createElement('div');
-      row.className = 'link-row';
-      const dot = doc.createElement('span');
-      const statusClass =
-        analysis.quality.name === state.postQuality.PROBLEM.name
-          ? 'status-problem'
-          : 'status-potential';
-      dot.className = `status-dot ${statusClass}`;
-      row.appendChild(dot);
-      const linkItem = doc.createElement('div');
-      linkItem.className = 'link-item';
-      const a = Object.assign(doc.createElement('a'), {
-        href: `https://x.com${href}`,
-        textContent: `${href}`,
-        target: '_blank',
-      });
-      Object.assign(a.style, {
-        display: 'block',
-        color: '#1DA1F2',
-        textDecoration: 'none',
-        wordBreak: 'break-all',
-      });
-      linkItem.appendChild(a);
-      row.appendChild(linkItem);
-      uiElements.contentWrapper.appendChild(row);
-    });
-    uiElements.contentWrapper.scrollTop =
-      uiElements.contentWrapper.scrollHeight;
-  }
-
-  // src/dom/updateTheme.js
-  function updateTheme(uiElements, config) {
-    const {
-      panel,
-      toolbar,
-      label,
-      contentWrapper,
-      styleSheet,
-      modeSelector,
-      toggleButton,
-      copyButton,
-      manualCheckButton,
-      exportButton,
-      importButton,
-      clearButton,
-    } = uiElements;
-    if (
-      !panel ||
-      !toolbar ||
-      !label ||
-      !contentWrapper ||
-      !styleSheet ||
-      !modeSelector
-    )
+  function replaceMenuButton(post, href, doc, log, onClickCallback) {
+    if (!post) return;
+    const button =
+      post.querySelector('button[aria-label="Share post"]') ||
+      post.querySelector('button');
+    if (!button) {
+      log(`No share button found for post with href: ${href}`);
       return;
-    const mode = modeSelector.value;
-    const theme = config.THEMES[mode];
-    if (!theme) return;
-    Object.assign(panel.style, {
-      background: theme.bg,
-      color: theme.text,
-      border: `1px solid ${theme.border}`,
+    }
+    if (button.nextSibling?.textContent.includes('\u{1F440}')) return;
+    const newLink = Object.assign(doc.createElement('a'), {
+      textContent: '\u{1F440}',
+      href: '#',
     });
-    toolbar.style.borderBottom = `1px solid ${theme.border}`;
-    label.style.color = theme.text;
-    contentWrapper.style.scrollbarColor = `${theme.scroll} ${theme.bg}`;
-    const buttons = [
-      toggleButton,
-      copyButton,
-      manualCheckButton,
-      exportButton,
-      importButton,
-      clearButton,
-    ];
-    buttons.forEach((btn) => {
-      if (!btn) return;
-      Object.assign(btn.style, {
-        background: theme.button,
-        color: theme.text,
-        transition: 'background 0.2s ease, transform 0.1s ease',
-      });
-      btn.onmouseover = () => (btn.style.background = theme.hover);
-      btn.onmouseout = () => (btn.style.background = theme.button);
+    Object.assign(newLink.style, {
+      color: 'rgb(29, 155, 240)',
+      textDecoration: 'none',
+      padding: '8px',
+      cursor: 'pointer',
     });
-    Object.assign(modeSelector.style, {
-      background: theme.button,
-      color: theme.text,
+    newLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      onClickCallback(href);
+      log(`Eyeball clicked for manual check on href: ${href}`);
     });
-    modeSelector.className = mode;
-    styleSheet.textContent = `
-    .problem-links-wrapper::-webkit-scrollbar { width: 6px; }
-    .problem-links-wrapper::-webkit-scrollbar-thumb { background: ${theme.scroll}; border-radius: 3px; }
-    .problem-links-wrapper::-webkit-scrollbar-track { background: ${theme.bg}; }
-    select { background-repeat: no-repeat; background-position: right 8px center; }
-    select.dark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-    select.dim { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFFFFF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-    select.light { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23292F33' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4-4.796 5.48a1 1 0 1 0 1-1.506 0z'/%3E%3C/svg%3E"); }
-    select:focus { outline: none; box-shadow: 0 0 0 2px ${theme.scroll}; }
-    .link-item { padding: 6px 0; }
-    .link-item a:hover { text-decoration: underline; }
-    button:active { transform: scale(0.95); }
-  `;
+    button.parentElement.insertBefore(newLink, button.nextSibling);
   }
 
-  // src/xGhosted.js
-  function XGhosted(doc, config = {}) {
-    const defaultTiming = {
-      debounceDelay: 500,
-      throttleDelay: 1e3,
-      tabCheckThrottle: 5e3,
-      exportThrottle: 5e3,
+  // src/utils/clipboardUtils.js
+  function copyTextToClipboard(text, log) {
+    return navigator.clipboard
+      .writeText(text)
+      .then(() => log('Text copied to clipboard'))
+      .catch((err) => log(`Clipboard copy failed: ${err}`));
+  }
+  function exportToCSV(data, filename, doc, log) {
+    const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = doc.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    log(`Exported CSV: ${filename}`);
+  }
+
+  // src/ui/styles.js
+  function getModalStyles(mode, config, isOpen) {
+    return {
+      modal: {
+        display: isOpen ? 'block' : 'none',
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        background: config.THEMES[mode].bg,
+        color: config.THEMES[mode].text,
+        border: `1px solid ${config.THEMES[mode].border}`,
+        borderRadius: '8px',
+        padding: '20px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+        zIndex: '10000',
+        width: '300px',
+      },
+      textarea: {
+        width: '100%',
+        height: '100px',
+        marginBottom: '15px',
+        background: config.THEMES[mode].bg,
+        color: config.THEMES[mode].text,
+        border: `1px solid ${config.THEMES[mode].border}`,
+        borderRadius: '4px',
+        padding: '4px',
+        resize: 'none',
+      },
+      buttonContainer: {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '15px',
+      },
+      button: {
+        background: config.THEMES[mode].button,
+        color: config.THEMES[mode].buttonText,
+        border: 'none',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: '500',
+        transition: 'background 0.2s ease, transform 0.1s ease',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      },
     };
-    this.timing = { ...defaultTiming, ...config.timing };
-    this.state = {
-      isWithReplies: false,
-      postContainer: null,
-      lastUrl: '',
-      processedPosts: /* @__PURE__ */ new Map(),
-      postQuality,
-      isPanelVisible: true,
-      isDarkMode: true,
-      isManualCheckEnabled: false,
-      panelPosition: null,
-      persistProcessedPosts: config.persistProcessedPosts ?? false,
-      isRateLimited: false,
+  }
+  function getPanelStyles(mode, config, isVisible, currentMode) {
+    return {
+      panel: {
+        width: isVisible ? config.PANEL.WIDTH : '80px',
+        maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
+        minWidth: isVisible ? '250px' : '80px',
+        padding: isVisible ? '12px' : '4px',
+        transition: 'all 0.2s ease',
+        position: 'fixed',
+        top: config.PANEL.TOP,
+        right: config.PANEL.RIGHT,
+        zIndex: config.PANEL.Z_INDEX,
+        fontFamily: config.PANEL.FONT,
+        background: config.THEMES[currentMode].bg,
+        color: config.THEMES[currentMode].text,
+        border: `1px solid ${config.THEMES[currentMode].border}`,
+        borderRadius: '12px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+      },
+      toolbar: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingBottom: '12px',
+        borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
+        marginBottom: '12px',
+        paddingLeft: '10px',
+        // Added to give left-side spacing
+      },
+      toolsSection: {
+        display: 'none',
+        // Controlled by isToolsExpanded in Panel
+        padding: '12px',
+        borderRadius: '8px',
+        background: `${config.THEMES[currentMode].bg}F0`,
+        // Solid background with slight opacity
+        boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
+        marginBottom: '12px',
+      },
+      controlRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingBottom: '8px',
+        marginBottom: '12px',
+      },
+      contentWrapper: {
+        maxHeight: 'calc(100vh - 150px)',
+        overflowY: 'auto',
+        paddingRight: '8px',
+        marginBottom: '12px',
+      },
+      button: {
+        background: config.THEMES[currentMode].button,
+        color: config.THEMES[currentMode].buttonText,
+        border: 'none',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: '500',
+        transition: 'background 0.2s ease, transform 0.1s ease',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+      modeSelector: {
+        background: config.THEMES[currentMode].button,
+        color: config.THEMES[currentMode].text,
+        border: 'none',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '500',
+        minWidth: '80px',
+        appearance: 'none',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+      statusLabel: {
+        fontSize: '13px',
+        fontWeight: '500',
+        color: config.THEMES[currentMode].text,
+      },
     };
+  }
+
+  // src/ui/Components.js
+  var { useState, useEffect } = window.preactHooks;
+  var html = window.htm.bind(window.preact.h);
+  function Modal({ isOpen, onClose, onSubmit, mode, config }) {
+    const [csvText, setCsvText] = useState('');
+    const styles = getModalStyles(mode, config, isOpen);
+    return html`
+      <div style=${styles.modal}>
+        <div>
+          <textarea
+            style=${styles.textarea}
+            value=${csvText}
+            onInput=${(e) => setCsvText(e.target.value)}
+            placeholder="Paste CSV content (e.g. Link Quality Reason Checked)"
+          ></textarea>
+          <div style=${styles.buttonContainer}>
+            <button
+              style=${styles.button}
+              onClick=${() => onSubmit(csvText)}
+              onMouseOver=${(e) => {
+                e.target.style.background = config.THEMES[mode].hover;
+                e.target.style.transform = 'translateY(-1px)';
+              }}
+              onMouseOut=${(e) => {
+                e.target.style.background = config.THEMES[mode].button;
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
+              <i className="fas fa-check" style="marginRight: 6px;"></i> Submit
+            </button>
+            <button
+              style=${styles.button}
+              onClick=${() => {
+                setCsvText('');
+                onClose();
+              }}
+              onMouseOver=${(e) => {
+                e.target.style.background = config.THEMES[mode].hover;
+                e.target.style.transform = 'translateY(-1px)';
+              }}
+              onMouseOut=${(e) => {
+                e.target.style.background = config.THEMES[mode].button;
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
+              <i className="fas fa-times" style="marginRight: 6px;"></i> Close
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  function Panel({
+    state,
+    config,
+    copyCallback,
+    mode,
+    // Use this instead of state.themeMode
+    onModeChange,
+    onStart,
+    onStop,
+    onReset,
+    onExportCSV,
+    onImportCSV,
+    onClear,
+    onManualCheckToggle,
+    onToggle,
+  }) {
+    const [flagged, setFlagged] = useState(
+      Array.from(state.processedPosts.entries()).filter(
+        ([_, { analysis }]) =>
+          analysis.quality.name === 'Problem' ||
+          analysis.quality.name === 'Potential Problem'
+      )
+    );
+    const [isVisible, setIsVisible] = useState(state.isPanelVisible);
+    const [isToolsExpanded, setIsToolsExpanded] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [currentMode, setCurrentMode] = useState(mode);
+    const [updateCounter, setUpdateCounter] = useState(0);
+    useEffect(() => {
+      const newFlagged = Array.from(state.processedPosts.entries()).filter(
+        ([_, { analysis }]) =>
+          analysis.quality.name === 'Problem' ||
+          analysis.quality.name === 'Potential Problem'
+      );
+      setFlagged(newFlagged);
+      setUpdateCounter((prev) => prev + 1);
+    }, [Array.from(state.processedPosts.entries())]);
+    useEffect(() => {
+      setIsVisible(state.isPanelVisible);
+    }, [state.isPanelVisible]);
+    useEffect(() => {
+      setCurrentMode(mode);
+    }, [mode]);
+    const toggleVisibility = () => {
+      const newVisibility = !isVisible;
+      setIsVisible(newVisibility);
+      onToggle(newVisibility);
+    };
+    const toggleTools = () => {
+      setIsToolsExpanded(!isToolsExpanded);
+    };
+    const handleModeChange = (e) => {
+      const newMode = e.target.value;
+      setCurrentMode(newMode);
+      onModeChange(newMode);
+    };
+    const handleImportCSV = () => {
+      setIsModalOpen(true);
+    };
+    const handleModalSubmit = (csvText) => {
+      onImportCSV(csvText);
+      setIsModalOpen(false);
+    };
+    const styles = getPanelStyles(mode, config, isVisible, currentMode);
+    styles.toolsSection.display = isToolsExpanded ? 'block' : 'none';
+    return html`
+      <div>
+        <style>
+          .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            justify-self: center;
+          }
+          .status-problem {
+            background-color: red;
+          }
+          .status-potential {
+            background-color: yellow;
+          }
+          .link-row {
+            display: grid;
+            grid-template-columns: 20px 1fr;
+            align-items: center;
+            gap: 10px;
+          }
+          .problem-links-wrapper::-webkit-scrollbar {
+            width: 6px;
+          }
+          .problem-links-wrapper::-webkit-scrollbar-thumb {
+            background: ${config.THEMES[currentMode].scroll};
+            border-radius: 3px;
+          }
+          .problem-links-wrapper::-webkit-scrollbar-track {
+            background: ${config.THEMES[currentMode].bg};
+          }
+          select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px ${config.THEMES[currentMode].scroll};
+          }
+          .link-item {
+            padding: 2px 0;
+            overflow-wrap: break-word;
+          }
+          .link-item a:hover {
+            text-decoration: underline;
+          }
+          button:active {
+            transform: scale(0.95);
+          }
+        </style>
+        <div id="xghosted-panel" style=${styles.panel}>
+          ${isVisible
+            ? html`
+                <div class="toolbar" style=${styles.toolbar}>
+                  <span>Problem Posts (${flagged.length}):</span>
+                  <div
+                    style="display: flex; align-items: center; gap: 10px; padding-left: 10px;"
+                  >
+                    <button
+                      style=${styles.button}
+                      onClick=${toggleTools}
+                      onMouseOver=${(e) => {
+                        e.target.style.background =
+                          config.THEMES[currentMode].hover;
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut=${(e) => {
+                        e.target.style.background =
+                          config.THEMES[currentMode].button;
+                        e.target.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <i
+                        className="fas fa-chevron-down"
+                        style="marginRight: 6px;"
+                      ></i>
+                      Tools
+                    </button>
+                    <button
+                      style=${styles.button}
+                      onClick=${toggleVisibility}
+                      onMouseOver=${(e) => {
+                        e.target.style.background =
+                          config.THEMES[currentMode].hover;
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut=${(e) => {
+                        e.target.style.background =
+                          config.THEMES[currentMode].button;
+                        e.target.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <i
+                        className="fas fa-eye-slash"
+                        style="marginRight: 6px;"
+                      ></i>
+                      Hide
+                    </button>
+                  </div>
+                </div>
+                <div class="tools-section" style=${styles.toolsSection}>
+                  <div
+                    style="display: flex; flex-direction: column; gap: 12px; padding: 15px;"
+                  >
+                    <div
+                      style="padding-bottom: 12px; border-bottom: 1px solid ${config
+                        .THEMES[currentMode].border};"
+                    >
+                      <select
+                        style=${{
+                          ...styles.modeSelector,
+                          width: '100%',
+                          padding: '8px 12px',
+                          fontSize: '14px',
+                        }}
+                        value=${currentMode}
+                        onChange=${handleModeChange}
+                      >
+                        <option value="dark">Dark</option>
+                        <option value="dim">Dim</option>
+                        <option value="light">Light</option>
+                      </select>
+                    </div>
+                    <div
+                      style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;"
+                    >
+                      <button
+                        style=${styles.button}
+                        onClick=${copyCallback}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-copy"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Copy
+                      </button>
+                      <button
+                        style=${styles.button}
+                        onClick=${onExportCSV}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-file-export"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Export CSV
+                      </button>
+                      <button
+                        style=${styles.button}
+                        onClick=${handleImportCSV}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-file-import"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Import CSV
+                      </button>
+                      <button
+                        style=${styles.button}
+                        onClick=${onClear}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-trash"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Clear
+                      </button>
+                    </div>
+                    <div
+                      style="display: flex; flex-direction: column; gap: 12px;"
+                    >
+                      <button
+                        style=${{
+                          ...styles.button,
+                          background: state.isManualCheckEnabled
+                            ? config.THEMES[currentMode].hover
+                            : config.THEMES[currentMode].button,
+                          border: state.isManualCheckEnabled
+                            ? `1px solid ${config.THEMES[currentMode].hover}`
+                            : `1px solid ${config.THEMES[currentMode].border}`,
+                        }}
+                        onClick=${onManualCheckToggle}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background = state.isManualCheckEnabled
+                            ? config.THEMES[currentMode].hover
+                            : config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-toggle-on"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Manual Check:
+                        ${state.isManualCheckEnabled ? 'On' : 'Off'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="control-row" style=${styles.controlRow}>
+                  <span style=${styles.statusLabel}>
+                    ${state.isRateLimited
+                      ? 'Paused (Rate Limit)'
+                      : state.isCollapsingEnabled
+                        ? 'Auto Collapse Running'
+                        : 'Auto Collapse Off'}
+                  </span>
+                  <div style="display: flex; gap: 8px;">
+                    <button
+                      style=${styles.button}
+                      onClick=${onStart}
+                      onMouseOver=${(e) => {
+                        e.target.style.background =
+                          config.THEMES[currentMode].hover;
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut=${(e) => {
+                        e.target.style.background =
+                          config.THEMES[currentMode].button;
+                        e.target.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <i className="fas fa-play" style="marginRight: 6px;"></i>
+                      Start
+                    </button>
+                    <button
+                      style=${styles.button}
+                      onClick=${onStop}
+                      onMouseOver=${(e) => {
+                        e.target.style.background =
+                          config.THEMES[currentMode].hover;
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut=${(e) => {
+                        e.target.style.background =
+                          config.THEMES[currentMode].button;
+                        e.target.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <i className="fas fa-pause" style="marginRight: 6px;"></i>
+                      Stop
+                    </button>
+                    <button
+                      style=${styles.button}
+                      onClick=${onReset}
+                      onMouseOver=${(e) => {
+                        e.target.style.background =
+                          config.THEMES[currentMode].hover;
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut=${(e) => {
+                        e.target.style.background =
+                          config.THEMES[currentMode].button;
+                        e.target.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <i className="fas fa-undo" style="marginRight: 6px;"></i>
+                      Reset
+                    </button>
+                  </div>
+                </div>
+                <div
+                  class="problem-links-wrapper"
+                  style=${styles.contentWrapper}
+                >
+                  ${flagged.map(
+                    ([href, { analysis }]) => html`
+                      <div
+                        class="link-row"
+                        style="display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; padding: 4px 0;"
+                      >
+                        <span
+                          class="status-dot ${analysis.quality.name ===
+                          'Problem'
+                            ? 'status-problem'
+                            : 'status-potential'}"
+                        ></span>
+                        <div class="link-item">
+                          <a href="https://x.com${href}" target="_blank"
+                            >${href}</a
+                          >
+                        </div>
+                      </div>
+                    `
+                  )}
+                </div>
+              `
+            : html`
+                <button
+                  style=${styles.button}
+                  onClick=${toggleVisibility}
+                  onMouseOver=${(e) => {
+                    e.target.style.background =
+                      config.THEMES[currentMode].hover;
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseOut=${(e) => {
+                    e.target.style.background =
+                      config.THEMES[currentMode].button;
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                >
+                  <i className="fas fa-eye" style="marginRight: 6px;"></i> Show
+                </button>
+              `}
+        </div>
+        <${Modal}
+          isOpen=${isModalOpen}
+          onClose=${() => setIsModalOpen(false)}
+          onSubmit=${handleModalSubmit}
+          mode=${currentMode}
+          config=${config}
+        />
+      </div>
+    `;
+  }
+  window.Panel = Panel;
+
+  // src/ui/PanelManager.js
+  window.PanelManager = function (doc, xGhostedInstance) {
     this.document = doc;
-    this.log =
-      config.useTampermonkeyLog && typeof GM_log !== 'undefined'
-        ? GM_log.bind(null)
-        : console.log.bind(console);
+    this.xGhosted = xGhostedInstance;
+    this.log = xGhostedInstance.log;
+    this.state = {
+      themeMode: 'light',
+      panelPosition: null,
+      instance: xGhostedInstance,
+    };
     this.uiElements = {
       config: {
         PANEL: {
@@ -978,14 +987,16 @@
           light: {
             bg: '#FFFFFF',
             text: '#292F33',
+            buttonText: '#000000',
             border: '#E1E8ED',
-            button: '#D3D3D3',
-            hover: '#C0C0C0',
+            button: '#B0BEC5',
+            hover: '#90A4AE',
             scroll: '#CCD6DD',
           },
           dim: {
             bg: '#15202B',
             text: '#D9D9D9',
+            buttonText: '#D9D9D9',
             border: '#38444D',
             button: '#38444D',
             hover: '#4A5C6D',
@@ -994,6 +1005,7 @@
           dark: {
             bg: '#000000',
             text: '#D9D9D9',
+            buttonText: '#D9D9D9',
             border: '#333333',
             button: '#333333',
             hover: '#444444',
@@ -1001,48 +1013,101 @@
           },
         },
       },
+      panel: null,
     };
+    this.init();
+  };
+  window.PanelManager.prototype.init = function () {
+    this.uiElements.panel = this.document.createElement('div');
+    this.document.body.appendChild(this.uiElements.panel);
+    this.applyPanelStyles();
+    this.renderPanel();
+  };
+  window.PanelManager.prototype.applyPanelStyles = function () {
+    const styleSheet = this.document.createElement('style');
+    styleSheet.textContent = `
+    button:active { transform: scale(0.95); }
+  `;
+    this.document.head.appendChild(styleSheet);
+  };
+  window.PanelManager.prototype.renderPanel = function () {
+    window.preact.render(
+      window.preact.h(window.Panel, {
+        state: this.xGhosted.state,
+        config: this.uiElements.config,
+        copyCallback: this.xGhosted.copyLinks.bind(this.xGhosted),
+        mode: this.state.themeMode,
+        onModeChange: this.handleModeChange.bind(this),
+        onStart: this.xGhosted.handleStart.bind(this.xGhosted),
+        onStop: this.xGhosted.handleStop.bind(this.xGhosted),
+        onReset: this.xGhosted.handleReset.bind(this.xGhosted),
+        onExportCSV: this.xGhosted.exportProcessedPostsCSV.bind(this.xGhosted),
+        onImportCSV: this.xGhosted.importProcessedPostsCSV.bind(this.xGhosted),
+        onClear: this.xGhosted.handleClear.bind(this.xGhosted),
+        onManualCheckToggle: this.xGhosted.handleManualCheckToggle.bind(
+          this.xGhosted
+        ),
+        onToggle: this.toggleVisibility.bind(this),
+      }),
+      this.uiElements.panel
+    );
+    this.log('Panel rendered');
+  };
+  window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
+    this.xGhosted.state.isPanelVisible =
+      typeof newVisibility === 'boolean'
+        ? newVisibility
+        : !this.xGhosted.state.isPanelVisible;
+    this.renderPanel();
+    this.xGhosted.saveState();
+    this.log(
+      `Panel visibility toggled to ${this.xGhosted.state.isPanelVisible}`
+    );
+  };
+  window.PanelManager.prototype.updateTheme = function (newMode) {
+    this.state.themeMode = newMode;
+    this.renderPanel();
+    this.log(`Panel theme updated to ${newMode}`);
+  };
+  window.PanelManager.prototype.handleModeChange = function (newMode) {
+    this.updateTheme(newMode);
+  };
+
+  // src/xGhosted.js
+  function XGhosted(doc, config = {}) {
+    const defaultTiming = {
+      debounceDelay: 500,
+      throttleDelay: 1e3,
+      tabCheckThrottle: 5e3,
+      exportThrottle: 5e3,
+    };
+    this.timing = { ...defaultTiming, ...config.timing };
+    this.document = doc;
+    this.log =
+      config.useTampermonkeyLog && typeof GM_log !== 'undefined'
+        ? GM_log.bind(null)
+        : console.log.bind(console);
+    this.state = {
+      postContainer: null,
+      processedPosts: /* @__PURE__ */ new Map(),
+      fullyProcessedPosts: /* @__PURE__ */ new Set(),
+      persistProcessedPosts: config.persistProcessedPosts ?? false,
+      problemLinks: /* @__PURE__ */ new Set(),
+      lastUrl: '',
+      isWithReplies: false,
+      isRateLimited: false,
+      isManualCheckEnabled: false,
+      isCollapsingEnabled: false,
+      isCollapsingRunning: false,
+      isPanelVisible: true,
+    };
+    this.panelManager = null;
     this.checkPostInNewTabThrottled = debounce((href) => {
       return this.checkPostInNewTab(href);
     }, this.timing.tabCheckThrottle);
-    this.highlightPostsDebounced = debounce(() => {
-      this.highlightPosts();
+    this.ensureAndHighlightPostsDebounced = debounce(() => {
+      this.ensureAndHighlightPosts();
     }, this.timing.debounceDelay);
-    this.exportProcessedPostsCSV = () => {
-      const headers = ['Link', 'Quality', 'Reason', 'Checked'];
-      const rows = Array.from(this.state.processedPosts.entries()).map(
-        ([link, { analysis, checked }]) => [
-          `"https://x.com${link}"`,
-          `"${analysis.quality.name}"`,
-          `"${analysis.reason.replace(/"/g, '""')}"`,
-          checked ? 'true' : 'false',
-        ]
-      );
-      const csvContent = [
-        headers.join(','),
-        ...rows.map((row) => row.join(',')),
-      ].join('\n');
-      const exportFn = () => {
-        navigator.clipboard
-          .writeText(csvContent)
-          .then(() => this.log('Processed posts CSV copied to clipboard'))
-          .catch((err) => this.log(`CSV export failed: ${err}`));
-        const blob = new Blob([csvContent], {
-          type: 'text/csv;charset=utf-8;',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = this.document.createElement('a');
-        a.href = url;
-        a.download = 'xghosted_processed_posts.csv';
-        a.click();
-        URL.revokeObjectURL(url);
-      };
-      if (typeof jest === 'undefined') {
-        debounce(exportFn, this.timing.exportThrottle)();
-      } else {
-        exportFn();
-      }
-    };
   }
   XGhosted.prototype.saveState = function () {
     const serializableArticles = {};
@@ -1055,7 +1120,6 @@
       isPanelVisible: this.state.isPanelVisible,
       isCollapsingEnabled: this.state.isCollapsingEnabled,
       isManualCheckEnabled: this.state.isManualCheckEnabled,
-      panelPosition: this.state.panelPosition,
       processedPosts: serializableArticles,
     });
   };
@@ -1064,7 +1128,6 @@
     this.state.isPanelVisible = savedState.isPanelVisible ?? true;
     this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
     this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
-    this.state.panelPosition = savedState.panelPosition || null;
     if (this.state.persistProcessedPosts) {
       const savedPosts = savedState.processedPosts || {};
       for (const [id, { analysis, checked }] of Object.entries(savedPosts)) {
@@ -1073,37 +1136,10 @@
             ...analysis,
             quality: postQuality[analysis.quality.name],
           },
-          // Restore quality object
           checked,
         });
       }
     }
-  };
-  XGhosted.prototype.updateControlLabel = function () {
-    if (!this.uiElements.controlLabel) {
-      this.log('Error: controlLabel is undefined in updateControlLabel');
-      return;
-    }
-    this.uiElements.controlLabel.textContent = this.state.isRateLimited
-      ? 'Paused (Rate Limit)'
-      : this.state.isCollapsingEnabled
-        ? 'Controls Running'
-        : 'Controls';
-  };
-  XGhosted.prototype.createPanel = function () {
-    this.state.instance = this;
-    createPanel(
-      this.document,
-      this.state,
-      this.uiElements,
-      this.uiElements.config,
-      this.togglePanelVisibility.bind(this),
-      this.copyLinks.bind(this)
-    );
-    this.uiElements.modeSelector.addEventListener('change', () => {
-      this.updateTheme();
-      this.saveState();
-    });
   };
   XGhosted.prototype.updateState = function (url) {
     this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(
@@ -1114,6 +1150,24 @@
       this.state.processedPosts.clear();
       this.state.lastUrl = url;
     }
+  };
+  XGhosted.prototype.generateCSVData = function () {
+    const headers = ['Link', 'Quality', 'Reason', 'Checked'];
+    const rows = Array.from(this.state.processedPosts.entries()).map(
+      ([id, { analysis, checked }]) => {
+        return [
+          `https://x.com${id}`,
+          analysis.quality.name,
+          analysis.reason,
+          checked ? 'true' : 'false',
+        ].join(',');
+      }
+    );
+    return [headers.join(','), ...rows].join('\n');
+  };
+  XGhosted.prototype.exportProcessedPostsCSV = function () {
+    const csvData = this.generateCSVData();
+    exportToCSV(csvData, 'processed_posts.csv', this.document, this.log);
   };
   XGhosted.prototype.checkPostInNewTab = function (href) {
     const fullUrl = `https://x.com${href}`;
@@ -1139,12 +1193,10 @@
               );
             }
             this.state.isRateLimited = true;
-            this.updateControlLabel();
             newWindow.close();
             setTimeout(() => {
               this.log('Resuming after rate limit pause');
               this.state.isRateLimited = false;
-              this.updateControlLabel();
               resolve(false);
             }, this.timing.rateLimitPause);
             return;
@@ -1163,12 +1215,10 @@
                 `Possible rate limit detected (no articles loaded). Pausing for ${this.timing.rateLimitPause / 1e3} seconds.`
               );
               this.state.isRateLimited = true;
-              this.updateControlLabel();
               newWindow.close();
               setTimeout(() => {
                 this.log('Resuming after empty result pause');
                 this.state.isRateLimited = false;
-                this.updateControlLabel();
                 resolve(false);
               }, this.timing.rateLimitPause);
               return;
@@ -1205,32 +1255,6 @@
         }
       }, 500);
     });
-  };
-  XGhosted.prototype.findPostContainer = function () {
-    if (this.state.postContainer) return this.state.postContainer;
-    const firstPost = this.document.querySelector(
-      'div[data-testid="cellInnerDiv"]'
-    );
-    if (!firstPost) {
-      this.log('No posts found with data-testid="cellInnerDiv"');
-      return null;
-    }
-    let currentElement = firstPost.parentElement;
-    while (currentElement) {
-      if (currentElement.hasAttribute('aria-label')) {
-        this.state.postContainer = currentElement;
-        this.state.postContainer.setAttribute(
-          'data-xghosted',
-          'posts-container'
-        );
-        const ariaLabel = this.state.postContainer.getAttribute('aria-label');
-        this.log(`Posts container identified with aria-label: "${ariaLabel}"`);
-        return this.state.postContainer;
-      }
-      currentElement = currentElement.parentElement;
-    }
-    this.log('No parent container found with aria-label');
-    return null;
   };
   XGhosted.prototype.userRequestedPostCheck = function (href) {
     const cached = this.state.processedPosts.get(href);
@@ -1276,44 +1300,117 @@
     }
   };
   XGhosted.prototype.replaceMenuButton = function (post, href) {
-    if (!post) return;
-    const button =
-      post.querySelector('button[aria-label="Share post"]') ||
-      post.querySelector('button');
-    if (!button) {
-      this.log(`No share button found for post with href: ${href}`);
-      return;
-    }
-    if (button.nextSibling?.textContent.includes('\u{1F440}')) return;
-    const newLink = Object.assign(this.document.createElement('a'), {
-      textContent: '\u{1F440}',
-      href: '#',
-    });
-    Object.assign(newLink.style, {
-      color: 'rgb(29, 155, 240)',
-      textDecoration: 'none',
-      padding: '8px',
-      cursor: 'pointer',
-    });
-    newLink.addEventListener('click', (e) => {
-      e.preventDefault();
+    replaceMenuButton(post, href, this.document, this.log, (href2) => {
       if (this.state.isRateLimited) {
         this.log('Tab check skipped due to rate limit pause');
         return;
       }
-      this.userRequestedPostCheck(href);
-      this.log(`Eyeball clicked for manual check on href: ${href}`);
+      this.userRequestedPostCheck(href2);
     });
-    button.parentElement.insertBefore(newLink, button.nextSibling);
+  };
+  XGhosted.prototype.handleStart = function () {
+    this.state.isCollapsingEnabled = true;
+    this.state.isCollapsingRunning = true;
+    const articles = this.document.querySelectorAll(
+      'div[data-testid="cellInnerDiv"]'
+    );
+    this.collapseArticlesWithDelay(articles);
+  };
+  XGhosted.prototype.handleStop = function () {
+    this.state.isCollapsingEnabled = false;
+  };
+  XGhosted.prototype.handleReset = function () {
+    this.state.isCollapsingEnabled = false;
+    this.state.isCollapsingRunning = false;
+    this.document
+      .querySelectorAll('div[data-testid="cellInnerDiv"]')
+      .forEach(this.expandArticle);
+    this.state.processedPosts = /* @__PURE__ */ new Map();
+    this.state.fullyProcessedPosts = /* @__PURE__ */ new Set();
+    this.state.problemLinks = /* @__PURE__ */ new Set();
+  };
+  XGhosted.prototype.clearProcessedPosts = function () {
+    this.state.processedPosts.clear();
+    this.state.fullyProcessedPosts.clear();
+    this.state.problemLinks.clear();
+    this.saveState();
+    this.ensureAndHighlightPosts();
+  };
+  XGhosted.prototype.handleManualCheckToggle = function () {
+    this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
+    this.log(`Manual Check toggled to ${this.state.isManualCheckEnabled}`);
+  };
+  XGhosted.prototype.handleClear = function () {
+    if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
+  };
+  XGhosted.prototype.collapseArticlesWithDelay = function (articles) {
+    let index = 0;
+    const interval = setInterval(() => {
+      if (
+        index >= articles.length ||
+        !this.state.isCollapsingEnabled ||
+        this.state.isRateLimited
+      ) {
+        clearInterval(interval);
+        this.state.isCollapsingRunning = false;
+        this.log('Collapsing completed or stopped');
+        return;
+      }
+      const article = articles[index];
+      const timeElement = article.querySelector('.css-146c3p1.r-1loqt21 time');
+      const href = timeElement?.parentElement?.getAttribute('href');
+      if (href && !this.state.fullyProcessedPosts.has(href)) {
+        const analysis = this.state.processedPosts.get(href)?.analysis;
+        if (
+          analysis &&
+          (analysis.quality === postQuality.PROBLEM ||
+            analysis.quality === postQuality.POTENTIAL_PROBLEM)
+        ) {
+          article.style.height = '0px';
+          article.style.overflow = 'hidden';
+          article.style.margin = '0';
+          article.style.padding = '0';
+          this.state.problemLinks.add(href);
+          this.log(`Collapsed article with href: ${href}`);
+        }
+        this.state.fullyProcessedPosts.add(href);
+      }
+      index++;
+    }, 200);
+  };
+  XGhosted.prototype.expandArticle = function (article) {
+    if (article) {
+      article.style.height = 'auto';
+      article.style.overflow = 'visible';
+      article.style.margin = 'auto';
+      article.style.padding = 'auto';
+    }
+  };
+  XGhosted.prototype.ensureAndHighlightPosts = function () {
+    let results = this.highlightPosts();
+    if (results.length === 0 && !this.state.postContainer) {
+      this.log('No posts highlighted, attempting to find container...');
+      this.state.postContainer = findPostContainer(this.document, this.log);
+      if (this.state.postContainer) {
+        this.log('Container found, retrying highlightPosts...');
+        results = this.highlightPosts();
+      } else {
+        this.log('Container still not found, skipping highlighting');
+      }
+    }
+    return results;
   };
   XGhosted.prototype.highlightPosts = function () {
-    const postsContainer = this.findPostContainer();
-    if (!postsContainer) {
-      this.log('No posts container found');
+    this.updateState(this.document.location.href);
+    if (!this.state.postContainer) {
+      this.log('No posts container set, skipping highlighting');
       return [];
     }
-    this.updateState(this.document.location.href);
     const processPostAnalysis = (post, analysis) => {
+      if (!(post instanceof this.document.defaultView.Element)) {
+        this.log('Skipping invalid DOM element:', post);
+        return;
+      }
       const id = analysis.link;
       const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
       post.setAttribute('data-xghosted', `postquality.${qualityName}`);
@@ -1327,27 +1424,18 @@
       this.state.processedPosts.set(id, { analysis, checked: false });
     };
     const results = identifyPosts(
-      postsContainer,
-      'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
+      this.document,
+      'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
       this.state.isWithReplies,
       this.state.fillerCount,
       processPostAnalysis
     );
-    renderPanel(this.document, this.state, this.uiElements, () =>
-      createPanel(
-        this.document,
-        this.state,
-        this.uiElements,
-        this.uiElements.config,
-        this.togglePanelVisibility.bind(this),
-        this.copyLinks.bind(this)
-      )
-    );
+    this.state = {
+      ...this.state,
+      processedPosts: new Map(this.state.processedPosts),
+    };
     this.saveState();
     return results;
-  };
-  XGhosted.prototype.highlightPostsImmediate = function () {
-    this.highlightPosts();
   };
   XGhosted.prototype.getThemeMode = function () {
     return detectTheme(this.document);
@@ -1361,12 +1449,14 @@
       )
       .map(([link]) => `https://x.com${link}`)
       .join('\n');
-    navigator.clipboard
-      .writeText(linksText)
-      .then(() => this.log('Links copied'))
-      .catch((err) => this.log(`Copy failed: ${err}`));
+    copyTextToClipboard(linksText, this.log);
   };
   XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
+    this.log('Import CSV button clicked');
+    if (typeof csvText !== 'string') {
+      this.log('Import CSV requires CSV text input');
+      return;
+    }
     if (!csvText || typeof csvText !== 'string') {
       this.log('Invalid CSV text provided');
       return;
@@ -1379,7 +1469,10 @@
           .split(',')
           .map((cell) => cell.replace(/^"|"$/g, '').replace(/""/g, '"'))
       );
-    if (lines.length < 2) return;
+    if (lines.length < 2) {
+      this.log('CSV must have at least one data row');
+      return;
+    }
     const headers = lines[0];
     const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
     if (!expectedHeaders.every((h, i) => h === headers[i])) {
@@ -1403,52 +1496,34 @@
         checked: checkedStr === 'true',
       });
     });
+    this.log(`Imported ${lines.length - 1} posts from CSV`);
     this.saveState();
-    this.highlightPostsImmediate();
+    this.ensureAndHighlightPosts();
   };
   XGhosted.prototype.clearProcessedPosts = function () {
     this.state.processedPosts.clear();
-    this.state.fullyprocessedPosts = /* @__PURE__ */ new WeakMap();
-    this.state.problemLinks = /* @__PURE__ */ new Set();
     this.saveState();
-    this.highlightPostsImmediate();
-  };
-  XGhosted.prototype.createButton = function (text, mode, onClick) {
-    return createButton(
-      this.document,
-      text,
-      mode,
-      onClick,
-      this.uiElements.config
-    );
-  };
-  XGhosted.prototype.togglePanelVisibility = function () {
-    togglePanelVisibility(this.state, this.uiElements);
-    this.saveState();
-  };
-  XGhosted.prototype.updateTheme = function () {
-    updateTheme(this.uiElements, this.uiElements.config);
+    this.ensureAndHighlightPosts();
   };
   XGhosted.prototype.init = function () {
+    this.log('Initializing XGhosted...');
     this.loadState();
-    this.createPanel();
-    this.updateControlLabel();
+    const initialTheme = this.getThemeMode();
+    this.panelManager = new window.PanelManager(this.document, this);
+    this.panelManager.updateTheme(initialTheme);
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
     .xghosted-problem { border: 2px solid red; }
     .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-    .xghosted-good { /* Optional: subtle styling if desired */ }
-    .xghosted-undefined { /* No styling needed */ }
+    .xghosted-good { }
+    .xghosted-undefined { }
   `;
     this.document.head.appendChild(styleSheet);
-    this.uiElements.highlightStyleSheet = styleSheet;
-    this.highlightPostsDebounced();
     this.saveState();
   };
   var XGhosted = XGhosted;
 
   // --- Initialization with Resource Limits and Rate Limiting ---
-  const MAX_PROCESSED_ARTICLES = 1000;
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
   const config = {
     timing: {
@@ -1456,10 +1531,10 @@
       throttleDelay: 1000,
       tabCheckThrottle: 5000,
       exportThrottle: 5000,
-      rateLimitPause: RATE_LIMIT_PAUSE, // Added to config
+      rateLimitPause: RATE_LIMIT_PAUSE,
     },
     useTampermonkeyLog: true,
-    persistProcessedPosts: false, // Explicitly set to false by default
+    persistProcessedPosts: false,
   };
   const xGhosted = new XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
@@ -1479,9 +1554,9 @@
     if (currentUrl !== lastUrl) {
       lastUrl = currentUrl;
       xGhosted.updateState(currentUrl);
-      xGhosted.highlightPostsDebounced();
+      xGhosted.ensureAndHighlightPostsDebounced();
     } else {
-      xGhosted.highlightPostsDebounced();
+      xGhosted.ensureAndHighlightPostsDebounced();
     }
   });
   observer.observe(document.body, { childList: true, subtree: true });

@@ -1,5 +1,5 @@
 = Grok Context for xGhosted v0.6.1
-:revision-date: March 28, 2025
+:revision-date: March 30, 2025
 
 == Roadmap to 0.6.1 Release
 - [x] Fix Show/Hide positioning and collapse behavior (Issue 2: After moving the panel, hiding it reverts to original position and collapses toward top-left; expected to collapse to current top-right). Resolved: Panel now collapses to current top-right position, button stays stationary.
@@ -8,7 +8,92 @@
 - [x] Fix POTENTIAL_PROBLEM detection inconsistencies (Issue 5: POTENTIAL_PROBLEM posts not consistently detected in manual testing despite test success). Resolved: Implemented DOM tagging with `data-xGhosted="postquality.potential_problem"` and CSS class `xGhosted-potential_problem`, with `checkPostInNewTab` verifying threads.
 - [x] Fix missing red dot in panel for PROBLEM posts (Issue 7: Red dot indicating PROBLEM status is missing in the panel, likely due to CSS or class mismatch in `renderPanel.js`). Resolved: Fixed class name to `status-problem` in `renderPanel.js`.
 - [x] Resolve rate limit test failure in `xGhosted.test.js` (Issue 8: Test timed out due to improper handling of timers and `done()` callback). Resolved: Rewrote test using `async/await` and advanced timers correctly.
+- [x] Remove `createPanel` import from `src/xGhosted.js` (March 30, 2025): Resolved build error (`Could not resolve "./dom/createPanel"`) by removing `import { createPanel } from './dom/createPanel'`. `npm run build` now generates a clean `xGhosted.user.js`.
+- [x] Move theme management to Preact (March 30, 2025): Removed `updateTheme.js`, integrated theme styles into `src/ui/Components.js` `Panel` component, ensuring consistent UI rendering via Preact’s virtual DOM.
+- [x] Fix test failures in `src/xGhosted.test.js` and `src/dom/renderPanel.test.js` (March 30, 2025): Updated `jest.setup.mjs` and test files to set Preact globals correctly, simplified `renderPanel` to delegate to `Panel` component, and updated tests to query DOM directly. Test suite now at 68/68 passing.
+- [ ] Fix Import CSV button functionality (March 30, 2025): Button does nothing when clicked (no logs). Proposed fix to add a `prompt` for CSV input in `src/xGhosted.js` (`importProcessedPostsCSV`) was not applied.
+- [ ] Add logging for Manual Check toggle (March 30, 2025): Toggle works, but lacks logging. Proposed update to add a log in `src/xGhosted.js` (`handleManualCheckToggle`) was not applied.
+- [ ] Restore panel layout (March 30, 2025): Layout regressed (white background, cramped buttons, reduced spacing). Proposed fix to `src/ui/Components.js` to restore dark theme, improve spacing, and ensure consistent button styling was not applied.
+- [ ] Debug theme detection (March 30, 2025): Panel renders in `light` mode (`rgb(255, 255, 255)` background) despite page likely being in a darker theme. Needs debugging in `detectTheme.js` or `mode` prop passed to `Panel`.
+- [ ] Implement Preact-based UI/UX with HTM and CDN loading for a modular and clean userscript. In progress: Theme management moved to Preact; next step is to refactor `togglePanelVisibility` to use Preact state.
 
 == Manual Testing
 - [ ] Verify tagging, highlighting, and fail message on 50+ post page.
 - [ ] Test rate limit handling and confirm UI updates (e.g., status dots) during pause and resume.
+
+== Preact/HTM Isolation for Production and Testing
+
+=== Objective
+Enable `src/xGhosted.js` to use a Preact-based `Panel` component (from `src/ui/Components.js`) in production via CDN-loaded Preact/HTM globals, while allowing tests to use local Preact/HTM modules without CDN or mocking, maintaining a clean `src/xGhosted.user.js` with no bundled Preact/HTM dependencies.
+
+=== Production Rules
+- Use `window.preact` (e.g., `window.preact.h`, `window.preact.render`) and `window.htm` globals in `src/xGhosted.js` and `src/ui/Components.js`, provided by `@require` directives in `src/xGhosted.template.js` (e.g., `@require https://unpkg.com/preact@10.26.4/dist/preact.min.js`).
+- Define components like `window.Panel` in `src/ui/Components.js` using these globals, not local imports.
+- Import `src/ui/Components.js` in `src/xGhosted.js` via ESM (e.g., `import './ui/Components.js';`) to bundle it with `build-xGhosted.js`, ensuring `window.Panel` is available.
+- Call `window.preact.render` directly in `src/xGhosted.js` (e.g., in `XGhosted.prototype.createPanel`)—no intermediate wrappers.
+
+=== Testing Rules
+- In test files (e.g., `src/xGhosted.test.js`), import Preact/HTM directly from `node_modules` (e.g., `import { h, render } from 'preact'; import htm from 'htm';`)—installed via `npm install --save-dev preact htm`.
+- Assume no CDN globals (`window.preact`, `window.htm`) exist in tests; use local modules instead.
+- Avoid mocking Preact/HTM in Vitest—use the real implementations for accurate testing.
+
+=== Isolation Mechanism
+- Production code (`src/xGhosted.js`, `src/ui/Components.js`) uses `window.preact` and `window.htm` globals, set by CDN in `src/xGhosted.template.js`.
+- Tests bridge the gap by setting `window.preact` and `window.htm` to local modules before running production code, via a preamble in `jest.setup.mjs`:
+
+[source,javascript]
+----
+import { h, render } from 'preact';
+import { useState, useEffect } from 'preact/hooks';
+import htm from 'htm';
+global.window = global.window || {};
+window.preact = { h, render };
+window.preactHooks = { useState, useEffect };
+window.htm = htm.bind(h);
+----
+
+- This ensures production code runs unchanged in tests, with `window.Panel` and rendering working as in production, but using local Preact/HTM.
+
+=== Build Process
+- `build-xGhosted.js` bundles `src/xGhosted.js` and its ESM imports (e.g., `src/ui/Components.js`) into `src/xGhosted.user.js`, injecting them at `// INJECT: xGhosted`.
+- Preact/HTM are not bundled—loaded via CDN `@require` in `src/xGhosted.template.js`.
+- No production code changes for testing—isolation is handled in `jest.setup.mjs`.
+
+=== Why No Wrapper?
+- A wrapper (e.g., `src/ui/wrapper.js`) is not required for production—`src/xGhosted.js` can call `window.preact.render` and `window.Panel` directly, keeping it simple.
+- Wrappers were a past mistake for test isolation; instead, use the `jest.setup.mjs` preamble to align test and production environments without altering production code.
+
+== Goals for xGhosted UI/UX Enhancement
+
+=== Overview
+You want to improve the UI/UX for your project (`src/xGhosted.js`) while keeping the final userscript (`src/xGhosted.user.js`) clean and free of direct dependencies on Preact or HTM. You prefer a methodical, conversational approach to this transition, taking one step at a time with clear discussion and confirmation at each stage.
+
+=== Replace UI/UX with Preact and HTM
+- Use Preact with HTM (instead of JSX) for simplicity in your UI/UX components.
+- Keep the final `src/xGhosted.user.js` lightweight and unmodified by loading Preact and HTM from a CDN.
+
+=== Modularity and Cleanliness
+- Extract UI/UX logic and styles from `src/xGhosted.js` into separate ES6 modules (e.g., under `src/utils/` or `src/ui/`).
+- Ensure the production code (`src/xGhosted.js`) doesn’t directly depend on Preact or HTM.
+
+=== Testing with Vitest
+- Use Preact and HTM in unit tests without mocking them, leveraging Vitest (since you’re committed to ES6 and ESBuild).
+- Introduce a wrapper (`src/utils/wrapper.js`) to bridge the gap between tests (which use Preact/HTM) and production code (which avoids direct Preact/HTM imports)—if needed, after discussion.
+
+=== Build Process
+- Use ESBuild to generate `src/xGhosted.user.js` in a straightforward way, relying on a CDN for Preact and HTM in production, keeping the bundled code pure.
+
+=== CDN Dependency
+- Load Preact (and potentially HTM) from a CDN in `src/xGhosted.template.js`, ensuring the end product (`src/xGhosted.user.js`) has no bundled Preact/HTM code.
+
+== Revision History
+- March 23, 2025: Updated for 0.6.1—18 tests pass in `xGhosted.test.js`. Persistence via `GM_setValue`/`GM_getValue` added.
+- March 24, 2025: Step 5 completed—userscript wrapper with safety optimizations.
+- March 25, 2025: Test suite at 24/24 passing in `src/xGhosted.test.js` after fixing timing initialization and `saveState` test. Timing values moved to constructor config, esbuild adopted.
+- March 26, 2025: Fixed `build-xGhosted.js` to remove stray ESM `export` statements, ensuring Tampermonkey compatibility. Enforced 1000-article cap in `xGhosted.js`. Fixed "Hide" functionality with proper sizing.
+- March 27, 2025: Updated revision date for current review.
+- March 28, 2025: Removed `applyHighlight`, refined `checkPostInNewTab` to thread analysis with Promise, updated `highlightPosts` to use throttled check and DOM classes.
+- March 28, 2025: Resolved rate limit test failure in `xGhosted.test.js` using `async/await` and proper timer management.
+- March 30, 2025: Removed `import { createPanel } from './dom/createPanel'` from `src/xGhosted.js`, resolving build error; `npm run build` now succeeds, generating a clean `xGhosted.user.js`.
+- March 30, 2025: Moved theme management to Preact, removed `updateTheme.js`, and fixed test failures in `src/xGhosted.test.js` and `src/dom/renderPanel.test.js` by setting Preact globals and simplifying `renderPanel`. Test suite now at 68/68 passing.
+- March 30, 2025: Tested button functionality—Copy, Export CSV, Clear, and Hide/Show work; Import CSV does nothing (proposed fix not applied); Manual Check toggle works but lacks logging (proposed fix not applied). Identified layout regression in `src/ui/Components.js` (white background, cramped buttons, reduced spacing); proposed fix not applied. Noted theme detection issue (panel renders in `light` mode despite page theme).
