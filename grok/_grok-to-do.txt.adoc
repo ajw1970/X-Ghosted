@@ -1,30 +1,11 @@
 = Things we'll want to ask Grok to do
 
-* Ensure separation of concerns
-** src/xGhosted.js:: Domain logic and app state controller
-*** no knowledge of preact/HTM or Tampermonkey
-** src/xGhosted.template.js:: Tampermonkey logic
-*** CDN for preact/HTM/FontAwesome
-** Preact:: UI logic
-*** No domain state management.
-** xGhosted hands app startup state expectations to preact
-** Preact can manage operational UI/UX state
-
 * Make sure all UI/UX works
-
 * Draggable panel
-
-*MERGE*: breaking-up into Preact-HTM
-
 * Clarify dom for post container and X.com behavior
-
-*MERGE*: Preact-HTM into collapsing
-
 * Get collapsing feature working
 
 *MERGE*: collapsing into main
 
 * Switch from HTM to JSX for Preact
-
 * Push list of bad communities and system notice strings into editable data with a default starting set of data.
-
