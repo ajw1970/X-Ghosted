@@ -12,6 +12,7 @@
 // @require      https://unpkg.com/preact@10.26.4/dist/preact.min.js
 // @require      https://unpkg.com/preact@10.26.4/hooks/dist/hooks.umd.js
 // @require      https://unpkg.com/htm@3.1.1/dist/htm.umd.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -41,7 +42,6 @@
     // INJECT: xGhosted
 
     // --- Initialization with Resource Limits and Rate Limiting ---
-    const MAX_PROCESSED_ARTICLES = 1000;
     const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
     const config = {
         timing: {
@@ -72,9 +72,9 @@
         if (currentUrl !== lastUrl) {
             lastUrl = currentUrl;
             xGhosted.updateState(currentUrl);
-            xGhosted.highlightPostsDebounced();
+            xGhosted.ensureAndHighlightPostsDebounced();
         } else {
-            xGhosted.highlightPostsDebounced();
+            xGhosted.ensureAndHighlightPostsDebounced();
         }
     });
     observer.observe(document.body, { childList: true, subtree: true });

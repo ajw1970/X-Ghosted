@@ -12,6 +12,7 @@
 // @require      https://unpkg.com/preact@10.26.4/dist/preact.min.js
 // @require      https://unpkg.com/preact@10.26.4/hooks/dist/hooks.umd.js
 // @require      https://unpkg.com/htm@3.1.1/dist/htm.umd.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -172,9 +173,7 @@
 
   // src/utils/getRelativeLinkToPost.js
   function getRelativeLinkToPost(element) {
-    const link = element
-      .querySelector('.css-146c3p1.r-1loqt21 time')
-      ?.parentElement?.getAttribute('href');
+    const link = element.querySelector('a:has(time)').getAttribute('href');
     return link || false;
   }
 
@@ -282,121 +281,229 @@
     };
   }
 
-  // src/dom/createButton.js
-  function createButton(doc, text, iconSvg, mode, onClick, config) {
-    const button = doc.createElement('button');
-    button.innerHTML = iconSvg ? `${iconSvg}<span>${text}</span>` : text;
-    Object.assign(button.style, {
-      background: config.THEMES[mode].button,
-      color: config.THEMES[mode].text,
-      borderStyle: 'none',
-      padding: '6px 12px',
-      borderRadius: '9999px',
-      cursor: 'pointer',
-      fontSize: '13px',
-      fontWeight: '500',
-      transition: 'background 0.2s ease',
-      marginRight: text === 'Copy' || text === 'Hide' ? '8px' : '0',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
+  // src/dom/domUtils.js
+  function findPostContainer(doc, log) {
+    const firstPost = doc.querySelector('div[data-testid="cellInnerDiv"]');
+    if (!firstPost) {
+      log('No posts found with data-testid="cellInnerDiv"');
+      return null;
+    }
+    let currentElement = firstPost.parentElement;
+    while (currentElement) {
+      if (currentElement.hasAttribute('aria-label')) {
+        currentElement.setAttribute('data-xghosted', 'posts-container');
+        const ariaLabel = currentElement.getAttribute('aria-label');
+        log(`Posts container identified with aria-label: "${ariaLabel}"`);
+        return currentElement;
+      }
+      currentElement = currentElement.parentElement;
+    }
+    log('No parent container found with aria-label');
+    return null;
+  }
+  function replaceMenuButton(post, href, doc, log, onClickCallback) {
+    if (!post) return;
+    const button =
+      post.querySelector('button[aria-label="Share post"]') ||
+      post.querySelector('button');
+    if (!button) {
+      log(`No share button found for post with href: ${href}`);
+      return;
+    }
+    if (button.nextSibling?.textContent.includes('\u{1F440}')) return;
+    const newLink = Object.assign(doc.createElement('a'), {
+      textContent: '\u{1F440}',
+      href: '#',
     });
-    button.addEventListener(
-      'mouseover',
-      () => (button.style.background = config.THEMES[mode].hover)
-    );
-    button.addEventListener(
-      'mouseout',
-      () => (button.style.background = config.THEMES[mode].button)
-    );
-    button.addEventListener('click', onClick);
-    return button;
+    Object.assign(newLink.style, {
+      color: 'rgb(29, 155, 240)',
+      textDecoration: 'none',
+      padding: '8px',
+      cursor: 'pointer',
+    });
+    newLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      onClickCallback(href);
+      log(`Eyeball clicked for manual check on href: ${href}`);
+    });
+    button.parentElement.insertBefore(newLink, button.nextSibling);
+  }
+
+  // src/utils/clipboardUtils.js
+  function copyTextToClipboard(text, log) {
+    return navigator.clipboard
+      .writeText(text)
+      .then(() => log('Text copied to clipboard'))
+      .catch((err) => log(`Clipboard copy failed: ${err}`));
+  }
+  function exportToCSV(data, filename, doc, log) {
+    const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = doc.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    log(`Exported CSV: ${filename}`);
+  }
+
+  // src/ui/styles.js
+  function getModalStyles(mode, config, isOpen) {
+    return {
+      modal: {
+        display: isOpen ? 'block' : 'none',
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        background: config.THEMES[mode].bg,
+        color: config.THEMES[mode].text,
+        border: `1px solid ${config.THEMES[mode].border}`,
+        borderRadius: '8px',
+        padding: '20px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+        zIndex: '10000',
+        width: '300px',
+      },
+      textarea: {
+        width: '100%',
+        height: '100px',
+        marginBottom: '15px',
+        background: config.THEMES[mode].bg,
+        color: config.THEMES[mode].text,
+        border: `1px solid ${config.THEMES[mode].border}`,
+        borderRadius: '4px',
+        padding: '4px',
+        resize: 'none',
+      },
+      buttonContainer: {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '15px',
+      },
+      button: {
+        background: config.THEMES[mode].button,
+        color: config.THEMES[mode].buttonText,
+        border: 'none',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: '500',
+        transition: 'background 0.2s ease, transform 0.1s ease',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+    };
+  }
+  function getPanelStyles(mode, config, isVisible, currentMode) {
+    return {
+      panel: {
+        width: isVisible ? config.PANEL.WIDTH : '80px',
+        maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
+        minWidth: isVisible ? '250px' : '80px',
+        padding: isVisible ? '12px' : '4px',
+        transition: 'all 0.2s ease',
+        position: 'fixed',
+        top: config.PANEL.TOP,
+        right: config.PANEL.RIGHT,
+        zIndex: config.PANEL.Z_INDEX,
+        fontFamily: config.PANEL.FONT,
+        background: config.THEMES[currentMode].bg,
+        color: config.THEMES[currentMode].text,
+        border: `1px solid ${config.THEMES[currentMode].border}`,
+        borderRadius: '12px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+      },
+      toolbar: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingBottom: '12px',
+        borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
+        marginBottom: '12px',
+        paddingLeft: '10px',
+        // Added to give left-side spacing
+      },
+      toolsSection: {
+        display: 'none',
+        // Controlled by isToolsExpanded in Panel
+        padding: '12px',
+        borderRadius: '8px',
+        background: `${config.THEMES[currentMode].bg}F0`,
+        // Solid background with slight opacity
+        boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
+        marginBottom: '12px',
+      },
+      controlRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingBottom: '8px',
+        marginBottom: '12px',
+      },
+      contentWrapper: {
+        maxHeight: 'calc(100vh - 150px)',
+        overflowY: 'auto',
+        paddingRight: '8px',
+        marginBottom: '12px',
+      },
+      button: {
+        background: config.THEMES[currentMode].button,
+        color: config.THEMES[currentMode].buttonText,
+        border: 'none',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: '500',
+        transition: 'background 0.2s ease, transform 0.1s ease',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+      modeSelector: {
+        background: config.THEMES[currentMode].button,
+        color: config.THEMES[currentMode].text,
+        border: 'none',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '500',
+        minWidth: '80px',
+        appearance: 'none',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+      statusLabel: {
+        fontSize: '13px',
+        fontWeight: '500',
+        color: config.THEMES[currentMode].text,
+      },
+    };
   }
 
   // src/ui/Components.js
-  var { h } = window.preact;
   var { useState, useEffect } = window.preactHooks;
-  var html = window.htm.bind(h);
+  var html = window.htm.bind(window.preact.h);
   function Modal({ isOpen, onClose, onSubmit, mode, config }) {
     const [csvText, setCsvText] = useState('');
-    const modalStyle = {
-      display: isOpen ? 'block' : 'none',
-      position: 'fixed',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      background: config.THEMES[mode].bg,
-      color: config.THEMES[mode].text,
-      border: `1px solid ${config.THEMES[mode].border}`,
-      borderRadius: '8px',
-      padding: '20px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-      zIndex: '10000',
-      width: '300px',
-    };
-    const textareaStyle = {
-      width: '100%',
-      height: '100px',
-      marginBottom: '15px',
-      background: config.THEMES[mode].bg,
-      color: config.THEMES[mode].text,
-      border: `1px solid ${config.THEMES[mode].border}`,
-      borderRadius: '4px',
-      padding: '4px',
-      resize: 'none',
-    };
-    const buttonContainerStyle = {
-      display: 'flex',
-      justifyContent: 'center',
-      gap: '15px',
-    };
-    const buttonStyle = {
-      background: config.THEMES[mode].button,
-      color: config.THEMES[mode].buttonText,
-      border: 'none',
-      padding: '6px 10px',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '12px',
-      fontWeight: '500',
-      transition: 'background 0.2s ease, transform 0.1s ease',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    };
-    const getSvgIcon = (name) => {
-      const fillColor = mode === 'light' ? '#292F33' : 'currentColor';
-      const icons = {
-        check: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [h('path', { d: 'M9 16.2l-3.5-3.5-1.4 1.4 4.9 4.9 10-10-1.4-1.4z' })]
-        ),
-        close: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M19 6.41l-1.41-1.41-5.59 5.59-5.59-5.59-1.41 1.41 5.59 5.59-5.59 5.59 1.41 1.41 5.59-5.59 5.59 5.59 1.41-1.41-5.59-5.59z',
-            }),
-          ]
-        ),
-      };
-      return icons[name] || null;
-    };
+    const styles = getModalStyles(mode, config, isOpen);
     return html`
-      <div style=${modalStyle}>
+      <div style=${styles.modal}>
         <div>
           <textarea
-            style=${textareaStyle}
+            style=${styles.textarea}
             value=${csvText}
             onInput=${(e) => setCsvText(e.target.value)}
             placeholder="Paste CSV content (e.g. Link Quality Reason Checked)"
           ></textarea>
-          <div style=${buttonContainerStyle}>
+          <div style=${styles.buttonContainer}>
             <button
-              style=${buttonStyle}
+              style=${styles.button}
               onClick=${() => onSubmit(csvText)}
               onMouseOver=${(e) => {
                 e.target.style.background = config.THEMES[mode].hover;
@@ -407,10 +514,10 @@
                 e.target.style.transform = 'translateY(0)';
               }}
             >
-              ${getSvgIcon('check')} Submit
+              <i className="fas fa-check" style="marginRight: 6px;"></i> Submit
             </button>
             <button
-              style=${buttonStyle}
+              style=${styles.button}
               onClick=${() => {
                 setCsvText('');
                 onClose();
@@ -424,7 +531,7 @@
                 e.target.style.transform = 'translateY(0)';
               }}
             >
-              ${getSvgIcon('close')} Close
+              <i className="fas fa-times" style="marginRight: 6px;"></i> Close
             </button>
           </div>
         </div>
@@ -436,6 +543,7 @@
     config,
     copyCallback,
     mode,
+    // Use this instead of state.themeMode
     onModeChange,
     onStart,
     onStop,
@@ -466,7 +574,7 @@
       );
       setFlagged(newFlagged);
       setUpdateCounter((prev) => prev + 1);
-    }, [state.processedPosts]);
+    }, [Array.from(state.processedPosts.entries())]);
     useEffect(() => {
       setIsVisible(state.isPanelVisible);
     }, [state.isPanelVisible]);
@@ -493,166 +601,8 @@
       onImportCSV(csvText);
       setIsModalOpen(false);
     };
-    const panelStyle = {
-      width: isVisible ? config.PANEL.WIDTH : 'auto',
-      maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '80px',
-      minWidth: isVisible ? '250px' : '180px',
-      padding: isVisible ? '12px' : '8px',
-      transition: 'all 0.2s ease',
-      position: 'fixed',
-      top: config.PANEL.TOP,
-      right: config.PANEL.RIGHT,
-      zIndex: config.PANEL.Z_INDEX,
-      fontFamily: config.PANEL.FONT,
-      background: config.THEMES[currentMode].bg,
-      color: config.THEMES[currentMode].text,
-      border: `1px solid ${config.THEMES[currentMode].border}`,
-      borderRadius: '12px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-    };
-    const toolbarStyle = {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingBottom: '12px',
-      borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
-      marginBottom: '12px',
-    };
-    const toolsSectionStyle = {
-      display: isToolsExpanded ? 'block' : 'none',
-      padding: '12px 0',
-      borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
-      marginBottom: '12px',
-      background:
-        currentMode === 'light'
-          ? '#E1E8EDCC'
-          : `${config.THEMES[currentMode].bg}CC`,
-      borderRadius: '8px',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    };
-    const controlRowStyle = {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingBottom: '8px',
-      marginBottom: '12px',
-    };
-    const contentWrapperStyle = {
-      maxHeight: 'calc(100vh - 150px)',
-      overflowY: 'auto',
-      paddingRight: '8px',
-      marginBottom: '12px',
-    };
-    const buttonStyle = {
-      background: config.THEMES[currentMode].button,
-      color: config.THEMES[currentMode].buttonText,
-      border: 'none',
-      padding: '6px 10px',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '12px',
-      fontWeight: '500',
-      transition: 'background 0.2s ease, transform 0.1s ease',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      marginRight: '8px',
-    };
-    const modeSelectorStyle = {
-      background: config.THEMES[currentMode].button,
-      color: config.THEMES[currentMode].text,
-      border: 'none',
-      padding: '6px 24px 6px 12px',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '12px',
-      fontWeight: '500',
-      marginRight: '8px',
-      minWidth: '80px',
-      appearance: 'none',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    };
-    const statusLabelStyle = {
-      fontSize: '13px',
-      fontWeight: '500',
-      color: config.THEMES[currentMode].text,
-    };
-    const getSvgIcon = (name) => {
-      const fillColor = currentMode === 'light' ? '#292F33' : 'currentColor';
-      const icons = {
-        chevronDown: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [h('path', { d: 'M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6-6-6z' })]
-        ),
-        copy: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z',
-            }),
-          ]
-        ),
-        play: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [h('path', { d: 'M8 5v14l11-7z' })]
-        ),
-        pause: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [h('path', { d: 'M6 19h4V5H6v14zm8-14v14h4V5h-4z' })]
-        ),
-        reset: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M12 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z',
-            }),
-          ]
-        ),
-        import: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z',
-            }),
-          ]
-        ),
-        export: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l-2.59-2.58L7 11.5l5 5 5-5-1.41-1.41L13 12.67V3h-2v9.67z',
-            }),
-          ]
-        ),
-        clear: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M19 6.41l-1.41-1.41-5.59 5.59-5.59-5.59-1.41 1.41 5.59 5.59-5.59 5.59 1.41 1.41 5.59-5.59 5.59 5.59 1.41-1.41-5.59-5.59z',
-            }),
-          ]
-        ),
-        toggle: h(
-          'svg',
-          { width: '12', height: '12', viewBox: '0 0 24 24', fill: fillColor },
-          [
-            h('path', {
-              d: 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z',
-            }),
-          ]
-        ),
-      };
-      return icons[name] || null;
-    };
+    const styles = getPanelStyles(mode, config, isVisible, currentMode);
+    styles.toolsSection.display = isToolsExpanded ? 'block' : 'none';
     return html`
       <div>
         <style>
@@ -701,14 +651,16 @@
             transform: scale(0.95);
           }
         </style>
-        <div id="xghosted-panel" style=${panelStyle}>
+        <div id="xghosted-panel" style=${styles.panel}>
           ${isVisible
             ? html`
-                <div class="toolbar" style=${toolbarStyle}>
+                <div class="toolbar" style=${styles.toolbar}>
                   <span>Problem Posts (${flagged.length}):</span>
-                  <div style="display: flex; align-items: center;">
+                  <div
+                    style="display: flex; align-items: center; gap: 10px; padding-left: 10px;"
+                  >
                     <button
-                      style=${buttonStyle}
+                      style=${styles.button}
                       onClick=${toggleTools}
                       onMouseOver=${(e) => {
                         e.target.style.background =
@@ -721,108 +673,179 @@
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
-                      ${getSvgIcon('chevronDown')} Tools
+                      <i
+                        className="fas fa-chevron-down"
+                        style="marginRight: 6px;"
+                      ></i>
+                      Tools
                     </button>
-                    <select
-                      style=${modeSelectorStyle}
-                      value=${currentMode}
-                      onChange=${handleModeChange}
+                    <button
+                      style=${styles.button}
+                      onClick=${toggleVisibility}
+                      onMouseOver=${(e) => {
+                        e.target.style.background =
+                          config.THEMES[currentMode].hover;
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut=${(e) => {
+                        e.target.style.background =
+                          config.THEMES[currentMode].button;
+                        e.target.style.transform = 'translateY(0)';
+                      }}
                     >
-                      <option value="dark">Dark</option>
-                      <option value="dim">Dim</option>
-                      <option value="light">Light</option>
-                    </select>
+                      <i
+                        className="fas fa-eye-slash"
+                        style="marginRight: 6px;"
+                      ></i>
+                      Hide
+                    </button>
                   </div>
                 </div>
-                <div class="tools-section" style=${toolsSectionStyle}>
+                <div class="tools-section" style=${styles.toolsSection}>
                   <div
-                    style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;"
+                    style="display: flex; flex-direction: column; gap: 12px; padding: 15px;"
                   >
-                    <button
-                      style=${buttonStyle}
-                      onClick=${copyCallback}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
+                    <div
+                      style="padding-bottom: 12px; border-bottom: 1px solid ${config
+                        .THEMES[currentMode].border};"
                     >
-                      ${getSvgIcon('copy')} Copy
-                    </button>
-                    <button
-                      style=${buttonStyle}
-                      onClick=${onExportCSV}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
+                      <select
+                        style=${{
+                          ...styles.modeSelector,
+                          width: '100%',
+                          padding: '8px 12px',
+                          fontSize: '14px',
+                        }}
+                        value=${currentMode}
+                        onChange=${handleModeChange}
+                      >
+                        <option value="dark">Dark</option>
+                        <option value="dim">Dim</option>
+                        <option value="light">Light</option>
+                      </select>
+                    </div>
+                    <div
+                      style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;"
                     >
-                      ${getSvgIcon('export')} Export CSV
-                    </button>
-                    <button
-                      style=${buttonStyle}
-                      onClick=${handleImportCSV}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
+                      <button
+                        style=${styles.button}
+                        onClick=${copyCallback}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-copy"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Copy
+                      </button>
+                      <button
+                        style=${styles.button}
+                        onClick=${onExportCSV}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-file-export"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Export CSV
+                      </button>
+                      <button
+                        style=${styles.button}
+                        onClick=${handleImportCSV}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-file-import"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Import CSV
+                      </button>
+                      <button
+                        style=${styles.button}
+                        onClick=${onClear}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-trash"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Clear
+                      </button>
+                    </div>
+                    <div
+                      style="display: flex; flex-direction: column; gap: 12px;"
                     >
-                      ${getSvgIcon('import')} Import CSV
-                    </button>
-                    <button
-                      style=${buttonStyle}
-                      onClick=${onClear}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      ${getSvgIcon('clear')} Clear
-                    </button>
-                    <button
-                      style=${buttonStyle}
-                      onClick=${onManualCheckToggle}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      ${getSvgIcon('toggle')} Manual Check:
-                      ${state.isManualCheckEnabled ? 'On' : 'Off'}
-                    </button>
+                      <button
+                        style=${{
+                          ...styles.button,
+                          background: state.isManualCheckEnabled
+                            ? config.THEMES[currentMode].hover
+                            : config.THEMES[currentMode].button,
+                          border: state.isManualCheckEnabled
+                            ? `1px solid ${config.THEMES[currentMode].hover}`
+                            : `1px solid ${config.THEMES[currentMode].border}`,
+                        }}
+                        onClick=${onManualCheckToggle}
+                        onMouseOver=${(e) => {
+                          e.target.style.background =
+                            config.THEMES[currentMode].hover;
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut=${(e) => {
+                          e.target.style.background = state.isManualCheckEnabled
+                            ? config.THEMES[currentMode].hover
+                            : config.THEMES[currentMode].button;
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <i
+                          className="fas fa-toggle-on"
+                          style="marginRight: 8px;"
+                        ></i>
+                        Manual Check:
+                        ${state.isManualCheckEnabled ? 'On' : 'Off'}
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div class="control-row" style=${controlRowStyle}>
-                  <span style=${statusLabelStyle}>
+                <div class="control-row" style=${styles.controlRow}>
+                  <span style=${styles.statusLabel}>
                     ${state.isRateLimited
                       ? 'Paused (Rate Limit)'
                       : state.isCollapsingEnabled
@@ -831,7 +854,7 @@
                   </span>
                   <div style="display: flex; gap: 8px;">
                     <button
-                      style=${buttonStyle}
+                      style=${styles.button}
                       onClick=${onStart}
                       onMouseOver=${(e) => {
                         e.target.style.background =
@@ -844,10 +867,11 @@
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
-                      ${getSvgIcon('play')} Start
+                      <i className="fas fa-play" style="marginRight: 6px;"></i>
+                      Start
                     </button>
                     <button
-                      style=${buttonStyle}
+                      style=${styles.button}
                       onClick=${onStop}
                       onMouseOver=${(e) => {
                         e.target.style.background =
@@ -860,10 +884,11 @@
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
-                      ${getSvgIcon('pause')} Stop
+                      <i className="fas fa-pause" style="marginRight: 6px;"></i>
+                      Stop
                     </button>
                     <button
-                      style=${buttonStyle}
+                      style=${styles.button}
                       onClick=${onReset}
                       onMouseOver=${(e) => {
                         e.target.style.background =
@@ -876,11 +901,15 @@
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
-                      ${getSvgIcon('reset')} Reset
+                      <i className="fas fa-undo" style="marginRight: 6px;"></i>
+                      Reset
                     </button>
                   </div>
                 </div>
-                <div class="problem-links-wrapper" style=${contentWrapperStyle}>
+                <div
+                  class="problem-links-wrapper"
+                  style=${styles.contentWrapper}
+                >
                   ${flagged.map(
                     ([href, { analysis }]) => html`
                       <div
@@ -889,7 +918,7 @@
                       >
                         <span
                           class="status-dot ${analysis.quality.name ===
-                          state.postQuality.PROBLEM.name
+                          'Problem'
                             ? 'status-problem'
                             : 'status-potential'}"
                         ></span>
@@ -903,27 +932,24 @@
                   )}
                 </div>
               `
-            : ''}
-          <button
-            style=${{
-              ...buttonStyle,
-              marginRight: isVisible ? '8px' : '0',
-              position: isVisible ? 'static' : 'absolute',
-              top: isVisible ? 'auto' : '8px',
-              right: isVisible ? 'auto' : '8px',
-            }}
-            onClick=${toggleVisibility}
-            onMouseOver=${(e) => {
-              e.target.style.background = config.THEMES[currentMode].hover;
-              e.target.style.transform = 'translateY(-1px)';
-            }}
-            onMouseOut=${(e) => {
-              e.target.style.background = config.THEMES[currentMode].button;
-              e.target.style.transform = 'translateY(0)';
-            }}
-          >
-            <span>${isVisible ? 'Hide' : 'Show'}</span>
-          </button>
+            : html`
+                <button
+                  style=${styles.button}
+                  onClick=${toggleVisibility}
+                  onMouseOver=${(e) => {
+                    e.target.style.background =
+                      config.THEMES[currentMode].hover;
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseOut=${(e) => {
+                    e.target.style.background =
+                      config.THEMES[currentMode].button;
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                >
+                  <i className="fas fa-eye" style="marginRight: 6px;"></i> Show
+                </button>
+              `}
         </div>
         <${Modal}
           isOpen=${isModalOpen}
@@ -937,39 +963,16 @@
   }
   window.Panel = Panel;
 
-  // src/xGhosted.js
-  function XGhosted(doc, config = {}) {
-    const defaultTiming = {
-      debounceDelay: 500,
-      throttleDelay: 1e3,
-      tabCheckThrottle: 5e3,
-      exportThrottle: 5e3,
-    };
-    this.timing = { ...defaultTiming, ...config.timing };
-    this.state = {
-      isWithReplies: false,
-      postContainer: null,
-      lastUrl: '',
-      processedPosts: /* @__PURE__ */ new Map(),
-      fullyprocessedPosts: /* @__PURE__ */ new Set(),
-      // Added for collapseArticlesWithDelay
-      problemLinks: /* @__PURE__ */ new Set(),
-      // Added for collapseArticlesWithDelay
-      postQuality,
-      isPanelVisible: true,
-      isDarkMode: true,
-      isManualCheckEnabled: false,
-      panelPosition: null,
-      persistProcessedPosts: config.persistProcessedPosts ?? false,
-      isRateLimited: false,
-      isCollapsingEnabled: false,
-      isCollapsingRunning: false,
-    };
+  // src/ui/PanelManager.js
+  window.PanelManager = function (doc, xGhostedInstance) {
     this.document = doc;
-    this.log =
-      config.useTampermonkeyLog && typeof GM_log !== 'undefined'
-        ? GM_log.bind(null)
-        : console.log.bind(console);
+    this.xGhosted = xGhostedInstance;
+    this.log = xGhostedInstance.log;
+    this.state = {
+      themeMode: 'light',
+      panelPosition: null,
+      instance: xGhostedInstance,
+    };
     this.uiElements = {
       config: {
         PANEL: {
@@ -1012,47 +1015,99 @@
       },
       panel: null,
     };
+    this.init();
+  };
+  window.PanelManager.prototype.init = function () {
+    this.uiElements.panel = this.document.createElement('div');
+    this.document.body.appendChild(this.uiElements.panel);
+    this.applyPanelStyles();
+    this.renderPanel();
+  };
+  window.PanelManager.prototype.applyPanelStyles = function () {
+    const styleSheet = this.document.createElement('style');
+    styleSheet.textContent = `
+    button:active { transform: scale(0.95); }
+  `;
+    this.document.head.appendChild(styleSheet);
+  };
+  window.PanelManager.prototype.renderPanel = function () {
+    window.preact.render(
+      window.preact.h(window.Panel, {
+        state: this.xGhosted.state,
+        config: this.uiElements.config,
+        copyCallback: this.xGhosted.copyLinks.bind(this.xGhosted),
+        mode: this.state.themeMode,
+        onModeChange: this.handleModeChange.bind(this),
+        onStart: this.xGhosted.handleStart.bind(this.xGhosted),
+        onStop: this.xGhosted.handleStop.bind(this.xGhosted),
+        onReset: this.xGhosted.handleReset.bind(this.xGhosted),
+        onExportCSV: this.xGhosted.exportProcessedPostsCSV.bind(this.xGhosted),
+        onImportCSV: this.xGhosted.importProcessedPostsCSV.bind(this.xGhosted),
+        onClear: this.xGhosted.handleClear.bind(this.xGhosted),
+        onManualCheckToggle: this.xGhosted.handleManualCheckToggle.bind(
+          this.xGhosted
+        ),
+        onToggle: this.toggleVisibility.bind(this),
+      }),
+      this.uiElements.panel
+    );
+    this.log('Panel rendered');
+  };
+  window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
+    this.xGhosted.state.isPanelVisible =
+      typeof newVisibility === 'boolean'
+        ? newVisibility
+        : !this.xGhosted.state.isPanelVisible;
+    this.renderPanel();
+    this.xGhosted.saveState();
+    this.log(
+      `Panel visibility toggled to ${this.xGhosted.state.isPanelVisible}`
+    );
+  };
+  window.PanelManager.prototype.updateTheme = function (newMode) {
+    this.state.themeMode = newMode;
+    this.renderPanel();
+    this.log(`Panel theme updated to ${newMode}`);
+  };
+  window.PanelManager.prototype.handleModeChange = function (newMode) {
+    this.updateTheme(newMode);
+  };
+
+  // src/xGhosted.js
+  function XGhosted(doc, config = {}) {
+    const defaultTiming = {
+      debounceDelay: 500,
+      throttleDelay: 1e3,
+      tabCheckThrottle: 5e3,
+      exportThrottle: 5e3,
+    };
+    this.timing = { ...defaultTiming, ...config.timing };
+    this.document = doc;
+    this.log =
+      config.useTampermonkeyLog && typeof GM_log !== 'undefined'
+        ? GM_log.bind(null)
+        : console.log.bind(console);
+    this.state = {
+      postContainer: null,
+      processedPosts: /* @__PURE__ */ new Map(),
+      fullyProcessedPosts: /* @__PURE__ */ new Set(),
+      persistProcessedPosts: config.persistProcessedPosts ?? false,
+      problemLinks: /* @__PURE__ */ new Set(),
+      lastUrl: '',
+      isWithReplies: false,
+      isRateLimited: false,
+      isManualCheckEnabled: false,
+      isCollapsingEnabled: false,
+      isCollapsingRunning: false,
+      isPanelVisible: true,
+    };
+    this.panelManager = null;
     this.checkPostInNewTabThrottled = debounce((href) => {
       return this.checkPostInNewTab(href);
     }, this.timing.tabCheckThrottle);
-    this.highlightPostsDebounced = debounce(() => {
-      this.highlightPosts();
+    this.ensureAndHighlightPostsDebounced = debounce(() => {
+      this.ensureAndHighlightPosts();
     }, this.timing.debounceDelay);
-    this.exportProcessedPostsCSV = () => {
-      const headers = ['Link', 'Quality', 'Reason', 'Checked'];
-      const rows = Array.from(this.state.processedPosts.entries()).map(
-        ([link, { analysis, checked }]) => [
-          `"https://x.com${link}"`,
-          `"${analysis.quality.name}"`,
-          `"${analysis.reason.replace(/"/g, '""')}"`,
-          checked ? 'true' : 'false',
-        ]
-      );
-      const csvContent = [
-        headers.join(','),
-        ...rows.map((row) => row.join(',')),
-      ].join('\n');
-      const exportFn = () => {
-        navigator.clipboard
-          .writeText(csvContent)
-          .then(() => this.log('Processed posts CSV copied to clipboard'))
-          .catch((err) => this.log(`CSV export failed: ${err}`));
-        const blob = new Blob([csvContent], {
-          type: 'text/csv;charset=utf-8;',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = this.document.createElement('a');
-        a.href = url;
-        a.download = 'xghosted_processed_posts.csv';
-        a.click();
-        URL.revokeObjectURL(url);
-      };
-      if (typeof jest === 'undefined') {
-        debounce(exportFn, this.timing.exportThrottle)();
-      } else {
-        exportFn();
-      }
-    };
   }
   XGhosted.prototype.saveState = function () {
     const serializableArticles = {};
@@ -1065,7 +1120,6 @@
       isPanelVisible: this.state.isPanelVisible,
       isCollapsingEnabled: this.state.isCollapsingEnabled,
       isManualCheckEnabled: this.state.isManualCheckEnabled,
-      panelPosition: this.state.panelPosition,
       processedPosts: serializableArticles,
     });
   };
@@ -1074,7 +1128,6 @@
     this.state.isPanelVisible = savedState.isPanelVisible ?? true;
     this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
     this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
-    this.state.panelPosition = savedState.panelPosition || null;
     if (this.state.persistProcessedPosts) {
       const savedPosts = savedState.processedPosts || {};
       for (const [id, { analysis, checked }] of Object.entries(savedPosts)) {
@@ -1088,37 +1141,6 @@
       }
     }
   };
-  XGhosted.prototype.createPanel = function () {
-    const { h: h2, render } = window.preact;
-    this.state.instance = this;
-    const mode = this.getThemeMode();
-    this.state.isDarkMode = mode !== 'light';
-    this.uiElements.panel = this.document.createElement('div');
-    this.document.body.appendChild(this.uiElements.panel);
-    render(
-      h2(window.Panel, {
-        state: this.state,
-        config: this.uiElements.config,
-        copyCallback: this.copyLinks.bind(this),
-        mode,
-        onModeChange: this.handleModeChange.bind(this),
-        onStart: this.handleStart.bind(this),
-        onStop: this.handleStop.bind(this),
-        onReset: this.handleReset.bind(this),
-        onExportCSV: this.exportProcessedPostsCSV.bind(this),
-        onImportCSV: this.importProcessedPostsCSV.bind(this),
-        onClear: this.handleClear.bind(this),
-        // Error: this.handleClear is undefined
-        onManualCheckToggle: this.handleManualCheckToggle.bind(this),
-        onToggle: (newVisibility) => {
-          this.state.isPanelVisible = newVisibility;
-          this.saveState();
-          this.log(`Panel visibility toggled to ${newVisibility}`);
-        },
-      }),
-      this.uiElements.panel
-    );
-  };
   XGhosted.prototype.updateState = function (url) {
     this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(
       url
@@ -1128,6 +1150,24 @@
       this.state.processedPosts.clear();
       this.state.lastUrl = url;
     }
+  };
+  XGhosted.prototype.generateCSVData = function () {
+    const headers = ['Link', 'Quality', 'Reason', 'Checked'];
+    const rows = Array.from(this.state.processedPosts.entries()).map(
+      ([id, { analysis, checked }]) => {
+        return [
+          `https://x.com${id}`,
+          analysis.quality.name,
+          analysis.reason,
+          checked ? 'true' : 'false',
+        ].join(',');
+      }
+    );
+    return [headers.join(','), ...rows].join('\n');
+  };
+  XGhosted.prototype.exportProcessedPostsCSV = function () {
+    const csvData = this.generateCSVData();
+    exportToCSV(csvData, 'processed_posts.csv', this.document, this.log);
   };
   XGhosted.prototype.checkPostInNewTab = function (href) {
     const fullUrl = `https://x.com${href}`;
@@ -1216,32 +1256,6 @@
       }, 500);
     });
   };
-  XGhosted.prototype.findPostContainer = function () {
-    if (this.state.postContainer) return this.state.postContainer;
-    const firstPost = this.document.querySelector(
-      'div[data-testid="cellInnerDiv"]'
-    );
-    if (!firstPost) {
-      this.log('No posts found with data-testid="cellInnerDiv"');
-      return null;
-    }
-    let currentElement = firstPost.parentElement;
-    while (currentElement) {
-      if (currentElement.hasAttribute('aria-label')) {
-        this.state.postContainer = currentElement;
-        this.state.postContainer.setAttribute(
-          'data-xghosted',
-          'posts-container'
-        );
-        const ariaLabel = this.state.postContainer.getAttribute('aria-label');
-        this.log(`Posts container identified with aria-label: "${ariaLabel}"`);
-        return this.state.postContainer;
-      }
-      currentElement = currentElement.parentElement;
-    }
-    this.log('No parent container found with aria-label');
-    return null;
-  };
   XGhosted.prototype.userRequestedPostCheck = function (href) {
     const cached = this.state.processedPosts.get(href);
     if (
@@ -1286,38 +1300,13 @@
     }
   };
   XGhosted.prototype.replaceMenuButton = function (post, href) {
-    if (!post) return;
-    const button =
-      post.querySelector('button[aria-label="Share post"]') ||
-      post.querySelector('button');
-    if (!button) {
-      this.log(`No share button found for post with href: ${href}`);
-      return;
-    }
-    if (button.nextSibling?.textContent.includes('\u{1F440}')) return;
-    const newLink = Object.assign(this.document.createElement('a'), {
-      textContent: '\u{1F440}',
-      href: '#',
-    });
-    Object.assign(newLink.style, {
-      color: 'rgb(29, 155, 240)',
-      textDecoration: 'none',
-      padding: '8px',
-      cursor: 'pointer',
-    });
-    newLink.addEventListener('click', (e) => {
-      e.preventDefault();
+    replaceMenuButton(post, href, this.document, this.log, (href2) => {
       if (this.state.isRateLimited) {
         this.log('Tab check skipped due to rate limit pause');
         return;
       }
-      this.userRequestedPostCheck(href);
-      this.log(`Eyeball clicked for manual check on href: ${href}`);
+      this.userRequestedPostCheck(href2);
     });
-    button.parentElement.insertBefore(newLink, button.nextSibling);
-  };
-  XGhosted.prototype.handleModeChange = function (newMode) {
-    this.state.isDarkMode = newMode !== 'light';
   };
   XGhosted.prototype.handleStart = function () {
     this.state.isCollapsingEnabled = true;
@@ -1337,15 +1326,15 @@
       .querySelectorAll('div[data-testid="cellInnerDiv"]')
       .forEach(this.expandArticle);
     this.state.processedPosts = /* @__PURE__ */ new Map();
-    this.state.fullyprocessedPosts = /* @__PURE__ */ new Set();
+    this.state.fullyProcessedPosts = /* @__PURE__ */ new Set();
     this.state.problemLinks = /* @__PURE__ */ new Set();
   };
   XGhosted.prototype.clearProcessedPosts = function () {
     this.state.processedPosts.clear();
-    this.state.fullyprocessedPosts.clear();
+    this.state.fullyProcessedPosts.clear();
     this.state.problemLinks.clear();
     this.saveState();
-    this.highlightPostsImmediate();
+    this.ensureAndHighlightPosts();
   };
   XGhosted.prototype.handleManualCheckToggle = function () {
     this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
@@ -1370,12 +1359,12 @@
       const article = articles[index];
       const timeElement = article.querySelector('.css-146c3p1.r-1loqt21 time');
       const href = timeElement?.parentElement?.getAttribute('href');
-      if (href && !this.state.fullyprocessedPosts.has(href)) {
+      if (href && !this.state.fullyProcessedPosts.has(href)) {
         const analysis = this.state.processedPosts.get(href)?.analysis;
         if (
           analysis &&
-          (analysis.quality === this.state.postQuality.PROBLEM ||
-            analysis.quality === this.state.postQuality.POTENTIAL_PROBLEM)
+          (analysis.quality === postQuality.PROBLEM ||
+            analysis.quality === postQuality.POTENTIAL_PROBLEM)
         ) {
           article.style.height = '0px';
           article.style.overflow = 'hidden';
@@ -1384,7 +1373,7 @@
           this.state.problemLinks.add(href);
           this.log(`Collapsed article with href: ${href}`);
         }
-        this.state.fullyprocessedPosts.add(href);
+        this.state.fullyProcessedPosts.add(href);
       }
       index++;
     }, 200);
@@ -1397,13 +1386,26 @@
       article.style.padding = 'auto';
     }
   };
+  XGhosted.prototype.ensureAndHighlightPosts = function () {
+    let results = this.highlightPosts();
+    if (results.length === 0 && !this.state.postContainer) {
+      this.log('No posts highlighted, attempting to find container...');
+      this.state.postContainer = findPostContainer(this.document, this.log);
+      if (this.state.postContainer) {
+        this.log('Container found, retrying highlightPosts...');
+        results = this.highlightPosts();
+      } else {
+        this.log('Container still not found, skipping highlighting');
+      }
+    }
+    return results;
+  };
   XGhosted.prototype.highlightPosts = function () {
-    const postsContainer = this.findPostContainer();
-    if (!postsContainer) {
-      this.log('No posts container found');
+    this.updateState(this.document.location.href);
+    if (!this.state.postContainer) {
+      this.log('No posts container set, skipping highlighting');
       return [];
     }
-    this.updateState(this.document.location.href);
     const processPostAnalysis = (post, analysis) => {
       if (!(post instanceof this.document.defaultView.Element)) {
         this.log('Skipping invalid DOM element:', post);
@@ -1420,19 +1422,13 @@
         this.replaceMenuButton(post, id);
       }
       this.state.processedPosts.set(id, { analysis, checked: false });
-      this.log('Set post:', id, 'Quality:', analysis.quality.name);
     };
     const results = identifyPosts(
-      postsContainer,
-      'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
+      this.document,
+      'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
       this.state.isWithReplies,
       this.state.fillerCount,
       processPostAnalysis
-    );
-    this.log('Processed posts total:', this.state.processedPosts.size);
-    this.log(
-      'Processed posts entries:',
-      Array.from(this.state.processedPosts.entries())
     );
     this.state = {
       ...this.state,
@@ -1440,9 +1436,6 @@
     };
     this.saveState();
     return results;
-  };
-  XGhosted.prototype.highlightPostsImmediate = function () {
-    this.highlightPosts();
   };
   XGhosted.prototype.getThemeMode = function () {
     return detectTheme(this.document);
@@ -1456,10 +1449,7 @@
       )
       .map(([link]) => `https://x.com${link}`)
       .join('\n');
-    navigator.clipboard
-      .writeText(linksText)
-      .then(() => this.log('Links copied'))
-      .catch((err) => this.log(`Copy failed: ${err}`));
+    copyTextToClipboard(linksText, this.log);
   };
   XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
     this.log('Import CSV button clicked');
@@ -1485,7 +1475,7 @@
     }
     const headers = lines[0];
     const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
-    if (!expectedHeaders.every((h2, i) => h2 === headers[i])) {
+    if (!expectedHeaders.every((h, i) => h === headers[i])) {
       this.log('CSV header mismatch');
       return;
     }
@@ -1508,47 +1498,32 @@
     });
     this.log(`Imported ${lines.length - 1} posts from CSV`);
     this.saveState();
-    this.highlightPostsImmediate();
+    this.ensureAndHighlightPosts();
   };
   XGhosted.prototype.clearProcessedPosts = function () {
     this.state.processedPosts.clear();
     this.saveState();
-    this.highlightPostsImmediate();
-  };
-  XGhosted.prototype.createButton = function (text, mode, onClick) {
-    return createButton(
-      this.document,
-      text,
-      mode,
-      onClick,
-      this.uiElements.config
-    );
-  };
-  XGhosted.prototype.togglePanelVisibility = function () {
-    this.state.isPanelVisible = !this.state.isPanelVisible;
-    this.saveState();
-    this.log(`Panel visibility toggled to ${this.state.isPanelVisible}`);
+    this.ensureAndHighlightPosts();
   };
   XGhosted.prototype.init = function () {
+    this.log('Initializing XGhosted...');
     this.loadState();
-    this.createPanel();
+    const initialTheme = this.getThemeMode();
+    this.panelManager = new window.PanelManager(this.document, this);
+    this.panelManager.updateTheme(initialTheme);
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
     .xghosted-problem { border: 2px solid red; }
     .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-    .xghosted-good { /* Optional: subtle styling if desired */ }
-    .xghosted-undefined { /* No styling needed */ }
-    button:active { transform: scale(0.95); }
+    .xghosted-good { }
+    .xghosted-undefined { }
   `;
     this.document.head.appendChild(styleSheet);
-    this.uiElements.highlightStyleSheet = styleSheet;
-    this.highlightPostsDebounced();
     this.saveState();
   };
   var XGhosted = XGhosted;
 
   // --- Initialization with Resource Limits and Rate Limiting ---
-  const MAX_PROCESSED_ARTICLES = 1000;
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
   const config = {
     timing: {
@@ -1579,9 +1554,9 @@
     if (currentUrl !== lastUrl) {
       lastUrl = currentUrl;
       xGhosted.updateState(currentUrl);
-      xGhosted.highlightPostsDebounced();
+      xGhosted.ensureAndHighlightPostsDebounced();
     } else {
-      xGhosted.highlightPostsDebounced();
+      xGhosted.ensureAndHighlightPostsDebounced();
     }
   });
   observer.observe(document.body, { childList: true, subtree: true });

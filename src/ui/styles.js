@@ -1,0 +1,137 @@
+function getModalStyles(mode, config, isOpen) {
+  return {
+    modal: {
+      display: isOpen ? 'block' : 'none',
+      position: 'fixed',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      background: config.THEMES[mode].bg,
+      color: config.THEMES[mode].text,
+      border: `1px solid ${config.THEMES[mode].border}`,
+      borderRadius: '8px',
+      padding: '20px',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+      zIndex: '10000',
+      width: '300px',
+    },
+    textarea: {
+      width: '100%',
+      height: '100px',
+      marginBottom: '15px',
+      background: config.THEMES[mode].bg,
+      color: config.THEMES[mode].text,
+      border: `1px solid ${config.THEMES[mode].border}`,
+      borderRadius: '4px',
+      padding: '4px',
+      resize: 'none',
+    },
+    buttonContainer: {
+      display: 'flex',
+      justifyContent: 'center',
+      gap: '15px',
+    },
+    button: {
+      background: config.THEMES[mode].button,
+      color: config.THEMES[mode].buttonText,
+      border: 'none',
+      padding: '8px 12px',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      fontWeight: '500',
+      transition: 'background 0.2s ease, transform 0.1s ease',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+    },
+  };
+}
+
+function getPanelStyles(mode, config, isVisible, currentMode) {
+  return {
+    panel: {
+      width: isVisible ? config.PANEL.WIDTH : '80px',
+      maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
+      minWidth: isVisible ? '250px' : '80px',
+      padding: isVisible ? '12px' : '4px',
+      transition: 'all 0.2s ease',
+      position: 'fixed',
+      top: config.PANEL.TOP,
+      right: config.PANEL.RIGHT,
+      zIndex: config.PANEL.Z_INDEX,
+      fontFamily: config.PANEL.FONT,
+      background: config.THEMES[currentMode].bg,
+      color: config.THEMES[currentMode].text,
+      border: `1px solid ${config.THEMES[currentMode].border}`,
+      borderRadius: '12px',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    },
+    toolbar: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingBottom: '12px',
+      borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
+      marginBottom: '12px',
+      paddingLeft: '10px', // Added to give left-side spacing
+    },
+    toolsSection: {
+      display: 'none', // Controlled by isToolsExpanded in Panel
+      padding: '12px',
+      borderRadius: '8px',
+      background: `${config.THEMES[currentMode].bg}F0`, // Solid background with slight opacity
+      boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
+      marginBottom: '12px',
+    },
+    controlRow: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingBottom: '8px',
+      marginBottom: '12px',
+    },
+    contentWrapper: {
+      maxHeight: 'calc(100vh - 150px)',
+      overflowY: 'auto',
+      paddingRight: '8px',
+      marginBottom: '12px',
+    },
+    button: {
+      background: config.THEMES[currentMode].button,
+      color: config.THEMES[currentMode].buttonText,
+      border: 'none',
+      padding: '8px 12px',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      fontWeight: '500',
+      transition: 'background 0.2s ease, transform 0.1s ease',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+    },
+    modeSelector: {
+      background: config.THEMES[currentMode].button,
+      color: config.THEMES[currentMode].text,
+      border: 'none',
+      padding: '8px 12px',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500',
+      minWidth: '80px',
+      appearance: 'none',
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+    },
+    statusLabel: {
+      fontSize: '13px',
+      fontWeight: '500',
+      color: config.THEMES[currentMode].text,
+    },
+  };
+}
+
+export { getModalStyles, getPanelStyles };
