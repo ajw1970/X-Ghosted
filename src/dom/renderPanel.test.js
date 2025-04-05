@@ -43,18 +43,14 @@ describe('renderPanel', () => {
   let doc, state, uiElements, dom, xGhosted;
 
   beforeEach(() => {
-    // Mock Tampermonkey GM_* functions
     const gmStorage = {};
     global.GM_getValue = vi.fn((key, defaultValue) => gmStorage[key] ?? defaultValue);
     global.GM_setValue = vi.fn((key, value) => { gmStorage[key] = value; });
-
-    // Load the full sample HTML
+  
     const samplePath = resolve(__dirname, '../../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
-    // console.log('Attempting to load sample HTML from:', samplePath);
     let sampleHtml;
     try {
       sampleHtml = readFileSync(samplePath, 'utf8');
-      // console.log('Sample HTML loaded successfully, length:', sampleHtml.length);
     } catch (err) {
       console.error('Failed to load sample HTML:', err.message);
       throw err;
@@ -62,12 +58,12 @@ describe('renderPanel', () => {
     const html = `<!DOCTYPE html><html><body>${sampleHtml}</body></html>`;
     dom = new JSDOM(html, { url: 'https://x.com/user/with_replies' });
     doc = dom.window.document;
-
+  
     state = {
       processedPosts: new Map(),
-      postQuality: postQuality,
       instance: { saveState: vi.fn() },
       isPanelVisible: true,
+      themeMode: 'dark', // Default for tests
     };
     uiElements = {
       panel: doc.createElement('div'),
@@ -116,7 +112,7 @@ describe('renderPanel', () => {
     xGhosted.state = state;
     xGhosted.uiElements = uiElements;
     xGhosted.document = doc;
-    xGhosted.updateState('https://x.com/user/with_replies'); // Match xGhosted.test.js
+    xGhosted.updateState('https://x.com/user/with_replies');
   });
 
   test('renderPanel shows flagged posts', async () => {

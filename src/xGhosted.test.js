@@ -90,27 +90,21 @@ describe('xGhosted', () => {
   });
 
   beforeEach(async () => {
-    // console.log('Starting beforeEach');
-    const startTime = Date.now();
     dom = setupJSDOM();
-    // console.log(`setupJSDOM finished in ${Date.now() - startTime}ms`);
-
-    // Manually set window.Panel after setting up JSDOM
     window.Panel = Panel;
-    // console.log('beforeEach - window.Panel after assignment:', window.Panel);
-
-    const xGhostedStartTime = Date.now();
     xGhosted = new XGhosted(dom.window.document, {
       timing: { debounceDelay: 0, throttleDelay: 0, tabCheckThrottle: 0, exportThrottle: 0, rateLimitPause: 100 },
       useTampermonkeyLog: false,
       persistProcessedPosts: true,
     });
-    // console.log(`XGhosted instance created in ${Date.now() - xGhostedStartTime}ms`);
-
     xGhosted.updateState('https://x.com/user/with_replies');
     xGhosted.highlightPostsDebounced = xGhosted.highlightPosts;
     xGhosted.state.processedPosts.clear();
-    // console.log(`beforeEach completed in ${Date.now() - startTime}ms`);
+    xGhosted.state = {
+      ...xGhosted.state,
+      themeMode: 'dark', // Default for tests
+      isManualCheckEnabled: false,
+    };
   }, 30000);
 
   afterEach(() => {
@@ -167,8 +161,9 @@ describe('xGhosted', () => {
 
   test('checkPostInNewTab handles rate limit', async () => {
     xGhosted.state.isManualCheckEnabled = true;
+    xGhosted.state.themeMode = 'dark';
     xGhosted.createPanel();
-
+  
     const mockWindow = {
       document: {
         readyState: 'complete',
@@ -178,17 +173,17 @@ describe('xGhosted', () => {
       close: vi.fn()
     };
     xGhosted.document.defaultView.open.mockReturnValue(mockWindow);
-
+  
     const promise = xGhosted.checkPostInNewTab('/test/status/123');
-
+  
     vi.advanceTimersByTime(500);
-
+  
     expect(xGhosted.state.isRateLimited).toBe(true);
-
+  
     vi.advanceTimersByTime(xGhosted.timing.rateLimitPause);
-
+  
     const result = await promise;
-
+  
     expect(xGhosted.state.isRateLimited).toBe(false);
     expect(result).toBe(false);
     expect(mockWindow.close).toHaveBeenCalled();

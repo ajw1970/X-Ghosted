@@ -19,20 +19,23 @@ function XGhosted(doc, config = {}) {
 
   this.state = {
     // Domain-specific state (xGhosted + x.com)
+    // - Post Processing:
+    postContainer: null,
+    processedPosts: new Map(),
+    fullyProcessedPosts: new Set(), // Added for collapseArticlesWithDelay
+    persistProcessedPosts: config.persistProcessedPosts ?? false,
+    problemLinks: new Set(), // TODO: Investigate use
+    // - Request Handling:
     lastUrl: '',
     isWithReplies: false,
     isRateLimited: false,
     isManualCheckEnabled: false,
-    postContainer: null,
-    processedPosts: new Map(),
-    fullyprocessedPosts: new Set(), // Added for collapseArticlesWithDelay
-    persistProcessedPosts: config.persistProcessedPosts ?? false,
     // Preact Panel state (UI/UX - x.com)
-    problemLinks: new Set(), // Added for collapseArticlesWithDelay
-    postQuality, // DISCUSS: not sure why this is in state
+    // - Panel Appearance: 
     isPanelVisible: true,
-    isDarkMode: true, // TODO: this should be one of three themes: light, dim, dark
     panelPosition: null,
+    themeMode: 'light', // TODO: set by detectTheme in createPanel: light, dim, dark
+    // - Panel Behavior
     isCollapsingEnabled: false,
     isCollapsingRunning: false,
   };
@@ -150,7 +153,7 @@ XGhosted.prototype.createPanel = function () {
   const { h, render } = window.preact;
   this.state.instance = this;
   const mode = this.getThemeMode();
-  this.state.isDarkMode = mode !== 'light';
+  this.state.themeMode = mode;
 
   this.uiElements.panel = this.document.createElement('div');
   this.document.body.appendChild(this.uiElements.panel);
@@ -167,7 +170,7 @@ XGhosted.prototype.createPanel = function () {
       onReset: this.handleReset.bind(this),
       onExportCSV: this.exportProcessedPostsCSV.bind(this),
       onImportCSV: this.importProcessedPostsCSV.bind(this),
-      onClear: this.handleClear.bind(this), // Error: this.handleClear is undefined
+      onClear: this.handleClear.bind(this),
       onManualCheckToggle: this.handleManualCheckToggle.bind(this),
       onToggle: (newVisibility) => {
         this.state.isPanelVisible = newVisibility;
@@ -182,9 +185,9 @@ XGhosted.prototype.createPanel = function () {
 XGhosted.prototype.updateState = function (url) {
   this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(url);
   if (this.state.lastUrl !== url) {
-    this.state.postContainer = null;
-    this.state.processedPosts.clear();
-    this.state.lastUrl = url;
+      this.state.postContainer = null; // Reset to force re-fetch on next highlight
+      this.state.processedPosts.clear();
+      this.state.lastUrl = url;
   }
 };
 
@@ -310,7 +313,7 @@ XGhosted.prototype.replaceMenuButton = function (post, href) {
 };
 
 XGhosted.prototype.handleModeChange = function (newMode) {
-  this.state.isDarkMode = newMode !== 'light';
+  this.state.themeMode = newMode;
 };
 
 XGhosted.prototype.handleStart = function () {
@@ -396,48 +399,45 @@ XGhosted.prototype.expandArticle = function (article) {
 };
 
 XGhosted.prototype.highlightPosts = function () {
-  const postsContainer = this.findPostContainer();
-  if (!postsContainer) {
-    this.log('No posts container found');
-    return [];
+  if (!this.state.postContainer) {
+      this.state.postContainer = this.findPostContainer(); // Fetch if not set (e.g., after URL change)
+      if (!this.state.postContainer) {
+          this.log('No posts container found');
+          return [];
+      }
   }
 
   this.updateState(this.document.location.href);
 
   const processPostAnalysis = (post, analysis) => {
-    if (!(post instanceof this.document.defaultView.Element)) {
-      this.log('Skipping invalid DOM element:', post);
-      return;
-    }
+      if (!(post instanceof this.document.defaultView.Element)) {
+          this.log('Skipping invalid DOM element:', post);
+          return;
+      }
 
-    const id = analysis.link;
-    const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
-    post.setAttribute('data-xghosted', `postquality.${qualityName}`);
-    post.setAttribute('data-xghosted-id', id);
+      const id = analysis.link;
+      const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
+      post.setAttribute('data-xghosted', `postquality.${qualityName}`);
+      post.setAttribute('data-xghosted-id', id);
 
-    if (analysis.quality === postQuality.PROBLEM) {
-      post.classList.add('xghosted-problem');
-    } else if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
-      post.classList.add('xghosted-potential_problem');
-      this.replaceMenuButton(post, id);
-    }
+      if (analysis.quality === postQuality.PROBLEM) {
+          post.classList.add('xghosted-problem');
+      } else if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
+          post.classList.add('xghosted-potential_problem');
+          this.replaceMenuButton(post, id);
+      }
 
-    this.state.processedPosts.set(id, { analysis, checked: false });
-    // this.log('Set post:', id, 'Quality:', analysis.quality.name);
+      this.state.processedPosts.set(id, { analysis, checked: false });
   };
 
   const results = identifyPosts(
-    postsContainer,
-    'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
-    this.state.isWithReplies,
-    this.state.fillerCount,
-    processPostAnalysis
+      this.state.postContainer,
+      'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
+      this.state.isWithReplies,
+      this.state.fillerCount,
+      processPostAnalysis
   );
 
-  // this.log('Processed posts total:', this.state.processedPosts.size);
-  // this.log('Processed posts entries:', Array.from(this.state.processedPosts.entries()));
-  
-  // Create a new state object to force a re-render
   this.state = { ...this.state, processedPosts: new Map(this.state.processedPosts) };
   this.saveState();
 
@@ -527,18 +527,20 @@ XGhosted.prototype.togglePanelVisibility = function () {
 
 XGhosted.prototype.init = function () {
   this.log('Initializing XGhosted...');
-  
+
   this.loadState();
+
+  this.state.postContainer = this.findPostContainer(); // Set container once on init
 
   this.createPanel();
 
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
-    .xghosted-problem { border: 2px solid red; }
-    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-    .xghosted-good { /* Optional: subtle styling if desired */ }
-    .xghosted-undefined { /* No styling needed */ }
-    button:active { transform: scale(0.95); }
+      .xghosted-problem { border: 2px solid red; }
+      .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+      .xghosted-good { /* Optional: subtle styling if desired */ }
+      .xghosted-undefined { /* No styling needed */ }
+      button:active { transform: scale(0.95); }
   `;
   this.document.head.appendChild(styleSheet);
   this.uiElements.highlightStyleSheet = styleSheet;

@@ -563,7 +563,7 @@
     const [isVisible, setIsVisible] = useState(state.isPanelVisible);
     const [isToolsExpanded, setIsToolsExpanded] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [currentMode, setCurrentMode] = useState(mode);
+    const [currentMode, setCurrentMode] = useState(state.themeMode);
     const [updateCounter, setUpdateCounter] = useState(0);
     useEffect(() => {
       const newFlagged = Array.from(state.processedPosts.entries()).filter(
@@ -578,8 +578,8 @@
       setIsVisible(state.isPanelVisible);
     }, [state.isPanelVisible]);
     useEffect(() => {
-      setCurrentMode(mode);
-    }, [mode]);
+      setCurrentMode(state.themeMode);
+    }, [state.themeMode]);
     const toggleVisibility = () => {
       const newVisibility = !isVisible;
       setIsVisible(newVisibility);
@@ -917,7 +917,7 @@
                       >
                         <span
                           class="status-dot ${analysis.quality.name ===
-                          state.postQuality.PROBLEM.name
+                          'Problem'
                             ? 'status-problem'
                             : 'status-potential'}"
                         ></span>
@@ -973,24 +973,26 @@
     this.timing = { ...defaultTiming, ...config.timing };
     this.state = {
       // Domain-specific state (xGhosted + x.com)
+      // - Post Processing:
+      postContainer: null,
+      processedPosts: /* @__PURE__ */ new Map(),
+      fullyProcessedPosts: /* @__PURE__ */ new Set(),
+      // Added for collapseArticlesWithDelay
+      persistProcessedPosts: config.persistProcessedPosts ?? false,
+      problemLinks: /* @__PURE__ */ new Set(),
+      // TODO: Investigate use
+      // - Request Handling:
       lastUrl: '',
       isWithReplies: false,
       isRateLimited: false,
       isManualCheckEnabled: false,
-      postContainer: null,
-      processedPosts: /* @__PURE__ */ new Map(),
-      fullyprocessedPosts: /* @__PURE__ */ new Set(),
-      // Added for collapseArticlesWithDelay
-      persistProcessedPosts: config.persistProcessedPosts ?? false,
       // Preact Panel state (UI/UX - x.com)
-      problemLinks: /* @__PURE__ */ new Set(),
-      // Added for collapseArticlesWithDelay
-      postQuality,
-      // DISCUSS: not sure why this is in state
+      // - Panel Appearance:
       isPanelVisible: true,
-      isDarkMode: true,
-      // TODO: this should be one of three themes: light, dim, dark
       panelPosition: null,
+      themeMode: 'light',
+      // TODO: set by detectTheme in createPanel: light, dim, dark
+      // - Panel Behavior
       isCollapsingEnabled: false,
       isCollapsingRunning: false,
     };
@@ -1115,7 +1117,7 @@
     const { h, render } = window.preact;
     this.state.instance = this;
     const mode = this.getThemeMode();
-    this.state.isDarkMode = mode !== 'light';
+    this.state.themeMode = mode;
     this.uiElements.panel = this.document.createElement('div');
     this.document.body.appendChild(this.uiElements.panel);
     render(
@@ -1131,7 +1133,6 @@
         onExportCSV: this.exportProcessedPostsCSV.bind(this),
         onImportCSV: this.importProcessedPostsCSV.bind(this),
         onClear: this.handleClear.bind(this),
-        // Error: this.handleClear is undefined
         onManualCheckToggle: this.handleManualCheckToggle.bind(this),
         onToggle: (newVisibility) => {
           this.state.isPanelVisible = newVisibility;
@@ -1297,7 +1298,7 @@
     });
   };
   XGhosted.prototype.handleModeChange = function (newMode) {
-    this.state.isDarkMode = newMode !== 'light';
+    this.state.themeMode = newMode;
   };
   XGhosted.prototype.handleStart = function () {
     this.state.isCollapsingEnabled = true;
@@ -1381,10 +1382,12 @@
     }
   };
   XGhosted.prototype.highlightPosts = function () {
-    const postsContainer = this.findPostContainer();
-    if (!postsContainer) {
-      this.log('No posts container found');
-      return [];
+    if (!this.state.postContainer) {
+      this.state.postContainer = this.findPostContainer();
+      if (!this.state.postContainer) {
+        this.log('No posts container found');
+        return [];
+      }
     }
     this.updateState(this.document.location.href);
     const processPostAnalysis = (post, analysis) => {
@@ -1405,7 +1408,7 @@
       this.state.processedPosts.set(id, { analysis, checked: false });
     };
     const results = identifyPosts(
-      postsContainer,
+      this.state.postContainer,
       'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
       this.state.isWithReplies,
       this.state.fillerCount,
@@ -1497,14 +1500,15 @@
   XGhosted.prototype.init = function () {
     this.log('Initializing XGhosted...');
     this.loadState();
+    this.state.postContainer = this.findPostContainer();
     this.createPanel();
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
-    .xghosted-problem { border: 2px solid red; }
-    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-    .xghosted-good { /* Optional: subtle styling if desired */ }
-    .xghosted-undefined { /* No styling needed */ }
-    button:active { transform: scale(0.95); }
+      .xghosted-problem { border: 2px solid red; }
+      .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+      .xghosted-good { /* Optional: subtle styling if desired */ }
+      .xghosted-undefined { /* No styling needed */ }
+      button:active { transform: scale(0.95); }
   `;
     this.document.head.appendChild(styleSheet);
     this.uiElements.highlightStyleSheet = styleSheet;

@@ -79,7 +79,7 @@ function Panel({
   const [isVisible, setIsVisible] = useState(state.isPanelVisible);
   const [isToolsExpanded, setIsToolsExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentMode, setCurrentMode] = useState(mode);
+  const [currentMode, setCurrentMode] = useState(state.themeMode);
   const [updateCounter, setUpdateCounter] = useState(0);
 
   useEffect(() => {
@@ -97,8 +97,8 @@ function Panel({
   }, [state.isPanelVisible]);
 
   useEffect(() => {
-    setCurrentMode(mode);
-  }, [mode]);
+    setCurrentMode(state.themeMode);
+  }, [state.themeMode]);
 
   const toggleVisibility = () => {
     const newVisibility = !isVisible;
@@ -367,7 +367,7 @@ function Panel({
           <div class="problem-links-wrapper" style=${styles.contentWrapper}>
             ${flagged.map(([href, { analysis }]) => html`
               <div class="link-row" style="display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; padding: 4px 0;">
-                <span class="status-dot ${analysis.quality.name === state.postQuality.PROBLEM.name ? 'status-problem' : 'status-potential'}"></span>
+                <span class="status-dot ${analysis.quality.name === "Problem" ? 'status-problem' : 'status-potential'}"></span>
                 <div class="link-item">
                   <a href="https://x.com${href}" target="_blank">${href}</a>
                 </div>
