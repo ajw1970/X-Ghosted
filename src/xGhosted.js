@@ -18,19 +18,21 @@ function XGhosted(doc, config = {}) {
   this.timing = { ...defaultTiming, ...config.timing };
 
   this.state = {
-    isWithReplies: false,
-    postContainer: null,
+    // Domain-specific state (xGhosted + x.com)
     lastUrl: '',
+    isWithReplies: false,
+    isRateLimited: false,
+    isManualCheckEnabled: false,
+    postContainer: null,
     processedPosts: new Map(),
     fullyprocessedPosts: new Set(), // Added for collapseArticlesWithDelay
-    problemLinks: new Set(), // Added for collapseArticlesWithDelay
-    postQuality,
-    isPanelVisible: true,
-    isDarkMode: true,
-    isManualCheckEnabled: false,
-    panelPosition: null,
     persistProcessedPosts: config.persistProcessedPosts ?? false,
-    isRateLimited: false,
+    // Preact Panel state (UI/UX - x.com)
+    problemLinks: new Set(), // Added for collapseArticlesWithDelay
+    postQuality, // DISCUSS: not sure why this is in state
+    isPanelVisible: true,
+    isDarkMode: true, // TODO: this should be one of three themes: light, dim, dark
+    panelPosition: null,
     isCollapsingEnabled: false,
     isCollapsingRunning: false,
   };
@@ -524,6 +526,8 @@ XGhosted.prototype.togglePanelVisibility = function () {
 };
 
 XGhosted.prototype.init = function () {
+  this.log('Initializing XGhosted...');
+  
   this.loadState();
 
   this.createPanel();

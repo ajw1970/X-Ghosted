@@ -972,21 +972,25 @@
     };
     this.timing = { ...defaultTiming, ...config.timing };
     this.state = {
-      isWithReplies: false,
-      postContainer: null,
+      // Domain-specific state (xGhosted + x.com)
       lastUrl: '',
+      isWithReplies: false,
+      isRateLimited: false,
+      isManualCheckEnabled: false,
+      postContainer: null,
       processedPosts: /* @__PURE__ */ new Map(),
       fullyprocessedPosts: /* @__PURE__ */ new Set(),
       // Added for collapseArticlesWithDelay
+      persistProcessedPosts: config.persistProcessedPosts ?? false,
+      // Preact Panel state (UI/UX - x.com)
       problemLinks: /* @__PURE__ */ new Set(),
       // Added for collapseArticlesWithDelay
       postQuality,
+      // DISCUSS: not sure why this is in state
       isPanelVisible: true,
       isDarkMode: true,
-      isManualCheckEnabled: false,
+      // TODO: this should be one of three themes: light, dim, dark
       panelPosition: null,
-      persistProcessedPosts: config.persistProcessedPosts ?? false,
-      isRateLimited: false,
       isCollapsingEnabled: false,
       isCollapsingRunning: false,
     };
@@ -1491,6 +1495,7 @@
     this.log(`Panel visibility toggled to ${this.state.isPanelVisible}`);
   };
   XGhosted.prototype.init = function () {
+    this.log('Initializing XGhosted...');
     this.loadState();
     this.createPanel();
     const styleSheet = this.document.createElement('style');
