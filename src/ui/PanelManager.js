@@ -1,0 +1,107 @@
+window.PanelManager = function(doc, xGhostedInstance) {
+  this.document = doc;
+  this.xGhosted = xGhostedInstance;
+  this.log = xGhostedInstance.log;
+  this.state = {
+    themeMode: 'light',
+    panelPosition: null,
+    instance: xGhostedInstance,
+  };
+  this.uiElements = {
+    config: {
+      PANEL: {
+        WIDTH: '350px',
+        MAX_HEIGHT: 'calc(100vh - 70px)',
+        TOP: '60px',
+        RIGHT: '10px',
+        Z_INDEX: '9999',
+        FONT: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+      },
+      THEMES: {
+        light: {
+          bg: '#FFFFFF',
+          text: '#292F33',
+          buttonText: '#000000',
+          border: '#E1E8ED',
+          button: '#B0BEC5',
+          hover: '#90A4AE',
+          scroll: '#CCD6DD'
+        },
+        dim: {
+          bg: '#15202B',
+          text: '#D9D9D9',
+          buttonText: '#D9D9D9',
+          border: '#38444D',
+          button: '#38444D',
+          hover: '#4A5C6D',
+          scroll: '#4A5C6D'
+        },
+        dark: {
+          bg: '#000000',
+          text: '#D9D9D9',
+          buttonText: '#D9D9D9',
+          border: '#333333',
+          button: '#333333',
+          hover: '#444444',
+          scroll: '#666666'
+        },
+      }
+    },
+    panel: null,
+  };
+  this.init();
+};
+
+window.PanelManager.prototype.init = function() {
+  this.uiElements.panel = this.document.createElement('div');
+  this.document.body.appendChild(this.uiElements.panel);
+  this.applyPanelStyles();
+  this.renderPanel();
+};
+
+window.PanelManager.prototype.applyPanelStyles = function() {
+  const styleSheet = this.document.createElement('style');
+  styleSheet.textContent = `
+    button:active { transform: scale(0.95); }
+  `;
+  this.document.head.appendChild(styleSheet);
+};
+
+window.PanelManager.prototype.renderPanel = function() {
+  window.preact.render(
+    window.preact.h(window.Panel, {
+      state: this.xGhosted.state,
+      config: this.uiElements.config,
+      copyCallback: this.xGhosted.copyLinks.bind(this.xGhosted),
+      mode: this.state.themeMode,
+      onModeChange: this.handleModeChange.bind(this),
+      onStart: this.xGhosted.handleStart.bind(this.xGhosted),
+      onStop: this.xGhosted.handleStop.bind(this.xGhosted),
+      onReset: this.xGhosted.handleReset.bind(this.xGhosted),
+      onExportCSV: this.xGhosted.exportProcessedPostsCSV.bind(this.xGhosted),
+      onImportCSV: this.xGhosted.importProcessedPostsCSV.bind(this.xGhosted),
+      onClear: this.xGhosted.handleClear.bind(this.xGhosted),
+      onManualCheckToggle: this.xGhosted.handleManualCheckToggle.bind(this.xGhosted),
+      onToggle: this.toggleVisibility.bind(this),
+    }),
+    this.uiElements.panel
+  );
+  this.log('Panel rendered');
+};
+
+window.PanelManager.prototype.toggleVisibility = function(newVisibility) {
+  this.xGhosted.state.isPanelVisible = typeof newVisibility === 'boolean' ? newVisibility : !this.xGhosted.state.isPanelVisible;
+  this.renderPanel();
+  this.xGhosted.saveState();
+  this.log(`Panel visibility toggled to ${this.xGhosted.state.isPanelVisible}`);
+};
+
+window.PanelManager.prototype.updateTheme = function(newMode) {
+  this.state.themeMode = newMode;
+  this.renderPanel();
+  this.log(`Panel theme updated to ${newMode}`);
+};
+
+window.PanelManager.prototype.handleModeChange = function(newMode) {
+  this.updateTheme(newMode);
+};
