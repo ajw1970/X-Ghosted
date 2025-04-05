@@ -543,6 +543,7 @@
     config,
     copyCallback,
     mode,
+    // Use this instead of state.themeMode
     onModeChange,
     onStart,
     onStop,
@@ -563,7 +564,7 @@
     const [isVisible, setIsVisible] = useState(state.isPanelVisible);
     const [isToolsExpanded, setIsToolsExpanded] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [currentMode, setCurrentMode] = useState(state.themeMode);
+    const [currentMode, setCurrentMode] = useState(mode);
     const [updateCounter, setUpdateCounter] = useState(0);
     useEffect(() => {
       const newFlagged = Array.from(state.processedPosts.entries()).filter(
@@ -578,8 +579,8 @@
       setIsVisible(state.isPanelVisible);
     }, [state.isPanelVisible]);
     useEffect(() => {
-      setCurrentMode(state.themeMode);
-    }, [state.themeMode]);
+      setCurrentMode(mode);
+    }, [mode]);
     const toggleVisibility = () => {
       const newVisibility = !isVisible;
       setIsVisible(newVisibility);
@@ -962,45 +963,16 @@
   }
   window.Panel = Panel;
 
-  // src/xGhosted.js
-  function XGhosted(doc, config = {}) {
-    const defaultTiming = {
-      debounceDelay: 500,
-      throttleDelay: 1e3,
-      tabCheckThrottle: 5e3,
-      exportThrottle: 5e3,
-    };
-    this.timing = { ...defaultTiming, ...config.timing };
-    this.state = {
-      // Domain-specific state (xGhosted + x.com)
-      // - Post Processing:
-      postContainer: null,
-      processedPosts: /* @__PURE__ */ new Map(),
-      fullyProcessedPosts: /* @__PURE__ */ new Set(),
-      // Added for collapseArticlesWithDelay
-      persistProcessedPosts: config.persistProcessedPosts ?? false,
-      problemLinks: /* @__PURE__ */ new Set(),
-      // TODO: Investigate use
-      // - Request Handling:
-      lastUrl: '',
-      isWithReplies: false,
-      isRateLimited: false,
-      isManualCheckEnabled: false,
-      // Preact Panel state (UI/UX - x.com)
-      // - Panel Appearance:
-      isPanelVisible: true,
-      panelPosition: null,
-      themeMode: 'light',
-      // TODO: set by detectTheme in createPanel: light, dim, dark
-      // - Panel Behavior
-      isCollapsingEnabled: false,
-      isCollapsingRunning: false,
-    };
+  // src/ui/PanelManager.js
+  window.PanelManager = function (doc, xGhostedInstance) {
     this.document = doc;
-    this.log =
-      config.useTampermonkeyLog && typeof GM_log !== 'undefined'
-        ? GM_log.bind(null)
-        : console.log.bind(console);
+    this.xGhosted = xGhostedInstance;
+    this.log = xGhostedInstance.log;
+    this.state = {
+      themeMode: 'light',
+      panelPosition: null,
+      instance: xGhostedInstance,
+    };
     this.uiElements = {
       config: {
         PANEL: {
@@ -1043,41 +1015,99 @@
       },
       panel: null,
     };
+    this.init();
+  };
+  window.PanelManager.prototype.init = function () {
+    this.uiElements.panel = this.document.createElement('div');
+    this.document.body.appendChild(this.uiElements.panel);
+    this.applyPanelStyles();
+    this.renderPanel();
+  };
+  window.PanelManager.prototype.applyPanelStyles = function () {
+    const styleSheet = this.document.createElement('style');
+    styleSheet.textContent = `
+    button:active { transform: scale(0.95); }
+  `;
+    this.document.head.appendChild(styleSheet);
+  };
+  window.PanelManager.prototype.renderPanel = function () {
+    window.preact.render(
+      window.preact.h(window.Panel, {
+        state: this.xGhosted.state,
+        config: this.uiElements.config,
+        copyCallback: this.xGhosted.copyLinks.bind(this.xGhosted),
+        mode: this.state.themeMode,
+        onModeChange: this.handleModeChange.bind(this),
+        onStart: this.xGhosted.handleStart.bind(this.xGhosted),
+        onStop: this.xGhosted.handleStop.bind(this.xGhosted),
+        onReset: this.xGhosted.handleReset.bind(this.xGhosted),
+        onExportCSV: this.xGhosted.exportProcessedPostsCSV.bind(this.xGhosted),
+        onImportCSV: this.xGhosted.importProcessedPostsCSV.bind(this.xGhosted),
+        onClear: this.xGhosted.handleClear.bind(this.xGhosted),
+        onManualCheckToggle: this.xGhosted.handleManualCheckToggle.bind(
+          this.xGhosted
+        ),
+        onToggle: this.toggleVisibility.bind(this),
+      }),
+      this.uiElements.panel
+    );
+    this.log('Panel rendered');
+  };
+  window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
+    this.xGhosted.state.isPanelVisible =
+      typeof newVisibility === 'boolean'
+        ? newVisibility
+        : !this.xGhosted.state.isPanelVisible;
+    this.renderPanel();
+    this.xGhosted.saveState();
+    this.log(
+      `Panel visibility toggled to ${this.xGhosted.state.isPanelVisible}`
+    );
+  };
+  window.PanelManager.prototype.updateTheme = function (newMode) {
+    this.state.themeMode = newMode;
+    this.renderPanel();
+    this.log(`Panel theme updated to ${newMode}`);
+  };
+  window.PanelManager.prototype.handleModeChange = function (newMode) {
+    this.updateTheme(newMode);
+  };
+
+  // src/xGhosted.js
+  function XGhosted(doc, config = {}) {
+    const defaultTiming = {
+      debounceDelay: 500,
+      throttleDelay: 1e3,
+      tabCheckThrottle: 5e3,
+      exportThrottle: 5e3,
+    };
+    this.timing = { ...defaultTiming, ...config.timing };
+    this.document = doc;
+    this.log =
+      config.useTampermonkeyLog && typeof GM_log !== 'undefined'
+        ? GM_log.bind(null)
+        : console.log.bind(console);
+    this.state = {
+      postContainer: null,
+      processedPosts: /* @__PURE__ */ new Map(),
+      fullyProcessedPosts: /* @__PURE__ */ new Set(),
+      persistProcessedPosts: config.persistProcessedPosts ?? false,
+      problemLinks: /* @__PURE__ */ new Set(),
+      lastUrl: '',
+      isWithReplies: false,
+      isRateLimited: false,
+      isManualCheckEnabled: false,
+      isCollapsingEnabled: false,
+      isCollapsingRunning: false,
+      isPanelVisible: true,
+    };
+    this.panelManager = null;
     this.checkPostInNewTabThrottled = debounce((href) => {
       return this.checkPostInNewTab(href);
     }, this.timing.tabCheckThrottle);
-    this.highlightPostsDebounced = debounce(() => {
-      this.highlightPosts();
+    this.ensureAndHighlightPostsDebounced = debounce(() => {
+      this.ensureAndHighlightPosts();
     }, this.timing.debounceDelay);
-    XGhosted.prototype.exportProcessedPostsCSV = function () {
-      const headers = ['Link', 'Quality', 'Reason', 'Checked'];
-      const rows = Array.from(this.state.processedPosts.entries()).map(
-        ([link, { analysis, checked }]) => [
-          `"https://x.com${link}"`,
-          `"${analysis.quality.name}"`,
-          `"${analysis.reason.replace(/"/g, '""')}"`,
-          checked ? 'true' : 'false',
-        ]
-      );
-      const csvContent = [
-        headers.join(','),
-        ...rows.map((row) => row.join(',')),
-      ].join('\n');
-      const exportFn = () => {
-        copyTextToClipboard(csvContent, this.log);
-        exportToCSV(
-          csvContent,
-          'xghosted_processed_posts.csv',
-          this.document,
-          this.log
-        );
-      };
-      if (typeof jest === 'undefined') {
-        debounce(exportFn, this.timing.exportThrottle)();
-      } else {
-        exportFn();
-      }
-    };
   }
   XGhosted.prototype.saveState = function () {
     const serializableArticles = {};
@@ -1090,7 +1120,6 @@
       isPanelVisible: this.state.isPanelVisible,
       isCollapsingEnabled: this.state.isCollapsingEnabled,
       isManualCheckEnabled: this.state.isManualCheckEnabled,
-      panelPosition: this.state.panelPosition,
       processedPosts: serializableArticles,
     });
   };
@@ -1099,7 +1128,6 @@
     this.state.isPanelVisible = savedState.isPanelVisible ?? true;
     this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
     this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
-    this.state.panelPosition = savedState.panelPosition || null;
     if (this.state.persistProcessedPosts) {
       const savedPosts = savedState.processedPosts || {};
       for (const [id, { analysis, checked }] of Object.entries(savedPosts)) {
@@ -1113,36 +1141,6 @@
       }
     }
   };
-  XGhosted.prototype.createPanel = function () {
-    const { h, render } = window.preact;
-    this.state.instance = this;
-    const mode = this.getThemeMode();
-    this.state.themeMode = mode;
-    this.uiElements.panel = this.document.createElement('div');
-    this.document.body.appendChild(this.uiElements.panel);
-    render(
-      h(window.Panel, {
-        state: this.state,
-        config: this.uiElements.config,
-        copyCallback: this.copyLinks.bind(this),
-        mode,
-        onModeChange: this.handleModeChange.bind(this),
-        onStart: this.handleStart.bind(this),
-        onStop: this.handleStop.bind(this),
-        onReset: this.handleReset.bind(this),
-        onExportCSV: this.exportProcessedPostsCSV.bind(this),
-        onImportCSV: this.importProcessedPostsCSV.bind(this),
-        onClear: this.handleClear.bind(this),
-        onManualCheckToggle: this.handleManualCheckToggle.bind(this),
-        onToggle: (newVisibility) => {
-          this.state.isPanelVisible = newVisibility;
-          this.saveState();
-          this.log(`Panel visibility toggled to ${newVisibility}`);
-        },
-      }),
-      this.uiElements.panel
-    );
-  };
   XGhosted.prototype.updateState = function (url) {
     this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(
       url
@@ -1152,6 +1150,24 @@
       this.state.processedPosts.clear();
       this.state.lastUrl = url;
     }
+  };
+  XGhosted.prototype.generateCSVData = function () {
+    const headers = ['Link', 'Quality', 'Reason', 'Checked'];
+    const rows = Array.from(this.state.processedPosts.entries()).map(
+      ([id, { analysis, checked }]) => {
+        return [
+          `https://x.com${id}`,
+          analysis.quality.name,
+          analysis.reason,
+          checked ? 'true' : 'false',
+        ].join(',');
+      }
+    );
+    return [headers.join(','), ...rows].join('\n');
+  };
+  XGhosted.prototype.exportProcessedPostsCSV = function () {
+    const csvData = this.generateCSVData();
+    exportToCSV(csvData, 'processed_posts.csv', this.document, this.log);
   };
   XGhosted.prototype.checkPostInNewTab = function (href) {
     const fullUrl = `https://x.com${href}`;
@@ -1240,11 +1256,6 @@
       }, 500);
     });
   };
-  XGhosted.prototype.findPostContainer = function () {
-    if (this.state.postContainer) return this.state.postContainer;
-    this.state.postContainer = findPostContainer(this.document, this.log);
-    return this.state.postContainer;
-  };
   XGhosted.prototype.userRequestedPostCheck = function (href) {
     const cached = this.state.processedPosts.get(href);
     if (
@@ -1297,9 +1308,6 @@
       this.userRequestedPostCheck(href2);
     });
   };
-  XGhosted.prototype.handleModeChange = function (newMode) {
-    this.state.themeMode = newMode;
-  };
   XGhosted.prototype.handleStart = function () {
     this.state.isCollapsingEnabled = true;
     this.state.isCollapsingRunning = true;
@@ -1318,21 +1326,18 @@
       .querySelectorAll('div[data-testid="cellInnerDiv"]')
       .forEach(this.expandArticle);
     this.state.processedPosts = /* @__PURE__ */ new Map();
-    this.state.fullyprocessedPosts = /* @__PURE__ */ new Set();
+    this.state.fullyProcessedPosts = /* @__PURE__ */ new Set();
     this.state.problemLinks = /* @__PURE__ */ new Set();
   };
   XGhosted.prototype.clearProcessedPosts = function () {
     this.state.processedPosts.clear();
-    this.state.fullyprocessedPosts.clear();
+    this.state.fullyProcessedPosts.clear();
     this.state.problemLinks.clear();
     this.saveState();
-    this.highlightPostsImmediate();
+    this.ensureAndHighlightPosts();
   };
   XGhosted.prototype.handleManualCheckToggle = function () {
-    this.state = {
-      ...this.state,
-      isManualCheckEnabled: !this.state.isManualCheckEnabled,
-    };
+    this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
     this.log(`Manual Check toggled to ${this.state.isManualCheckEnabled}`);
   };
   XGhosted.prototype.handleClear = function () {
@@ -1354,12 +1359,12 @@
       const article = articles[index];
       const timeElement = article.querySelector('.css-146c3p1.r-1loqt21 time');
       const href = timeElement?.parentElement?.getAttribute('href');
-      if (href && !this.state.fullyprocessedPosts.has(href)) {
+      if (href && !this.state.fullyProcessedPosts.has(href)) {
         const analysis = this.state.processedPosts.get(href)?.analysis;
         if (
           analysis &&
-          (analysis.quality === this.state.postQuality.PROBLEM ||
-            analysis.quality === this.state.postQuality.POTENTIAL_PROBLEM)
+          (analysis.quality === postQuality.PROBLEM ||
+            analysis.quality === postQuality.POTENTIAL_PROBLEM)
         ) {
           article.style.height = '0px';
           article.style.overflow = 'hidden';
@@ -1368,7 +1373,7 @@
           this.state.problemLinks.add(href);
           this.log(`Collapsed article with href: ${href}`);
         }
-        this.state.fullyprocessedPosts.add(href);
+        this.state.fullyProcessedPosts.add(href);
       }
       index++;
     }, 200);
@@ -1381,15 +1386,26 @@
       article.style.padding = 'auto';
     }
   };
-  XGhosted.prototype.highlightPosts = function () {
-    if (!this.state.postContainer) {
-      this.state.postContainer = this.findPostContainer();
-      if (!this.state.postContainer) {
-        this.log('No posts container found');
-        return [];
+  XGhosted.prototype.ensureAndHighlightPosts = function () {
+    let results = this.highlightPosts();
+    if (results.length === 0 && !this.state.postContainer) {
+      this.log('No posts highlighted, attempting to find container...');
+      this.state.postContainer = findPostContainer(this.document, this.log);
+      if (this.state.postContainer) {
+        this.log('Container found, retrying highlightPosts...');
+        results = this.highlightPosts();
+      } else {
+        this.log('Container still not found, skipping highlighting');
       }
     }
+    return results;
+  };
+  XGhosted.prototype.highlightPosts = function () {
     this.updateState(this.document.location.href);
+    if (!this.state.postContainer) {
+      this.log('No posts container set, skipping highlighting');
+      return [];
+    }
     const processPostAnalysis = (post, analysis) => {
       if (!(post instanceof this.document.defaultView.Element)) {
         this.log('Skipping invalid DOM element:', post);
@@ -1408,8 +1424,8 @@
       this.state.processedPosts.set(id, { analysis, checked: false });
     };
     const results = identifyPosts(
-      this.state.postContainer,
-      'div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
+      this.document,
+      'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
       this.state.isWithReplies,
       this.state.fillerCount,
       processPostAnalysis
@@ -1420,9 +1436,6 @@
     };
     this.saveState();
     return results;
-  };
-  XGhosted.prototype.highlightPostsImmediate = function () {
-    this.highlightPosts();
   };
   XGhosted.prototype.getThemeMode = function () {
     return detectTheme(this.document);
@@ -1485,34 +1498,27 @@
     });
     this.log(`Imported ${lines.length - 1} posts from CSV`);
     this.saveState();
-    this.highlightPostsImmediate();
+    this.ensureAndHighlightPosts();
   };
   XGhosted.prototype.clearProcessedPosts = function () {
     this.state.processedPosts.clear();
     this.saveState();
-    this.highlightPostsImmediate();
-  };
-  XGhosted.prototype.togglePanelVisibility = function () {
-    this.state.isPanelVisible = !this.state.isPanelVisible;
-    this.saveState();
-    this.log(`Panel visibility toggled to ${this.state.isPanelVisible}`);
+    this.ensureAndHighlightPosts();
   };
   XGhosted.prototype.init = function () {
     this.log('Initializing XGhosted...');
     this.loadState();
-    this.state.postContainer = this.findPostContainer();
-    this.createPanel();
+    const initialTheme = this.getThemeMode();
+    this.panelManager = new window.PanelManager(this.document, this);
+    this.panelManager.updateTheme(initialTheme);
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
-      .xghosted-problem { border: 2px solid red; }
-      .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-      .xghosted-good { /* Optional: subtle styling if desired */ }
-      .xghosted-undefined { /* No styling needed */ }
-      button:active { transform: scale(0.95); }
+    .xghosted-problem { border: 2px solid red; }
+    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+    .xghosted-good { }
+    .xghosted-undefined { }
   `;
     this.document.head.appendChild(styleSheet);
-    this.uiElements.highlightStyleSheet = styleSheet;
-    this.highlightPostsDebounced();
     this.saveState();
   };
   var XGhosted = XGhosted;
@@ -1548,9 +1554,9 @@
     if (currentUrl !== lastUrl) {
       lastUrl = currentUrl;
       xGhosted.updateState(currentUrl);
-      xGhosted.highlightPostsDebounced();
+      xGhosted.ensureAndHighlightPostsDebounced();
     } else {
-      xGhosted.highlightPostsDebounced();
+      xGhosted.ensureAndHighlightPostsDebounced();
     }
   });
   observer.observe(document.body, { childList: true, subtree: true });

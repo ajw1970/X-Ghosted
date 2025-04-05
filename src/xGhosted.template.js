@@ -72,9 +72,9 @@
         if (currentUrl !== lastUrl) {
             lastUrl = currentUrl;
             xGhosted.updateState(currentUrl);
-            xGhosted.highlightPostsDebounced();
+            xGhosted.ensureAndHighlightPostsDebounced();
         } else {
-            xGhosted.highlightPostsDebounced();
+            xGhosted.ensureAndHighlightPostsDebounced();
         }
     });
     observer.observe(document.body, { childList: true, subtree: true });

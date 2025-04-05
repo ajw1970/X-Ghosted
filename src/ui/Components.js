@@ -58,7 +58,7 @@ function Panel({
   state,
   config,
   copyCallback,
-  mode,
+  mode, // Use this instead of state.themeMode
   onModeChange,
   onStart,
   onStop,
@@ -79,7 +79,7 @@ function Panel({
   const [isVisible, setIsVisible] = useState(state.isPanelVisible);
   const [isToolsExpanded, setIsToolsExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentMode, setCurrentMode] = useState(state.themeMode);
+  const [currentMode, setCurrentMode] = useState(mode); // Initialize with props.mode
   const [updateCounter, setUpdateCounter] = useState(0);
 
   useEffect(() => {
@@ -90,15 +90,15 @@ function Panel({
     );
     setFlagged(newFlagged);
     setUpdateCounter((prev) => prev + 1);
-  }, [Array.from(state.processedPosts.entries())]); // Serialize Map to array for dependency
+  }, [Array.from(state.processedPosts.entries())]);
 
   useEffect(() => {
     setIsVisible(state.isPanelVisible);
   }, [state.isPanelVisible]);
 
   useEffect(() => {
-    setCurrentMode(state.themeMode);
-  }, [state.themeMode]);
+    setCurrentMode(mode); // Update with props.mode
+  }, [mode]);
 
   const toggleVisibility = () => {
     const newVisibility = !isVisible;
