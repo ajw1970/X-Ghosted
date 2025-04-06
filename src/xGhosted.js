@@ -182,15 +182,17 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
 
 XGhosted.prototype.userRequestedPostCheck = function (href) {
   const cached = this.state.processedPosts.get(href);
-  if (!cached || cached.analysis.quality.name !== postQuality.POTENTIAL_PROBLEM.name || !this.state.isManualCheckEnabled) {
-    this.log(`Manual check skipped for ${href}: not a potential problem or manual mode off`);
+  if (!cached || cached.analysis.quality.name !== postQuality.POTENTIAL_PROBLEM.name) {
+    this.log(`Manual check skipped for ${href}: not a potential problem`);
     return;
   }
-
+  const post = this.document.querySelector(`div[data-xghosted-id="${href}"]`);
+  if (!post) {
+    this.log(`Post element not found for ${href}`);
+    return;
+  }
   if (!cached.checked) {
-
     this.checkPostInNewTabThrottled(href).then((isProblem) => {
-      if (this.state.isRateLimited) return;
       post.classList.remove('xghosted-potential_problem', 'xghosted-good', 'xghosted-problem');
       post.classList.add(isProblem ? 'xghosted-problem' : 'xghosted-good');
       post.setAttribute('data-xghosted', `postquality.${isProblem ? 'problem' : 'good'}`);
@@ -312,12 +314,12 @@ XGhosted.prototype.highlightPosts = function () {
       this.log('Skipping invalid DOM element:', post);
       return;
     }
-  
+
     const id = analysis.link;
     const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
     post.setAttribute('data-xghosted', `postquality.${qualityName}`);
     post.setAttribute('data-xghosted-id', id);
-  
+
     if (analysis.quality === postQuality.PROBLEM) {
       post.classList.add('xghosted-problem');
     } else if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
@@ -329,7 +331,7 @@ XGhosted.prototype.highlightPosts = function () {
         this.log(`No share button container found for post with href: ${id}`);
       }
     }
-  
+
     this.state.processedPosts.set(id, { analysis, checked: false });
   };
 
@@ -426,18 +428,18 @@ XGhosted.prototype.init = function () {
   this.panelManager.updateTheme(initialTheme);
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
-  .xghosted-problem { border: 2px solid red; }
-  .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-  .xghosted-good { }
-  .xghosted-undefined { }
-  .xghosted-eyeball::after {
-    content: '👀';
-    color: rgb(29, 155, 240);
-    padding: 8px;
-    cursor: pointer;
-    text-decoration: none;
-  }
-`;
+    .xghosted-problem { border: 2px solid red; }
+    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+    .xghosted-good { }
+    .xghosted-undefined { }
+    .xghosted-eyeball::after {
+      content: '👀';
+      color: rgb(29, 155, 240);
+      padding: 8px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+  `;
   this.document.head.appendChild(styleSheet);
 
   // Add event delegation for eyeball clicks
@@ -446,7 +448,26 @@ XGhosted.prototype.init = function () {
       e.preventDefault();
       const post = e.target.closest('div[data-xghosted-id]');
       const href = post?.getAttribute('data-xghosted-id');
-      if (href) this.userRequestedPostCheck(href);
+      if (!href) return;
+
+      if (this.state.isRateLimited) {
+        this.log(`Eyeball click skipped for ${href} due to rate limit`);
+        return;
+      }
+
+      const cached = this.state.processedPosts.get(href);
+      if (this.state.isManualCheckEnabled) {
+        this.userRequestedPostCheck(href);
+      } else {
+        this.document.defaultView.open(`https://x.com${href}`, '_blank');
+        if (cached) {
+          cached.checked = true;
+          const eyeballContainer = post.querySelector('.xghosted-eyeball');
+          if (eyeballContainer) eyeballContainer.classList.remove('xghosted-eyeball');
+          this.saveState();
+          this.log(`Opened ${href} in new tab and marked as checked`);
+        }
+      }
     }
   });
   this.saveState();

@@ -178,8 +178,8 @@
   }
 
   // src/utils/identifyPost.js
-  function identifyPost(post2, checkReplies = true, logger = console.log) {
-    const article = post2.querySelector('article');
+  function identifyPost(post, checkReplies = true, logger = console.log) {
+    const article = post.querySelector('article');
     if (!article) {
       return {
         quality: postQuality.UNDEFINED,
@@ -192,7 +192,7 @@
       return {
         quality: postQuality.PROBLEM,
         reason: `Found notice: ${noticeFound}`,
-        link: getRelativeLinkToPost(post2),
+        link: getRelativeLinkToPost(post),
       };
     }
     const communityFound = postHasProblemCommunity(article);
@@ -200,7 +200,7 @@
       return {
         quality: postQuality.PROBLEM,
         reason: `Found community: ${communityFound}`,
-        link: getRelativeLinkToPost(post2),
+        link: getRelativeLinkToPost(post),
       };
     }
     if (checkReplies) {
@@ -211,14 +211,14 @@
           return {
             quality: postQuality.POTENTIAL_PROBLEM,
             reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
-            link: getRelativeLinkToPost(post2),
+            link: getRelativeLinkToPost(post),
           };
         } else {
         }
       } else {
       }
     }
-    const link = getRelativeLinkToPost(post2);
+    const link = getRelativeLinkToPost(post);
     if (link) {
       return {
         quality: postQuality.GOOD,
@@ -245,8 +245,8 @@
     const results = [];
     let lastLink = null;
     let fillerCount = startingFillerCount;
-    posts.forEach((post2) => {
-      const analysis = identifyPost(post2, checkReplies);
+    posts.forEach((post) => {
+      const analysis = identifyPost(post, checkReplies);
       let id = analysis.link;
       if (analysis.quality === postQuality.UNDEFINED && id === false) {
         if (lastLink) {
@@ -261,7 +261,7 @@
         fillerCount = 0;
       }
       if (fn) {
-        fn(post2, analysis);
+        fn(post, analysis);
       }
       results.push(analysis);
     });
@@ -1233,17 +1233,18 @@
     const cached = this.state.processedPosts.get(href);
     if (
       !cached ||
-      cached.analysis.quality.name !== postQuality.POTENTIAL_PROBLEM.name ||
-      !this.state.isManualCheckEnabled
+      cached.analysis.quality.name !== postQuality.POTENTIAL_PROBLEM.name
     ) {
-      this.log(
-        `Manual check skipped for ${href}: not a potential problem or manual mode off`
-      );
+      this.log(`Manual check skipped for ${href}: not a potential problem`);
+      return;
+    }
+    const post = this.document.querySelector(`div[data-xghosted-id="${href}"]`);
+    if (!post) {
+      this.log(`Post element not found for ${href}`);
       return;
     }
     if (!cached.checked) {
       this.checkPostInNewTabThrottled(href).then((isProblem) => {
-        if (this.state.isRateLimited) return;
         post.classList.remove(
           'xghosted-potential_problem',
           'xghosted-good',
@@ -1368,20 +1369,20 @@
       this.log('No posts container set, skipping highlighting');
       return [];
     }
-    const processPostAnalysis = (post2, analysis) => {
-      if (!(post2 instanceof this.document.defaultView.Element)) {
-        this.log('Skipping invalid DOM element:', post2);
+    const processPostAnalysis = (post, analysis) => {
+      if (!(post instanceof this.document.defaultView.Element)) {
+        this.log('Skipping invalid DOM element:', post);
         return;
       }
       const id = analysis.link;
       const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
-      post2.setAttribute('data-xghosted', `postquality.${qualityName}`);
-      post2.setAttribute('data-xghosted-id', id);
+      post.setAttribute('data-xghosted', `postquality.${qualityName}`);
+      post.setAttribute('data-xghosted-id', id);
       if (analysis.quality === postQuality.PROBLEM) {
-        post2.classList.add('xghosted-problem');
+        post.classList.add('xghosted-problem');
       } else if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
-        post2.classList.add('xghosted-potential_problem');
-        const shareButtonContainer = post2.querySelector(
+        post.classList.add('xghosted-potential_problem');
+        const shareButtonContainer = post.querySelector(
           'button[aria-label="Share post"]'
         )?.parentElement;
         if (shareButtonContainer) {
@@ -1482,25 +1483,43 @@
     this.panelManager.updateTheme(initialTheme);
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
-  .xghosted-problem { border: 2px solid red; }
-  .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-  .xghosted-good { }
-  .xghosted-undefined { }
-  .xghosted-eyeball::after {
-    content: '\u{1F440}';
-    color: rgb(29, 155, 240);
-    padding: 8px;
-    cursor: pointer;
-    text-decoration: none;
-  }
-`;
+    .xghosted-problem { border: 2px solid red; }
+    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+    .xghosted-good { }
+    .xghosted-undefined { }
+    .xghosted-eyeball::after {
+      content: '\u{1F440}';
+      color: rgb(29, 155, 240);
+      padding: 8px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+  `;
     this.document.head.appendChild(styleSheet);
     this.document.addEventListener('click', (e) => {
       if (e.target.classList.contains('xghosted-eyeball')) {
         e.preventDefault();
-        const post2 = e.target.closest('div[data-xghosted-id]');
-        const href = post2?.getAttribute('data-xghosted-id');
-        if (href) this.userRequestedPostCheck(href);
+        const post = e.target.closest('div[data-xghosted-id]');
+        const href = post?.getAttribute('data-xghosted-id');
+        if (!href) return;
+        if (this.state.isRateLimited) {
+          this.log(`Eyeball click skipped for ${href} due to rate limit`);
+          return;
+        }
+        const cached = this.state.processedPosts.get(href);
+        if (this.state.isManualCheckEnabled) {
+          this.userRequestedPostCheck(href);
+        } else {
+          this.document.defaultView.open(`https://x.com${href}`, '_blank');
+          if (cached) {
+            cached.checked = true;
+            const eyeballContainer = post.querySelector('.xghosted-eyeball');
+            if (eyeballContainer)
+              eyeballContainer.classList.remove('xghosted-eyeball');
+            this.saveState();
+            this.log(`Opened ${href} in new tab and marked as checked`);
+          }
+        }
       }
     });
     this.saveState();
