@@ -443,8 +443,8 @@ XGhosted.prototype.init = function () {
 
   // Add event delegation for eyeball clicks
   this.document.addEventListener('click', (e) => {
-    const eyeball = e.target.closest('.xghosted-eyeball') || 
-                   (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
+    const eyeball = e.target.closest('.xghosted-eyeball') ||
+      (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
     if (eyeball) {
       e.preventDefault();
       this.log('Eyeball clicked! Digging in...');
@@ -489,6 +489,9 @@ XGhosted.prototype.init = function () {
     }
   }
   this.saveState();
+
+  // Delay initial highlight to let DOM load
+  setTimeout(() => this.ensureAndHighlightPostsDebounced(), 2000);
 };
 
 export { XGhosted };

@@ -1544,6 +1544,7 @@
       }
     }
     this.saveState();
+    setTimeout(() => this.ensureAndHighlightPostsDebounced(), 2e3);
   };
   var XGhosted = XGhosted;
 
