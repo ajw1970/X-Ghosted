@@ -173,13 +173,13 @@
 
   // src/utils/getRelativeLinkToPost.js
   function getRelativeLinkToPost(element) {
-    const link = element.querySelector('a:has(time)').getAttribute('href');
+    const link = element.querySelector('a:has(time)')?.getAttribute('href');
     return link || false;
   }
 
   // src/utils/identifyPost.js
-  function identifyPost(post2, checkReplies = true, logger = console.log) {
-    const article = post2.querySelector('article');
+  function identifyPost(post, checkReplies = true, logger = console.log) {
+    const article = post.querySelector('article');
     if (!article) {
       return {
         quality: postQuality.UNDEFINED,
@@ -192,7 +192,7 @@
       return {
         quality: postQuality.PROBLEM,
         reason: `Found notice: ${noticeFound}`,
-        link: getRelativeLinkToPost(post2),
+        link: getRelativeLinkToPost(post),
       };
     }
     const communityFound = postHasProblemCommunity(article);
@@ -200,7 +200,7 @@
       return {
         quality: postQuality.PROBLEM,
         reason: `Found community: ${communityFound}`,
-        link: getRelativeLinkToPost(post2),
+        link: getRelativeLinkToPost(post),
       };
     }
     if (checkReplies) {
@@ -211,14 +211,14 @@
           return {
             quality: postQuality.POTENTIAL_PROBLEM,
             reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
-            link: getRelativeLinkToPost(post2),
+            link: getRelativeLinkToPost(post),
           };
         } else {
         }
       } else {
       }
     }
-    const link = getRelativeLinkToPost(post2);
+    const link = getRelativeLinkToPost(post);
     if (link) {
       return {
         quality: postQuality.GOOD,
@@ -245,8 +245,8 @@
     const results = [];
     let lastLink = null;
     let fillerCount = startingFillerCount;
-    posts.forEach((post2) => {
-      const analysis = identifyPost(post2, checkReplies);
+    posts.forEach((post) => {
+      const analysis = identifyPost(post, checkReplies);
       let id = analysis.link;
       if (analysis.quality === postQuality.UNDEFINED && id === false) {
         if (lastLink) {
@@ -261,7 +261,7 @@
         fillerCount = 0;
       }
       if (fn) {
-        fn(post2, analysis);
+        fn(post, analysis);
       }
       results.push(analysis);
     });
@@ -1239,7 +1239,7 @@
       }, 500);
     });
   };
-  XGhosted.prototype.userRequestedPostCheck = function (href) {
+  XGhosted.prototype.userRequestedPostCheck = function (href, post) {
     this.log(`User requested check for ${href}`);
     const cached = this.state.processedPosts.get(href);
     if (
@@ -1251,7 +1251,7 @@
     }
     if (!cached.checked) {
       this.log(`Manual check starting for ${href}`);
-      this.checkPostInNewTabThrottled(href).then((isProblem) => {
+      this.checkPostInNewTab(href).then((isProblem) => {
         this.log(
           `Manual check result for ${href}: ${isProblem ? 'problem' : 'good'}`
         );
@@ -1377,20 +1377,20 @@
       this.log('No posts container set, skipping highlighting');
       return [];
     }
-    const processPostAnalysis = (post2, analysis) => {
-      if (!(post2 instanceof this.document.defaultView.Element)) {
-        this.log('Skipping invalid DOM element:', post2);
+    const processPostAnalysis = (post, analysis) => {
+      if (!(post instanceof this.document.defaultView.Element)) {
+        this.log('Skipping invalid DOM element:', post);
         return;
       }
       const id = analysis.link;
       const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
-      post2.setAttribute('data-xghosted', `postquality.${qualityName}`);
-      post2.setAttribute('data-xghosted-id', id);
+      post.setAttribute('data-xghosted', `postquality.${qualityName}`);
+      post.setAttribute('data-xghosted-id', id);
       if (analysis.quality === postQuality.PROBLEM) {
-        post2.classList.add('xghosted-problem');
+        post.classList.add('xghosted-problem');
       } else if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
-        post2.classList.add('xghosted-potential_problem');
-        const shareButtonContainer = post2.querySelector(
+        post.classList.add('xghosted-potential_problem');
+        const shareButtonContainer = post.querySelector(
           'button[aria-label="Share post"]'
         )?.parentElement;
         if (shareButtonContainer) {
@@ -1524,7 +1524,7 @@
           }
           const cached = this.state.processedPosts.get(href);
           if (this.state.isManualCheckEnabled) {
-            this.userRequestedPostCheck(href);
+            this.userRequestedPostCheck(href, clickedPost);
           } else {
             this.document.defaultView.open(`https://x.com${href}`, '_blank');
             if (cached) {
