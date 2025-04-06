@@ -178,8 +178,8 @@
   }
 
   // src/utils/identifyPost.js
-  function identifyPost(post, checkReplies = true, logger = console.log) {
-    const article = post.querySelector('article');
+  function identifyPost(post2, checkReplies = true, logger = console.log) {
+    const article = post2.querySelector('article');
     if (!article) {
       return {
         quality: postQuality.UNDEFINED,
@@ -192,7 +192,7 @@
       return {
         quality: postQuality.PROBLEM,
         reason: `Found notice: ${noticeFound}`,
-        link: getRelativeLinkToPost(post),
+        link: getRelativeLinkToPost(post2),
       };
     }
     const communityFound = postHasProblemCommunity(article);
@@ -200,7 +200,7 @@
       return {
         quality: postQuality.PROBLEM,
         reason: `Found community: ${communityFound}`,
-        link: getRelativeLinkToPost(post),
+        link: getRelativeLinkToPost(post2),
       };
     }
     if (checkReplies) {
@@ -211,14 +211,14 @@
           return {
             quality: postQuality.POTENTIAL_PROBLEM,
             reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
-            link: getRelativeLinkToPost(post),
+            link: getRelativeLinkToPost(post2),
           };
         } else {
         }
       } else {
       }
     }
-    const link = getRelativeLinkToPost(post);
+    const link = getRelativeLinkToPost(post2);
     if (link) {
       return {
         quality: postQuality.GOOD,
@@ -245,8 +245,8 @@
     const results = [];
     let lastLink = null;
     let fillerCount = startingFillerCount;
-    posts.forEach((post) => {
-      const analysis = identifyPost(post, checkReplies);
+    posts.forEach((post2) => {
+      const analysis = identifyPost(post2, checkReplies);
       let id = analysis.link;
       if (analysis.quality === postQuality.UNDEFINED && id === false) {
         if (lastLink) {
@@ -261,7 +261,7 @@
         fillerCount = 0;
       }
       if (fn) {
-        fn(post, analysis);
+        fn(post2, analysis);
       }
       results.push(analysis);
     });
@@ -937,12 +937,12 @@
   window.Panel = Panel;
 
   // src/ui/PanelManager.js
-  window.PanelManager = function (doc, xGhostedInstance) {
+  window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
     this.document = doc;
     this.xGhosted = xGhostedInstance;
     this.log = xGhostedInstance.log;
     this.state = {
-      themeMode: 'light',
+      themeMode,
       panelPosition: null,
       instance: xGhostedInstance,
     };
@@ -1238,11 +1238,8 @@
       this.log(`Manual check skipped for ${href}: not a potential problem`);
       return;
     }
-    const post = this.document.querySelector(`div[data-xghosted-id="${href}"]`);
-    if (!post) {
-      this.log(`Post element not found for ${href}`);
-      return;
-    }
+    alert(`User requested check: ${href}...`);
+    return;
     if (!cached.checked) {
       this.checkPostInNewTabThrottled(href).then((isProblem) => {
         post.classList.remove(
@@ -1369,20 +1366,20 @@
       this.log('No posts container set, skipping highlighting');
       return [];
     }
-    const processPostAnalysis = (post, analysis) => {
-      if (!(post instanceof this.document.defaultView.Element)) {
-        this.log('Skipping invalid DOM element:', post);
+    const processPostAnalysis = (post2, analysis) => {
+      if (!(post2 instanceof this.document.defaultView.Element)) {
+        this.log('Skipping invalid DOM element:', post2);
         return;
       }
       const id = analysis.link;
       const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
-      post.setAttribute('data-xghosted', `postquality.${qualityName}`);
-      post.setAttribute('data-xghosted-id', id);
+      post2.setAttribute('data-xghosted', `postquality.${qualityName}`);
+      post2.setAttribute('data-xghosted-id', id);
       if (analysis.quality === postQuality.PROBLEM) {
-        post.classList.add('xghosted-problem');
+        post2.classList.add('xghosted-problem');
       } else if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
-        post.classList.add('xghosted-potential_problem');
-        const shareButtonContainer = post.querySelector(
+        post2.classList.add('xghosted-potential_problem');
+        const shareButtonContainer = post2.querySelector(
           'button[aria-label="Share post"]'
         )?.parentElement;
         if (shareButtonContainer) {
@@ -1494,11 +1491,19 @@
   `;
     this.document.head.appendChild(styleSheet);
     this.document.addEventListener('click', (e) => {
-      if (e.target.classList.contains('xghosted-eyeball')) {
+      const eyeball =
+        e.target.closest('.xghosted-eyeball') ||
+        (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
+      if (eyeball) {
         e.preventDefault();
-        const post = e.target.closest('div[data-xghosted-id]');
-        const href = post?.getAttribute('data-xghosted-id');
-        if (!href) return;
+        this.log('Eyeball clicked! Digging in...');
+        const clickedPost = eyeball.closest('div[data-xghosted-id]');
+        const href = clickedPost?.getAttribute('data-xghosted-id');
+        if (!href) {
+          this.log('No href found for clicked eyeball');
+          return;
+        }
+        this.log(`Processing eyeball click for: ${href}`);
         if (this.state.isRateLimited) {
           this.log(`Eyeball click skipped for ${href} due to rate limit`);
           return;
@@ -1510,9 +1515,7 @@
           this.document.defaultView.open(`https://x.com${href}`, '_blank');
           if (cached) {
             cached.checked = true;
-            const eyeballContainer = post.querySelector('.xghosted-eyeball');
-            if (eyeballContainer)
-              eyeballContainer.classList.remove('xghosted-eyeball');
+            eyeball.classList.remove('xghosted-eyeball');
             this.saveState();
             this.log(`Opened ${href} in new tab and marked as checked`);
           }
@@ -1527,8 +1530,11 @@
     } else {
       try {
         const initialTheme = this.getThemeMode();
-        this.panelManager = new window.PanelManager(this.document, this);
-        this.panelManager.updateTheme(initialTheme);
+        this.panelManager = new window.PanelManager(
+          this.document,
+          this,
+          initialTheme
+        );
         this.log('GUI Panel initialized successfully');
       } catch (error) {
         this.log(

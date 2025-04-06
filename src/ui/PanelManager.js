@@ -1,9 +1,9 @@
-window.PanelManager = function(doc, xGhostedInstance) {
+window.PanelManager = function(doc, xGhostedInstance, themeMode = 'light') {
   this.document = doc;
   this.xGhosted = xGhostedInstance;
   this.log = xGhostedInstance.log;
   this.state = {
-    themeMode: 'light',
+    themeMode,
     panelPosition: null,
     instance: xGhostedInstance,
   };

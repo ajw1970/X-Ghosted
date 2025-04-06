@@ -181,16 +181,16 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
 };
 
 XGhosted.prototype.userRequestedPostCheck = function (href) {
+  // Get processed info for this post
   const cached = this.state.processedPosts.get(href);
   if (!cached || cached.analysis.quality.name !== postQuality.POTENTIAL_PROBLEM.name) {
     this.log(`Manual check skipped for ${href}: not a potential problem`);
     return;
   }
-  const post = this.document.querySelector(`div[data-xghosted-id="${href}"]`);
-  if (!post) {
-    this.log(`Post element not found for ${href}`);
-    return;
-  }
+
+  alert(`User requested check: ${href}...`);
+  return;
+
   if (!cached.checked) {
     this.checkPostInNewTabThrottled(href).then((isProblem) => {
       post.classList.remove('xghosted-potential_problem', 'xghosted-good', 'xghosted-problem');
@@ -443,17 +443,22 @@ XGhosted.prototype.init = function () {
 
   // Add event delegation for eyeball clicks
   this.document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('xghosted-eyeball')) {
+    const eyeball = e.target.closest('.xghosted-eyeball') || 
+                   (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
+    if (eyeball) {
       e.preventDefault();
-      const post = e.target.closest('div[data-xghosted-id]');
-      const href = post?.getAttribute('data-xghosted-id');
-      if (!href) return;
-
+      this.log('Eyeball clicked! Digging in...');
+      const clickedPost = eyeball.closest('div[data-xghosted-id]');
+      const href = clickedPost?.getAttribute('data-xghosted-id');
+      if (!href) {
+        this.log('No href found for clicked eyeball');
+        return;
+      }
+      this.log(`Processing eyeball click for: ${href}`);
       if (this.state.isRateLimited) {
         this.log(`Eyeball click skipped for ${href} due to rate limit`);
         return;
       }
-
       const cached = this.state.processedPosts.get(href);
       if (this.state.isManualCheckEnabled) {
         this.userRequestedPostCheck(href);
@@ -461,8 +466,7 @@ XGhosted.prototype.init = function () {
         this.document.defaultView.open(`https://x.com${href}`, '_blank');
         if (cached) {
           cached.checked = true;
-          const eyeballContainer = post.querySelector('.xghosted-eyeball');
-          if (eyeballContainer) eyeballContainer.classList.remove('xghosted-eyeball');
+          eyeball.classList.remove('xghosted-eyeball');
           this.saveState();
           this.log(`Opened ${href} in new tab and marked as checked`);
         }
@@ -477,8 +481,7 @@ XGhosted.prototype.init = function () {
   } else {
     try {
       const initialTheme = this.getThemeMode();
-      this.panelManager = new window.PanelManager(this.document, this);
-      this.panelManager.updateTheme(initialTheme);
+      this.panelManager = new window.PanelManager(this.document, this, initialTheme);
       this.log('GUI Panel initialized successfully');
     } catch (error) {
       this.log(`Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`);
