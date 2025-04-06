@@ -1478,9 +1478,6 @@
   XGhosted.prototype.init = function () {
     this.log('Initializing XGhosted...');
     this.loadState();
-    const initialTheme = this.getThemeMode();
-    this.panelManager = new window.PanelManager(this.document, this);
-    this.panelManager.updateTheme(initialTheme);
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
     .xghosted-problem { border: 2px solid red; }
@@ -1522,6 +1519,24 @@
         }
       }
     });
+    if (!window.preact || !window.preactHooks || !window.htm) {
+      this.log(
+        'Preact dependencies missing. Skipping GUI Panel initialization.'
+      );
+      this.panelManager = null;
+    } else {
+      try {
+        const initialTheme = this.getThemeMode();
+        this.panelManager = new window.PanelManager(this.document, this);
+        this.panelManager.updateTheme(initialTheme);
+        this.log('GUI Panel initialized successfully');
+      } catch (error) {
+        this.log(
+          `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`
+        );
+        this.panelManager = null;
+      }
+    }
     this.saveState();
   };
   var XGhosted = XGhosted;
