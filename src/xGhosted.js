@@ -186,12 +186,9 @@ XGhosted.prototype.userRequestedPostCheck = function (href) {
     this.log(`Manual check skipped for ${href}: not a potential problem or manual mode off`);
     return;
   }
-  const post = this.document.querySelector(`div[data-xghosted-id="${href}"]`);
-  if (!post) {
-    this.log(`Post element not found for ${href}`);
-    return;
-  }
+
   if (!cached.checked) {
+
     this.checkPostInNewTabThrottled(href).then((isProblem) => {
       if (this.state.isRateLimited) return;
       post.classList.remove('xghosted-potential_problem', 'xghosted-good', 'xghosted-problem');
