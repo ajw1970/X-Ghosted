@@ -3,7 +3,7 @@ import { detectTheme } from './dom/detectTheme';
 import { identifyPost } from './utils/identifyPost';
 import { identifyPosts } from './utils/identifyPosts';
 import { debounce } from './utils/debounce';
-import { findPostContainer, replaceMenuButton } from './dom/domUtils.js';
+import { findPostContainer } from './dom/findPostContainer.js';
 import { copyTextToClipboard, exportToCSV } from './utils/clipboardUtils.js';
 import './ui/Components.js';
 import './ui/PanelManager.js';
@@ -194,6 +194,8 @@ XGhosted.prototype.userRequestedPostCheck = function (href) {
       post.classList.remove('xghosted-potential_problem', 'xghosted-good', 'xghosted-problem');
       post.classList.add(isProblem ? 'xghosted-problem' : 'xghosted-good');
       post.setAttribute('data-xghosted', `postquality.${isProblem ? 'problem' : 'good'}`);
+      const eyeballContainer = post.querySelector('.xghosted-eyeball');
+      if (eyeballContainer) eyeballContainer.classList.remove('xghosted-eyeball');
       cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
       cached.checked = true;
       this.saveState();
@@ -202,16 +204,6 @@ XGhosted.prototype.userRequestedPostCheck = function (href) {
   } else {
     this.log(`Manual check skipped for ${href}: already checked`);
   }
-};
-
-XGhosted.prototype.replaceMenuButton = function (post, href) {
-  replaceMenuButton(post, href, this.document, this.log, (href) => {
-    if (this.state.isRateLimited) {
-      this.log('Tab check skipped due to rate limit pause');
-      return;
-    }
-    this.userRequestedPostCheck(href);
-  });
 };
 
 XGhosted.prototype.handleStart = function () {
@@ -320,19 +312,24 @@ XGhosted.prototype.highlightPosts = function () {
       this.log('Skipping invalid DOM element:', post);
       return;
     }
-
+  
     const id = analysis.link;
     const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
     post.setAttribute('data-xghosted', `postquality.${qualityName}`);
     post.setAttribute('data-xghosted-id', id);
-
+  
     if (analysis.quality === postQuality.PROBLEM) {
       post.classList.add('xghosted-problem');
     } else if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
       post.classList.add('xghosted-potential_problem');
-      this.replaceMenuButton(post, id);
+      const shareButtonContainer = post.querySelector('button[aria-label="Share post"]')?.parentElement;
+      if (shareButtonContainer) {
+        shareButtonContainer.classList.add('xghosted-eyeball');
+      } else {
+        this.log(`No share button container found for post with href: ${id}`);
+      }
     }
-
+  
     this.state.processedPosts.set(id, { analysis, checked: false });
   };
 
@@ -429,12 +426,29 @@ XGhosted.prototype.init = function () {
   this.panelManager.updateTheme(initialTheme);
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
-    .xghosted-problem { border: 2px solid red; }
-    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-    .xghosted-good { }
-    .xghosted-undefined { }
-  `;
+  .xghosted-problem { border: 2px solid red; }
+  .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+  .xghosted-good { }
+  .xghosted-undefined { }
+  .xghosted-eyeball::after {
+    content: '👀';
+    color: rgb(29, 155, 240);
+    padding: 8px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+`;
   this.document.head.appendChild(styleSheet);
+
+  // Add event delegation for eyeball clicks
+  this.document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('xghosted-eyeball')) {
+      e.preventDefault();
+      const post = e.target.closest('div[data-xghosted-id]');
+      const href = post?.getAttribute('data-xghosted-id');
+      if (href) this.userRequestedPostCheck(href);
+    }
+  });
   this.saveState();
 };
 

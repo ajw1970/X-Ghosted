@@ -281,7 +281,7 @@
     };
   }
 
-  // src/dom/domUtils.js
+  // src/dom/findPostContainer.js
   function findPostContainer(doc, log) {
     const firstPost = doc.querySelector('div[data-testid="cellInnerDiv"]');
     if (!firstPost) {
@@ -300,33 +300,6 @@
     }
     log('No parent container found with aria-label');
     return null;
-  }
-  function replaceMenuButton(post2, href, doc, log, onClickCallback) {
-    if (!post2) return;
-    const button =
-      post2.querySelector('button[aria-label="Share post"]') ||
-      post2.querySelector('button');
-    if (!button) {
-      log(`No share button found for post with href: ${href}`);
-      return;
-    }
-    if (button.nextSibling?.textContent.includes('\u{1F440}')) return;
-    const newLink = Object.assign(doc.createElement('a'), {
-      textContent: '\u{1F440}',
-      href: '#',
-    });
-    Object.assign(newLink.style, {
-      color: 'rgb(29, 155, 240)',
-      textDecoration: 'none',
-      padding: '8px',
-      cursor: 'pointer',
-    });
-    newLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      onClickCallback(href);
-      log(`Eyeball clicked for manual check on href: ${href}`);
-    });
-    button.parentElement.insertBefore(newLink, button.nextSibling);
   }
 
   // src/utils/clipboardUtils.js
@@ -1281,6 +1254,9 @@
           'data-xghosted',
           `postquality.${isProblem ? 'problem' : 'good'}`
         );
+        const eyeballContainer = post.querySelector('.xghosted-eyeball');
+        if (eyeballContainer)
+          eyeballContainer.classList.remove('xghosted-eyeball');
         cached.analysis.quality = isProblem
           ? postQuality.PROBLEM
           : postQuality.GOOD;
@@ -1293,15 +1269,6 @@
     } else {
       this.log(`Manual check skipped for ${href}: already checked`);
     }
-  };
-  XGhosted.prototype.replaceMenuButton = function (post2, href) {
-    replaceMenuButton(post2, href, this.document, this.log, (href2) => {
-      if (this.state.isRateLimited) {
-        this.log('Tab check skipped due to rate limit pause');
-        return;
-      }
-      this.userRequestedPostCheck(href2);
-    });
   };
   XGhosted.prototype.handleStart = function () {
     this.state.isCollapsingEnabled = true;
@@ -1414,7 +1381,14 @@
         post2.classList.add('xghosted-problem');
       } else if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
         post2.classList.add('xghosted-potential_problem');
-        this.replaceMenuButton(post2, id);
+        const shareButtonContainer = post2.querySelector(
+          'button[aria-label="Share post"]'
+        )?.parentElement;
+        if (shareButtonContainer) {
+          shareButtonContainer.classList.add('xghosted-eyeball');
+        } else {
+          this.log(`No share button container found for post with href: ${id}`);
+        }
       }
       this.state.processedPosts.set(id, { analysis, checked: false });
     };
@@ -1508,12 +1482,27 @@
     this.panelManager.updateTheme(initialTheme);
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
-    .xghosted-problem { border: 2px solid red; }
-    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-    .xghosted-good { }
-    .xghosted-undefined { }
-  `;
+  .xghosted-problem { border: 2px solid red; }
+  .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+  .xghosted-good { }
+  .xghosted-undefined { }
+  .xghosted-eyeball::after {
+    content: '\u{1F440}';
+    color: rgb(29, 155, 240);
+    padding: 8px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+`;
     this.document.head.appendChild(styleSheet);
+    this.document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('xghosted-eyeball')) {
+        e.preventDefault();
+        const post2 = e.target.closest('div[data-xghosted-id]');
+        const href = post2?.getAttribute('data-xghosted-id');
+        if (href) this.userRequestedPostCheck(href);
+      }
+    });
     this.saveState();
   };
   var XGhosted = XGhosted;
