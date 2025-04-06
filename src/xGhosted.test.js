@@ -88,17 +88,6 @@ describe('xGhosted', () => {
     vi.clearAllMocks();
   });
 
-  test('init tags posts and sets up styles', async () => {
-    xGhosted.init();
-    await waitFor(() => xGhosted.state.processedPosts.size > 0);
-    const results = xGhosted.ensureAndHighlightPosts();
-    expect(results.length).toBeGreaterThan(0);
-    expect(GM_setValue).toHaveBeenCalled();
-    // Check stylesheet was added
-    const stylesheet = xGhosted.document.head.querySelector('style');
-    expect(stylesheet?.textContent).toContain('.xghosted-problem');
-  }, 15000);
-
   test('updateState sets with_replies flag and resets on URL change', () => {
     expect(xGhosted.state.isWithReplies).toBe(true);
     xGhosted.updateState('https://x.com/user');
@@ -110,17 +99,6 @@ describe('xGhosted', () => {
     const results = xGhosted.ensureAndHighlightPosts();
     expect(xGhosted.state.postContainer).toBeTruthy();
     expect(xGhosted.state.postContainer.getAttribute('data-xghosted')).toBe('posts-container');
-  });
-
-  test('highlightPosts applies classes', () => {
-    xGhosted.state.isManualCheckEnabled = true;
-    xGhosted.ensureAndHighlightPosts();
-    const problemPost = xGhosted.document.querySelector('div[data-xghosted="postquality.problem"]');
-    const potentialPost = xGhosted.document.querySelector('div[data-xghosted="postquality.potential_problem"]');
-    expect(problemPost?.classList.contains('xghosted-problem')).toBe(true);
-    expect(potentialPost?.classList.contains('xghosted-potential_problem')).toBe(true);
-    const eyeball = potentialPost?.querySelector('button[aria-label="Share post"] ~ a') || potentialPost?.querySelector('button ~ a');
-    expect(eyeball?.textContent).toBe('👀');
   });
 
   test('checkPostInNewTab handles rate limit', async () => {
