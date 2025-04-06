@@ -102,6 +102,8 @@ XGhosted.prototype.exportProcessedPostsCSV = function () {
 };
 
 XGhosted.prototype.checkPostInNewTab = function (href) {
+  this.log(`Checking post in new tab: ${href}`);
+
   const fullUrl = `https://x.com${href}`;
   const newWindow = this.document.defaultView.open(fullUrl, '_blank');
   let attempts = 0,
@@ -181,6 +183,8 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
 };
 
 XGhosted.prototype.userRequestedPostCheck = function (href) {
+  this.log(`User requested check for ${href}`);
+
   // Get processed info for this post
   const cached = this.state.processedPosts.get(href);
   if (!cached || cached.analysis.quality.name !== postQuality.POTENTIAL_PROBLEM.name) {
@@ -188,11 +192,11 @@ XGhosted.prototype.userRequestedPostCheck = function (href) {
     return;
   }
 
-  alert(`User requested check: ${href}...`);
-  return;
-
   if (!cached.checked) {
+    this.log(`Manual check starting for ${href}`);
     this.checkPostInNewTabThrottled(href).then((isProblem) => {
+      this.log(`Manual check result for ${href}: ${isProblem ? 'problem' : 'good'}`);
+
       post.classList.remove('xghosted-potential_problem', 'xghosted-good', 'xghosted-problem');
       post.classList.add(isProblem ? 'xghosted-problem' : 'xghosted-good');
       post.setAttribute('data-xghosted', `postquality.${isProblem ? 'problem' : 'good'}`);
@@ -201,7 +205,7 @@ XGhosted.prototype.userRequestedPostCheck = function (href) {
       cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
       cached.checked = true;
       this.saveState();
-      this.log(`Manual check completed for ${href}: marked as ${isProblem ? 'problem' : 'good'}`);
+      this.log(`Post Manual check completed for ${href}`);
     });
   } else {
     this.log(`Manual check skipped for ${href}: already checked`);
@@ -442,37 +446,39 @@ XGhosted.prototype.init = function () {
   this.document.head.appendChild(styleSheet);
 
   // Add event delegation for eyeball clicks
-  this.document.addEventListener('click', (e) => {
-    const eyeball = e.target.closest('.xghosted-eyeball') ||
-      (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
-    if (eyeball) {
-      e.preventDefault();
-      this.log('Eyeball clicked! Digging in...');
-      const clickedPost = eyeball.closest('div[data-xghosted-id]');
-      const href = clickedPost?.getAttribute('data-xghosted-id');
-      if (!href) {
-        this.log('No href found for clicked eyeball');
-        return;
-      }
-      this.log(`Processing eyeball click for: ${href}`);
-      if (this.state.isRateLimited) {
-        this.log(`Eyeball click skipped for ${href} due to rate limit`);
-        return;
-      }
-      const cached = this.state.processedPosts.get(href);
-      if (this.state.isManualCheckEnabled) {
-        this.userRequestedPostCheck(href);
-      } else {
-        this.document.defaultView.open(`https://x.com${href}`, '_blank');
-        if (cached) {
-          cached.checked = true;
-          eyeball.classList.remove('xghosted-eyeball');
-          this.saveState();
-          this.log(`Opened ${href} in new tab and marked as checked`);
-        }
+  // In src/xGhosted.js, modify the event listener
+this.document.addEventListener('click', (e) => {
+  const eyeball = e.target.closest('.xghosted-eyeball') ||
+    (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
+  if (eyeball) {
+    e.preventDefault(); // Prevent X.com's default behavior
+    e.stopPropagation(); // Stop the event from bubbling to X.com's listener
+    this.log('Eyeball clicked! Digging in...');
+    const clickedPost = eyeball.closest('div[data-xghosted-id]');
+    const href = clickedPost?.getAttribute('data-xghosted-id');
+    if (!href) {
+      this.log('No href found for clicked eyeball');
+      return;
+    }
+    this.log(`Processing eyeball click for: ${href}`);
+    if (this.state.isRateLimited) {
+      this.log(`Eyeball click skipped for ${href} due to rate limit`);
+      return;
+    }
+    const cached = this.state.processedPosts.get(href);
+    if (this.state.isManualCheckEnabled) {
+      this.userRequestedPostCheck(href);
+    } else {
+      this.document.defaultView.open(`https://x.com${href}`, '_blank');
+      if (cached) {
+        cached.checked = true;
+        eyeball.classList.remove('xghosted-eyeball');
+        this.saveState();
+        this.log(`Opened ${href} in new tab and marked as checked`);
       }
     }
-  });
+  }
+}, { capture: true }); // Use capture phase
 
   // Try Initializing the GUI Panel
   if (!window.preact || !window.preactHooks || !window.htm) {
