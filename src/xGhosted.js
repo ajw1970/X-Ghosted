@@ -311,12 +311,9 @@ XGhosted.prototype.highlightPosts = function () {
     const id = analysis.link;
     const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
     post.setAttribute('data-xghosted', `postquality.${qualityName}`);
-    post.setAttribute('data-xghosted-id', id);
+    post.classList.add(`xghosted-${qualityName}`);
 
-    if (analysis.quality === postQuality.PROBLEM) {
-      post.classList.add('xghosted-problem');
-    } else if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
-      post.classList.add('xghosted-potential_problem');
+    if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
       const shareButtonContainer = post.querySelector('button[aria-label="Share post"]')?.parentElement;
       if (shareButtonContainer) {
         shareButtonContainer.classList.add('xghosted-eyeball');
@@ -325,7 +322,10 @@ XGhosted.prototype.highlightPosts = function () {
       }
     }
 
-    this.state.processedPosts.set(id, { analysis, checked: false });
+    if (id) {
+      post.setAttribute('data-xghosted-id', id);
+      this.state.processedPosts.set(id, { analysis, checked: false });
+    }
   };
 
   const results = identifyPosts(
