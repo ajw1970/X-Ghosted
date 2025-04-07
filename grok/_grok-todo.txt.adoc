@@ -19,14 +19,12 @@
 ** Test import csv
 ** Test reset csv
 
-
-
 * rename isRateLimited to isRateLimitedDetected
 
 * Add eyeball link column for potential problem posts in the panel
 ** Test open post in new tab from panel link
 
-* Make sure we can open the old way with the eyeballs if manual check is disabled
+* Make sure we can open the old way with the eyeballs if manual check is disabled and panel didn't open.
 
 * Clarify dom for post container and X.com behavior
 
@@ -44,6 +42,8 @@ We can get rid of all but processedPosts which can include good posts but have t
 
 * Get collapsing feature working as a feature of highlightPosts
 ** We can use a class to collapse when that is enabled.
+
+* Add unit tests to increase coverage of all but UI/UX stuff.
 
 *MERGE*: collapsing into main
 
