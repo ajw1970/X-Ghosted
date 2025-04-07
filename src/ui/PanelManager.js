@@ -1,4 +1,4 @@
-window.PanelManager = function(doc, xGhostedInstance, themeMode = 'light') {
+window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
   this.document = doc;
   this.xGhosted = xGhostedInstance;
   this.log = xGhostedInstance.log;
@@ -52,14 +52,14 @@ window.PanelManager = function(doc, xGhostedInstance, themeMode = 'light') {
   this.init();
 };
 
-window.PanelManager.prototype.init = function() {
+window.PanelManager.prototype.init = function () {
   this.uiElements.panel = this.document.createElement('div');
   this.document.body.appendChild(this.uiElements.panel);
   this.applyPanelStyles();
   this.renderPanel();
 };
 
-window.PanelManager.prototype.applyPanelStyles = function() {
+window.PanelManager.prototype.applyPanelStyles = function () {
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
     button:active { transform: scale(0.95); }
@@ -67,7 +67,7 @@ window.PanelManager.prototype.applyPanelStyles = function() {
   this.document.head.appendChild(styleSheet);
 };
 
-window.PanelManager.prototype.renderPanel = function() {
+window.PanelManager.prototype.renderPanel = function () {
   window.preact.render(
     window.preact.h(window.Panel, {
       state: this.xGhosted.state,
@@ -83,25 +83,29 @@ window.PanelManager.prototype.renderPanel = function() {
       onClear: this.xGhosted.handleClear.bind(this.xGhosted),
       onManualCheckToggle: this.xGhosted.handleManualCheckToggle.bind(this.xGhosted),
       onToggle: this.toggleVisibility.bind(this),
+      onEyeballClick: (href) => {
+        const post = this.document.querySelector(`[data-xghosted-id="${href}"]`);
+        this.xGhosted.userRequestedPostCheck(href, post);
+      },
     }),
     this.uiElements.panel
   );
   this.log('Panel rendered');
 };
 
-window.PanelManager.prototype.toggleVisibility = function(newVisibility) {
+window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
   this.xGhosted.state.isPanelVisible = typeof newVisibility === 'boolean' ? newVisibility : !this.xGhosted.state.isPanelVisible;
   this.renderPanel();
   this.xGhosted.saveState();
   this.log(`Panel visibility toggled to ${this.xGhosted.state.isPanelVisible}`);
 };
 
-window.PanelManager.prototype.updateTheme = function(newMode) {
+window.PanelManager.prototype.updateTheme = function (newMode) {
   this.state.themeMode = newMode;
   this.renderPanel();
   this.log(`Panel theme updated to ${newMode}`);
 };
 
-window.PanelManager.prototype.handleModeChange = function(newMode) {
+window.PanelManager.prototype.handleModeChange = function (newMode) {
   this.updateTheme(newMode);
 };

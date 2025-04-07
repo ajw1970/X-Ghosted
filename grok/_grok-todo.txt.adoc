@@ -17,12 +17,13 @@
 ** [x] Test import csv
 ** [x] Test reset csv
 
-* rename isRateLimited to isRateLimitedDetected?
+* [x] Add eyeball link column for potential problem posts in the panel
+** [x] Test open post in new tab from panel link
 
-* Add eyeball link column for potential problem posts in the panel
-** Test open post in new tab from panel link
+* [ ] Are we using the processedPosts list to avoid reprocessing posts? We filter out any that were already tagged with our data element, but we might not be also checking for when a user scrolls back up and re-loads already processed posts. 
 
-* Make sure we can open the old way with the eyeballs if manual check is disabled and panel didn't open.
+* [ ] Make sure we can open with the eyeballs from the panel if manual check is disabled
+* [ ] Make sure we can open the old way with the eyeballs if manual check is disabled and panel didn't open.
 
 * Clarify dom for post container and X.com behavior
 

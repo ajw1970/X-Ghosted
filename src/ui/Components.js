@@ -21,30 +21,30 @@ function Modal({ isOpen, onClose, onSubmit, mode, config }) {
             style=${styles.button}
             onClick=${() => onSubmit(csvText)}
             onMouseOver=${(e) => {
-              e.target.style.background = config.THEMES[mode].hover;
-              e.target.style.transform = 'translateY(-1px)';
-            }}
+      e.target.style.background = config.THEMES[mode].hover;
+      e.target.style.transform = 'translateY(-1px)';
+    }}
             onMouseOut=${(e) => {
-              e.target.style.background = config.THEMES[mode].button;
-              e.target.style.transform = 'translateY(0)';
-            }}
+      e.target.style.background = config.THEMES[mode].button;
+      e.target.style.transform = 'translateY(0)';
+    }}
           >
             <i className="fas fa-check" style="marginRight: 6px;"></i> Submit
           </button>
           <button
             style=${styles.button}
             onClick=${() => {
-              setCsvText('');
-              onClose();
-            }}
+      setCsvText('');
+      onClose();
+    }}
             onMouseOver=${(e) => {
-              e.target.style.background = config.THEMES[mode].hover;
-              e.target.style.transform = 'translateY(-1px)';
-            }}
+      e.target.style.background = config.THEMES[mode].hover;
+      e.target.style.transform = 'translateY(-1px)';
+    }}
             onMouseOut=${(e) => {
-              e.target.style.background = config.THEMES[mode].button;
-              e.target.style.transform = 'translateY(0)';
-            }}
+      e.target.style.background = config.THEMES[mode].button;
+      e.target.style.transform = 'translateY(0)';
+    }}
           >
             <i className="fas fa-times" style="marginRight: 6px;"></i> Close
           </button>
@@ -58,7 +58,7 @@ function Panel({
   state,
   config,
   copyCallback,
-  mode, // Use this instead of state.themeMode
+  mode,
   onModeChange,
   onStart,
   onStop,
@@ -68,6 +68,7 @@ function Panel({
   onClear,
   onManualCheckToggle,
   onToggle,
+  onEyeballClick, // New prop for eyeball click handling
 }) {
   const [flagged, setFlagged] = useState(
     Array.from(state.processedPosts.entries()).filter(
@@ -79,7 +80,7 @@ function Panel({
   const [isVisible, setIsVisible] = useState(state.isPanelVisible);
   const [isToolsExpanded, setIsToolsExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentMode, setCurrentMode] = useState(mode); // Initialize with props.mode
+  const [currentMode, setCurrentMode] = useState(mode);
   const [updateCounter, setUpdateCounter] = useState(0);
 
   useEffect(() => {
@@ -97,7 +98,7 @@ function Panel({
   }, [state.isPanelVisible]);
 
   useEffect(() => {
-    setCurrentMode(mode); // Update with props.mode
+    setCurrentMode(mode);
   }, [mode]);
 
   const toggleVisibility = () => {
@@ -147,7 +148,7 @@ function Panel({
         }
         .link-row {
           display: grid;
-          grid-template-columns: 20px 1fr;
+          grid-template-columns: 20px 1fr 30px;
           align-items: center;
           gap: 10px;
         }
@@ -175,6 +176,12 @@ function Panel({
         button:active {
           transform: scale(0.95);
         }
+        .eyeball-icon {
+          color: rgb(29, 155, 240);
+          cursor: pointer;
+          font-size: 16px;
+          text-align: center;
+        }
       </style>
       <div id="xghosted-panel" style=${styles.panel}>
         ${isVisible ? html`
@@ -185,13 +192,13 @@ function Panel({
                 style=${styles.button}
                 onClick=${toggleTools}
                 onMouseOver=${(e) => {
-                  e.target.style.background = config.THEMES[currentMode].hover;
-                  e.target.style.transform = 'translateY(-1px)';
-                }}
+        e.target.style.background = config.THEMES[currentMode].hover;
+        e.target.style.transform = 'translateY(-1px)';
+      }}
                 onMouseOut=${(e) => {
-                  e.target.style.background = config.THEMES[currentMode].button;
-                  e.target.style.transform = 'translateY(0)';
-                }}
+        e.target.style.background = config.THEMES[currentMode].button;
+        e.target.style.transform = 'translateY(0)';
+      }}
               >
                 <i className="fas fa-chevron-down" style="marginRight: 6px;"></i> Tools
               </button>
@@ -199,13 +206,13 @@ function Panel({
                 style=${styles.button}
                 onClick=${toggleVisibility}
                 onMouseOver=${(e) => {
-                  e.target.style.background = config.THEMES[currentMode].hover;
-                  e.target.style.transform = 'translateY(-1px)';
-                }}
+        e.target.style.background = config.THEMES[currentMode].hover;
+        e.target.style.transform = 'translateY(-1px)';
+      }}
                 onMouseOut=${(e) => {
-                  e.target.style.background = config.THEMES[currentMode].button;
-                  e.target.style.transform = 'translateY(0)';
-                }}
+        e.target.style.background = config.THEMES[currentMode].button;
+        e.target.style.transform = 'translateY(0)';
+      }}
               >
                 <i className="fas fa-eye-slash" style="marginRight: 6px;"></i> Hide
               </button>
@@ -216,11 +223,11 @@ function Panel({
               <div style="padding-bottom: 12px; border-bottom: 1px solid ${config.THEMES[currentMode].border};">
                 <select
                   style=${{
-                    ...styles.modeSelector,
-                    width: '100%',
-                    padding: '8px 12px',
-                    fontSize: '14px',
-                  }}
+        ...styles.modeSelector,
+        width: '100%',
+        padding: '8px 12px',
+        fontSize: '14px',
+      }}
                   value=${currentMode}
                   onChange=${handleModeChange}
                 >
@@ -234,13 +241,13 @@ function Panel({
                   style=${styles.button}
                   onClick=${copyCallback}
                   onMouseOver=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].hover;
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
+        e.target.style.background = config.THEMES[currentMode].hover;
+        e.target.style.transform = 'translateY(-1px)';
+      }}
                   onMouseOut=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].button;
-                    e.target.style.transform = 'translateY(0)';
-                  }}
+        e.target.style.background = config.THEMES[currentMode].button;
+        e.target.style.transform = 'translateY(0)';
+      }}
                 >
                   <i className="fas fa-copy" style="marginRight: 8px;"></i> Copy
                 </button>
@@ -248,13 +255,13 @@ function Panel({
                   style=${styles.button}
                   onClick=${onExportCSV}
                   onMouseOver=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].hover;
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
+        e.target.style.background = config.THEMES[currentMode].hover;
+        e.target.style.transform = 'translateY(-1px)';
+      }}
                   onMouseOut=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].button;
-                    e.target.style.transform = 'translateY(0)';
-                  }}
+        e.target.style.background = config.THEMES[currentMode].button;
+        e.target.style.transform = 'translateY(0)';
+      }}
                 >
                   <i className="fas fa-file-export" style="marginRight: 8px;"></i> Export CSV
                 </button>
@@ -262,13 +269,13 @@ function Panel({
                   style=${styles.button}
                   onClick=${handleImportCSV}
                   onMouseOver=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].hover;
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
+        e.target.style.background = config.THEMES[currentMode].hover;
+        e.target.style.transform = 'translateY(-1px)';
+      }}
                   onMouseOut=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].button;
-                    e.target.style.transform = 'translateY(0)';
-                  }}
+        e.target.style.background = config.THEMES[currentMode].button;
+        e.target.style.transform = 'translateY(0)';
+      }}
                 >
                   <i className="fas fa-file-import" style="marginRight: 8px;"></i> Import CSV
                 </button>
@@ -276,13 +283,13 @@ function Panel({
                   style=${styles.button}
                   onClick=${onClear}
                   onMouseOver=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].hover;
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
+        e.target.style.background = config.THEMES[currentMode].hover;
+        e.target.style.transform = 'translateY(-1px)';
+      }}
                   onMouseOut=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].button;
-                    e.target.style.transform = 'translateY(0)';
-                  }}
+        e.target.style.background = config.THEMES[currentMode].button;
+        e.target.style.transform = 'translateY(0)';
+      }}
                 >
                   <i className="fas fa-trash" style="marginRight: 8px;"></i> Clear
                 </button>
@@ -290,25 +297,25 @@ function Panel({
               <div style="display: flex; flex-direction: column; gap: 12px;">
                 <button
                   style=${{
-                    ...styles.button,
-                    background: state.isManualCheckEnabled
-                      ? config.THEMES[currentMode].hover
-                      : config.THEMES[currentMode].button,
-                    border: state.isManualCheckEnabled
-                      ? `1px solid ${config.THEMES[currentMode].hover}`
-                      : `1px solid ${config.THEMES[currentMode].border}`,
-                  }}
+        ...styles.button,
+        background: state.isManualCheckEnabled
+          ? config.THEMES[currentMode].hover
+          : config.THEMES[currentMode].button,
+        border: state.isManualCheckEnabled
+          ? `1px solid ${config.THEMES[currentMode].hover}`
+          : `1px solid ${config.THEMES[currentMode].border}`,
+      }}
                   onClick=${onManualCheckToggle}
                   onMouseOver=${(e) => {
-                    e.target.style.background = config.THEMES[currentMode].hover;
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
+        e.target.style.background = config.THEMES[currentMode].hover;
+        e.target.style.transform = 'translateY(-1px)';
+      }}
                   onMouseOut=${(e) => {
-                    e.target.style.background = state.isManualCheckEnabled
-                      ? config.THEMES[currentMode].hover
-                      : config.THEMES[currentMode].button;
-                    e.target.style.transform = 'translateY(0)';
-                  }}
+        e.target.style.background = state.isManualCheckEnabled
+          ? config.THEMES[currentMode].hover
+          : config.THEMES[currentMode].button;
+        e.target.style.transform = 'translateY(0)';
+      }}
                 >
                   <i className="fas fa-toggle-on" style="marginRight: 8px;"></i> Manual Check: ${state.isManualCheckEnabled ? 'On' : 'Off'}
                 </button>
@@ -324,13 +331,13 @@ function Panel({
                 style=${styles.button}
                 onClick=${onStart}
                 onMouseOver=${(e) => {
-                  e.target.style.background = config.THEMES[currentMode].hover;
-                  e.target.style.transform = 'translateY(-1px)';
-                }}
+        e.target.style.background = config.THEMES[currentMode].hover;
+        e.target.style.transform = 'translateY(-1px)';
+      }}
                 onMouseOut=${(e) => {
-                  e.target.style.background = config.THEMES[currentMode].button;
-                  e.target.style.transform = 'translateY(0)';
-                }}
+        e.target.style.background = config.THEMES[currentMode].button;
+        e.target.style.transform = 'translateY(0)';
+      }}
               >
                 <i className="fas fa-play" style="marginRight: 6px;"></i> Start
               </button>
@@ -338,13 +345,13 @@ function Panel({
                 style=${styles.button}
                 onClick=${onStop}
                 onMouseOver=${(e) => {
-                  e.target.style.background = config.THEMES[currentMode].hover;
-                  e.target.style.transform = 'translateY(-1px)';
-                }}
+        e.target.style.background = config.THEMES[currentMode].hover;
+        e.target.style.transform = 'translateY(-1px)';
+      }}
                 onMouseOut=${(e) => {
-                  e.target.style.background = config.THEMES[currentMode].button;
-                  e.target.style.transform = 'translateY(0)';
-                }}
+        e.target.style.background = config.THEMES[currentMode].button;
+        e.target.style.transform = 'translateY(0)';
+      }}
               >
                 <i className="fas fa-pause" style="marginRight: 6px;"></i> Stop
               </button>
@@ -352,25 +359,35 @@ function Panel({
                 style=${styles.button}
                 onClick=${onReset}
                 onMouseOver=${(e) => {
-                  e.target.style.background = config.THEMES[currentMode].hover;
-                  e.target.style.transform = 'translateY(-1px)';
-                }}
+        e.target.style.background = config.THEMES[currentMode].hover;
+        e.target.style.transform = 'translateY(-1px)';
+      }}
                 onMouseOut=${(e) => {
-                  e.target.style.background = config.THEMES[currentMode].button;
-                  e.target.style.transform = 'translateY(0)';
-                }}
+        e.target.style.background = config.THEMES[currentMode].button;
+        e.target.style.transform = 'translateY(0)';
+      }}
               >
                 <i className="fas fa-undo" style="marginRight: 6px;"></i> Reset
               </button>
             </div>
           </div>
           <div class="problem-links-wrapper" style=${styles.contentWrapper}>
-            ${flagged.map(([href, { analysis }]) => html`
-              <div class="link-row" style="display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; padding: 4px 0;">
+            ${flagged.map(([href, { analysis, checked }]) => html`
+              <div class="link-row" style="display: grid; grid-template-columns: 20px 1fr 30px; align-items: center; gap: 10px; padding: 4px 0;">
                 <span class="status-dot ${analysis.quality.name === "Problem" ? 'status-problem' : 'status-potential'}"></span>
                 <div class="link-item">
                   <a href="https://x.com${href}" target="_blank">${href}</a>
                 </div>
+                <span>
+                  ${analysis.quality.name === "Potential Problem" && !checked
+          ? html`
+                        <span
+                          class="eyeball-icon"
+                          onClick=${() => onEyeballClick(href)}
+                        >👀</span>
+                      `
+          : ''}
+                </span>
               </div>
             `)}
           </div>
@@ -379,13 +396,13 @@ function Panel({
             style=${styles.button}
             onClick=${toggleVisibility}
             onMouseOver=${(e) => {
-              e.target.style.background = config.THEMES[currentMode].hover;
-              e.target.style.transform = 'translateY(-1px)';
-            }}
+        e.target.style.background = config.THEMES[currentMode].hover;
+        e.target.style.transform = 'translateY(-1px)';
+      }}
             onMouseOut=${(e) => {
-              e.target.style.background = config.THEMES[currentMode].button;
-              e.target.style.transform = 'translateY(0)';
-            }}
+        e.target.style.background = config.THEMES[currentMode].button;
+        e.target.style.transform = 'translateY(0)';
+      }}
           >
             <i className="fas fa-eye" style="marginRight: 6px;"></i> Show
           </button>

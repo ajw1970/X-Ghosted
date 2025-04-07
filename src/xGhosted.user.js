@@ -508,7 +508,6 @@
     config,
     copyCallback,
     mode,
-    // Use this instead of state.themeMode
     onModeChange,
     onStart,
     onStop,
@@ -518,6 +517,8 @@
     onClear,
     onManualCheckToggle,
     onToggle,
+    onEyeballClick,
+    // New prop for eyeball click handling
   }) {
     const [flagged, setFlagged] = useState(
       Array.from(state.processedPosts.entries()).filter(
@@ -587,7 +588,7 @@
           }
           .link-row {
             display: grid;
-            grid-template-columns: 20px 1fr;
+            grid-template-columns: 20px 1fr 30px;
             align-items: center;
             gap: 10px;
           }
@@ -614,6 +615,12 @@
           }
           button:active {
             transform: scale(0.95);
+          }
+          .eyeball-icon {
+            color: rgb(29, 155, 240);
+            cursor: pointer;
+            font-size: 16px;
+            text-align: center;
           }
         </style>
         <div id="xghosted-panel" style=${styles.panel}>
@@ -876,10 +883,10 @@
                   style=${styles.contentWrapper}
                 >
                   ${flagged.map(
-                    ([href, { analysis }]) => html`
+                    ([href, { analysis, checked }]) => html`
                       <div
                         class="link-row"
-                        style="display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; padding: 4px 0;"
+                        style="display: grid; grid-template-columns: 20px 1fr 30px; align-items: center; gap: 10px; padding: 4px 0;"
                       >
                         <span
                           class="status-dot ${analysis.quality.name ===
@@ -892,6 +899,18 @@
                             >${href}</a
                           >
                         </div>
+                        <span>
+                          ${analysis.quality.name === 'Potential Problem' &&
+                          !checked
+                            ? html`
+                                <span
+                                  class="eyeball-icon"
+                                  onClick=${() => onEyeballClick(href)}
+                                  >👀</span
+                                >
+                              `
+                            : ''}
+                        </span>
                       </div>
                     `
                   )}
@@ -1013,6 +1032,12 @@
           this.xGhosted
         ),
         onToggle: this.toggleVisibility.bind(this),
+        onEyeballClick: (href) => {
+          const post = this.document.querySelector(
+            `[data-xghosted-id="${href}"]`
+          );
+          this.xGhosted.userRequestedPostCheck(href, post);
+        },
       }),
       this.uiElements.panel
     );
