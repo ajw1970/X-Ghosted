@@ -332,7 +332,6 @@ XGhosted.prototype.highlightPosts = function () {
     this.document,
     'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
     this.state.isWithReplies,
-    this.state.fillerCount,
     processPostAnalysis
   );
 

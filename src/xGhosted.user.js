@@ -238,28 +238,11 @@
     document,
     selector = 'div[data-testid="cellInnerDiv"]',
     checkReplies = true,
-    startingFillerCount = 0,
     fn = null
   ) {
-    let posts = document.querySelectorAll(selector);
     const results = [];
-    let lastLink = null;
-    let fillerCount = startingFillerCount;
-    posts.forEach((post) => {
+    document.querySelectorAll(selector).forEach((post) => {
       const analysis = identifyPost(post, checkReplies);
-      let id = analysis.link;
-      if (analysis.quality === postQuality.UNDEFINED && id === false) {
-        if (lastLink) {
-          fillerCount++;
-          id = `${lastLink}#filler${fillerCount}`;
-        } else {
-          id = `#filler${fillerCount}`;
-        }
-        analysis.link = id;
-      } else if (id) {
-        lastLink = id;
-        fillerCount = 0;
-      }
       if (fn) {
         fn(post, analysis);
       }
@@ -1358,7 +1341,6 @@
       this.document,
       'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
       this.state.isWithReplies,
-      this.state.fillerCount,
       processPostAnalysis
     );
     this.state = {
