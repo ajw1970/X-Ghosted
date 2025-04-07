@@ -1208,7 +1208,11 @@
               break;
             }
           }
-          newWindow.close();
+          if (isProblem) {
+            newWindow.scrollTo(0, 0);
+          } else {
+            newWindow.close();
+          }
           resolve(isProblem);
         }
         if (attempts >= maxAttempts) {

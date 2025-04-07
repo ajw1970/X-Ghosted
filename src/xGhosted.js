@@ -162,7 +162,13 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
             break;
           }
         }
-        newWindow.close();
+        if (isProblem) {
+          // Leave problems open and scroll to the top so the user can take a look at the them
+          newWindow.scrollTo(0, 0);
+        } else {          
+          // Close the new window if no problems found
+          newWindow.close();
+        }
         resolve(isProblem);
       }
       if (attempts >= maxAttempts) {
