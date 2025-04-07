@@ -13,6 +13,11 @@
 *** Works on a reply to a deleted post
 *** Need to test on a reply to a good post.
 *** While trying this on ApostleJohnW page, I have a yellow post show up after scrolling for a while but it doesn't show up in the panel list and when I click the eyeballs, a new tab opens but nothing loads. Back on the main page, I get an alert open with a message about possible rate limiting because of no posts being found after a given timeout.
+**** Tested again and if I then change the panel theme from dark to dim or light, the link does show up and stays there when switching back to dark.
+***** console.log.txt and processed_posts-found-potential-problem.csv.txt are at the point when I discovered this. csv is from test of export CSV.
+***** console.log.after.txt and processed_posts-checked-potential-problem.csv.txt are after clicking the eyeballs. A new tab opened and then closed and then the link was removed from the panel and the post was no longer highlighted at all. I would have expected the post to now be green to indicate that it's a verified good post. 
+***** We also expect that if a post is verified bad, the tab stays open and the post is highlighted in red along with the indicator on the panel changing to red.
+
 *** I had planned to change the logic on identify posts and the way we handle identification links. It might be time to focus on those.
 
 ** Test export csv
