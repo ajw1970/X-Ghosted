@@ -1366,6 +1366,7 @@
       processedPosts: new Map(this.state.processedPosts),
     };
     this.saveState();
+    if (this.panelManager) this.panelManager.renderPanel();
     return results;
   };
   XGhosted.prototype.getThemeMode = function () {
