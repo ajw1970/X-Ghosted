@@ -14,10 +14,10 @@
 *** [x] I had planned to change the logic on identify posts and the way we handle identification links. It might be time to focus on those.
 
 ** [x] Test export csv
-** [ ] Test import csv
-** [ ] Test reset csv
+** [x] Test import csv
+** [x] Test reset csv
 
-* rename isRateLimited to isRateLimitedDetected
+* rename isRateLimited to isRateLimitedDetected?
 
 * Add eyeball link column for potential problem posts in the panel
 ** Test open post in new tab from panel link
