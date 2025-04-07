@@ -1072,9 +1072,9 @@
     this.state = {
       postContainer: null,
       processedPosts: /* @__PURE__ */ new Map(),
-      fullyProcessedPosts: /* @__PURE__ */ new Set(),
+      // fullyProcessedPosts: new Set(),
       persistProcessedPosts: config.persistProcessedPosts ?? false,
-      problemLinks: /* @__PURE__ */ new Set(),
+      // problemLinks: new Set(),
       lastUrl: '',
       isWithReplies: false,
       isRateLimited: false,
@@ -1282,10 +1282,6 @@
   XGhosted.prototype.handleStart = function () {
     this.state.isCollapsingEnabled = true;
     this.state.isCollapsingRunning = true;
-    const articles = this.document.querySelectorAll(
-      'div[data-testid="cellInnerDiv"]'
-    );
-    this.collapseArticlesWithDelay(articles);
   };
   XGhosted.prototype.handleStop = function () {
     this.state.isCollapsingEnabled = false;
@@ -1293,17 +1289,9 @@
   XGhosted.prototype.handleReset = function () {
     this.state.isCollapsingEnabled = false;
     this.state.isCollapsingRunning = false;
-    this.document
-      .querySelectorAll('div[data-testid="cellInnerDiv"]')
-      .forEach(this.expandArticle);
-    this.state.processedPosts = /* @__PURE__ */ new Map();
-    this.state.fullyProcessedPosts = /* @__PURE__ */ new Set();
-    this.state.problemLinks = /* @__PURE__ */ new Set();
   };
   XGhosted.prototype.clearProcessedPosts = function () {
     this.state.processedPosts.clear();
-    this.state.fullyProcessedPosts.clear();
-    this.state.problemLinks.clear();
     this.saveState();
     this.ensureAndHighlightPosts();
   };
@@ -1313,41 +1301,6 @@
   };
   XGhosted.prototype.handleClear = function () {
     if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
-  };
-  XGhosted.prototype.collapseArticlesWithDelay = function (articles) {
-    let index = 0;
-    const interval = setInterval(() => {
-      if (
-        index >= articles.length ||
-        !this.state.isCollapsingEnabled ||
-        this.state.isRateLimited
-      ) {
-        clearInterval(interval);
-        this.state.isCollapsingRunning = false;
-        this.log('Collapsing completed or stopped');
-        return;
-      }
-      const article = articles[index];
-      const timeElement = article.querySelector('.css-146c3p1.r-1loqt21 time');
-      const href = timeElement?.parentElement?.getAttribute('href');
-      if (href && !this.state.fullyProcessedPosts.has(href)) {
-        const analysis = this.state.processedPosts.get(href)?.analysis;
-        if (
-          analysis &&
-          (analysis.quality === postQuality.PROBLEM ||
-            analysis.quality === postQuality.POTENTIAL_PROBLEM)
-        ) {
-          article.style.height = '0px';
-          article.style.overflow = 'hidden';
-          article.style.margin = '0';
-          article.style.padding = '0';
-          this.state.problemLinks.add(href);
-          this.log(`Collapsed article with href: ${href}`);
-        }
-        this.state.fullyProcessedPosts.add(href);
-      }
-      index++;
-    }, 200);
   };
   XGhosted.prototype.expandArticle = function (article) {
     if (article) {

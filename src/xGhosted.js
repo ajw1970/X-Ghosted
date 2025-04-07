@@ -23,9 +23,9 @@ function XGhosted(doc, config = {}) {
   this.state = {
     postContainer: null,
     processedPosts: new Map(),
-    fullyProcessedPosts: new Set(),
+    // fullyProcessedPosts: new Set(),
     persistProcessedPosts: config.persistProcessedPosts ?? false,
-    problemLinks: new Set(),
+    // problemLinks: new Set(),
     lastUrl: '',
     isWithReplies: false,
     isRateLimited: false,
@@ -204,8 +204,8 @@ XGhosted.prototype.userRequestedPostCheck = function (href, post) {
 XGhosted.prototype.handleStart = function () {
   this.state.isCollapsingEnabled = true;
   this.state.isCollapsingRunning = true;
-  const articles = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
-  this.collapseArticlesWithDelay(articles);
+  // const articles = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
+  // this.collapseArticlesWithDelay(articles);
 };
 
 XGhosted.prototype.handleStop = function () {
@@ -215,16 +215,16 @@ XGhosted.prototype.handleStop = function () {
 XGhosted.prototype.handleReset = function () {
   this.state.isCollapsingEnabled = false;
   this.state.isCollapsingRunning = false;
-  this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(this.expandArticle);
-  this.state.processedPosts = new Map();
-  this.state.fullyProcessedPosts = new Set();
-  this.state.problemLinks = new Set();
+  // this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(this.expandArticle);
+  // this.state.processedPosts = new Map();
+  // this.state.fullyProcessedPosts = new Set();
+  // this.state.problemLinks = new Set();
 };
 
 XGhosted.prototype.clearProcessedPosts = function () {
   this.state.processedPosts.clear();
-  this.state.fullyProcessedPosts.clear();
-  this.state.problemLinks.clear();
+  // this.state.fullyProcessedPosts.clear();
+  // this.state.problemLinks.clear();
   this.saveState();
   this.ensureAndHighlightPosts();
 };
@@ -238,7 +238,7 @@ XGhosted.prototype.handleClear = function () {
   if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
 };
 
-XGhosted.prototype.collapseArticlesWithDelay = function (articles) {
+/* XGhosted.prototype.collapseArticlesWithDelay = function (articles) {
   let index = 0;
   const interval = setInterval(() => {
     if (
@@ -268,7 +268,7 @@ XGhosted.prototype.collapseArticlesWithDelay = function (articles) {
     }
     index++;
   }, 200);
-};
+}; */
 
 XGhosted.prototype.expandArticle = function (article) {
   if (article) {

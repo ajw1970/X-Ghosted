@@ -10,8 +10,8 @@ describe('saveAllPosts', () => {
         gm_setValueFn = vi.fn();
         state = {
             processedPosts: new WeakSet(),
-            fullyprocessedPosts: new Set(),
-            problemLinks: new Set(),
+            // fullyprocessedPosts: new Set(),
+            // problemLinks: new Set(),
             allPosts: new Map(),
             isDarkMode: true,
             isPanelVisible: true,
@@ -83,8 +83,8 @@ describe('saveAllPosts', () => {
         // Deep copy the state, handling WeakSet, Set, and Map
         const originalState = {
             ...state,
-            fullyprocessedPosts: new Set(state.fullyprocessedPosts),
-            problemLinks: new Set(state.problemLinks),
+            // fullyprocessedPosts: new Set(state.fullyprocessedPosts),
+            // problemLinks: new Set(state.problemLinks),
             allPosts: new Map(state.allPosts),
         };
 
@@ -99,8 +99,8 @@ describe('saveAllPosts', () => {
 
         expect(state.storageAvailable).toEqual(originalState.storageAvailable);
         expect(areMapsEqual(state.allPosts, originalState.allPosts)).toBe(true);
-        expect(areSetsEqual(state.fullyprocessedPosts, originalState.fullyprocessedPosts)).toBe(true);
-        expect(areSetsEqual(state.problemLinks, originalState.problemLinks)).toBe(true);
+        // expect(areSetsEqual(state.fullyprocessedPosts, originalState.fullyprocessedPosts)).toBe(true);
+        // expect(areSetsEqual(state.problemLinks, originalState.problemLinks)).toBe(true);
 
         // Because WeakSet doesn't support iteration or comparison of values,
         // all we can do is ensure that the *reference* hasn't changed.
