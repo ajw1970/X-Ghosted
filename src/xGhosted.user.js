@@ -1442,18 +1442,19 @@
     this.loadState();
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
-    .xghosted-problem { border: 2px solid red; }
-    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-    .xghosted-good { }
-    .xghosted-undefined { }
-    .xghosted-eyeball::after {
-      content: '\u{1F440}';
-      color: rgb(29, 155, 240);
-      padding: 8px;
-      cursor: pointer;
-      text-decoration: none;
-    }
-  `;
+  .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
+  .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.1); }
+  .xghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.1); }
+  .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+  .xghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
+  .xghosted-eyeball::after {
+    content: '\u{1F440}';
+    color: rgb(29, 155, 240);
+    padding: 8px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+`;
     this.document.head.appendChild(styleSheet);
     this.document.addEventListener(
       'click',
