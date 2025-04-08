@@ -22,8 +22,13 @@
 
 * [ ] Are we using the processedPosts list to avoid reprocessing posts? We filter out any that were already tagged with our data element, but we might not be also checking for when a user scrolls back up and re-loads already processed posts. 
 
+* [ ] Move eyeballs to left hand column of the panel and make them always visible. Have it replace the yellow dot for potential problem posts.
+* [ ] Fix resize panel
+* [ ] Fix move panel
+
 * [ ] Make sure we can open with the eyeballs from the panel if manual check is disabled
 * [ ] Make sure we can open the old way with the eyeballs if manual check is disabled and panel didn't open.
+* [ ] Does mutation observer fire while we're highlighting posts?
 * [ ] Pause mutation observer while highlight posts is running?
 
 * Clarify dom for post container and X.com behavior
