@@ -303,11 +303,6 @@ XGhosted.prototype.ensureAndHighlightPosts = function () {
 XGhosted.prototype.highlightPosts = function () {
   this.updateState(this.document.location.href);
 
-  if (!this.state.postContainer) {
-    this.log('No posts container set, skipping highlighting');
-    return [];
-  }
-
   const processPostAnalysis = (post, analysis) => {
     if (!(post instanceof this.document.defaultView.Element)) {
       this.log('Skipping invalid DOM element:', post);
@@ -340,7 +335,7 @@ XGhosted.prototype.highlightPosts = function () {
   const results = [];  
   const selector = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
   const checkReplies = this.state.isWithReplies;
-  
+
   // Logic used and tested in src/utils/identifyPosts.js 
   (document.querySelectorAll(selector)).forEach((post) => {
     const analysis = identifyPost(post, checkReplies);

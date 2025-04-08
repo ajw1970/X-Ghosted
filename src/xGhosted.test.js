@@ -5,22 +5,17 @@ import { JSDOM } from 'jsdom';
 import { XGhosted } from './xGhosted.js';
 import { postQuality } from './utils/postQuality.js';
 import { summarizeRatedPosts } from './utils/summarizeRatedPosts.js';
+import * as identifyPostModule from './utils/identifyPost.js'; // For accessing the mock
+import { findPostContainer } from './dom/findPostContainer.js';
 
-async function waitFor(condition, { timeout = 5000, interval = 50 } = {}) {
-  const startTime = Date.now();
-  return new Promise((resolve, reject) => {
-    const check = () => {
-      if (condition()) {
-        resolve();
-      } else if (Date.now() - startTime >= timeout) {
-        reject(new Error('waitFor timed out'));
-      } else {
-        setTimeout(check, interval);
-      }
-    };
-    check();
-  });
-}
+// Mock the identifyPost module globally with async import
+vi.mock('./utils/identifyPost.js', async () => {
+  const actual = await vi.importActual('./utils/identifyPost.js');
+  return {
+    ...actual,
+    identifyPost: vi.fn(actual.identifyPost), // Use the original function directly
+  };
+});
 
 // Mock Tampermonkey GM_* functions
 const gmStorage = {};
@@ -132,5 +127,25 @@ describe('xGhosted', () => {
     xGhosted.state.processedPosts.clear();
     xGhosted.loadState();
     expect(xGhosted.state.processedPosts.size).toBeGreaterThan(0);
+  });
+
+  test('highlightPosts calls identifyPost once per post', () => {
+    // Mock identifyPost to track calls
+    const spy = vi.spyOn(identifyPostModule, 'identifyPost');
+  
+    // Add data-xghosted attribute to post container
+    findPostContainer(document, console.log);
+  
+    // Check the number of posts
+    const posts = document.querySelectorAll('div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]');
+    expect(posts.length).toBe(36);
+  
+    // Run highlightPosts
+    xGhosted.highlightPosts();
+  
+    // Verify identifyPost was called twice
+    expect(spy).toHaveBeenCalledTimes(36);
+    expect(spy).toHaveBeenCalledWith(posts[0], true); // Assuming checkReplies is true
+    expect(spy).toHaveBeenCalledWith(posts[35], true);
   });
 });

@@ -233,24 +233,6 @@
     };
   }
 
-  // src/utils/identifyPosts.js
-  function identifyPosts(
-    document,
-    selector = 'div[data-testid="cellInnerDiv"]',
-    checkReplies = true,
-    fn = null
-  ) {
-    const results = [];
-    document.querySelectorAll(selector).forEach((post) => {
-      const analysis = identifyPost(post, checkReplies);
-      if (fn) {
-        fn(post, analysis);
-      }
-      results.push(analysis);
-    });
-    return results;
-  }
-
   // src/utils/debounce.js
   function debounce(func, wait) {
     let timeout;
@@ -1338,10 +1320,6 @@
   };
   XGhosted.prototype.highlightPosts = function () {
     this.updateState(this.document.location.href);
-    if (!this.state.postContainer) {
-      this.log('No posts container set, skipping highlighting');
-      return [];
-    }
     const processPostAnalysis = (post, analysis) => {
       if (!(post instanceof this.document.defaultView.Element)) {
         this.log('Skipping invalid DOM element:', post);
@@ -1366,12 +1344,15 @@
         this.state.processedPosts.set(id, { analysis, checked: false });
       }
     };
-    const results = identifyPosts(
-      this.document,
-      'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
-      this.state.isWithReplies,
-      processPostAnalysis
-    );
+    const results = [];
+    const selector =
+      'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
+    const checkReplies = this.state.isWithReplies;
+    document.querySelectorAll(selector).forEach((post) => {
+      const analysis = identifyPost(post, checkReplies);
+      processPostAnalysis(post, analysis);
+      results.push(analysis);
+    });
     this.state = {
       ...this.state,
       processedPosts: new Map(this.state.processedPosts),
