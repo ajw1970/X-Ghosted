@@ -132,20 +132,88 @@ describe('xGhosted', () => {
   test('highlightPosts calls identifyPost once per post', () => {
     // Mock identifyPost to track calls
     const spy = vi.spyOn(identifyPostModule, 'identifyPost');
-  
+
     // Add data-xghosted attribute to post container
     findPostContainer(document, console.log);
-  
+
     // Check the number of posts
     const posts = document.querySelectorAll('div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]');
     expect(posts.length).toBe(36);
-  
+
     // Run highlightPosts
     xGhosted.highlightPosts();
-  
+
     // Verify identifyPost was called twice
     expect(spy).toHaveBeenCalledTimes(36);
     expect(spy).toHaveBeenCalledWith(posts[0], true); // Assuming checkReplies is true
+    expect(spy).toHaveBeenCalledWith(posts[35], true);
+  });
+
+  test('highlightPosts does not call identifyPost after first processing', () => {
+    // Mock identifyPost to track calls
+    const spy = vi.spyOn(identifyPostModule, 'identifyPost');
+
+    // Add data-xghosted attribute to post container
+    findPostContainer(document, console.log);
+
+    const selector = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
+
+    // Check the number of posts
+    const posts = document.querySelectorAll(selector);
+    expect(posts.length).toBe(36);
+
+    // Run highlightPosts
+    xGhosted.highlightPosts();
+
+    // Verify identifyPost was called twice
+    expect(spy).toHaveBeenCalledTimes(36);
+    expect(spy).toHaveBeenCalledWith(posts[0], true); // Assuming checkReplies is true
+    expect(spy).toHaveBeenCalledWith(posts[35], true);
+
+    // Check the number of posts
+    const secondPassPosts = document.querySelectorAll(selector);
+    expect(secondPassPosts.length).toBe(0);
+
+    // Mock identifyPost to track calls
+    const secondPassSpy = vi.spyOn(identifyPostModule, 'identifyPost');
+
+    // Run highlightPosts
+    xGhosted.highlightPosts();
+
+    // Verify identifyPost was called twice
+    expect(secondPassSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test('highlightPost does not call identifyPost on previously processed posts', () => {
+    const { PROBLEM } = postQuality;
+
+    // Mock identifyPost to track calls
+    const spy = vi.spyOn(identifyPostModule, 'identifyPost');
+
+    // Add data-xghosted attribute to post container
+    findPostContainer(document, console.log);
+
+    // Check the number of posts
+    const posts = document.querySelectorAll('div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]');
+    expect(posts.length).toBe(36);
+
+    // Add previously processedPost which will show up in the new query
+    xGhosted.state.processedPosts.set("/OwenGregorian/status/1896977661144260900", {
+      analysis: {
+        quality: PROBLEM,
+        link: "/OwenGregorian/status/1896977661144260900",
+        reason: "Found notice: this post is unavailable"
+      },
+      checked: false
+    });
+
+    // Run highlightPosts
+    xGhosted.highlightPosts();
+
+    // Verify identifyPost was called twice
+    expect(spy).toHaveBeenCalledTimes(35);
+    expect(spy).toHaveBeenCalledWith(posts[0], true); // Assuming checkReplies is true
+    expect(spy).toHaveBeenCalledWith(posts[16], false);
     expect(spy).toHaveBeenCalledWith(posts[35], true);
   });
 });
