@@ -24,6 +24,7 @@
 
 * [ ] Make sure we can open with the eyeballs from the panel if manual check is disabled
 * [ ] Make sure we can open the old way with the eyeballs if manual check is disabled and panel didn't open.
+* [ ] Pause mutation observer while highlight posts is running?
 
 * Clarify dom for post container and X.com behavior
 
