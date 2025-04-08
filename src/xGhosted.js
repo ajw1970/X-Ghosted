@@ -165,7 +165,7 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
         if (isProblem) {
           // Leave problems open and scroll to the top so the user can take a look at the them
           newWindow.scrollTo(0, 0);
-        } else {          
+        } else {
           // Close the new window if no problems found
           newWindow.close();
         }
@@ -316,6 +316,10 @@ XGhosted.prototype.highlightPosts = function () {
 
     const id = analysis.link;
     const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
+
+    // We filter out this attribute and so we want to be sure to set it first to avoid mutation observer issues
+    // We don't care if id is null or undefined, we want to set the attribute to let us know we processed it
+    post.setAttribute('data-xghosted-id', id);
     post.setAttribute('data-xghosted', `postquality.${qualityName}`);
     post.classList.add(`xghosted-${qualityName}`);
 
@@ -329,17 +333,22 @@ XGhosted.prototype.highlightPosts = function () {
     }
 
     if (id) {
-      post.setAttribute('data-xghosted-id', id);
       this.state.processedPosts.set(id, { analysis, checked: false });
     }
   };
 
-  const results = identifyPosts(
-    this.document,
-    'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
-    this.state.isWithReplies,
-    processPostAnalysis
-  );
+  const results = [];  
+  const selector = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
+  const checkReplies = this.state.isWithReplies;
+  
+  // Logic used and tested in src/utils/identifyPosts.js 
+  (document.querySelectorAll(selector)).forEach((post) => {
+    const analysis = identifyPost(post, checkReplies);
+
+    processPostAnalysis(post, analysis);
+
+    results.push(analysis);
+  });
 
   this.state = { ...this.state, processedPosts: new Map(this.state.processedPosts) };
   this.saveState();

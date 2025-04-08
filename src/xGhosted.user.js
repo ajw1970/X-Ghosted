@@ -1349,6 +1349,7 @@
       }
       const id = analysis.link;
       const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
+      post.setAttribute('data-xghosted-id', id);
       post.setAttribute('data-xghosted', `postquality.${qualityName}`);
       post.classList.add(`xghosted-${qualityName}`);
       if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
@@ -1362,7 +1363,6 @@
         }
       }
       if (id) {
-        post.setAttribute('data-xghosted-id', id);
         this.state.processedPosts.set(id, { analysis, checked: false });
       }
     };

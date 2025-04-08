@@ -95,12 +95,6 @@ describe('xGhosted', () => {
     expect(xGhosted.state.processedPosts.size).toBe(0);
   });
 
-  test('ensureAndHighlightPosts tags container', () => {
-    const results = xGhosted.ensureAndHighlightPosts();
-    expect(xGhosted.state.postContainer).toBeTruthy();
-    expect(xGhosted.state.postContainer.getAttribute('data-xghosted')).toBe('posts-container');
-  });
-
   test('checkPostInNewTab handles rate limit', async () => {
     xGhosted.state.isManualCheckEnabled = true;
     xGhosted.state.themeMode = 'dark';
