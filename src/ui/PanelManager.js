@@ -3,7 +3,6 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
   this.xGhosted = xGhostedInstance;
   this.log = xGhostedInstance.log;
   this.state = {
-    themeMode,
     panelPosition: null,
     instance: xGhostedInstance,
     // Local state to mirror xGhosted state, updated via events
@@ -12,6 +11,7 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
     isRateLimited: false,
     isCollapsingEnabled: false,
     isManualCheckEnabled: false,
+    themeMode: themeMode,
   };
   this.uiElements = {
     config: {
@@ -63,14 +63,12 @@ window.PanelManager.prototype.init = function () {
   this.document.body.appendChild(this.uiElements.panel);
   this.applyPanelStyles();
 
-  // Sync initial state from xGhosted
   this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
   this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
   this.state.isRateLimited = this.xGhosted.state.isRateLimited;
   this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
   this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
 
-  // Subscribe to xGhosted events
   this.xGhosted.on('state-updated', (newState) => {
     this.state.processedPosts = new Map(newState.processedPosts);
     this.state.isRateLimited = newState.isRateLimited;
@@ -89,6 +87,12 @@ window.PanelManager.prototype.init = function () {
     this.state.isPanelVisible = isPanelVisible;
     this.renderPanel();
     this.log(`Panel visibility updated to ${isPanelVisible}`);
+  });
+
+  this.xGhosted.on('theme-mode-changed', ({ themeMode }) => {
+    this.state.themeMode = themeMode;
+    this.renderPanel();
+    this.log(`Panel updated to theme mode ${themeMode} via event`);
   });
 
   this.renderPanel();
@@ -140,5 +144,5 @@ window.PanelManager.prototype.updateTheme = function (newMode) {
 };
 
 window.PanelManager.prototype.handleModeChange = function (newMode) {
-  this.updateTheme(newMode);
+  this.xGhosted.setThemeMode(newMode);
 };

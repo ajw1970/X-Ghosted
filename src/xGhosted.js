@@ -31,8 +31,9 @@ function XGhosted(doc, config = {}) {
     isCollapsingEnabled: false,
     isCollapsingRunning: false,
     isPanelVisible: true,
+    themeMode: null
   };
-  this.events = {}; // Event emitter storage
+  this.events = {};
   this.panelManager = null;
   this.checkPostInNewTabThrottled = debounce((href) => {
     return this.checkPostInNewTab(href);
@@ -67,6 +68,7 @@ XGhosted.prototype.saveState = function () {
     isPanelVisible: this.state.isPanelVisible,
     isCollapsingEnabled: this.state.isCollapsingEnabled,
     isManualCheckEnabled: this.state.isManualCheckEnabled,
+    themeMode: this.state.themeMode,
     processedPosts: serializableArticles,
   };
   const oldState = GM_getValue('xGhostedState', {});
@@ -76,8 +78,6 @@ XGhosted.prototype.saveState = function () {
     GM_setValue('xGhostedState', newState);
     this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
     this.log('State saved and state-updated emitted');
-  } else {
-    // this.log('State unchanged, skipping save and emission');
   }
 };
 
@@ -86,6 +86,7 @@ XGhosted.prototype.loadState = function () {
   this.state.isPanelVisible = savedState.isPanelVisible ?? true;
   this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
   this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
+  this.state.themeMode = savedState.themeMode ?? null;
   if (this.state.persistProcessedPosts) {
     const savedPosts = savedState.processedPosts || {};
     for (const [id, { analysis, checked }] of Object.entries(savedPosts)) {
@@ -273,6 +274,13 @@ XGhosted.prototype.togglePanelVisibility = function (newVisibility) {
     this.emit('panel-visibility-toggled', { isPanelVisible: this.state.isPanelVisible });
     this.saveState();
   }
+};
+
+XGhosted.prototype.setThemeMode = function (newMode) {
+  this.state.themeMode = newMode;
+  this.saveState();
+  this.emit('theme-mode-changed', { themeMode: newMode });
+  this.log(`Theme mode set to ${newMode} and event emitted`);
 };
 
 XGhosted.prototype.handleClear = function () {
@@ -474,22 +482,29 @@ XGhosted.prototype.init = function () {
   this.log('Initializing XGhosted...');
   this.loadState();
 
-  // Add our own style sheet to x.com
+  if (!this.state.themeMode) {
+    this.state.themeMode = this.getThemeMode();
+    this.log(`No saved themeMode found, detected: ${this.state.themeMode}`);
+    this.saveState();
+  } else {
+    this.log(`Loaded saved themeMode: ${this.state.themeMode}`);
+  }
+
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
-  .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
-  .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.1); }
-  .xghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.1); }
-  .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-  .xghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
-  .xghosted-eyeball::after {
-    content: '👀';
-    color: rgb(29, 155, 240);
-    padding: 8px;
-    cursor: pointer;
-    text-decoration: none;
-  }
-`;
+    .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
+    .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.1); }
+    .xghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.1); }
+    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+    .xghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
+    .xghosted-eyeball::after {
+      content: '👀';
+      color: rgb(29, 155, 240);
+      padding: 8px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+  `;
   this.document.head.appendChild(styleSheet);
 
   // Add event delegation for eyeball clicks
@@ -524,23 +539,26 @@ XGhosted.prototype.init = function () {
         }
       }
     }
-  }, { capture: true }); // Use capture phase
+  }, { capture: true });
 
-  // Try Initializing the GUI Panel
+  this.on('theme-mode-changed', ({ themeMode }) => {
+    this.state.themeMode = themeMode;
+    this.saveState();
+    this.log(`Theme mode updated to ${themeMode} via event`);
+  });
+
   if (!window.preact || !window.preactHooks || !window.htm) {
     this.log('Preact dependencies missing. Skipping GUI Panel initialization.');
     this.panelManager = null;
   } else {
     try {
-      const initialTheme = this.getThemeMode();
-      this.panelManager = new window.PanelManager(this.document, this, initialTheme);
+      this.panelManager = new window.PanelManager(this.document, this, this.state.themeMode);
       this.log('GUI Panel initialized successfully');
     } catch (error) {
       this.log(`Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`);
       this.panelManager = null;
     }
   }
-  this.saveState();
 
   // Delay initial highlight to let DOM load
   setTimeout(() => this.ensureAndHighlightPostsDebounced(), 2000);
