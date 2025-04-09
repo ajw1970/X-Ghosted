@@ -925,6 +925,12 @@
       themeMode,
       panelPosition: null,
       instance: xGhostedInstance,
+      // Local state to mirror xGhosted state, updated via events
+      processedPosts: /* @__PURE__ */ new Map(),
+      isPanelVisible: true,
+      isRateLimited: false,
+      isCollapsingEnabled: false,
+      isManualCheckEnabled: false,
     };
     this.uiElements = {
       config: {
@@ -974,6 +980,30 @@
     this.uiElements.panel = this.document.createElement('div');
     this.document.body.appendChild(this.uiElements.panel);
     this.applyPanelStyles();
+    this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
+    this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
+    this.state.isRateLimited = this.xGhosted.state.isRateLimited;
+    this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
+    this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
+    this.xGhosted.on('state-updated', (newState) => {
+      this.state.processedPosts = new Map(newState.processedPosts);
+      this.state.isRateLimited = newState.isRateLimited;
+      this.state.isCollapsingEnabled = newState.isCollapsingEnabled;
+      this.renderPanel();
+      this.log('Panel updated due to state-updated event');
+    });
+    this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
+      this.state.isManualCheckEnabled = isManualCheckEnabled;
+      this.renderPanel();
+      this.log(
+        `Panel updated: Manual Check toggled to ${isManualCheckEnabled}`
+      );
+    });
+    this.xGhosted.on('panel-visibility-toggled', ({ isPanelVisible }) => {
+      this.state.isPanelVisible = isPanelVisible;
+      this.renderPanel();
+      this.log(`Panel visibility updated to ${isPanelVisible}`);
+    });
     this.renderPanel();
   };
   window.PanelManager.prototype.applyPanelStyles = function () {
@@ -986,7 +1016,8 @@
   window.PanelManager.prototype.renderPanel = function () {
     window.preact.render(
       window.preact.h(window.Panel, {
-        state: this.xGhosted.state,
+        state: this.state,
+        // Use local state instead of xGhosted.state
         config: this.uiElements.config,
         copyCallback: this.xGhosted.copyLinks.bind(this.xGhosted),
         mode: this.state.themeMode,
@@ -1013,15 +1044,7 @@
     this.log('Panel rendered');
   };
   window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
-    this.xGhosted.state.isPanelVisible =
-      typeof newVisibility === 'boolean'
-        ? newVisibility
-        : !this.xGhosted.state.isPanelVisible;
-    this.renderPanel();
-    this.xGhosted.saveState();
-    this.log(
-      `Panel visibility toggled to ${this.xGhosted.state.isPanelVisible}`
-    );
+    this.xGhosted.togglePanelVisibility(newVisibility);
   };
   window.PanelManager.prototype.updateTheme = function (newMode) {
     this.state.themeMode = newMode;
@@ -1049,9 +1072,7 @@
     this.state = {
       postContainer: null,
       processedPosts: /* @__PURE__ */ new Map(),
-      // fullyProcessedPosts: new Set(),
       persistProcessedPosts: config.persistProcessedPosts ?? false,
-      // problemLinks: new Set(),
       lastUrl: '',
       isWithReplies: false,
       isRateLimited: false,
@@ -1060,6 +1081,7 @@
       isCollapsingRunning: false,
       isPanelVisible: true,
     };
+    this.events = {};
     this.panelManager = null;
     this.checkPostInNewTabThrottled = debounce((href) => {
       return this.checkPostInNewTab(href);
@@ -1067,6 +1089,18 @@
     this.ensureAndHighlightPostsDebounced = debounce(() => {
       this.ensureAndHighlightPosts();
     }, this.timing.debounceDelay);
+    this.on = (event, callback) => {
+      if (!this.events[event]) this.events[event] = [];
+      this.events[event].push(callback);
+    };
+    this.off = (event, callback) => {
+      if (!this.events[event]) return;
+      this.events[event] = this.events[event].filter((cb) => cb !== callback);
+    };
+    this.emit = (event, data) => {
+      if (!this.events[event]) return;
+      this.events[event].forEach((cb) => cb(data));
+    };
   }
   XGhosted.prototype.saveState = function () {
     const serializableArticles = {};
@@ -1075,12 +1109,23 @@
         serializableArticles[id] = { analysis: { ...analysis }, checked };
       }
     }
-    GM_setValue('xGhostedState', {
+    const newState = {
       isPanelVisible: this.state.isPanelVisible,
       isCollapsingEnabled: this.state.isCollapsingEnabled,
       isManualCheckEnabled: this.state.isManualCheckEnabled,
       processedPosts: serializableArticles,
-    });
+    };
+    const oldState = GM_getValue('xGhostedState', {});
+    if (JSON.stringify(newState) !== JSON.stringify(oldState)) {
+      GM_setValue('xGhostedState', newState);
+      this.emit('state-updated', {
+        ...this.state,
+        processedPosts: new Map(this.state.processedPosts),
+      });
+      this.log('State saved and state-updated emitted');
+    } else {
+      this.log('State unchanged, skipping save and emission');
+    }
   };
   XGhosted.prototype.loadState = function () {
     const savedState = GM_getValue('xGhostedState', {});
@@ -1279,6 +1324,24 @@
   XGhosted.prototype.handleManualCheckToggle = function () {
     this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
     this.log(`Manual Check toggled to ${this.state.isManualCheckEnabled}`);
+    this.emit('manual-check-toggled', {
+      isManualCheckEnabled: this.state.isManualCheckEnabled,
+    });
+    this.saveState();
+  };
+  XGhosted.prototype.togglePanelVisibility = function (newVisibility) {
+    const previousVisibility = this.state.isPanelVisible;
+    this.state.isPanelVisible =
+      typeof newVisibility === 'boolean'
+        ? newVisibility
+        : !this.state.isPanelVisible;
+    if (previousVisibility !== this.state.isPanelVisible) {
+      this.log(`Panel visibility toggled to ${this.state.isPanelVisible}`);
+      this.emit('panel-visibility-toggled', {
+        isPanelVisible: this.state.isPanelVisible,
+      });
+      this.saveState();
+    }
   };
   XGhosted.prototype.handleClear = function () {
     if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
@@ -1335,27 +1398,35 @@
       'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
     const checkReplies = this.state.isWithReplies;
     const results = [];
+    let postsProcessed = 0;
     let cachedAnalysis = false;
-    document.querySelectorAll(selector).forEach((post) => {
+    this.document.querySelectorAll(selector).forEach((post) => {
       const postId = getRelativeLinkToPost(post);
       if (postId) {
         cachedAnalysis = this.state.processedPosts.get(postId)?.analysis;
       }
-      let analysis = false;
-      if (cachedAnalysis) {
-        analysis = { ...cachedAnalysis };
-        this.log(`Post ${JSON.stringify(analysis)}`);
-      } else {
-        analysis = identifyPost(post, checkReplies);
-      }
+      let analysis = cachedAnalysis
+        ? { ...cachedAnalysis }
+        : identifyPost(post, checkReplies);
+      if (!cachedAnalysis) postsProcessed++;
       processPostAnalysis(post, analysis);
       results.push(analysis);
     });
-    this.state = {
-      ...this.state,
-      processedPosts: new Map(this.state.processedPosts),
-    };
-    this.saveState();
+    if (postsProcessed > 0) {
+      this.state = {
+        ...this.state,
+        processedPosts: new Map(this.state.processedPosts),
+      };
+      this.emit('state-updated', {
+        ...this.state,
+        processedPosts: new Map(this.state.processedPosts),
+      });
+      this.log(
+        `Highlighted ${postsProcessed} new posts, state-updated emitted`
+      );
+      this.saveState();
+    } else {
+    }
     return results;
   };
   XGhosted.prototype.getThemeMode = function () {

@@ -23,9 +23,7 @@ function XGhosted(doc, config = {}) {
   this.state = {
     postContainer: null,
     processedPosts: new Map(),
-    // fullyProcessedPosts: new Set(),
     persistProcessedPosts: config.persistProcessedPosts ?? false,
-    // problemLinks: new Set(),
     lastUrl: '',
     isWithReplies: false,
     isRateLimited: false,
@@ -34,6 +32,7 @@ function XGhosted(doc, config = {}) {
     isCollapsingRunning: false,
     isPanelVisible: true,
   };
+  this.events = {}; // Event emitter storage
   this.panelManager = null;
   this.checkPostInNewTabThrottled = debounce((href) => {
     return this.checkPostInNewTab(href);
@@ -41,6 +40,20 @@ function XGhosted(doc, config = {}) {
   this.ensureAndHighlightPostsDebounced = debounce(() => {
     this.ensureAndHighlightPosts();
   }, this.timing.debounceDelay);
+
+  // Event emitter methods
+  this.on = (event, callback) => {
+    if (!this.events[event]) this.events[event] = [];
+    this.events[event].push(callback);
+  };
+  this.off = (event, callback) => {
+    if (!this.events[event]) return;
+    this.events[event] = this.events[event].filter(cb => cb !== callback);
+  };
+  this.emit = (event, data) => {
+    if (!this.events[event]) return;
+    this.events[event].forEach(cb => cb(data));
+  };
 }
 
 XGhosted.prototype.saveState = function () {
@@ -50,12 +63,22 @@ XGhosted.prototype.saveState = function () {
       serializableArticles[id] = { analysis: { ...analysis }, checked };
     }
   }
-  GM_setValue('xGhostedState', {
+  const newState = {
     isPanelVisible: this.state.isPanelVisible,
     isCollapsingEnabled: this.state.isCollapsingEnabled,
     isManualCheckEnabled: this.state.isManualCheckEnabled,
     processedPosts: serializableArticles,
-  });
+  };
+  const oldState = GM_getValue('xGhostedState', {});
+
+  // Compare to avoid redundant saves and emissions
+  if (JSON.stringify(newState) !== JSON.stringify(oldState)) {
+    GM_setValue('xGhostedState', newState);
+    this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
+    this.log('State saved and state-updated emitted');
+  } else {
+    this.log('State unchanged, skipping save and emission');
+  }
 };
 
 XGhosted.prototype.loadState = function () {
@@ -238,6 +261,18 @@ XGhosted.prototype.clearProcessedPosts = function () {
 XGhosted.prototype.handleManualCheckToggle = function () {
   this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
   this.log(`Manual Check toggled to ${this.state.isManualCheckEnabled}`);
+  this.emit('manual-check-toggled', { isManualCheckEnabled: this.state.isManualCheckEnabled });
+  this.saveState();
+};
+
+XGhosted.prototype.togglePanelVisibility = function (newVisibility) {
+  const previousVisibility = this.state.isPanelVisible;
+  this.state.isPanelVisible = typeof newVisibility === 'boolean' ? newVisibility : !this.state.isPanelVisible;
+  if (previousVisibility !== this.state.isPanelVisible) {
+    this.log(`Panel visibility toggled to ${this.state.isPanelVisible}`);
+    this.emit('panel-visibility-toggled', { isPanelVisible: this.state.isPanelVisible });
+    this.saveState();
+  }
 };
 
 XGhosted.prototype.handleClear = function () {
@@ -339,30 +374,28 @@ XGhosted.prototype.highlightPosts = function () {
   const checkReplies = this.state.isWithReplies;
   const results = [];
 
-  // Logic used and tested in src/utils/identifyPosts.js 
+  let postsProcessed = 0;
   let cachedAnalysis = false;
-  (document.querySelectorAll(selector)).forEach((post) => {
-    // We don't want to process the post if we already have it in our processedPosts map
+  (this.document.querySelectorAll(selector)).forEach((post) => {
     const postId = getRelativeLinkToPost(post);
     if (postId) {
       cachedAnalysis = this.state.processedPosts.get(postId)?.analysis;
     }
-
-    let analysis = false;
-    if (cachedAnalysis) {
-      analysis = { ...cachedAnalysis };
-      this.log(`Post ${JSON.stringify(analysis)}`);
-    } else {
-      analysis = identifyPost(post, checkReplies);
-    }
-
+    let analysis = cachedAnalysis ? { ...cachedAnalysis } : identifyPost(post, checkReplies);
+    if (!cachedAnalysis) postsProcessed++; // Count only new posts
     processPostAnalysis(post, analysis);
-
     results.push(analysis);
   });
 
-  this.state = { ...this.state, processedPosts: new Map(this.state.processedPosts) };
-  this.saveState();
+  // Only emit if new posts were processed
+  if (postsProcessed > 0) {
+    this.state = { ...this.state, processedPosts: new Map(this.state.processedPosts) };
+    this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
+    this.log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
+    this.saveState();
+  } else {
+    // this.log('No new posts processed, skipping state-updated');
+  }
   return results;
 };
 

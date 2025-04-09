@@ -6,6 +6,12 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
     themeMode,
     panelPosition: null,
     instance: xGhostedInstance,
+    // Local state to mirror xGhosted state, updated via events
+    processedPosts: new Map(),
+    isPanelVisible: true,
+    isRateLimited: false,
+    isCollapsingEnabled: false,
+    isManualCheckEnabled: false,
   };
   this.uiElements = {
     config: {
@@ -56,6 +62,35 @@ window.PanelManager.prototype.init = function () {
   this.uiElements.panel = this.document.createElement('div');
   this.document.body.appendChild(this.uiElements.panel);
   this.applyPanelStyles();
+
+  // Sync initial state from xGhosted
+  this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
+  this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
+  this.state.isRateLimited = this.xGhosted.state.isRateLimited;
+  this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
+  this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
+
+  // Subscribe to xGhosted events
+  this.xGhosted.on('state-updated', (newState) => {
+    this.state.processedPosts = new Map(newState.processedPosts);
+    this.state.isRateLimited = newState.isRateLimited;
+    this.state.isCollapsingEnabled = newState.isCollapsingEnabled;
+    this.renderPanel();
+    this.log('Panel updated due to state-updated event');
+  });
+
+  this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
+    this.state.isManualCheckEnabled = isManualCheckEnabled;
+    this.renderPanel();
+    this.log(`Panel updated: Manual Check toggled to ${isManualCheckEnabled}`);
+  });
+
+  this.xGhosted.on('panel-visibility-toggled', ({ isPanelVisible }) => {
+    this.state.isPanelVisible = isPanelVisible;
+    this.renderPanel();
+    this.log(`Panel visibility updated to ${isPanelVisible}`);
+  });
+
   this.renderPanel();
 };
 
@@ -70,7 +105,7 @@ window.PanelManager.prototype.applyPanelStyles = function () {
 window.PanelManager.prototype.renderPanel = function () {
   window.preact.render(
     window.preact.h(window.Panel, {
-      state: this.xGhosted.state,
+      state: this.state, // Use local state instead of xGhosted.state
       config: this.uiElements.config,
       copyCallback: this.xGhosted.copyLinks.bind(this.xGhosted),
       mode: this.state.themeMode,
@@ -94,10 +129,8 @@ window.PanelManager.prototype.renderPanel = function () {
 };
 
 window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
-  this.xGhosted.state.isPanelVisible = typeof newVisibility === 'boolean' ? newVisibility : !this.xGhosted.state.isPanelVisible;
-  this.renderPanel();
-  this.xGhosted.saveState();
-  this.log(`Panel visibility toggled to ${this.xGhosted.state.isPanelVisible}`);
+  this.xGhosted.togglePanelVisibility(newVisibility); // Delegate to xGhosted
+  // Rendering is handled by the event listener
 };
 
 window.PanelManager.prototype.updateTheme = function (newMode) {
