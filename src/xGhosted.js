@@ -363,7 +363,6 @@ XGhosted.prototype.highlightPosts = function () {
 
   this.state = { ...this.state, processedPosts: new Map(this.state.processedPosts) };
   this.saveState();
-  if (this.panelManager) this.panelManager.renderPanel();
   return results;
 };
 
