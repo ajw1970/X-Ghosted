@@ -24,7 +24,7 @@
 
 * [x] Move eyeballs to left hand column of the panel and make them always visible. Have it replace the yellow dot for potential problem posts.
 * [x] Examine the Preact implementation of the panel and see if we can make it more efficient. 
-* [ ] Save user changed theme and stop defaulting unless theme had never been set before.
+* [x] Save user changed theme and stop defaulting unless theme had never been set before.
 * [ ] Stop using mutation observer or find a way to do a custom check. Look for changes in post qty first (using highlightPosts selector) and then changes in the innerHTML of any post second. Poling might work better for that. We could hand the first query results to highlightPosts if we detect changes that need processing in order to save a second selection.
 * [ ] Fix resize panel
 * [ ] Fix move panel
