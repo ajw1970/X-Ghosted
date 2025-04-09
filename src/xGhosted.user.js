@@ -1025,7 +1025,6 @@
       });
       this.log('State saved and state-updated emitted');
     } else {
-      this.log('State unchanged, skipping save and emission');
     }
   };
   XGhosted.prototype.loadState = function () {
