@@ -1,9 +1,9 @@
 import { postQuality } from './utils/postQuality.js';
 import { detectTheme } from './dom/detectTheme';
 import { identifyPost } from './utils/identifyPost';
-import { identifyPosts } from './utils/identifyPosts';
 import { debounce } from './utils/debounce';
 import { findPostContainer } from './dom/findPostContainer.js';
+import { getRelativeLinkToPost } from './utils/getRelativeLinkToPost.js';
 import { copyTextToClipboard, exportToCSV } from './utils/clipboardUtils.js';
 import './ui/Components.js';
 import './ui/PanelManager.js';
@@ -303,6 +303,7 @@ XGhosted.prototype.ensureAndHighlightPosts = function () {
 XGhosted.prototype.highlightPosts = function () {
   this.updateState(this.document.location.href);
 
+  // We'll call this on each post to keep the logic in one place 
   const processPostAnalysis = (post, analysis) => {
     if (!(post instanceof this.document.defaultView.Element)) {
       this.log('Skipping invalid DOM element:', post);
@@ -332,13 +333,28 @@ XGhosted.prototype.highlightPosts = function () {
     }
   };
 
-  const results = [];  
+  // We filter out this attribute and so we want to be sure to set it first to avoid mutation observer issues 
+  // We don't care if id is null or undefined, we want to set the attribute to let us know we processed it 
   const selector = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
   const checkReplies = this.state.isWithReplies;
+  const results = [];
 
   // Logic used and tested in src/utils/identifyPosts.js 
+  let cachedAnalysis = false;
   (document.querySelectorAll(selector)).forEach((post) => {
-    const analysis = identifyPost(post, checkReplies);
+    // We don't want to process the post if we already have it in our processedPosts map
+    const postId = getRelativeLinkToPost(post);
+    if (postId) {
+      cachedAnalysis = this.state.processedPosts.get(postId)?.analysis;
+    }
+
+    let analysis = false;
+    if (cachedAnalysis) {
+      analysis = { ...cachedAnalysis };
+      this.log(`Post ${JSON.stringify(analysis)}`);
+    } else {
+      analysis = identifyPost(post, checkReplies);
+    }
 
     processPostAnalysis(post, analysis);
 

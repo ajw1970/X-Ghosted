@@ -134,7 +134,7 @@ describe('xGhosted', () => {
     const spy = vi.spyOn(identifyPostModule, 'identifyPost');
 
     // Add data-xghosted attribute to post container
-    findPostContainer(document, console.log);
+    findPostContainer(document);
 
     // Check the number of posts
     const posts = document.querySelectorAll('div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]');
@@ -154,7 +154,7 @@ describe('xGhosted', () => {
     const spy = vi.spyOn(identifyPostModule, 'identifyPost');
 
     // Add data-xghosted attribute to post container
-    findPostContainer(document, console.log);
+    findPostContainer(document);
 
     const selector = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
 
@@ -191,10 +191,12 @@ describe('xGhosted', () => {
     const spy = vi.spyOn(identifyPostModule, 'identifyPost');
 
     // Add data-xghosted attribute to post container
-    findPostContainer(document, console.log);
+    findPostContainer(document);
+
+    const selector = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
 
     // Check the number of posts
-    const posts = document.querySelectorAll('div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]');
+    const posts = document.querySelectorAll(selector);
     expect(posts.length).toBe(36);
 
     // Add previously processedPost which will show up in the new query
@@ -213,7 +215,20 @@ describe('xGhosted', () => {
     // Verify identifyPost was called twice
     expect(spy).toHaveBeenCalledTimes(35);
     expect(spy).toHaveBeenCalledWith(posts[0], true); // Assuming checkReplies is true
-    expect(spy).toHaveBeenCalledWith(posts[16], false);
     expect(spy).toHaveBeenCalledWith(posts[35], true);
+
+    // Now we do a second pass and should fine none
+    // This proves that the cached post did get processed but not re-identified with postIdentify
+    const secondPassPosts = document.querySelectorAll(selector);
+    expect(secondPassPosts.length).toBe(0);
+
+    // Mock identifyPost to track calls
+    const secondPassSpy = vi.spyOn(identifyPostModule, 'identifyPost');
+
+    // Run highlightPosts
+    xGhosted.highlightPosts();
+
+    // Verify identifyPost was called twice
+    expect(secondPassSpy).toHaveBeenCalledTimes(0);
   });
 });

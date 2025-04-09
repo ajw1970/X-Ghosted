@@ -1,4 +1,4 @@
-function findPostContainer(doc, log) {
+function findPostContainer(doc, log = () => {}) {
   const firstPost = doc.querySelector('div[data-testid="cellInnerDiv"]');
   if (!firstPost) {
     log('No posts found with data-testid="cellInnerDiv"');

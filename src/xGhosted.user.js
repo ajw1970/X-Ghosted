@@ -256,7 +256,7 @@
   }
 
   // src/dom/findPostContainer.js
-  function findPostContainer(doc, log) {
+  function findPostContainer(doc, log = () => {}) {
     const firstPost = doc.querySelector('div[data-testid="cellInnerDiv"]');
     if (!firstPost) {
       log('No posts found with data-testid="cellInnerDiv"');
@@ -1344,12 +1344,23 @@
         this.state.processedPosts.set(id, { analysis, checked: false });
       }
     };
-    const results = [];
     const selector =
       'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
     const checkReplies = this.state.isWithReplies;
+    const results = [];
+    let cachedAnalysis = false;
     document.querySelectorAll(selector).forEach((post) => {
-      const analysis = identifyPost(post, checkReplies);
+      const postId = getRelativeLinkToPost(post);
+      if (postId) {
+        cachedAnalysis = this.state.processedPosts.get(postId)?.analysis;
+      }
+      let analysis = false;
+      if (cachedAnalysis) {
+        analysis = { ...cachedAnalysis };
+        this.log(`Post ${JSON.stringify(analysis)}`);
+      } else {
+        analysis = identifyPost(post, checkReplies);
+      }
       processPostAnalysis(post, analysis);
       results.push(analysis);
     });
