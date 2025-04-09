@@ -1,53 +1,99 @@
-const { useState, useEffect } = window.preactHooks;
+const { useState, useEffect, useMemo } = window.preactHooks;
 const html = window.htm.bind(window.preact.h);
-
-import { getModalStyles, getPanelStyles } from './styles.js';
 
 function Modal({ isOpen, onClose, onSubmit, mode, config }) {
   const [csvText, setCsvText] = useState('');
-  const styles = getModalStyles(mode, config, isOpen);
 
   return html`
-    <div style=${styles.modal}>
-      <div>
-        <textarea
-          style=${styles.textarea}
-          value=${csvText}
-          onInput=${(e) => setCsvText(e.target.value)}
-          placeholder="Paste CSV content (e.g. Link Quality Reason Checked)"
-        ></textarea>
-        <div style=${styles.buttonContainer}>
-          <button
-            style=${styles.button}
-            onClick=${() => onSubmit(csvText)}
-            onMouseOver=${(e) => {
-      e.target.style.background = config.THEMES[mode].hover;
-      e.target.style.transform = 'translateY(-1px)';
-    }}
-            onMouseOut=${(e) => {
-      e.target.style.background = config.THEMES[mode].button;
-      e.target.style.transform = 'translateY(0)';
-    }}
-          >
-            <i className="fas fa-check" style="marginRight: 6px;"></i> Submit
-          </button>
-          <button
-            style=${styles.button}
-            onClick=${() => {
-      setCsvText('');
-      onClose();
-    }}
-            onMouseOver=${(e) => {
-      e.target.style.background = config.THEMES[mode].hover;
-      e.target.style.transform = 'translateY(-1px)';
-    }}
-            onMouseOut=${(e) => {
-      e.target.style.background = config.THEMES[mode].button;
-      e.target.style.transform = 'translateY(0)';
-    }}
-          >
-            <i className="fas fa-times" style="marginRight: 6px;"></i> Close
-          </button>
+    <div>
+      <style>
+        :root {
+          --modal-bg: ${config.THEMES[mode].bg};
+          --modal-text: ${config.THEMES[mode].text};
+          --modal-button-bg: ${config.THEMES[mode].button};
+          --modal-button-text: ${config.THEMES[mode].buttonText};
+          --modal-hover-bg: ${config.THEMES[mode].hover};
+          --modal-border: ${config.THEMES[mode].border};
+        }
+        .modal {
+          display: ${isOpen ? 'block' : 'none'};
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: var(--modal-bg);
+          color: var(--modal-text);
+          border: 1px solid var(--modal-border);
+          border-radius: 8px;
+          padding: 20px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+          z-index: 10000;
+          width: 300px;
+        }
+        .modal-textarea {
+          width: 100%;
+          height: 100px;
+          margin-bottom: 15px;
+          background: var(--modal-bg);
+          color: var(--modal-text);
+          border: 1px solid var(--modal-border);
+          border-radius: 4px;
+          padding: 4px;
+          resize: none;
+        }
+        .modal-button-container {
+          display: flex;
+          justify-content: center;
+          gap: 15px;
+        }
+        .modal-button {
+          background: var(--modal-button-bg);
+          color: var(--modal-button-text);
+          border: none;
+          padding: 8px 12px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 500;
+          transition: background 0.2s ease, transform 0.1s ease;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .modal-button:hover {
+          background: var(--modal-hover-bg);
+          transform: translateY(-1px);
+        }
+      </style>
+      <div class="modal">
+        <div>
+          <textarea
+            class="modal-textarea"
+            value=${csvText}
+            onInput=${(e) => setCsvText(e.target.value)}
+            placeholder="Paste CSV content (e.g. Link Quality Reason Checked)"
+            aria-label="CSV content input"
+          ></textarea>
+          <div class="modal-button-container">
+            <button
+              class="modal-button"
+              onClick=${() => onSubmit(csvText)}
+              aria-label="Submit CSV content"
+            >
+              <i className="fas fa-check" style="marginRight: 6px;"></i> Submit
+            </button>
+            <button
+              class="modal-button"
+              onClick=${() => {
+                setCsvText('');
+                onClose();
+              }}
+              aria-label="Close modal and clear input"
+            >
+              <i className="fas fa-times" style="marginRight: 6px;"></i> Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -70,12 +116,13 @@ function Panel({
   onToggle,
   onEyeballClick,
 }) {
-  const [flagged, setFlagged] = useState(
+  const flagged = useMemo(() =>
     Array.from(state.processedPosts.entries()).filter(
       ([_, { analysis }]) =>
         analysis.quality.name === "Problem" ||
         analysis.quality.name === "Potential Problem"
-    )
+    ),
+    [state.processedPosts]
   );
   const [isVisible, setIsVisible] = useState(state.isPanelVisible);
   const [isToolsExpanded, setIsToolsExpanded] = useState(false);
@@ -84,22 +131,16 @@ function Panel({
   const [updateCounter, setUpdateCounter] = useState(0);
 
   useEffect(() => {
-    const newFlagged = Array.from(state.processedPosts.entries()).filter(
-      ([_, { analysis }]) =>
-        analysis.quality.name === "Problem" ||
-        analysis.quality.name === "Potential Problem"
-    );
-    setFlagged(newFlagged);
-    setUpdateCounter((prev) => prev + 1);
-  }, [Array.from(state.processedPosts.entries())]);
+    if (state.isPanelVisible !== isVisible) {
+      setIsVisible(state.isPanelVisible);
+    }
+  }, [state.isPanelVisible, isVisible]);
 
   useEffect(() => {
-    setIsVisible(state.isPanelVisible);
-  }, [state.isPanelVisible]);
-
-  useEffect(() => {
-    setCurrentMode(mode);
-  }, [mode]);
+    if (mode !== currentMode) {
+      setCurrentMode(mode);
+    }
+  }, [mode, currentMode]);
 
   const toggleVisibility = () => {
     const newVisibility = !isVisible;
@@ -126,12 +167,105 @@ function Panel({
     setIsModalOpen(false);
   };
 
-  const styles = getPanelStyles(mode, config, isVisible, currentMode);
-  styles.toolsSection.display = isToolsExpanded ? 'block' : 'none';
-
   return html`
     <div>
       <style>
+        :root {
+          --bg-color: ${config.THEMES[currentMode].bg};
+          --text-color: ${config.THEMES[currentMode].text};
+          --button-bg: ${config.THEMES[currentMode].button};
+          --button-text: ${config.THEMES[currentMode].buttonText};
+          --hover-bg: ${config.THEMES[currentMode].hover};
+          --border-color: ${config.THEMES[currentMode].border};
+          --scroll-color: ${config.THEMES[currentMode].scroll};
+        }
+        #xghosted-panel {
+          width: ${isVisible ? config.PANEL.WIDTH : '80px'};
+          max-height: ${isVisible ? config.PANEL.MAX_HEIGHT : '48px'};
+          min-width: ${isVisible ? '250px' : '80px'};
+          padding: ${isVisible ? '12px' : '4px'};
+          transition: all 0.2s ease;
+          position: fixed;
+          top: ${config.PANEL.TOP};
+          right: ${config.PANEL.RIGHT};
+          z-index: ${config.PANEL.Z_INDEX};
+          font-family: ${config.PANEL.FONT};
+          background: var(--bg-color);
+          color: var(--text-color);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .toolbar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-bottom: 12px;
+          border-bottom: 1px solid var(--border-color);
+          margin-bottom: 12px;
+          padding-left: 10px;
+        }
+        .tools-section {
+          display: ${isToolsExpanded ? 'block' : 'none'};
+          padding: 12px;
+          border-radius: 8px;
+          background: ${config.THEMES[currentMode].bg}F0;
+          box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+          margin-bottom: 12px;
+        }
+        .control-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-bottom: 8px;
+          margin-bottom: 12px;
+        }
+        .content-wrapper {
+          max-height: calc(100vh - 150px);
+          overflow-y: auto;
+          padding-right: 8px;
+          margin-bottom: 12px;
+        }
+        .panel-button {
+          background: var(--button-bg);
+          color: var(--button-text);
+          border: none;
+          padding: 8px 12px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 500;
+          transition: background 0.2s ease, transform 0.1s ease;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .panel-button:hover {
+          background: var(--hover-bg);
+          transform: translateY(-1px);
+        }
+        .panel-button:active {
+          transform: scale(0.95);
+        }
+        .mode-selector {
+          background: var(--button-bg);
+          color: var(--text-color);
+          border: none;
+          padding: 8px 12px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          min-width: 80px;
+          appearance: none;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .status-label {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-color);
+        }
         .status-dot {
           display: inline-block;
           width: 8px;
@@ -162,15 +296,15 @@ function Panel({
           width: 6px;
         }
         .problem-links-wrapper::-webkit-scrollbar-thumb {
-          background: ${config.THEMES[currentMode].scroll};
+          background: var(--scroll-color);
           border-radius: 3px;
         }
         .problem-links-wrapper::-webkit-scrollbar-track {
-          background: ${config.THEMES[currentMode].bg};
+          background: var(--bg-color);
         }
         select:focus {
           outline: none;
-          box-shadow: 0 0 0 2px ${config.THEMES[currentMode].scroll};
+          box-shadow: 0 0 0 2px var(--scroll-color);
         }
         .link-item {
           padding: 2px 0;
@@ -179,55 +313,34 @@ function Panel({
         .link-item a:hover {
           text-decoration: underline;
         }
-        button:active {
-          transform: scale(0.95);
-        }
       </style>
-      <div id="xghosted-panel" style=${styles.panel}>
+      <div id="xghosted-panel">
         ${isVisible ? html`
-          <div class="toolbar" style=${styles.toolbar}>
+          <div class="toolbar">
             <span>Problem Posts (${flagged.length}):</span>
             <div style="display: flex; align-items: center; gap: 10px; padding-left: 10px;">
               <button
-                style=${styles.button}
+                class="panel-button"
                 onClick=${toggleTools}
-                onMouseOver=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].hover;
-        e.target.style.transform = 'translateY(-1px)';
-      }}
-                onMouseOut=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].button;
-        e.target.style.transform = 'translateY(0)';
-      }}
+                aria-label="Toggle Tools Section"
               >
                 <i className="fas fa-chevron-down" style="marginRight: 6px;"></i> Tools
               </button>
               <button
-                style=${styles.button}
+                class="panel-button"
                 onClick=${toggleVisibility}
-                onMouseOver=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].hover;
-        e.target.style.transform = 'translateY(-1px)';
-      }}
-                onMouseOut=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].button;
-        e.target.style.transform = 'translateY(0)';
-      }}
+                aria-label="Hide Panel"
               >
                 <i className="fas fa-eye-slash" style="marginRight: 6px;"></i> Hide
               </button>
             </div>
           </div>
-          <div class="tools-section" style=${styles.toolsSection}>
+          <div class="tools-section">
             <div style="display: flex; flex-direction: column; gap: 12px; padding: 15px;">
-              <div style="padding-bottom: 12px; border-bottom: 1px solid ${config.THEMES[currentMode].border};">
+              <div style="padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
                 <select
-                  style=${{
-        ...styles.modeSelector,
-        width: '100%',
-        padding: '8px 12px',
-        fontSize: '14px',
-      }}
+                  class="mode-selector"
+                  style="width: 100%; padding: 8px 12px; fontSize: 14px;"
                   value=${currentMode}
                   onChange=${handleModeChange}
                 >
@@ -238,66 +351,38 @@ function Panel({
               </div>
               <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;">
                 <button
-                  style=${styles.button}
+                  class="panel-button"
                   onClick=${copyCallback}
-                  onMouseOver=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].hover;
-        e.target.style.transform = 'translateY(-1px)';
-      }}
-                  onMouseOut=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].button;
-        e.target.style.transform = 'translateY(0)';
-      }}
+                  aria-label="Copy Problem Links"
                 >
                   <i className="fas fa-copy" style="marginRight: 8px;"></i> Copy
                 </button>
                 <button
-                  style=${styles.button}
+                  class="panel-button"
                   onClick=${onExportCSV}
-                  onMouseOver=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].hover;
-        e.target.style.transform = 'translateY(-1px)';
-      }}
-                  onMouseOut=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].button;
-        e.target.style.transform = 'translateY(0)';
-      }}
+                  aria-label="Export Posts to CSV"
                 >
                   <i className="fas fa-file-export" style="marginRight: 8px;"></i> Export CSV
                 </button>
                 <button
-                  style=${styles.button}
+                  class="panel-button"
                   onClick=${handleImportCSV}
-                  onMouseOver=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].hover;
-        e.target.style.transform = 'translateY(-1px)';
-      }}
-                  onMouseOut=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].button;
-        e.target.style.transform = 'translateY(0)';
-      }}
+                  aria-label="Import Posts from CSV"
                 >
                   <i className="fas fa-file-import" style="marginRight: 8px;"></i> Import CSV
                 </button>
                 <button
-                  style=${styles.button}
+                  class="panel-button"
                   onClick=${onClear}
-                  onMouseOver=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].hover;
-        e.target.style.transform = 'translateY(-1px)';
-      }}
-                  onMouseOut=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].button;
-        e.target.style.transform = 'translateY(0)';
-      }}
+                  aria-label="Clear Processed Posts"
                 >
                   <i className="fas fa-trash" style="marginRight: 8px;"></i> Clear
                 </button>
               </div>
               <div style="display: flex; flex-direction: column; gap: 12px;">
                 <button
+                  class="panel-button"
                   style=${{
-        ...styles.button,
         background: state.isManualCheckEnabled
           ? config.THEMES[currentMode].hover
           : config.THEMES[currentMode].button,
@@ -306,79 +391,53 @@ function Panel({
           : `1px solid ${config.THEMES[currentMode].border}`,
       }}
                   onClick=${onManualCheckToggle}
-                  onMouseOver=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].hover;
-        e.target.style.transform = 'translateY(-1px)';
-      }}
-                  onMouseOut=${(e) => {
-        e.target.style.background = state.isManualCheckEnabled
-          ? config.THEMES[currentMode].hover
-          : config.THEMES[currentMode].button;
-        e.target.style.transform = 'translateY(0)';
-      }}
+                  aria-label=${`Toggle Manual Check: Currently ${state.isManualCheckEnabled ? 'On' : 'Off'}`}
                 >
                   <i className="fas fa-toggle-on" style="marginRight: 8px;"></i> Manual Check: ${state.isManualCheckEnabled ? 'On' : 'Off'}
                 </button>
               </div>
             </div>
           </div>
-          <div class="control-row" style=${styles.controlRow}>
-            <span style=${styles.statusLabel}>
+          <div class="control-row">
+            <span class="status-label">
               ${state.isRateLimited ? 'Paused (Rate Limit)' : state.isCollapsingEnabled ? 'Auto Collapse Running' : 'Auto Collapse Off'}
             </span>
             <div style="display: flex; gap: 8px;">
               <button
-                style=${styles.button}
+                class="panel-button"
                 onClick=${onStart}
-                onMouseOver=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].hover;
-        e.target.style.transform = 'translateY(-1px)';
-      }}
-                onMouseOut=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].button;
-        e.target.style.transform = 'translateY(0)';
-      }}
+                aria-label="Start Auto Collapse"
               >
                 <i className="fas fa-play" style="marginRight: 6px;"></i> Start
               </button>
               <button
-                style=${styles.button}
+                class="panel-button"
                 onClick=${onStop}
-                onMouseOver=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].hover;
-        e.target.style.transform = 'translateY(-1px)';
-      }}
-                onMouseOut=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].button;
-        e.target.style.transform = 'translateY(0)';
-      }}
+                aria-label="Stop Auto Collapse"
               >
                 <i className="fas fa-pause" style="marginRight: 6px;"></i> Stop
               </button>
               <button
-                style=${styles.button}
+                class="panel-button"
                 onClick=${onReset}
-                onMouseOver=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].hover;
-        e.target.style.transform = 'translateY(-1px)';
-      }}
-                onMouseOut=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].button;
-        e.target.style.transform = 'translateY(0)';
-      }}
+                aria-label="Reset Auto Collapse"
               >
                 <i className="fas fa-undo" style="marginRight: 6px;"></i> Reset
               </button>
             </div>
           </div>
-          <div class="problem-links-wrapper" style=${styles.contentWrapper}>
+          <div class="problem-links-wrapper content-wrapper">
             ${flagged.map(([href, { analysis, checked }]) => html`
               <div class="link-row" style="padding: 4px 0;">
                 ${analysis.quality.name === "Problem"
-                  ? html`<span class="status-dot status-problem"></span>`
-                  : html`<span
+          ? html`<span class="status-dot status-problem"></span>`
+          : html`<span
                       class="status-eyeball"
+                      tabIndex="0"
+                      role="button"
+                      aria-label="Check post manually"
                       onClick=${() => !checked && onEyeballClick(href)}
+                      onKeyDown=${(e) => e.key === 'Enter' && !checked && onEyeballClick(href)}
                     >👀</span>`}
                 <div class="link-item">
                   <a href="https://x.com${href}" target="_blank">${href}</a>
@@ -388,16 +447,9 @@ function Panel({
           </div>
         ` : html`
           <button
-            style=${styles.button}
+            class="panel-button"
             onClick=${toggleVisibility}
-            onMouseOver=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].hover;
-        e.target.style.transform = 'translateY(-1px)';
-      }}
-            onMouseOut=${(e) => {
-        e.target.style.background = config.THEMES[currentMode].button;
-        e.target.style.transform = 'translateY(0)';
-      }}
+            aria-label="Show Panel"
           >
             <i className="fas fa-eye" style="marginRight: 6px;"></i> Show
           </button>

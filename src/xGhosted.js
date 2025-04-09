@@ -77,7 +77,7 @@ XGhosted.prototype.saveState = function () {
     this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
     this.log('State saved and state-updated emitted');
   } else {
-    this.log('State unchanged, skipping save and emission');
+    // this.log('State unchanged, skipping save and emission');
   }
 };
 
