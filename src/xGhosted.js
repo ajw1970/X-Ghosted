@@ -14,6 +14,7 @@ function XGhosted(doc, config = {}) {
     throttleDelay: 1000,
     tabCheckThrottle: 5000,
     exportThrottle: 5000,
+    pollInterval: 1000
   };
   this.timing = { ...defaultTiming, ...config.timing };
   this.document = doc;
@@ -56,6 +57,8 @@ function XGhosted(doc, config = {}) {
     this.events[event].forEach(cb => cb(data));
   };
 }
+
+XGhosted.POST_SELECTOR = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
 
 XGhosted.prototype.saveState = function () {
   const serializableArticles = {};
@@ -101,7 +104,7 @@ XGhosted.prototype.loadState = function () {
 XGhosted.prototype.updateState = function (url) {
   this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(url);
   if (this.state.lastUrl !== url) {
-    this.state.postContainer = null; // Reset to force re-fetch on next highlight
+    this.state.postContainer = null;
     this.state.processedPosts.clear();
     this.state.lastUrl = url;
   }
@@ -187,10 +190,8 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
           }
         }
         if (isProblem) {
-          // Leave problems open and scroll to the top so the user can take a look at the them
           newWindow.scrollTo(0, 0);
         } else {
-          // Close the new window if no problems found
           newWindow.close();
         }
         resolve(isProblem);
@@ -234,8 +235,6 @@ XGhosted.prototype.userRequestedPostCheck = function (href, post) {
 XGhosted.prototype.handleStart = function () {
   this.state.isCollapsingEnabled = true;
   this.state.isCollapsingRunning = true;
-  // const articles = this.document.querySelectorAll('div[data-testid="cellInnerDiv"]');
-  // this.collapseArticlesWithDelay(articles);
 };
 
 XGhosted.prototype.handleStop = function () {
@@ -245,16 +244,10 @@ XGhosted.prototype.handleStop = function () {
 XGhosted.prototype.handleReset = function () {
   this.state.isCollapsingEnabled = false;
   this.state.isCollapsingRunning = false;
-  // this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').forEach(this.expandArticle);
-  // this.state.processedPosts = new Map();
-  // this.state.fullyProcessedPosts = new Set();
-  // this.state.problemLinks = new Set();
 };
 
 XGhosted.prototype.clearProcessedPosts = function () {
   this.state.processedPosts.clear();
-  // this.state.fullyProcessedPosts.clear();
-  // this.state.problemLinks.clear();
   this.saveState();
   this.ensureAndHighlightPosts();
 };
@@ -287,38 +280,6 @@ XGhosted.prototype.handleClear = function () {
   if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
 };
 
-/* XGhosted.prototype.collapseArticlesWithDelay = function (articles) {
-  let index = 0;
-  const interval = setInterval(() => {
-    if (
-      index >= articles.length ||
-      !this.state.isCollapsingEnabled ||
-      this.state.isRateLimited
-    ) {
-      clearInterval(interval);
-      this.state.isCollapsingRunning = false;
-      this.log('Collapsing completed or stopped');
-      return;
-    }
-    const article = articles[index];
-    const timeElement = article.querySelector('.css-146c3p1.r-1loqt21 time');
-    const href = timeElement?.parentElement?.getAttribute('href');
-    if (href && !this.state.fullyProcessedPosts.has(href)) {
-      const analysis = this.state.processedPosts.get(href)?.analysis;
-      if (analysis && (analysis.quality === postQuality.PROBLEM || analysis.quality === postQuality.POTENTIAL_PROBLEM)) {
-        article.style.height = '0px';
-        article.style.overflow = 'hidden';
-        article.style.margin = '0';
-        article.style.padding = '0';
-        this.state.problemLinks.add(href);
-        this.log(`Collapsed article with href: ${href}`);
-      }
-      this.state.fullyProcessedPosts.add(href);
-    }
-    index++;
-  }, 200);
-}; */
-
 XGhosted.prototype.expandArticle = function (article) {
   if (article) {
     article.style.height = 'auto';
@@ -343,10 +304,9 @@ XGhosted.prototype.ensureAndHighlightPosts = function () {
   return results;
 };
 
-XGhosted.prototype.highlightPosts = function () {
+XGhosted.prototype.highlightPosts = function (posts) {
   this.updateState(this.document.location.href);
 
-  // We'll call this on each post to keep the logic in one place 
   const processPostAnalysis = (post, analysis) => {
     if (!(post instanceof this.document.defaultView.Element)) {
       this.log('Skipping invalid DOM element:', post);
@@ -355,9 +315,6 @@ XGhosted.prototype.highlightPosts = function () {
 
     const id = analysis.link;
     const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
-
-    // We filter out this attribute and so we want to be sure to set it first to avoid mutation observer issues
-    // We don't care if id is null or undefined, we want to set the attribute to let us know we processed it
     post.setAttribute('data-xghosted-id', id);
     post.setAttribute('data-xghosted', `postquality.${qualityName}`);
     post.classList.add(`xghosted-${qualityName}`);
@@ -376,35 +333,52 @@ XGhosted.prototype.highlightPosts = function () {
     }
   };
 
-  // We filter out this attribute and so we want to be sure to set it first to avoid mutation observer issues 
-  // We don't care if id is null or undefined, we want to set the attribute to let us know we processed it 
-  const selector = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
   const checkReplies = this.state.isWithReplies;
   const results = [];
+  const postsToProcess = posts || this.document.querySelectorAll(XGhosted.POST_SELECTOR);
 
   let postsProcessed = 0;
   let cachedAnalysis = false;
-  (this.document.querySelectorAll(selector)).forEach((post) => {
+  postsToProcess.forEach((post) => {
     const postId = getRelativeLinkToPost(post);
     if (postId) {
       cachedAnalysis = this.state.processedPosts.get(postId)?.analysis;
     }
     let analysis = cachedAnalysis ? { ...cachedAnalysis } : identifyPost(post, checkReplies);
-    if (!cachedAnalysis) postsProcessed++; // Count only new posts
+    if (!cachedAnalysis) postsProcessed++;
     processPostAnalysis(post, analysis);
     results.push(analysis);
   });
 
-  // Only emit if new posts were processed
   if (postsProcessed > 0) {
     this.state = { ...this.state, processedPosts: new Map(this.state.processedPosts) };
     this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
     this.log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
     this.saveState();
-  } else {
-    // this.log('No new posts processed, skipping state-updated');
   }
   return results;
+};
+
+XGhosted.prototype.startPolling = function () {
+  const pollInterval = this.timing.pollInterval || 1000;
+  this.log('Starting polling for post changes...');
+  this.pollTimer = setInterval(() => {
+    const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
+    const postCount = posts.length;
+
+    if (postCount > 0) {
+      this.log(`Found ${postCount} new posts, highlighting...`);
+      this.highlightPosts(posts);
+    } else {
+      const container = this.document.querySelector('div[data-xghosted="posts-container"]');
+      if (!container) {
+        // this.log('No posts and no container found, ensuring and highlighting...');
+        this.ensureAndHighlightPosts();
+      } else {
+        // this.log('No new posts, container exists—nothing to do.');
+      }
+    }
+  }, pollInterval);
 };
 
 XGhosted.prototype.getThemeMode = function () {
@@ -507,7 +481,6 @@ XGhosted.prototype.init = function () {
   `;
   this.document.head.appendChild(styleSheet);
 
-  // Add event delegation for eyeball clicks
   this.document.addEventListener('click', (e) => {
     const eyeball = e.target.closest('.xghosted-eyeball') ||
       (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
@@ -560,8 +533,7 @@ XGhosted.prototype.init = function () {
     }
   }
 
-  // Delay initial highlight to let DOM load
-  setTimeout(() => this.ensureAndHighlightPostsDebounced(), 2000);
+  this.startPolling();
 };
 
 export { XGhosted };

@@ -968,6 +968,7 @@
       throttleDelay: 1e3,
       tabCheckThrottle: 5e3,
       exportThrottle: 5e3,
+      pollInterval: 1e3,
     };
     this.timing = { ...defaultTiming, ...config.timing };
     this.document = doc;
@@ -1009,6 +1010,8 @@
       this.events[event].forEach((cb) => cb(data));
     };
   }
+  XGhosted.POST_SELECTOR =
+    'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
   XGhosted.prototype.saveState = function () {
     const serializableArticles = {};
     if (this.state.persistProcessedPosts) {
@@ -1281,7 +1284,7 @@
     }
     return results;
   };
-  XGhosted.prototype.highlightPosts = function () {
+  XGhosted.prototype.highlightPosts = function (posts) {
     this.updateState(this.document.location.href);
     const processPostAnalysis = (post, analysis) => {
       if (!(post instanceof this.document.defaultView.Element)) {
@@ -1307,13 +1310,13 @@
         this.state.processedPosts.set(id, { analysis, checked: false });
       }
     };
-    const selector =
-      'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
     const checkReplies = this.state.isWithReplies;
     const results = [];
+    const postsToProcess =
+      posts || this.document.querySelectorAll(XGhosted.POST_SELECTOR);
     let postsProcessed = 0;
     let cachedAnalysis = false;
-    this.document.querySelectorAll(selector).forEach((post) => {
+    postsToProcess.forEach((post) => {
       const postId = getRelativeLinkToPost(post);
       if (postId) {
         cachedAnalysis = this.state.processedPosts.get(postId)?.analysis;
@@ -1338,9 +1341,28 @@
         `Highlighted ${postsProcessed} new posts, state-updated emitted`
       );
       this.saveState();
-    } else {
     }
     return results;
+  };
+  XGhosted.prototype.startPolling = function () {
+    const pollInterval = this.timing.pollInterval || 1e3;
+    this.log('Starting polling for post changes...');
+    this.pollTimer = setInterval(() => {
+      const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
+      const postCount = posts.length;
+      if (postCount > 0) {
+        this.log(`Found ${postCount} new posts, highlighting...`);
+        this.highlightPosts(posts);
+      } else {
+        const container = this.document.querySelector(
+          'div[data-xghosted="posts-container"]'
+        );
+        if (!container) {
+          this.ensureAndHighlightPosts();
+        } else {
+        }
+      }
+    }, pollInterval);
   };
   XGhosted.prototype.getThemeMode = function () {
     return detectTheme(this.document);
@@ -1498,7 +1520,7 @@
         this.panelManager = null;
       }
     }
-    setTimeout(() => this.ensureAndHighlightPostsDebounced(), 2e3);
+    this.startPolling();
   };
   var XGhosted = XGhosted;
 
@@ -1511,6 +1533,7 @@
       tabCheckThrottle: 5000,
       exportThrottle: 5000,
       rateLimitPause: RATE_LIMIT_PAUSE,
+      pollInterval: 1000,
     },
     useTampermonkeyLog: true,
     persistProcessedPosts: false,
@@ -1518,25 +1541,4 @@
   const xGhosted = new XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
   xGhosted.init();
-
-  // Observe URL changes with throttling
-  let lastUrl = window.location.href;
-  let lastProcessedTime = 0;
-  const observer = new MutationObserver(() => {
-    const now = Date.now();
-    if (now - lastProcessedTime < config.timing.throttleDelay) {
-      return; // Skip if too soon
-    }
-    lastProcessedTime = now;
-
-    const currentUrl = window.location.href;
-    if (currentUrl !== lastUrl) {
-      lastUrl = currentUrl;
-      xGhosted.updateState(currentUrl);
-      xGhosted.ensureAndHighlightPostsDebounced();
-    } else {
-      xGhosted.ensureAndHighlightPostsDebounced();
-    }
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
 })();

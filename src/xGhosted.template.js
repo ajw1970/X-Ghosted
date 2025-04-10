@@ -18,64 +18,44 @@
 
 (function () {
     'use strict';
-
+  
     // Safety check: Ensure we're on X.com with a valid document
     const log = typeof GM_log !== 'undefined' ? GM_log : console.log.bind(console);
     if (!window.location.href.startsWith('https://x.com/') || !document.body) {
-        log('xGhosted: Aborting - invalid environment');
-        return;
+      log('xGhosted: Aborting - invalid environment');
+      return;
     }
-
+  
     // Log startup with safety focus
     log('xGhosted v0.6.1 starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds');
-
+  
     // Check if Preact, Preact Hooks, and HTM dependencies loaded
     if (!window.preact || !window.preactHooks || !window.htm) {
-        log('xGhosted: Aborting - Failed to load dependencies. Preact: ' + 
-            (window.preact ? 'loaded' : 'missing') + ', Preact Hooks: ' + 
-            (window.preactHooks ? 'loaded' : 'missing') + ', HTM: ' + 
-            (window.htm ? 'loaded' : 'missing'));
-        return;
+      log('xGhosted: Aborting - Failed to load dependencies. Preact: ' +
+          (window.preact ? 'loaded' : 'missing') + ', Preact Hooks: ' +
+          (window.preactHooks ? 'loaded' : 'missing') + ', HTM: ' +
+          (window.htm ? 'loaded' : 'missing'));
+      return;
     }
 
     // --- Inject Module (single resolved xGhosted.js with all dependencies inlined) ---
     // INJECT: xGhosted
-
+  
     // --- Initialization with Resource Limits and Rate Limiting ---
     const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
     const config = {
-        timing: {
-            debounceDelay: 500,
-            throttleDelay: 1000,
-            tabCheckThrottle: 5000,
-            exportThrottle: 5000,
-            rateLimitPause: RATE_LIMIT_PAUSE
-        },
-        useTampermonkeyLog: true,
-        persistProcessedPosts: false
+      timing: {
+        debounceDelay: 500,
+        throttleDelay: 1000,
+        tabCheckThrottle: 5000,
+        exportThrottle: 5000,
+        rateLimitPause: RATE_LIMIT_PAUSE,
+        pollInterval: 1000
+      },
+      useTampermonkeyLog: true,
+      persistProcessedPosts: false
     };
     const xGhosted = new XGhosted(document, config);
     xGhosted.state.isManualCheckEnabled = true;
     xGhosted.init();
-
-    // Observe URL changes with throttling
-    let lastUrl = window.location.href;
-    let lastProcessedTime = 0;
-    const observer = new MutationObserver(() => {
-        const now = Date.now();
-        if (now - lastProcessedTime < config.timing.throttleDelay) {
-            return; // Skip if too soon
-        }
-        lastProcessedTime = now;
-
-        const currentUrl = window.location.href;
-        if (currentUrl !== lastUrl) {
-            lastUrl = currentUrl;
-            xGhosted.updateState(currentUrl);
-            xGhosted.ensureAndHighlightPostsDebounced();
-        } else {
-            xGhosted.ensureAndHighlightPostsDebounced();
-        }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-})();
+  })();
