@@ -32,7 +32,8 @@ function XGhosted(doc, config = {}) {
     isCollapsingEnabled: false,
     isCollapsingRunning: false,
     isPanelVisible: true,
-    themeMode: null
+    themeMode: null,
+    isHighlighting: false // Added to track highlighting state
   };
   this.events = {};
   this.panelManager = null;
@@ -305,6 +306,7 @@ XGhosted.prototype.ensureAndHighlightPosts = function () {
 };
 
 XGhosted.prototype.highlightPosts = function (posts) {
+  this.state.isHighlighting = true; // Start highlighting
   this.updateState(this.document.location.href);
 
   const processPostAnalysis = (post, analysis) => {
@@ -356,6 +358,7 @@ XGhosted.prototype.highlightPosts = function (posts) {
     this.log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
     this.saveState();
   }
+  this.state.isHighlighting = false; // Done highlighting
   return results;
 };
 
@@ -363,6 +366,10 @@ XGhosted.prototype.startPolling = function () {
   const pollInterval = this.timing.pollInterval || 1000;
   this.log('Starting polling for post changes...');
   this.pollTimer = setInterval(() => {
+    if (this.state.isHighlighting) {
+      this.log('Polling skipped—highlighting in progress');
+      return;
+    }
     const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
     const postCount = posts.length;
 
@@ -372,7 +379,7 @@ XGhosted.prototype.startPolling = function () {
     } else {
       const container = this.document.querySelector('div[data-xghosted="posts-container"]');
       if (!container) {
-        // this.log('No posts and no container found, ensuring and highlighting...');
+        this.log('No posts and no container found, ensuring and highlighting...');
         this.ensureAndHighlightPosts();
       } else {
         // this.log('No new posts, container exists—nothing to do.');

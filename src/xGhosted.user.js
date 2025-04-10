@@ -988,6 +988,8 @@
       isCollapsingRunning: false,
       isPanelVisible: true,
       themeMode: null,
+      isHighlighting: false,
+      // Added to track highlighting state
     };
     this.events = {};
     this.panelManager = null;
@@ -1285,6 +1287,7 @@
     return results;
   };
   XGhosted.prototype.highlightPosts = function (posts) {
+    this.state.isHighlighting = true;
     this.updateState(this.document.location.href);
     const processPostAnalysis = (post, analysis) => {
       if (!(post instanceof this.document.defaultView.Element)) {
@@ -1342,12 +1345,17 @@
       );
       this.saveState();
     }
+    this.state.isHighlighting = false;
     return results;
   };
   XGhosted.prototype.startPolling = function () {
     const pollInterval = this.timing.pollInterval || 1e3;
     this.log('Starting polling for post changes...');
     this.pollTimer = setInterval(() => {
+      if (this.state.isHighlighting) {
+        this.log('Polling skipped\u2014highlighting in progress');
+        return;
+      }
       const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
       const postCount = posts.length;
       if (postCount > 0) {
@@ -1358,6 +1366,9 @@
           'div[data-xghosted="posts-container"]'
         );
         if (!container) {
+          this.log(
+            'No posts and no container found, ensuring and highlighting...'
+          );
           this.ensureAndHighlightPosts();
         } else {
         }
