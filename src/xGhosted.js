@@ -28,7 +28,7 @@ function XGhosted(doc, config = {}) {
     lastUrl: '',
     isWithReplies: false,
     isRateLimited: false,
-    isManualCheckEnabled: false,
+    isManualCheckEnabled: true,
     isCollapsingEnabled: false,
     isCollapsingRunning: false,
     isPanelVisible: true,
@@ -76,9 +76,31 @@ XGhosted.prototype.saveState = function () {
     processedPosts: serializableArticles,
   };
   const oldState = GM_getValue('xGhostedState', {});
+  
+  // Convert processedPosts Map to array for comparison
+  const newProcessedPostsArray = Array.from(this.state.processedPosts.entries());
+  const oldProcessedPostsArray = Array.from(
+    (oldState.processedPosts ? Object.entries(oldState.processedPosts) : []).map(([id, { analysis, checked }]) => [
+      id,
+      { analysis: { ...analysis, quality: postQuality[analysis.quality.name] }, checked },
+    ])
+  );
 
-  // Compare to avoid redundant saves and emissions
-  if (JSON.stringify(newState) !== JSON.stringify(oldState)) {
+  // Compare the processedPosts separately to ensure changes are detected
+  const processedPostsChanged = JSON.stringify(newProcessedPostsArray) !== JSON.stringify(oldProcessedPostsArray);
+  const otherStateChanged = JSON.stringify({
+    isPanelVisible: newState.isPanelVisible,
+    isCollapsingEnabled: newState.isCollapsingEnabled,
+    isManualCheckEnabled: newState.isManualCheckEnabled,
+    themeMode: newState.themeMode,
+  }) !== JSON.stringify({
+    isPanelVisible: oldState.isPanelVisible,
+    isCollapsingEnabled: oldState.isCollapsingEnabled,
+    isManualCheckEnabled: oldState.isManualCheckEnabled,
+    themeMode: oldState.themeMode,
+  });
+
+  if (processedPostsChanged || otherStateChanged) {
     GM_setValue('xGhostedState', newState);
     this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
     this.log('State saved and state-updated emitted');
@@ -133,8 +155,8 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
   this.log(`Checking post in new tab: ${href}`);
   const fullUrl = `https://x.com${href}`;
   const newWindow = this.document.defaultView.open(fullUrl, '_blank');
-  let attempts = 0, maxAttempts = 10;
-  let emptyCount = 0;
+  let attempts = 0;
+  const maxAttempts = 10;
   return new Promise((resolve) => {
     const checkInterval = setInterval(() => {
       attempts++;
@@ -142,12 +164,7 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
         const doc = newWindow.document;
         if (doc.body.textContent.includes('Rate limit exceeded')) {
           clearInterval(checkInterval);
-          this.log('Rate limit detected in tab, pausing operations');
-          if (typeof jest === 'undefined') {
-            alert(`Rate limit exceeded by X. Pausing all operations for ${this.timing.rateLimitPause / 1000} seconds.`);
-          } else {
-            this.log(`Rate limit alert: Pausing all operations for ${this.timing.rateLimitPause / 1000} seconds.`);
-          }
+          this.log('Rate limit detected, pausing operations');
           this.state.isRateLimited = true;
           newWindow.close();
           setTimeout(() => {
@@ -157,50 +174,25 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
           }, this.timing.rateLimitPause);
           return;
         }
-        const threadPosts = doc.querySelectorAll('div[data-testid="cellInnerDiv"]');
-        if (threadPosts.length === 0) {
-          emptyCount++;
-          if (emptyCount >= 3) {
-            clearInterval(checkInterval);
-            this.log('Repeated empty results, possible rate limit, pausing operations');
-            alert(`Possible rate limit detected (no articles loaded). Pausing for ${this.timing.rateLimitPause / 1000} seconds.`);
-            this.state.isRateLimited = true;
+        const targetPost = doc.querySelector(`[data-xghosted-id="${href}"]`);
+        if (targetPost) {
+          this.log(`Original post found in new tab: ${href}`);
+          clearInterval(checkInterval);
+          const hasProblem = doc.querySelector('[data-xghosted="postquality.problem"]') !== null;
+          if (hasProblem) {
+            newWindow.scrollTo(0, 0);
+            this.log(`Problem found in thread at ${href}`);
+          } else {
             newWindow.close();
-            setTimeout(() => {
-              this.log('Resuming after empty result pause');
-              this.state.isRateLimited = false;
-              resolve(false);
-            }, this.timing.rateLimitPause);
-            return;
+            this.log(`No problem found in thread at ${href}`);
           }
-          return;
+          resolve(hasProblem);
         }
-        clearInterval(checkInterval);
-        if (threadPosts.length < 2) {
-          this.log(`Thread at ${fullUrl} has fewer than 2 posts (${threadPosts.length})—assuming not a problem`);
-          newWindow.close();
-          resolve(false);
-          return;
-        }
-        let isProblem = false;
-        for (let threadPost of threadPosts) {
-          const analysis = identifyPost(threadPost, false);
-          if (analysis.quality === postQuality.PROBLEM) {
-            isProblem = true;
-            break;
-          }
-        }
-        if (isProblem) {
-          newWindow.scrollTo(0, 0);
-        } else {
-          newWindow.close();
-        }
-        resolve(isProblem);
       }
       if (attempts >= maxAttempts) {
         clearInterval(checkInterval);
         if (newWindow) newWindow.close();
-        this.log(`Failed to load thread at ${fullUrl} within ${maxAttempts} attempts`);
+        this.log(`Failed to process ${href} within ${maxAttempts} attempts`);
         resolve(false);
       }
     }, 500);

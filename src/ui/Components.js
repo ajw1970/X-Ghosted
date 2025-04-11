@@ -142,6 +142,10 @@ function Panel({
     }
   }, [mode, currentMode]);
 
+  useEffect(() => {
+    setUpdateCounter((prev) => prev + 1);
+  }, [state.processedPosts]);
+
   const toggleVisibility = () => {
     const newVisibility = !isVisible;
     setIsVisible(newVisibility);
