@@ -27,16 +27,19 @@
 * [x] Save user changed theme and stop defaulting unless theme had never been set before.
 * [x] Stop using mutation observer and simplify logic for identifying new posts
 
-* [ ] When doing tab check, first find post we opened, then scroll to the top, then check for problems.
-* [ ] Make sure we can open with the eyeballs from the panel if manual check is disabled
-* [ ] Make sure we can open the old way with the eyeballs if manual check is disabled and panel didn't open.
+* [x] When doing tab check, first find post we opened, then scroll to the top, then check for problems.
+* [x] Default to isManualCheckEnabled = true
+* [x] Make sure we can open with the eyeballs from the panel if manual check is disabled
+* [x] Make sure we can open the old way with the eyeballs if manual check is disabled and panel didn't open.
+
+* [ ] Get collapsing feature working as a feature of highlightPosts
 
 * [ ] Fix resize panel
 * [ ] Fix move panel
+* [ ] When manually checking, also scroll to the top after verifying the original post was identified.
 
 * Clarify dom for post container and X.com behavior
 
-* Get collapsing feature working as a feature of highlightPosts
 ** We can use a class to collapse when that is enabled.
 
 * Add unit tests to increase coverage of all but UI/UX stuff.
