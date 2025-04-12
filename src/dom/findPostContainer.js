@@ -1,7 +1,23 @@
-function findPostContainer(doc, log = () => {}) {
-  const firstPost = doc.querySelector('div[data-testid="cellInnerDiv"]');
-  if (!firstPost) {
+function findPostContainer(doc, log = () => { }) {
+  const potentialPosts = doc.querySelectorAll('div[data-testid="cellInnerDiv"]');
+  if (!potentialPosts.length) {
     log('No posts found with data-testid="cellInnerDiv"');
+    return null;
+  }
+
+  let firstPost = null;
+  for (const post of potentialPosts) {
+    const closestAriaLabel = post.closest('div[aria-label]');
+    if (closestAriaLabel && closestAriaLabel.getAttribute('aria-label') === 'Timeline: Messages') {
+      log('Skipping post in Messages timeline');
+      continue;
+    }
+    firstPost = post;
+    break;
+  }
+
+  if (!firstPost) {
+    log('No valid posts found outside Messages timeline');
     return null;
   }
 
