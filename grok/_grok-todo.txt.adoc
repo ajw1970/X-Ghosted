@@ -34,8 +34,8 @@
 
 * [x] Get collapsing feature working as a feature of highlightPosts
 
-* [ ] Fix resize panel
 * [ ] Fix move panel
+* [ ] Fix resize panel
 * [ ] When manually checking, also scroll to the top after verifying the original post was identified.
 
 * Clarify dom for post container and X.com behavior
