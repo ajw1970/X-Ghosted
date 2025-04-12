@@ -1532,6 +1532,13 @@
   };
   XGhosted.prototype.stopAutoCollapsing = function () {
     this.state.isCollapsingEnabled = false;
+    this.state.isCollapsingRunning = false;
+    this.emit('state-updated', {
+      ...this.state,
+      processedPosts: new Map(this.state.processedPosts),
+    });
+    this.saveState();
+    this.log('Auto-collapsing stopped');
   };
   XGhosted.prototype.resetAutoCollapsing = function () {
     this.state.isCollapsingEnabled = false;
