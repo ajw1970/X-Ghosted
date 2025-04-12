@@ -255,18 +255,35 @@ XGhosted.prototype.userRequestedPostCheck = function (href, post) {
     return;
   }
   if (!cached.checked) {
+    // Stop polling before starting the manual check
+    this.handleStopPolling();
     this.log(`Manual check starting for ${href}`);
     this.checkPostInNewTab(href).then((isProblem) => {
       this.log(`Manual check result for ${href}: ${isProblem ? 'problem' : 'good'}`);
-      post.classList.remove('xghosted-potential_problem', 'xghosted-good', 'xghosted-problem');
-      post.classList.add(isProblem ? 'xghosted-problem' : 'xghosted-good');
-      post.setAttribute('data-xghosted', `postquality.${isProblem ? 'problem' : 'good'}`);
-      const eyeballContainer = post.querySelector('.xghosted-eyeball');
-      if (eyeballContainer) eyeballContainer.classList.remove('xghosted-eyeball');
+      // Re-query the post element to ensure it's still in the DOM
+      const currentPost = this.document.querySelector(`[data-xghosted-id="${href}"]`);
+      if (!currentPost) {
+        this.log(`Post with href ${href} no longer exists in the DOM, skipping DOM update`);
+      } else {
+        currentPost.classList.remove('xghosted-potential_problem', 'xghosted-good', 'xghosted-problem');
+        currentPost.classList.add(isProblem ? 'xghosted-problem' : 'xghosted-good');
+        currentPost.setAttribute('data-xghosted', `postquality.${isProblem ? 'problem' : 'good'}`);
+        const eyeballContainer = currentPost.querySelector('.xghosted-eyeball');
+        if (eyeballContainer) {
+          eyeballContainer.classList.remove('xghosted-eyeball');
+        } else {
+          this.log(`Eyeball container not found for post with href: ${href}`);
+        }
+      }
+      // Update the state regardless of DOM presence
       cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
       cached.checked = true;
+      this.state.processedPosts.set(href, cached);
       this.saveState();
-      this.log(`Post Manual check completed for ${href}`);
+      this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
+      // Resume polling after the check completes
+      // this.handleStartPolling();
+      this.log(`User requested post check completed for ${href}`);
     });
   } else {
     this.log(`Manual check skipped for ${href}: already checked`);

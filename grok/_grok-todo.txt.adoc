@@ -43,6 +43,8 @@
 * [x] Combine start/stop buttons for auto collapsing
 * [x] Stop auto collapsing didn't stop it from continuing with each poll.
 
+* [x] User requested eyeball check should stop polling.
+
 * [ ] Fix resize panel
 
 * Clarify dom for post container and X.com behavior
