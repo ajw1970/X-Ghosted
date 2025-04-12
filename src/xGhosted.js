@@ -33,7 +33,8 @@ function XGhosted(doc, config = {}) {
     isCollapsingRunning: false,
     isPanelVisible: true,
     themeMode: null,
-    isHighlighting: false // Added to track highlighting state
+    isHighlighting: false,
+    panelPosition: { right: '10px', top: '60px' }
   };
   this.events = {};
   this.panelManager = null;
@@ -44,7 +45,6 @@ function XGhosted(doc, config = {}) {
     this.ensureAndHighlightPosts();
   }, this.timing.debounceDelay);
 
-  // Event emitter methods
   this.on = (event, callback) => {
     if (!this.events[event]) this.events[event] = [];
     this.events[event].push(callback);
@@ -74,10 +74,10 @@ XGhosted.prototype.saveState = function () {
     isManualCheckEnabled: this.state.isManualCheckEnabled,
     themeMode: this.state.themeMode,
     processedPosts: serializableArticles,
+    panelPosition: { ...this.state.panelPosition }
   };
   const oldState = GM_getValue('xGhostedState', {});
 
-  // Convert processedPosts Map to array for comparison
   const newProcessedPostsArray = Array.from(this.state.processedPosts.entries());
   const oldProcessedPostsArray = Array.from(
     (oldState.processedPosts ? Object.entries(oldState.processedPosts) : []).map(([id, { analysis, checked }]) => [
@@ -86,21 +86,23 @@ XGhosted.prototype.saveState = function () {
     ])
   );
 
-  // Compare the processedPosts separately to ensure changes are detected
   const processedPostsChanged = JSON.stringify(newProcessedPostsArray) !== JSON.stringify(oldProcessedPostsArray);
   const otherStateChanged = JSON.stringify({
     isPanelVisible: newState.isPanelVisible,
     isCollapsingEnabled: newState.isCollapsingEnabled,
     isManualCheckEnabled: newState.isManualCheckEnabled,
     themeMode: newState.themeMode,
+    panelPosition: newState.panelPosition
   }) !== JSON.stringify({
     isPanelVisible: oldState.isPanelVisible,
     isCollapsingEnabled: oldState.isCollapsingEnabled,
     isManualCheckEnabled: oldState.isManualCheckEnabled,
     themeMode: oldState.themeMode,
+    panelPosition: oldState.panelPosition
   });
 
   if (processedPostsChanged || otherStateChanged) {
+    this.log(`Saving state with panelPosition: right=${newState.panelPosition.right}, top=${newState.panelPosition.top}`);
     GM_setValue('xGhostedState', newState);
     this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
     this.log('State saved and state-updated emitted');
@@ -113,6 +115,25 @@ XGhosted.prototype.loadState = function () {
   this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
   this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
   this.state.themeMode = savedState.themeMode ?? null;
+
+  if (savedState.panelPosition && savedState.panelPosition.right && savedState.panelPosition.top) {
+    const panelWidth = 350;
+    const panelHeight = 48; // Collapsed height for clamping
+    const windowWidth = this.document.defaultView.innerWidth;
+    const windowHeight = this.document.defaultView.innerHeight;
+
+    let right = parseFloat(savedState.panelPosition.right);
+    let top = parseFloat(savedState.panelPosition.top);
+    right = isNaN(right) ? 10 : Math.max(0, Math.min(right, windowWidth - panelWidth));
+    top = isNaN(top) ? 60 : Math.max(0, Math.min(top, windowHeight - panelHeight));
+
+    this.state.panelPosition = { right: `${right}px`, top: `${top}px` };
+    this.log(`Loaded panelPosition: right=${right}, top=${top}`);
+  } else {
+    this.log('No valid saved panelPosition, using default: right=10px, top=60px');
+    this.state.panelPosition = { right: '10px', top: '60px' };
+  }
+
   if (this.state.persistProcessedPosts) {
     const savedPosts = savedState.processedPosts || {};
     for (const [id, { analysis, checked }] of Object.entries(savedPosts)) {
@@ -122,6 +143,30 @@ XGhosted.prototype.loadState = function () {
       });
     }
   }
+};
+
+XGhosted.prototype.setPanelPosition = function (panelPosition) {
+  if (!panelPosition || !panelPosition.right || !panelPosition.top) {
+    this.log('setPanelPosition: Invalid panelPosition, using default');
+    panelPosition = { right: '10px', top: '60px' };
+  }
+
+  const panelWidth = 350;
+  const panelHeight = 48; // Collapsed height for clamping
+  const windowWidth = this.document.defaultView.innerWidth;
+  const windowHeight = this.document.defaultView.innerHeight;
+
+  let right = parseFloat(panelPosition.right);
+  let top = parseFloat(panelPosition.top);
+  this.log(`setPanelPosition input: right=${right}, top=${top}`);
+
+  right = isNaN(right) ? 10 : Math.max(0, Math.min(right, windowWidth - panelWidth));
+  top = isNaN(top) ? 60 : Math.max(0, Math.min(top, windowHeight - panelHeight));
+
+  this.state.panelPosition = { right: `${right}px`, top: `${top}px` };
+  this.emit('panel-position-changed', { panelPosition: { ...this.state.panelPosition } });
+  this.saveState();
+  this.log(`Panel position set: right=${right}, top=${top}`);
 };
 
 XGhosted.prototype.updateState = function (url) {
@@ -307,7 +352,7 @@ XGhosted.prototype.ensureAndHighlightPosts = function () {
 };
 
 XGhosted.prototype.highlightPosts = function (posts) {
-  this.state.isHighlighting = true; // Start highlighting
+  this.state.isHighlighting = true;
   this.updateState(this.document.location.href);
 
   const processPostAnalysis = (post, analysis) => {
@@ -359,7 +404,7 @@ XGhosted.prototype.highlightPosts = function (posts) {
     this.log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
     this.saveState();
   }
-  this.state.isHighlighting = false; // Done highlighting
+  this.state.isHighlighting = false;
   return results;
 };
 
@@ -372,7 +417,6 @@ XGhosted.prototype.startPolling = function () {
       return;
     }
 
-    // Existing highlighting logic
     const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
     const postCount = posts.length;
     if (postCount > 0) {
@@ -383,7 +427,6 @@ XGhosted.prototype.startPolling = function () {
       this.ensureAndHighlightPosts();
     }
 
-    // Auto-collapsing logic with querySelector
     if (this.state.isCollapsingRunning) {
       const postToCollapse = this.document.querySelector(
         'div[data-xghosted="postquality.undefined"]:not(.xghosted-collapsed), ' +

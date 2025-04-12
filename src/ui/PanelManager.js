@@ -3,7 +3,7 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
   this.xGhosted = xGhostedInstance;
   this.log = xGhostedInstance.log;
   this.state = {
-    panelPosition: { right: '10px', top: '60px' },
+    panelPosition: { right: '10px', top: '60px' }, // Default, overridden by xGhosted
     instance: xGhostedInstance,
     processedPosts: new Map(),
     isPanelVisible: true,
@@ -71,16 +71,20 @@ window.PanelManager.prototype.init = function () {
   this.uiElements.panel = this.document.createElement('div');
   this.uiElements.panelContainer.appendChild(this.uiElements.panel);
   this.document.body.appendChild(this.uiElements.panelContainer);
-  this.applyPanelStyles();
 
   this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
   this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
   this.state.isRateLimited = this.xGhosted.state.isRateLimited;
   this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
   this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
+  this.state.panelPosition = this.xGhosted.state.panelPosition || this.state.panelPosition;
 
   this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
   this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+  this.uiElements.panelContainer.style.left = 'auto';
+  this.log(`PanelManager init: right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`);
+
+  this.applyPanelStyles();
 
   this.uiElements.panelContainer.addEventListener('mousedown', this.startDrag.bind(this));
   this.document.addEventListener('mousemove', this.doDrag.bind(this));
@@ -112,22 +116,36 @@ window.PanelManager.prototype.init = function () {
     this.log(`Panel updated to theme mode ${themeMode} via event`);
   });
 
+  this.xGhosted.on('panel-position-changed', ({ panelPosition }) => {
+    this.state.panelPosition = { ...panelPosition };
+    if (this.uiElements.panelContainer) {
+      this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
+      this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+      this.uiElements.panelContainer.style.left = 'auto';
+      this.log(`Panel position updated: right=${panelPosition.right}, top=${panelPosition.top}`);
+    } else {
+      this.log('Panel position update skipped: panelContainer not initialized');
+    }
+  });
+
   this.renderPanel();
 };
 
 window.PanelManager.prototype.applyPanelStyles = function () {
+  const position = this.state.panelPosition || { right: '10px', top: '60px' };
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
     button:active { transform: scale(0.95); }
     #xghosted-panel-container {
       position: fixed;
-      right: ${this.state.panelPosition.right};
-      top: ${this.state.panelPosition.top};
+      right: ${position.right};
+      top: ${position.top};
       z-index: ${this.uiElements.config.PANEL.Z_INDEX};
       cursor: move;
     }
   `;
   this.document.head.appendChild(styleSheet);
+  this.log(`Applied panel styles: right=${position.right}, top=${position.top}`);
 };
 
 window.PanelManager.prototype.startDrag = function (e) {
@@ -161,19 +179,23 @@ window.PanelManager.prototype.doDrag = function (e) {
   this.uiElements.panelContainer.style.top = `${newTop}px`;
   this.uiElements.panelContainer.style.left = 'auto';
 
-  this.state.panelPosition.right = `${newRight}px`;
-  this.state.panelPosition.top = `${newTop}px`;
+  this.state.panelPosition = { right: `${newRight}px`, top: `${newTop}px` };
   this.log(`Dragging panel: right=${newRight}, top=${newTop}`);
 };
 
 window.PanelManager.prototype.stopDrag = function () {
   if (this.dragState.isDragging) {
     this.dragState.isDragging = false;
-    this.log('Stopped dragging panel');
+    this.xGhosted.setPanelPosition(this.state.panelPosition);
+    this.log(`Stopped dragging panel, updated position: right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`);
   }
 };
 
 window.PanelManager.prototype.renderPanel = function () {
+  if (!this.uiElements.panel) {
+    this.log('renderPanel: panel element not initialized, skipping render');
+    return;
+  }
   window.preact.render(
     window.preact.h(window.Panel, {
       state: this.state,

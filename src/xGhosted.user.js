@@ -837,6 +837,7 @@
     this.log = xGhostedInstance.log;
     this.state = {
       panelPosition: { right: '10px', top: '60px' },
+      // Default, overridden by xGhosted
       instance: xGhostedInstance,
       processedPosts: /* @__PURE__ */ new Map(),
       isPanelVisible: true,
@@ -903,14 +904,20 @@
     this.uiElements.panel = this.document.createElement('div');
     this.uiElements.panelContainer.appendChild(this.uiElements.panel);
     this.document.body.appendChild(this.uiElements.panelContainer);
-    this.applyPanelStyles();
     this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
     this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
     this.state.isRateLimited = this.xGhosted.state.isRateLimited;
     this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
     this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
+    this.state.panelPosition =
+      this.xGhosted.state.panelPosition || this.state.panelPosition;
     this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
     this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+    this.uiElements.panelContainer.style.left = 'auto';
+    this.log(
+      `PanelManager init: right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`
+    );
+    this.applyPanelStyles();
     this.uiElements.panelContainer.addEventListener(
       'mousedown',
       this.startDrag.bind(this)
@@ -941,21 +948,41 @@
       this.renderPanel();
       this.log(`Panel updated to theme mode ${themeMode} via event`);
     });
+    this.xGhosted.on('panel-position-changed', ({ panelPosition }) => {
+      this.state.panelPosition = { ...panelPosition };
+      if (this.uiElements.panelContainer) {
+        this.uiElements.panelContainer.style.right =
+          this.state.panelPosition.right;
+        this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+        this.uiElements.panelContainer.style.left = 'auto';
+        this.log(
+          `Panel position updated: right=${panelPosition.right}, top=${panelPosition.top}`
+        );
+      } else {
+        this.log(
+          'Panel position update skipped: panelContainer not initialized'
+        );
+      }
+    });
     this.renderPanel();
   };
   window.PanelManager.prototype.applyPanelStyles = function () {
+    const position = this.state.panelPosition || { right: '10px', top: '60px' };
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
     button:active { transform: scale(0.95); }
     #xghosted-panel-container {
       position: fixed;
-      right: ${this.state.panelPosition.right};
-      top: ${this.state.panelPosition.top};
+      right: ${position.right};
+      top: ${position.top};
       z-index: ${this.uiElements.config.PANEL.Z_INDEX};
       cursor: move;
     }
   `;
     this.document.head.appendChild(styleSheet);
+    this.log(
+      `Applied panel styles: right=${position.right}, top=${position.top}`
+    );
   };
   window.PanelManager.prototype.startDrag = function (e) {
     if (e.target.closest('button, select, input, textarea')) return;
@@ -983,17 +1010,23 @@
     this.uiElements.panelContainer.style.right = `${newRight}px`;
     this.uiElements.panelContainer.style.top = `${newTop}px`;
     this.uiElements.panelContainer.style.left = 'auto';
-    this.state.panelPosition.right = `${newRight}px`;
-    this.state.panelPosition.top = `${newTop}px`;
+    this.state.panelPosition = { right: `${newRight}px`, top: `${newTop}px` };
     this.log(`Dragging panel: right=${newRight}, top=${newTop}`);
   };
   window.PanelManager.prototype.stopDrag = function () {
     if (this.dragState.isDragging) {
       this.dragState.isDragging = false;
-      this.log('Stopped dragging panel');
+      this.xGhosted.setPanelPosition(this.state.panelPosition);
+      this.log(
+        `Stopped dragging panel, updated position: right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`
+      );
     }
   };
   window.PanelManager.prototype.renderPanel = function () {
+    if (!this.uiElements.panel) {
+      this.log('renderPanel: panel element not initialized, skipping render');
+      return;
+    }
     window.preact.render(
       window.preact.h(window.Panel, {
         state: this.state,
@@ -1070,7 +1103,7 @@
       isPanelVisible: true,
       themeMode: null,
       isHighlighting: false,
-      // Added to track highlighting state
+      panelPosition: { right: '10px', top: '60px' },
     };
     this.events = {};
     this.panelManager = null;
@@ -1108,6 +1141,7 @@
       isManualCheckEnabled: this.state.isManualCheckEnabled,
       themeMode: this.state.themeMode,
       processedPosts: serializableArticles,
+      panelPosition: { ...this.state.panelPosition },
     };
     const oldState = GM_getValue('xGhostedState', {});
     const newProcessedPostsArray = Array.from(
@@ -1137,14 +1171,19 @@
         isCollapsingEnabled: newState.isCollapsingEnabled,
         isManualCheckEnabled: newState.isManualCheckEnabled,
         themeMode: newState.themeMode,
+        panelPosition: newState.panelPosition,
       }) !==
       JSON.stringify({
         isPanelVisible: oldState.isPanelVisible,
         isCollapsingEnabled: oldState.isCollapsingEnabled,
         isManualCheckEnabled: oldState.isManualCheckEnabled,
         themeMode: oldState.themeMode,
+        panelPosition: oldState.panelPosition,
       });
     if (processedPostsChanged || otherStateChanged) {
+      this.log(
+        `Saving state with panelPosition: right=${newState.panelPosition.right}, top=${newState.panelPosition.top}`
+      );
       GM_setValue('xGhostedState', newState);
       this.emit('state-updated', {
         ...this.state,
@@ -1159,6 +1198,31 @@
     this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
     this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
     this.state.themeMode = savedState.themeMode ?? null;
+    if (
+      savedState.panelPosition &&
+      savedState.panelPosition.right &&
+      savedState.panelPosition.top
+    ) {
+      const panelWidth = 350;
+      const panelHeight = 48;
+      const windowWidth = this.document.defaultView.innerWidth;
+      const windowHeight = this.document.defaultView.innerHeight;
+      let right = parseFloat(savedState.panelPosition.right);
+      let top = parseFloat(savedState.panelPosition.top);
+      right = isNaN(right)
+        ? 10
+        : Math.max(0, Math.min(right, windowWidth - panelWidth));
+      top = isNaN(top)
+        ? 60
+        : Math.max(0, Math.min(top, windowHeight - panelHeight));
+      this.state.panelPosition = { right: `${right}px`, top: `${top}px` };
+      this.log(`Loaded panelPosition: right=${right}, top=${top}`);
+    } else {
+      this.log(
+        'No valid saved panelPosition, using default: right=10px, top=60px'
+      );
+      this.state.panelPosition = { right: '10px', top: '60px' };
+    }
     if (this.state.persistProcessedPosts) {
       const savedPosts = savedState.processedPosts || {};
       for (const [id, { analysis, checked }] of Object.entries(savedPosts)) {
@@ -1171,6 +1235,31 @@
         });
       }
     }
+  };
+  XGhosted.prototype.setPanelPosition = function (panelPosition) {
+    if (!panelPosition || !panelPosition.right || !panelPosition.top) {
+      this.log('setPanelPosition: Invalid panelPosition, using default');
+      panelPosition = { right: '10px', top: '60px' };
+    }
+    const panelWidth = 350;
+    const panelHeight = 48;
+    const windowWidth = this.document.defaultView.innerWidth;
+    const windowHeight = this.document.defaultView.innerHeight;
+    let right = parseFloat(panelPosition.right);
+    let top = parseFloat(panelPosition.top);
+    this.log(`setPanelPosition input: right=${right}, top=${top}`);
+    right = isNaN(right)
+      ? 10
+      : Math.max(0, Math.min(right, windowWidth - panelWidth));
+    top = isNaN(top)
+      ? 60
+      : Math.max(0, Math.min(top, windowHeight - panelHeight));
+    this.state.panelPosition = { right: `${right}px`, top: `${top}px` };
+    this.emit('panel-position-changed', {
+      panelPosition: { ...this.state.panelPosition },
+    });
+    this.saveState();
+    this.log(`Panel position set: right=${right}, top=${top}`);
   };
   XGhosted.prototype.updateState = function (url) {
     this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(
