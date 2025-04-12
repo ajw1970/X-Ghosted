@@ -1221,6 +1221,20 @@
   XGhosted.prototype.handleReset = function () {
     this.state.isCollapsingEnabled = false;
     this.state.isCollapsingRunning = false;
+    const collapsedPosts = this.document.querySelectorAll(
+      '.xghosted-collapsed'
+    );
+    collapsedPosts.forEach((post) => {
+      post.classList.remove('xghosted-collapsed');
+      const postId = post.getAttribute('data-xghosted-id') || 'unknown';
+      this.log(`Expanded collapsed post: ${postId}`);
+    });
+    this.log('Auto-collapse reset: all collapsed posts expanded');
+    this.saveState();
+    this.emit('state-updated', {
+      ...this.state,
+      processedPosts: new Map(this.state.processedPosts),
+    });
   };
   XGhosted.prototype.clearProcessedPosts = function () {
     this.state.processedPosts.clear();
@@ -1355,16 +1369,32 @@
       if (postCount > 0) {
         this.log(`Found ${postCount} new posts, highlighting...`);
         this.highlightPosts(posts);
-      } else {
-        const container = this.document.querySelector(
-          'div[data-xghosted="posts-container"]'
+      } else if (
+        !this.document.querySelector('div[data-xghosted="posts-container"]')
+      ) {
+        this.log(
+          'No posts and no container found, ensuring and highlighting...'
         );
-        if (!container) {
-          this.log(
-            'No posts and no container found, ensuring and highlighting...'
-          );
-          this.ensureAndHighlightPosts();
+        this.ensureAndHighlightPosts();
+      }
+      if (this.state.isCollapsingRunning) {
+        const postToCollapse = this.document.querySelector(
+          'div[data-xghosted="postquality.undefined"]:not(.xghosted-collapsed), div[data-xghosted="postquality.good"]:not(.xghosted-collapsed)'
+        );
+        if (postToCollapse) {
+          postToCollapse.classList.add('xghosted-collapsed');
+          const postId =
+            postToCollapse.getAttribute('data-xghosted-id') || 'unknown';
+          this.log(`Collapsed post: ${postId}`);
+          this.saveState();
         } else {
+          this.log('No more posts to collapse');
+          this.state.isCollapsingRunning = false;
+          this.state.isCollapsingEnabled = false;
+          this.emit('state-updated', {
+            ...this.state,
+            processedPosts: new Map(this.state.processedPosts),
+          });
         }
       }
     }, pollInterval);

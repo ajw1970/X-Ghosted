@@ -32,7 +32,7 @@
 * [x] Make sure we can open with the eyeballs from the panel if manual check is disabled
 * [x] Make sure we can open the old way with the eyeballs if manual check is disabled and panel didn't open.
 
-* [ ] Get collapsing feature working as a feature of highlightPosts
+* [x] Get collapsing feature working as a feature of highlightPosts
 
 * [ ] Fix resize panel
 * [ ] Fix move panel
