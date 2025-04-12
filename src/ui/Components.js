@@ -106,9 +106,9 @@ function Panel({
   copyCallback,
   mode,
   onModeChange,
-  onStart,
-  onStop,
-  onReset,
+  onStartAutoCollapsing,
+  onStopAutoCollapsing,
+  onResetAutoCollapsing,
   onExportCSV,
   onImportCSV,
   onClear,
@@ -338,17 +338,17 @@ function Panel({
             </button>
             <div style="display: flex; align-items: center; gap: 10px; padding-left: 10px;">
               <button
-  key=${state.isPollingEnabled ? 'stop-button' : 'start-button'}
-  class="panel-button"
-  onClick=${state.isPollingEnabled ? onStopPolling : onStartPolling}
-  aria-label=${state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
->
-  <i
-    class=${state.isPollingEnabled ? 'fa-solid fa-circle-stop' : 'fa-solid fa-circle-play'}
-    style="marginRight: 6px;"
-  ></i>
-  ${state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
-</button>
+                key=${state.isPollingEnabled ? 'stop-button' : 'start-button'}
+                class="panel-button"
+                onClick=${state.isPollingEnabled ? onStopPolling : onStartPolling}
+                aria-label=${state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
+              >
+                <i
+                  class=${state.isPollingEnabled ? 'fa-solid fa-circle-stop' : 'fa-solid fa-circle-play'}
+                  style="marginRight: 6px;"
+                ></i>
+                ${state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
+              </button>
               <button
                 class="panel-button"
                 onClick=${toggleVisibility}
@@ -423,26 +423,24 @@ function Panel({
           </div>
           <div class="control-row">
             <span class="status-label">
-              ${state.isRateLimited ? 'Paused (Rate Limit)' : state.isCollapsingEnabled ? 'Auto Collapse Running' : 'Auto Collapse Off'}
+              ${state.isRateLimited ? 'Paused (Rate Limit)' : state.isCollapsingEnabled ? 'Auto Collapse Running' : 'Auto Collapse Stopped'}
             </span>
             <div style="display: flex; gap: 8px;">
               <button
+                key=${state.isCollapsingEnabled ? 'stop-button' : 'start-button'}
                 class="panel-button"
-                onClick=${onStart}
-                aria-label="Start Auto Collapse"
+                onClick=${state.isCollapsingEnabled ? onStopAutoCollapsing : onStartAutoCollapsing}
+                aria-label=${state.isCollapsingEnabled ? 'Stop Auto Collapse' : 'Start Auto Collapse'}
               >
-                <i className="fas fa-play" style="marginRight: 6px;"></i> Start
+                <i
+                  class=${state.isCollapsingEnabled ? 'fa-solid fa-circle-stop' : 'fa-solid fa-circle-play'}
+                  style="marginRight: 6px;"
+                ></i>
+                ${state.isCollapsingEnabled ? 'Stop' : 'Start'}
               </button>
               <button
                 class="panel-button"
-                onClick=${onStop}
-                aria-label="Stop Auto Collapse"
-              >
-                <i className="fas fa-pause" style="marginRight: 6px;"></i> Stop
-              </button>
-              <button
-                class="panel-button"
-                onClick=${onReset}
+                onClick=${onResetAutoCollapsing}
                 aria-label="Reset Auto Collapse"
               >
                 <i className="fas fa-undo" style="marginRight: 6px;"></i> Reset

@@ -292,16 +292,16 @@ XGhosted.prototype.handleStopPolling = function () {
   // this.log('Polling stopped');
 };
 
-XGhosted.prototype.handleStart = function () {
+XGhosted.prototype.startAutoCollapsing = function () {
   this.state.isCollapsingEnabled = true;
   this.state.isCollapsingRunning = true;
 };
 
-XGhosted.prototype.handleStop = function () {
+XGhosted.prototype.stopAutoCollapsing = function () {
   this.state.isCollapsingEnabled = false;
 };
 
-XGhosted.prototype.handleReset = function () {
+XGhosted.prototype.resetAutoCollapsing = function () {
   this.state.isCollapsingEnabled = false;
   this.state.isCollapsingRunning = false;
   const collapsedPosts = this.document.querySelectorAll('.xghosted-collapsed');

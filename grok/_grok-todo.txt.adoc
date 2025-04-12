@@ -39,7 +39,10 @@
 * [x] Add ability to disable xGhosted from the panel (meaning the polling stops so that no new highlighting happens). Have the panel container element change color to indicate.
 * [x] Dial in size of panel when collapsed.
 * [x] Start/Stop icon isn't updating for polling until doing something else to trigger a panel refresh
-* [ ] Rename handleStart/Stop/Reset to clarify Collapsing
+* [x] Rename handleStart/Stop/Reset to clarify Collapsing
+* [x] Combine start/stop buttons for auto collapsing
+* [ ] Stop auto collapsing didn't stop it from continuing with each poll.
+
 * [ ] Fix resize panel
 * [ ] When manually checking, also scroll to the top after verifying the original post was identified.
 

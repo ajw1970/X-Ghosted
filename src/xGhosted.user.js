@@ -403,9 +403,9 @@
     copyCallback,
     mode,
     onModeChange,
-    onStart,
-    onStop,
-    onReset,
+    onStartAutoCollapsing,
+    onStopAutoCollapsing,
+    onResetAutoCollapsing,
     onExportCSV,
     onImportCSV,
     onClear,
@@ -767,28 +767,32 @@
                       ? 'Paused (Rate Limit)'
                       : state.isCollapsingEnabled
                         ? 'Auto Collapse Running'
-                        : 'Auto Collapse Off'}
+                        : 'Auto Collapse Stopped'}
                   </span>
                   <div style="display: flex; gap: 8px;">
                     <button
+                      key=${state.isCollapsingEnabled
+                        ? 'stop-button'
+                        : 'start-button'}
                       class="panel-button"
-                      onClick=${onStart}
-                      aria-label="Start Auto Collapse"
+                      onClick=${state.isCollapsingEnabled
+                        ? onStopAutoCollapsing
+                        : onStartAutoCollapsing}
+                      aria-label=${state.isCollapsingEnabled
+                        ? 'Stop Auto Collapse'
+                        : 'Start Auto Collapse'}
                     >
-                      <i className="fas fa-play" style="marginRight: 6px;"></i>
-                      Start
+                      <i
+                        class=${state.isCollapsingEnabled
+                          ? 'fa-solid fa-circle-stop'
+                          : 'fa-solid fa-circle-play'}
+                        style="marginRight: 6px;"
+                      ></i>
+                      ${state.isCollapsingEnabled ? 'Stop' : 'Start'}
                     </button>
                     <button
                       class="panel-button"
-                      onClick=${onStop}
-                      aria-label="Stop Auto Collapse"
-                    >
-                      <i className="fas fa-pause" style="marginRight: 6px;"></i>
-                      Stop
-                    </button>
-                    <button
-                      class="panel-button"
-                      onClick=${onReset}
+                      onClick=${onResetAutoCollapsing}
                       aria-label="Reset Auto Collapse"
                     >
                       <i className="fas fa-undo" style="marginRight: 6px;"></i>
@@ -1139,9 +1143,15 @@
         copyCallback: this.xGhosted.copyLinks.bind(this.xGhosted),
         mode: this.state.themeMode,
         onModeChange: this.handleModeChange.bind(this),
-        onStart: this.xGhosted.handleStart.bind(this.xGhosted),
-        onStop: this.xGhosted.handleStop.bind(this.xGhosted),
-        onReset: this.xGhosted.handleReset.bind(this.xGhosted),
+        onStartAutoCollapsing: this.xGhosted.startAutoCollapsing.bind(
+          this.xGhosted
+        ),
+        onStopAutoCollapsing: this.xGhosted.stopAutoCollapsing.bind(
+          this.xGhosted
+        ),
+        onResetAutoCollapsing: this.xGhosted.resetAutoCollapsing.bind(
+          this.xGhosted
+        ),
         onExportCSV: this.xGhosted.exportProcessedPostsCSV.bind(this.xGhosted),
         onImportCSV: this.xGhosted.importProcessedPostsCSV.bind(this.xGhosted),
         onClear: this.xGhosted.handleClear.bind(this.xGhosted),
@@ -1497,14 +1507,14 @@
       isPollingEnabled: this.state.isPollingEnabled,
     });
   };
-  XGhosted.prototype.handleStart = function () {
+  XGhosted.prototype.startAutoCollapsing = function () {
     this.state.isCollapsingEnabled = true;
     this.state.isCollapsingRunning = true;
   };
-  XGhosted.prototype.handleStop = function () {
+  XGhosted.prototype.stopAutoCollapsing = function () {
     this.state.isCollapsingEnabled = false;
   };
-  XGhosted.prototype.handleReset = function () {
+  XGhosted.prototype.resetAutoCollapsing = function () {
     this.state.isCollapsingEnabled = false;
     this.state.isCollapsingRunning = false;
     const collapsedPosts = this.document.querySelectorAll(
