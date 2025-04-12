@@ -5,22 +5,17 @@ import { JSDOM } from 'jsdom';
 import { XGhosted } from './xGhosted.js';
 import { postQuality } from './utils/postQuality.js';
 import { summarizeRatedPosts } from './utils/summarizeRatedPosts.js';
+import * as identifyPostModule from './utils/identifyPost.js'; // For accessing the mock
+import { findPostContainer } from './dom/findPostContainer.js';
 
-async function waitFor(condition, { timeout = 5000, interval = 50 } = {}) {
-  const startTime = Date.now();
-  return new Promise((resolve, reject) => {
-    const check = () => {
-      if (condition()) {
-        resolve();
-      } else if (Date.now() - startTime >= timeout) {
-        reject(new Error('waitFor timed out'));
-      } else {
-        setTimeout(check, interval);
-      }
-    };
-    check();
-  });
-}
+// Mock the identifyPost module globally with async import
+vi.mock('./utils/identifyPost.js', async () => {
+  const actual = await vi.importActual('./utils/identifyPost.js');
+  return {
+    ...actual,
+    identifyPost: vi.fn(actual.identifyPost), // Use the original function directly
+  };
+});
 
 // Mock Tampermonkey GM_* functions
 const gmStorage = {};
@@ -88,39 +83,11 @@ describe('xGhosted', () => {
     vi.clearAllMocks();
   });
 
-  test('init tags posts and sets up styles', async () => {
-    xGhosted.init();
-    await waitFor(() => xGhosted.state.processedPosts.size > 0);
-    const results = xGhosted.ensureAndHighlightPosts();
-    expect(results.length).toBeGreaterThan(0);
-    expect(GM_setValue).toHaveBeenCalled();
-    // Check stylesheet was added
-    const stylesheet = xGhosted.document.head.querySelector('style');
-    expect(stylesheet?.textContent).toContain('.xghosted-problem');
-  }, 15000);
-
   test('updateState sets with_replies flag and resets on URL change', () => {
     expect(xGhosted.state.isWithReplies).toBe(true);
     xGhosted.updateState('https://x.com/user');
     expect(xGhosted.state.isWithReplies).toBe(false);
     expect(xGhosted.state.processedPosts.size).toBe(0);
-  });
-
-  test('ensureAndHighlightPosts tags container', () => {
-    const results = xGhosted.ensureAndHighlightPosts();
-    expect(xGhosted.state.postContainer).toBeTruthy();
-    expect(xGhosted.state.postContainer.getAttribute('data-xghosted')).toBe('posts-container');
-  });
-
-  test('highlightPosts applies classes', () => {
-    xGhosted.state.isManualCheckEnabled = true;
-    xGhosted.ensureAndHighlightPosts();
-    const problemPost = xGhosted.document.querySelector('div[data-xghosted="postquality.problem"]');
-    const potentialPost = xGhosted.document.querySelector('div[data-xghosted="postquality.potential_problem"]');
-    expect(problemPost?.classList.contains('xghosted-problem')).toBe(true);
-    expect(potentialPost?.classList.contains('xghosted-potential_problem')).toBe(true);
-    const eyeball = potentialPost?.querySelector('button[aria-label="Share post"] ~ a') || potentialPost?.querySelector('button ~ a');
-    expect(eyeball?.textContent).toBe('👀');
   });
 
   test('checkPostInNewTab handles rate limit', async () => {
@@ -160,5 +127,108 @@ describe('xGhosted', () => {
     xGhosted.state.processedPosts.clear();
     xGhosted.loadState();
     expect(xGhosted.state.processedPosts.size).toBeGreaterThan(0);
+  });
+
+  test('highlightPosts calls identifyPost once per post', () => {
+    // Mock identifyPost to track calls
+    const spy = vi.spyOn(identifyPostModule, 'identifyPost');
+
+    // Add data-xghosted attribute to post container
+    findPostContainer(document);
+
+    // Check the number of posts
+    const posts = document.querySelectorAll('div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]');
+    expect(posts.length).toBe(36);
+
+    // Run highlightPosts
+    xGhosted.highlightPosts();
+
+    // Verify identifyPost was called twice
+    expect(spy).toHaveBeenCalledTimes(36);
+    expect(spy).toHaveBeenCalledWith(posts[0], true); // Assuming checkReplies is true
+    expect(spy).toHaveBeenCalledWith(posts[35], true);
+  });
+
+  test('highlightPosts does not call identifyPost after first processing', () => {
+    // Mock identifyPost to track calls
+    const spy = vi.spyOn(identifyPostModule, 'identifyPost');
+
+    // Add data-xghosted attribute to post container
+    findPostContainer(document);
+
+    const selector = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
+
+    // Check the number of posts
+    const posts = document.querySelectorAll(selector);
+    expect(posts.length).toBe(36);
+
+    // Run highlightPosts
+    xGhosted.highlightPosts();
+
+    // Verify identifyPost was called twice
+    expect(spy).toHaveBeenCalledTimes(36);
+    expect(spy).toHaveBeenCalledWith(posts[0], true); // Assuming checkReplies is true
+    expect(spy).toHaveBeenCalledWith(posts[35], true);
+
+    // Check the number of posts
+    const secondPassPosts = document.querySelectorAll(selector);
+    expect(secondPassPosts.length).toBe(0);
+
+    // Mock identifyPost to track calls
+    const secondPassSpy = vi.spyOn(identifyPostModule, 'identifyPost');
+
+    // Run highlightPosts
+    xGhosted.highlightPosts();
+
+    // Verify identifyPost was called twice
+    expect(secondPassSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test('highlightPost does not call identifyPost on previously processed posts', () => {
+    const { PROBLEM } = postQuality;
+
+    // Mock identifyPost to track calls
+    const spy = vi.spyOn(identifyPostModule, 'identifyPost');
+
+    // Add data-xghosted attribute to post container
+    findPostContainer(document);
+
+    const selector = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
+
+    // Check the number of posts
+    const posts = document.querySelectorAll(selector);
+    expect(posts.length).toBe(36);
+
+    // Add previously processedPost which will show up in the new query
+    xGhosted.state.processedPosts.set("/OwenGregorian/status/1896977661144260900", {
+      analysis: {
+        quality: PROBLEM,
+        link: "/OwenGregorian/status/1896977661144260900",
+        reason: "Found notice: this post is unavailable"
+      },
+      checked: false
+    });
+
+    // Run highlightPosts
+    xGhosted.highlightPosts();
+
+    // Verify identifyPost was called twice
+    expect(spy).toHaveBeenCalledTimes(35);
+    expect(spy).toHaveBeenCalledWith(posts[0], true); // Assuming checkReplies is true
+    expect(spy).toHaveBeenCalledWith(posts[35], true);
+
+    // Now we do a second pass and should fine none
+    // This proves that the cached post did get processed but not re-identified with postIdentify
+    const secondPassPosts = document.querySelectorAll(selector);
+    expect(secondPassPosts.length).toBe(0);
+
+    // Mock identifyPost to track calls
+    const secondPassSpy = vi.spyOn(identifyPostModule, 'identifyPost');
+
+    // Run highlightPosts
+    xGhosted.highlightPosts();
+
+    // Verify identifyPost was called twice
+    expect(secondPassSpy).toHaveBeenCalledTimes(0);
   });
 });

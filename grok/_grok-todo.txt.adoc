@@ -1,0 +1,56 @@
+= Things we'll want to ask Grok to do
+
+* Make sure all UI/UX works
+
+** [x] Test manual check enabled/disabled
+
+** [x] Test open post in new tab when isManualCheckEnabled = false
+
+** [x] Test userRequestedManualCheckInNewTab
+*** [x] Works on a reply to a deleted post
+*** [x] Need to test on a reply to a good post.
+***** [x] We also expect that if a post is verified bad, the tab stays open and the post is highlighted in red along with the indicator on the panel changing to red.
+
+*** [x] I had planned to change the logic on identify posts and the way we handle identification links. It might be time to focus on those.
+
+** [x] Test export csv
+** [x] Test import csv
+** [x] Test reset csv
+
+* [x] Add eyeball link column for potential problem posts in the panel
+** [x] Test open post in new tab from panel link
+
+* [x] Using the processedPosts list to avoid reprocessing posts.
+
+* [x] Move eyeballs to left hand column of the panel and make them always visible. Have it replace the yellow dot for potential problem posts.
+* [x] Examine the Preact implementation of the panel and see if we can make it more efficient. 
+* [x] Save user changed theme and stop defaulting unless theme had never been set before.
+* [x] Stop using mutation observer and simplify logic for identifying new posts
+
+* [x] When doing tab check, first find post we opened, then scroll to the top, then check for problems.
+* [x] Default to isManualCheckEnabled = true
+* [x] Make sure we can open with the eyeballs from the panel if manual check is disabled
+* [x] Make sure we can open the old way with the eyeballs if manual check is disabled and panel didn't open.
+
+* [x] Get collapsing feature working as a feature of highlightPosts
+
+* [x] Fix move panel
+* [x] Adjust layout to open up room in top tool bar. Move post counter down to be a listing header.
+* [x] Add ability to disable xGhosted from the panel (meaning the polling stops so that no new highlighting happens). Have the panel container element change color to indicate.
+* [x] Dial in size of panel when collapsed.
+* [x] Start/Stop icon isn't updating for polling until doing something else to trigger a panel refresh
+* [ ] Rename handleStart/Stop/Reset to clarify Collapsing
+* [ ] Fix resize panel
+* [ ] When manually checking, also scroll to the top after verifying the original post was identified.
+
+* Clarify dom for post container and X.com behavior
+
+** We can use a class to collapse when that is enabled.
+
+* Add unit tests to increase coverage of all but UI/UX stuff.
+
+*MERGE*: collapsing into main
+
+* Switch from HTM to JSX for Preact
+* Swtich to TypeScript
+* Push list of bad communities and system notice strings into editable data with a default starting set of data.

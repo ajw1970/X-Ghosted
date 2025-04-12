@@ -22,7 +22,7 @@ find grok -maxdepth 1 -type f -name "*.txt" ! -name "$(basename "$TOC_FILE")" | 
 }
 
 # Make sure txt.adoc files are available for individual sharing with Grok
-node undoc
+# node undoc
 
 show_progress "Script completed successfully!"
 show_progress "Output files available in grok/ directory"

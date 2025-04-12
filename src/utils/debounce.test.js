@@ -67,10 +67,4 @@ describe('debounce', () => {
         vi.advanceTimersByTime(1000);
         expect(func).toHaveBeenCalledWith('second');
     });
-
-    test('should call immediately if wait time is 0', () => {
-        const instantDebounce = debounce(func, 0);
-        instantDebounce();
-        expect(func).toHaveBeenCalledTimes(1);
-    });
 });

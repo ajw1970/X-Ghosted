@@ -173,7 +173,7 @@
 
   // src/utils/getRelativeLinkToPost.js
   function getRelativeLinkToPost(element) {
-    const link = element.querySelector('a:has(time)').getAttribute('href');
+    const link = element.querySelector('a:has(time)')?.getAttribute('href');
     return link || false;
   }
 
@@ -233,56 +233,30 @@
     };
   }
 
-  // src/utils/identifyPosts.js
-  function identifyPosts(
-    document,
-    selector = 'div[data-testid="cellInnerDiv"]',
-    checkReplies = true,
-    startingFillerCount = 0,
-    fn = null
-  ) {
-    let posts = document.querySelectorAll(selector);
-    const results = [];
-    let lastLink = null;
-    let fillerCount = startingFillerCount;
-    posts.forEach((post) => {
-      const analysis = identifyPost(post, checkReplies);
-      let id = analysis.link;
-      if (analysis.quality === postQuality.UNDEFINED && id === false) {
-        if (lastLink) {
-          fillerCount++;
-          id = `${lastLink}#filler${fillerCount}`;
-        } else {
-          id = `#filler${fillerCount}`;
-        }
-        analysis.link = id;
-      } else if (id) {
-        lastLink = id;
-        fillerCount = 0;
-      }
-      if (fn) {
-        fn(post, analysis);
-      }
-      results.push(analysis);
-    });
-    return results;
-  }
-
   // src/utils/debounce.js
   function debounce(func, wait) {
     let timeout;
     return (...args) => {
       clearTimeout(timeout);
-      if (wait === 0) {
-        func(...args);
-      } else {
-        timeout = setTimeout(() => func(...args), wait);
-      }
+      return new Promise((resolve, reject) => {
+        timeout = setTimeout(() => {
+          try {
+            const result = func(...args);
+            if (result && typeof result.then === 'function') {
+              result.then(resolve).catch(reject);
+            } else {
+              resolve(result);
+            }
+          } catch (error) {
+            reject(error);
+          }
+        }, wait);
+      });
     };
   }
 
-  // src/dom/domUtils.js
-  function findPostContainer(doc, log) {
+  // src/dom/findPostContainer.js
+  function findPostContainer(doc, log = () => {}) {
     const firstPost = doc.querySelector('div[data-testid="cellInnerDiv"]');
     if (!firstPost) {
       log('No posts found with data-testid="cellInnerDiv"');
@@ -300,33 +274,6 @@
     }
     log('No parent container found with aria-label');
     return null;
-  }
-  function replaceMenuButton(post, href, doc, log, onClickCallback) {
-    if (!post) return;
-    const button =
-      post.querySelector('button[aria-label="Share post"]') ||
-      post.querySelector('button');
-    if (!button) {
-      log(`No share button found for post with href: ${href}`);
-      return;
-    }
-    if (button.nextSibling?.textContent.includes('\u{1F440}')) return;
-    const newLink = Object.assign(doc.createElement('a'), {
-      textContent: '\u{1F440}',
-      href: '#',
-    });
-    Object.assign(newLink.style, {
-      color: 'rgb(29, 155, 240)',
-      textDecoration: 'none',
-      padding: '8px',
-      cursor: 'pointer',
-    });
-    newLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      onClickCallback(href);
-      log(`Eyeball clicked for manual check on href: ${href}`);
-    });
-    button.parentElement.insertBefore(newLink, button.nextSibling);
   }
 
   // src/utils/clipboardUtils.js
@@ -347,192 +294,104 @@
     log(`Exported CSV: ${filename}`);
   }
 
-  // src/ui/styles.js
-  function getModalStyles(mode, config, isOpen) {
-    return {
-      modal: {
-        display: isOpen ? 'block' : 'none',
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        background: config.THEMES[mode].bg,
-        color: config.THEMES[mode].text,
-        border: `1px solid ${config.THEMES[mode].border}`,
-        borderRadius: '8px',
-        padding: '20px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-        zIndex: '10000',
-        width: '300px',
-      },
-      textarea: {
-        width: '100%',
-        height: '100px',
-        marginBottom: '15px',
-        background: config.THEMES[mode].bg,
-        color: config.THEMES[mode].text,
-        border: `1px solid ${config.THEMES[mode].border}`,
-        borderRadius: '4px',
-        padding: '4px',
-        resize: 'none',
-      },
-      buttonContainer: {
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '15px',
-      },
-      button: {
-        background: config.THEMES[mode].button,
-        color: config.THEMES[mode].buttonText,
-        border: 'none',
-        padding: '8px 12px',
-        borderRadius: '8px',
-        cursor: 'pointer',
-        fontSize: '12px',
-        fontWeight: '500',
-        transition: 'background 0.2s ease, transform 0.1s ease',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      },
-    };
-  }
-  function getPanelStyles(mode, config, isVisible, currentMode) {
-    return {
-      panel: {
-        width: isVisible ? config.PANEL.WIDTH : '80px',
-        maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
-        minWidth: isVisible ? '250px' : '80px',
-        padding: isVisible ? '12px' : '4px',
-        transition: 'all 0.2s ease',
-        position: 'fixed',
-        top: config.PANEL.TOP,
-        right: config.PANEL.RIGHT,
-        zIndex: config.PANEL.Z_INDEX,
-        fontFamily: config.PANEL.FONT,
-        background: config.THEMES[currentMode].bg,
-        color: config.THEMES[currentMode].text,
-        border: `1px solid ${config.THEMES[currentMode].border}`,
-        borderRadius: '12px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-      },
-      toolbar: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingBottom: '12px',
-        borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
-        marginBottom: '12px',
-        paddingLeft: '10px',
-        // Added to give left-side spacing
-      },
-      toolsSection: {
-        display: 'none',
-        // Controlled by isToolsExpanded in Panel
-        padding: '12px',
-        borderRadius: '8px',
-        background: `${config.THEMES[currentMode].bg}F0`,
-        // Solid background with slight opacity
-        boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
-        marginBottom: '12px',
-      },
-      controlRow: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingBottom: '8px',
-        marginBottom: '12px',
-      },
-      contentWrapper: {
-        maxHeight: 'calc(100vh - 150px)',
-        overflowY: 'auto',
-        paddingRight: '8px',
-        marginBottom: '12px',
-      },
-      button: {
-        background: config.THEMES[currentMode].button,
-        color: config.THEMES[currentMode].buttonText,
-        border: 'none',
-        padding: '8px 12px',
-        borderRadius: '8px',
-        cursor: 'pointer',
-        fontSize: '12px',
-        fontWeight: '500',
-        transition: 'background 0.2s ease, transform 0.1s ease',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      },
-      modeSelector: {
-        background: config.THEMES[currentMode].button,
-        color: config.THEMES[currentMode].text,
-        border: 'none',
-        padding: '8px 12px',
-        borderRadius: '8px',
-        cursor: 'pointer',
-        fontSize: '14px',
-        fontWeight: '500',
-        minWidth: '80px',
-        appearance: 'none',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      },
-      statusLabel: {
-        fontSize: '13px',
-        fontWeight: '500',
-        color: config.THEMES[currentMode].text,
-      },
-    };
-  }
-
   // src/ui/Components.js
-  var { useState, useEffect } = window.preactHooks;
+  var { useState, useEffect, useMemo } = window.preactHooks;
   var html = window.htm.bind(window.preact.h);
   function Modal({ isOpen, onClose, onSubmit, mode, config }) {
     const [csvText, setCsvText] = useState('');
-    const styles = getModalStyles(mode, config, isOpen);
     return html`
-      <div style=${styles.modal}>
-        <div>
-          <textarea
-            style=${styles.textarea}
-            value=${csvText}
-            onInput=${(e) => setCsvText(e.target.value)}
-            placeholder="Paste CSV content (e.g. Link Quality Reason Checked)"
-          ></textarea>
-          <div style=${styles.buttonContainer}>
-            <button
-              style=${styles.button}
-              onClick=${() => onSubmit(csvText)}
-              onMouseOver=${(e) => {
-                e.target.style.background = config.THEMES[mode].hover;
-                e.target.style.transform = 'translateY(-1px)';
-              }}
-              onMouseOut=${(e) => {
-                e.target.style.background = config.THEMES[mode].button;
-                e.target.style.transform = 'translateY(0)';
-              }}
-            >
-              <i className="fas fa-check" style="marginRight: 6px;"></i> Submit
-            </button>
-            <button
-              style=${styles.button}
-              onClick=${() => {
-                setCsvText('');
-                onClose();
-              }}
-              onMouseOver=${(e) => {
-                e.target.style.background = config.THEMES[mode].hover;
-                e.target.style.transform = 'translateY(-1px)';
-              }}
-              onMouseOut=${(e) => {
-                e.target.style.background = config.THEMES[mode].button;
-                e.target.style.transform = 'translateY(0)';
-              }}
-            >
-              <i className="fas fa-times" style="marginRight: 6px;"></i> Close
-            </button>
+      <div>
+        <style>
+          :root {
+            --modal-bg: ${config.THEMES[mode].bg};
+            --modal-text: ${config.THEMES[mode].text};
+            --modal-button-bg: ${config.THEMES[mode].button};
+            --modal-button-text: ${config.THEMES[mode].buttonText};
+            --modal-hover-bg: ${config.THEMES[mode].hover};
+            --modal-border: ${config.THEMES[mode].border};
+          }
+          .modal {
+            display: ${isOpen ? 'block' : 'none'};
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--modal-bg);
+            color: var(--modal-text);
+            border: 1px solid var(--modal-border);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 10000;
+            width: 300px;
+          }
+          .modal-textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 15px;
+            background: var(--modal-bg);
+            color: var(--modal-text);
+            border: 1px solid var(--modal-border);
+            border-radius: 4px;
+            padding: 4px;
+            resize: none;
+          }
+          .modal-button-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+          }
+          .modal-button {
+            background: var(--modal-button-bg);
+            color: var(--modal-button-text);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition:
+              background 0.2s ease,
+              transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+          .modal-button:hover {
+            background: var(--modal-hover-bg);
+            transform: translateY(-1px);
+          }
+        </style>
+        <div class="modal">
+          <div>
+            <textarea
+              class="modal-textarea"
+              value=${csvText}
+              onInput=${(e) => setCsvText(e.target.value)}
+              placeholder="Paste CSV content (e.g. Link Quality Reason Checked)"
+              aria-label="CSV content input"
+            ></textarea>
+            <div class="modal-button-container">
+              <button
+                class="modal-button"
+                onClick=${() => onSubmit(csvText)}
+                aria-label="Submit CSV content"
+              >
+                <i className="fas fa-check" style="marginRight: 6px;"></i>
+                Submit
+              </button>
+              <button
+                class="modal-button"
+                onClick=${() => {
+                  setCsvText('');
+                  onClose();
+                }}
+                aria-label="Close modal and clear input"
+              >
+                <i className="fas fa-times" style="marginRight: 6px;"></i> Close
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -543,7 +402,6 @@
     config,
     copyCallback,
     mode,
-    // Use this instead of state.themeMode
     onModeChange,
     onStart,
     onStop,
@@ -553,13 +411,18 @@
     onClear,
     onManualCheckToggle,
     onToggle,
+    onEyeballClick,
+    onStartPolling,
+    onStopPolling,
   }) {
-    const [flagged, setFlagged] = useState(
-      Array.from(state.processedPosts.entries()).filter(
-        ([_, { analysis }]) =>
-          analysis.quality.name === 'Problem' ||
-          analysis.quality.name === 'Potential Problem'
-      )
+    const flagged = useMemo(
+      () =>
+        Array.from(state.processedPosts.entries()).filter(
+          ([_, { analysis }]) =>
+            analysis.quality.name === 'Problem' ||
+            analysis.quality.name === 'Potential Problem'
+        ),
+      [state.processedPosts]
     );
     const [isVisible, setIsVisible] = useState(state.isPanelVisible);
     const [isToolsExpanded, setIsToolsExpanded] = useState(false);
@@ -567,20 +430,18 @@
     const [currentMode, setCurrentMode] = useState(mode);
     const [updateCounter, setUpdateCounter] = useState(0);
     useEffect(() => {
-      const newFlagged = Array.from(state.processedPosts.entries()).filter(
-        ([_, { analysis }]) =>
-          analysis.quality.name === 'Problem' ||
-          analysis.quality.name === 'Potential Problem'
-      );
-      setFlagged(newFlagged);
+      if (state.isPanelVisible !== isVisible) {
+        setIsVisible(state.isPanelVisible);
+      }
+    }, [state.isPanelVisible, isVisible]);
+    useEffect(() => {
+      if (mode !== currentMode) {
+        setCurrentMode(mode);
+      }
+    }, [mode, currentMode]);
+    useEffect(() => {
       setUpdateCounter((prev) => prev + 1);
-    }, [Array.from(state.processedPosts.entries())]);
-    useEffect(() => {
-      setIsVisible(state.isPanelVisible);
-    }, [state.isPanelVisible]);
-    useEffect(() => {
-      setCurrentMode(mode);
-    }, [mode]);
+    }, [state.processedPosts]);
     const toggleVisibility = () => {
       const newVisibility = !isVisible;
       setIsVisible(newVisibility);
@@ -601,11 +462,105 @@
       onImportCSV(csvText);
       setIsModalOpen(false);
     };
-    const styles = getPanelStyles(mode, config, isVisible, currentMode);
-    styles.toolsSection.display = isToolsExpanded ? 'block' : 'none';
+    console.log(`Panel rendering: isPollingEnabled=${state.isPollingEnabled}`);
     return html`
       <div>
         <style>
+          :root {
+            --bg-color: ${config.THEMES[currentMode].bg};
+            --text-color: ${config.THEMES[currentMode].text};
+            --button-bg: ${config.THEMES[currentMode].button};
+            --button-text: ${config.THEMES[currentMode].buttonText};
+            --hover-bg: ${config.THEMES[currentMode].hover};
+            --border-color: ${config.THEMES[currentMode].border};
+            --scroll-color: ${config.THEMES[currentMode].scroll};
+          }
+          #xghosted-panel {
+            width: ${isVisible ? config.PANEL.WIDTH : 'auto'};
+            max-height: ${isVisible ? config.PANEL.MAX_HEIGHT : '48px'};
+            min-width: ${isVisible ? '250px' : '60px'};
+            padding: ${isVisible ? '12px' : '4px 4px 4px 4px'};
+            transition:
+              width 0.2s ease,
+              max-height 0.2s ease;
+            position: relative;
+            font-family: ${config.PANEL.FONT};
+            background: var(--bg-color);
+            color: var(--text-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          }
+          .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 12px;
+          }
+          .tools-section {
+            display: ${isToolsExpanded ? 'block' : 'none'};
+            padding: 12px;
+            border-radius: 8px;
+            background: ${config.THEMES[currentMode].bg}F0;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+            margin-bottom: 12px;
+          }
+          .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+          }
+          .content-wrapper {
+            max-height: calc(100vh - 150px);
+            overflow-y: auto;
+            padding-right: 8px;
+            margin-bottom: 12px;
+          }
+          .panel-button {
+            background: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition:
+              background 0.2s ease,
+              transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+          .panel-button:hover {
+            background: var(--hover-bg);
+            transform: translateY(-1px);
+          }
+          .panel-button:active {
+            transform: scale(0.95);
+          }
+          .mode-selector {
+            background: var(--button-bg);
+            color: var(--text-color);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 80px;
+            appearance: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+          .status-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-color);
+          }
           .status-dot {
             display: inline-block;
             width: 8px;
@@ -617,8 +572,14 @@
           .status-problem {
             background-color: red;
           }
-          .status-potential {
-            background-color: yellow;
+          .status-eyeball {
+            font-size: 16px;
+            color: rgb(29, 155, 240);
+            cursor: pointer;
+            text-align: center;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
           }
           .link-row {
             display: grid;
@@ -630,15 +591,15 @@
             width: 6px;
           }
           .problem-links-wrapper::-webkit-scrollbar-thumb {
-            background: ${config.THEMES[currentMode].scroll};
+            background: var(--scroll-color);
             border-radius: 3px;
           }
           .problem-links-wrapper::-webkit-scrollbar-track {
-            background: ${config.THEMES[currentMode].bg};
+            background: var(--bg-color);
           }
           select:focus {
             outline: none;
-            box-shadow: 0 0 0 2px ${config.THEMES[currentMode].scroll};
+            box-shadow: 0 0 0 2px var(--scroll-color);
           }
           .link-item {
             padding: 2px 0;
@@ -647,51 +608,59 @@
           .link-item a:hover {
             text-decoration: underline;
           }
-          button:active {
-            transform: scale(0.95);
+          .problem-posts-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 12px;
           }
         </style>
-        <div id="xghosted-panel" style=${styles.panel}>
+        <div id="xghosted-panel">
           ${isVisible
             ? html`
-                <div class="toolbar" style=${styles.toolbar}>
-                  <span>Problem Posts (${flagged.length}):</span>
+                <div class="toolbar">
+                  <button
+                    class="panel-button"
+                    onClick=${toggleTools}
+                    aria-label="Toggle Tools Section"
+                  >
+                    <i
+                      className="fas fa-chevron-down"
+                      style="marginRight: 6px;"
+                    ></i>
+                    Tools
+                  </button>
                   <div
                     style="display: flex; align-items: center; gap: 10px; padding-left: 10px;"
                   >
                     <button
-                      style=${styles.button}
-                      onClick=${toggleTools}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
+                      key=${state.isPollingEnabled
+                        ? 'stop-button'
+                        : 'start-button'}
+                      class="panel-button"
+                      onClick=${state.isPollingEnabled
+                        ? onStopPolling
+                        : onStartPolling}
+                      aria-label=${state.isPollingEnabled
+                        ? 'Stop Polling'
+                        : 'Start Polling'}
                     >
                       <i
-                        className="fas fa-chevron-down"
+                        class=${state.isPollingEnabled
+                          ? 'fa-solid fa-circle-stop'
+                          : 'fa-solid fa-circle-play'}
                         style="marginRight: 6px;"
                       ></i>
-                      Tools
+                      ${state.isPollingEnabled
+                        ? 'Stop Polling'
+                        : 'Start Polling'}
                     </button>
                     <button
-                      style=${styles.button}
+                      class="panel-button"
                       onClick=${toggleVisibility}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
+                      aria-label="Hide Panel"
                     >
                       <i
                         className="fas fa-eye-slash"
@@ -701,21 +670,16 @@
                     </button>
                   </div>
                 </div>
-                <div class="tools-section" style=${styles.toolsSection}>
+                <div class="tools-section">
                   <div
                     style="display: flex; flex-direction: column; gap: 12px; padding: 15px;"
                   >
                     <div
-                      style="padding-bottom: 12px; border-bottom: 1px solid ${config
-                        .THEMES[currentMode].border};"
+                      style="padding-bottom: 12px; border-bottom: 1px solid var(--border-color);"
                     >
                       <select
-                        style=${{
-                          ...styles.modeSelector,
-                          width: '100%',
-                          padding: '8px 12px',
-                          fontSize: '14px',
-                        }}
+                        class="mode-selector"
+                        style="width: 100%; padding: 8px 12px; fontSize: 14px;"
                         value=${currentMode}
                         onChange=${handleModeChange}
                       >
@@ -728,18 +692,9 @@
                       style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;"
                     >
                       <button
-                        style=${styles.button}
+                        class="panel-button"
                         onClick=${copyCallback}
-                        onMouseOver=${(e) => {
-                          e.target.style.background =
-                            config.THEMES[currentMode].hover;
-                          e.target.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseOut=${(e) => {
-                          e.target.style.background =
-                            config.THEMES[currentMode].button;
-                          e.target.style.transform = 'translateY(0)';
-                        }}
+                        aria-label="Copy Problem Links"
                       >
                         <i
                           className="fas fa-copy"
@@ -748,18 +703,9 @@
                         Copy
                       </button>
                       <button
-                        style=${styles.button}
+                        class="panel-button"
                         onClick=${onExportCSV}
-                        onMouseOver=${(e) => {
-                          e.target.style.background =
-                            config.THEMES[currentMode].hover;
-                          e.target.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseOut=${(e) => {
-                          e.target.style.background =
-                            config.THEMES[currentMode].button;
-                          e.target.style.transform = 'translateY(0)';
-                        }}
+                        aria-label="Export Posts to CSV"
                       >
                         <i
                           className="fas fa-file-export"
@@ -768,18 +714,9 @@
                         Export CSV
                       </button>
                       <button
-                        style=${styles.button}
+                        class="panel-button"
                         onClick=${handleImportCSV}
-                        onMouseOver=${(e) => {
-                          e.target.style.background =
-                            config.THEMES[currentMode].hover;
-                          e.target.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseOut=${(e) => {
-                          e.target.style.background =
-                            config.THEMES[currentMode].button;
-                          e.target.style.transform = 'translateY(0)';
-                        }}
+                        aria-label="Import Posts from CSV"
                       >
                         <i
                           className="fas fa-file-import"
@@ -788,18 +725,9 @@
                         Import CSV
                       </button>
                       <button
-                        style=${styles.button}
+                        class="panel-button"
                         onClick=${onClear}
-                        onMouseOver=${(e) => {
-                          e.target.style.background =
-                            config.THEMES[currentMode].hover;
-                          e.target.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseOut=${(e) => {
-                          e.target.style.background =
-                            config.THEMES[currentMode].button;
-                          e.target.style.transform = 'translateY(0)';
-                        }}
+                        aria-label="Clear Processed Posts"
                       >
                         <i
                           className="fas fa-trash"
@@ -812,8 +740,8 @@
                       style="display: flex; flex-direction: column; gap: 12px;"
                     >
                       <button
+                        class="panel-button"
                         style=${{
-                          ...styles.button,
                           background: state.isManualCheckEnabled
                             ? config.THEMES[currentMode].hover
                             : config.THEMES[currentMode].button,
@@ -822,17 +750,7 @@
                             : `1px solid ${config.THEMES[currentMode].border}`,
                         }}
                         onClick=${onManualCheckToggle}
-                        onMouseOver=${(e) => {
-                          e.target.style.background =
-                            config.THEMES[currentMode].hover;
-                          e.target.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseOut=${(e) => {
-                          e.target.style.background = state.isManualCheckEnabled
-                            ? config.THEMES[currentMode].hover
-                            : config.THEMES[currentMode].button;
-                          e.target.style.transform = 'translateY(0)';
-                        }}
+                        aria-label=${`Toggle Manual Check: Currently ${state.isManualCheckEnabled ? 'On' : 'Off'}`}
                       >
                         <i
                           className="fas fa-toggle-on"
@@ -844,8 +762,8 @@
                     </div>
                   </div>
                 </div>
-                <div class="control-row" style=${styles.controlRow}>
-                  <span style=${styles.statusLabel}>
+                <div class="control-row">
+                  <span class="status-label">
                     ${state.isRateLimited
                       ? 'Paused (Rate Limit)'
                       : state.isCollapsingEnabled
@@ -854,101 +772,80 @@
                   </span>
                   <div style="display: flex; gap: 8px;">
                     <button
-                      style=${styles.button}
+                      class="panel-button"
                       onClick=${onStart}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
+                      aria-label="Start Auto Collapse"
                     >
                       <i className="fas fa-play" style="marginRight: 6px;"></i>
                       Start
                     </button>
                     <button
-                      style=${styles.button}
+                      class="panel-button"
                       onClick=${onStop}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
+                      aria-label="Stop Auto Collapse"
                     >
                       <i className="fas fa-pause" style="marginRight: 6px;"></i>
                       Stop
                     </button>
                     <button
-                      style=${styles.button}
+                      class="panel-button"
                       onClick=${onReset}
-                      onMouseOver=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].hover;
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseOut=${(e) => {
-                        e.target.style.background =
-                          config.THEMES[currentMode].button;
-                        e.target.style.transform = 'translateY(0)';
-                      }}
+                      aria-label="Reset Auto Collapse"
                     >
                       <i className="fas fa-undo" style="marginRight: 6px;"></i>
                       Reset
                     </button>
                   </div>
                 </div>
-                <div
-                  class="problem-links-wrapper"
-                  style=${styles.contentWrapper}
-                >
-                  ${flagged.map(
-                    ([href, { analysis }]) => html`
-                      <div
-                        class="link-row"
-                        style="display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; padding: 4px 0;"
-                      >
-                        <span
-                          class="status-dot ${analysis.quality.name ===
-                          'Problem'
-                            ? 'status-problem'
-                            : 'status-potential'}"
-                        ></span>
-                        <div class="link-item">
-                          <a href="https://x.com${href}" target="_blank"
-                            >${href}</a
-                          >
+                <div class="content-wrapper">
+                  <div class="problem-posts-header">
+                    Problem Posts (${flagged.length}):
+                  </div>
+                  <div class="problem-links-wrapper">
+                    ${flagged.map(
+                      ([href, { analysis, checked }]) => html`
+                        <div class="link-row" style="padding: 4px 0;">
+                          ${analysis.quality.name === 'Problem'
+                            ? html`<span
+                                class="status-dot status-problem"
+                              ></span>`
+                            : html`<span
+                                class="status-eyeball"
+                                tabIndex="0"
+                                role="button"
+                                aria-label="Check post manually"
+                                onClick=${() =>
+                                  !checked && onEyeballClick(href)}
+                                onKeyDown=${(e) =>
+                                  e.key === 'Enter' &&
+                                  !checked &&
+                                  onEyeballClick(href)}
+                                >👀</span
+                              >`}
+                          <div class="link-item">
+                            <a href="https://x.com${href}" target="_blank"
+                              >${href}</a
+                            >
+                          </div>
                         </div>
-                      </div>
-                    `
-                  )}
+                      `
+                    )}
+                  </div>
                 </div>
               `
             : html`
-                <button
-                  style=${styles.button}
-                  onClick=${toggleVisibility}
-                  onMouseOver=${(e) => {
-                    e.target.style.background =
-                      config.THEMES[currentMode].hover;
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseOut=${(e) => {
-                    e.target.style.background =
-                      config.THEMES[currentMode].button;
-                    e.target.style.transform = 'translateY(0)';
-                  }}
+                <div
+                  style="display: flex; justify-content: flex-end; padding: 0; margin: 0;"
                 >
-                  <i className="fas fa-eye" style="marginRight: 6px;"></i> Show
-                </button>
+                  <button
+                    class="panel-button"
+                    onClick=${toggleVisibility}
+                    aria-label="Show Panel"
+                  >
+                    <i className="fas fa-eye" style="marginRight: 6px;"></i>
+                    Show
+                  </button>
+                </div>
               `}
         </div>
         <${Modal}
@@ -964,14 +861,20 @@
   window.Panel = Panel;
 
   // src/ui/PanelManager.js
-  window.PanelManager = function (doc, xGhostedInstance) {
+  window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
     this.document = doc;
     this.xGhosted = xGhostedInstance;
     this.log = xGhostedInstance.log;
     this.state = {
-      themeMode: 'light',
-      panelPosition: null,
+      panelPosition: { right: '10px', top: '60px' },
       instance: xGhostedInstance,
+      processedPosts: /* @__PURE__ */ new Map(),
+      isPanelVisible: true,
+      isRateLimited: false,
+      isCollapsingEnabled: false,
+      isManualCheckEnabled: false,
+      isPollingEnabled: true,
+      themeMode,
     };
     this.uiElements = {
       config: {
@@ -1014,26 +917,233 @@
         },
       },
       panel: null,
+      panelContainer: null,
+    };
+    this.styleElement = null;
+    this.dragState = {
+      isDragging: false,
+      startX: 0,
+      startY: 0,
+      initialRight: 0,
+      initialTop: 0,
     };
     this.init();
   };
   window.PanelManager.prototype.init = function () {
+    this.uiElements.panelContainer = this.document.createElement('div');
+    this.uiElements.panelContainer.id = 'xghosted-panel-container';
     this.uiElements.panel = this.document.createElement('div');
-    this.document.body.appendChild(this.uiElements.panel);
+    this.uiElements.panelContainer.appendChild(this.uiElements.panel);
+    this.document.body.appendChild(this.uiElements.panelContainer);
+    this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
+    this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
+    this.state.isRateLimited = this.xGhosted.state.isRateLimited;
+    this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
+    this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
+    this.state.panelPosition =
+      this.xGhosted.state.panelPosition || this.state.panelPosition;
+    this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
+    this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+    this.uiElements.panelContainer.style.left = 'auto';
+    this.styleElement = this.document.createElement('style');
+    this.document.head.appendChild(this.styleElement);
     this.applyPanelStyles();
+    this.uiElements.panelContainer.addEventListener(
+      'mousedown',
+      this.startDrag.bind(this)
+    );
+    this.document.addEventListener('mousemove', this.doDrag.bind(this));
+    this.document.addEventListener('mouseup', this.stopDrag.bind(this));
+    this.xGhosted.on('state-updated', (newState) => {
+      this.state.processedPosts = new Map(newState.processedPosts);
+      this.state.isRateLimited = newState.isRateLimited;
+      this.state.isCollapsingEnabled = newState.isCollapsingEnabled;
+      this.renderPanel();
+    });
+    this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
+      this.state.isManualCheckEnabled = isManualCheckEnabled;
+      this.renderPanel();
+    });
+    this.xGhosted.on('panel-visibility-toggled', ({ isPanelVisible }) => {
+      this.state.isPanelVisible = isPanelVisible;
+      this.renderPanel();
+    });
+    this.xGhosted.on('theme-mode-changed', ({ themeMode }) => {
+      this.state.themeMode = themeMode;
+      this.renderPanel();
+      this.applyPanelStyles();
+    });
+    this.xGhosted.on('panel-position-changed', ({ panelPosition }) => {
+      this.state.panelPosition = { ...panelPosition };
+      if (this.uiElements.panelContainer) {
+        this.uiElements.panelContainer.style.right =
+          this.state.panelPosition.right;
+        this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+        this.uiElements.panelContainer.style.left = 'auto';
+        this.applyPanelStyles();
+      }
+    });
+    this.xGhosted.on('polling-state-updated', ({ isPollingEnabled }) => {
+      this.state.isPollingEnabled = isPollingEnabled;
+      this.renderPanel();
+      this.applyPanelStyles();
+      this.log(`Panel updated: Polling state changed to ${isPollingEnabled}`);
+    });
     this.renderPanel();
   };
   window.PanelManager.prototype.applyPanelStyles = function () {
-    const styleSheet = this.document.createElement('style');
-    styleSheet.textContent = `
+    const position = this.state.panelPosition || { right: '10px', top: '60px' };
+    const borderColor = this.state.isPollingEnabled
+      ? this.state.themeMode === 'light'
+        ? '#333333'
+        : '#D9D9D9'
+      : '#FFA500';
+    this.styleElement.textContent = `
     button:active { transform: scale(0.95); }
+    #xghosted-panel-container {
+      position: fixed;
+      right: ${position.right};
+      top: ${position.top};
+      z-index: ${this.uiElements.config.PANEL.Z_INDEX};
+      cursor: move;
+      border: 2px solid ${borderColor} !important;
+      border-radius: 12px;
+    }
   `;
-    this.document.head.appendChild(styleSheet);
+    if (this.uiElements.panelContainer) {
+      this.uiElements.panelContainer.style.border = `2px solid ${borderColor}`;
+      this.uiElements.panelContainer.style.borderRadius = '12px';
+    }
+    this.log(
+      `Applied panel styles: right=${position.right}, top=${position.top}, borderColor=${borderColor}, isPollingEnabled=${this.state.isPollingEnabled}`
+    );
+  };
+  window.PanelManager.prototype.init = function () {
+    this.uiElements.panelContainer = this.document.createElement('div');
+    this.uiElements.panelContainer.id = 'xghosted-panel-container';
+    this.uiElements.panel = this.document.createElement('div');
+    this.uiElements.panelContainer.appendChild(this.uiElements.panel);
+    this.document.body.appendChild(this.uiElements.panelContainer);
+    this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
+    this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
+    this.state.isRateLimited = this.xGhosted.state.isRateLimited;
+    this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
+    this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
+    this.state.panelPosition =
+      this.xGhosted.state.panelPosition || this.state.panelPosition;
+    this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
+    this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+    this.uiElements.panelContainer.style.left = 'auto';
+    this.styleElement = this.document.createElement('style');
+    this.document.head.appendChild(this.styleElement);
+    this.applyPanelStyles();
+    this.uiElements.panelContainer.addEventListener(
+      'mousedown',
+      this.startDrag.bind(this)
+    );
+    this.document.addEventListener('mousemove', this.doDrag.bind(this));
+    this.document.addEventListener('mouseup', this.stopDrag.bind(this));
+    this.xGhosted.on('state-updated', (newState) => {
+      this.state.processedPosts = new Map(newState.processedPosts);
+      this.state.isRateLimited = newState.isRateLimited;
+      this.state.isCollapsingEnabled = newState.isCollapsingEnabled;
+      this.renderPanel();
+    });
+    this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
+      this.state.isManualCheckEnabled = isManualCheckEnabled;
+      this.renderPanel();
+    });
+    this.xGhosted.on('panel-visibility-toggled', ({ isPanelVisible }) => {
+      this.state.isPanelVisible = isPanelVisible;
+      this.renderPanel();
+    });
+    this.xGhosted.on('theme-mode-changed', ({ themeMode }) => {
+      this.state.themeMode = themeMode;
+      this.renderPanel();
+      this.applyPanelStyles();
+    });
+    this.xGhosted.on('panel-position-changed', ({ panelPosition }) => {
+      this.state.panelPosition = { ...panelPosition };
+      if (this.uiElements.panelContainer) {
+        this.uiElements.panelContainer.style.right =
+          this.state.panelPosition.right;
+        this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+        this.uiElements.panelContainer.style.left = 'auto';
+        this.applyPanelStyles();
+      }
+    });
+    this.xGhosted.on('polling-state-updated', ({ isPollingEnabled }) => {
+      this.state.isPollingEnabled = isPollingEnabled;
+      this.renderPanel();
+      this.applyPanelStyles();
+      this.log(`Panel updated: Polling state changed to ${isPollingEnabled}`);
+    });
+    this.renderPanel();
+  };
+  window.PanelManager.prototype.applyPanelStyles = function () {
+    const position = this.state.panelPosition || { right: '10px', top: '60px' };
+    const borderColor = this.state.isPollingEnabled
+      ? this.state.themeMode === 'light'
+        ? '#333333'
+        : '#D9D9D9'
+      : '#FFA500';
+    this.styleElement.textContent = `
+    button:active { transform: scale(0.95); }
+    #xghosted-panel-container {
+      position: fixed;
+      right: ${position.right};
+      top: ${position.top};
+      z-index: ${this.uiElements.config.PANEL.Z_INDEX};
+      cursor: move;
+      border: 2px solid ${borderColor};
+      border-radius: 12px;
+    }
+  `;
+    this.log(
+      `Applied panel styles: right=${position.right}, top=${position.top}, borderColor=${borderColor}`
+    );
+  };
+  window.PanelManager.prototype.startDrag = function (e) {
+    if (e.target.closest('button, select, input, textarea')) return;
+    e.preventDefault();
+    this.dragState.isDragging = true;
+    this.dragState.startX = e.clientX;
+    this.dragState.startY = e.clientY;
+    const rect = this.uiElements.panelContainer.getBoundingClientRect();
+    this.dragState.initialRight = window.innerWidth - rect.right;
+    this.dragState.initialTop = rect.top;
+  };
+  window.PanelManager.prototype.doDrag = function (e) {
+    if (!this.dragState.isDragging) return;
+    const deltaX = e.clientX - this.dragState.startX;
+    const deltaY = e.clientY - this.dragState.startY;
+    let newRight = this.dragState.initialRight - deltaX;
+    let newTop = this.dragState.initialTop + deltaY;
+    const panelWidth = this.uiElements.panelContainer.offsetWidth;
+    const panelHeight = this.uiElements.panelContainer.offsetHeight;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    newRight = Math.max(0, Math.min(newRight, windowWidth - panelWidth));
+    newTop = Math.max(0, Math.min(newTop, windowHeight - panelHeight));
+    this.uiElements.panelContainer.style.right = `${newRight}px`;
+    this.uiElements.panelContainer.style.top = `${newTop}px`;
+    this.uiElements.panelContainer.style.left = 'auto';
+    this.state.panelPosition = { right: `${newRight}px`, top: `${newTop}px` };
+  };
+  window.PanelManager.prototype.stopDrag = function () {
+    if (this.dragState.isDragging) {
+      this.dragState.isDragging = false;
+      this.xGhosted.setPanelPosition(this.state.panelPosition);
+    }
   };
   window.PanelManager.prototype.renderPanel = function () {
+    if (!this.uiElements.panel) {
+      this.log('renderPanel: panel element not initialized, skipping render');
+      return;
+    }
     window.preact.render(
       window.preact.h(window.Panel, {
-        state: this.xGhosted.state,
+        state: this.state,
         config: this.uiElements.config,
         copyCallback: this.xGhosted.copyLinks.bind(this.xGhosted),
         mode: this.state.themeMode,
@@ -1048,29 +1158,34 @@
           this.xGhosted
         ),
         onToggle: this.toggleVisibility.bind(this),
+        onEyeballClick: (href) => {
+          const post = this.document.querySelector(
+            `[data-xghosted-id="${href}"]`
+          );
+          this.xGhosted.userRequestedPostCheck(href, post);
+        },
+        onStartPolling: this.xGhosted.handleStartPolling.bind(this.xGhosted),
+        onStopPolling: this.xGhosted.handleStopPolling.bind(this.xGhosted),
       }),
       this.uiElements.panel
     );
-    this.log('Panel rendered');
   };
   window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
-    this.xGhosted.state.isPanelVisible =
+    const previousVisibility = this.state.isPanelVisible;
+    this.state.isPanelVisible =
       typeof newVisibility === 'boolean'
         ? newVisibility
-        : !this.xGhosted.state.isPanelVisible;
-    this.renderPanel();
-    this.xGhosted.saveState();
-    this.log(
-      `Panel visibility toggled to ${this.xGhosted.state.isPanelVisible}`
-    );
+        : !this.state.isPanelVisible;
+    if (previousVisibility !== this.state.isPanelVisible) {
+      this.xGhosted.togglePanelVisibility(this.state.isPanelVisible);
+    }
   };
   window.PanelManager.prototype.updateTheme = function (newMode) {
     this.state.themeMode = newMode;
     this.renderPanel();
-    this.log(`Panel theme updated to ${newMode}`);
   };
   window.PanelManager.prototype.handleModeChange = function (newMode) {
-    this.updateTheme(newMode);
+    this.xGhosted.setThemeMode(newMode);
   };
 
   // src/xGhosted.js
@@ -1080,6 +1195,7 @@
       throttleDelay: 1e3,
       tabCheckThrottle: 5e3,
       exportThrottle: 5e3,
+      pollInterval: 1e3,
     };
     this.timing = { ...defaultTiming, ...config.timing };
     this.document = doc;
@@ -1090,17 +1206,21 @@
     this.state = {
       postContainer: null,
       processedPosts: /* @__PURE__ */ new Map(),
-      fullyProcessedPosts: /* @__PURE__ */ new Set(),
       persistProcessedPosts: config.persistProcessedPosts ?? false,
-      problemLinks: /* @__PURE__ */ new Set(),
       lastUrl: '',
       isWithReplies: false,
       isRateLimited: false,
-      isManualCheckEnabled: false,
+      isManualCheckEnabled: true,
       isCollapsingEnabled: false,
       isCollapsingRunning: false,
       isPanelVisible: true,
+      themeMode: null,
+      isHighlighting: false,
+      isPollingEnabled: true,
+      // Renamed from isHighlightingEnabled
+      panelPosition: { right: '10px', top: '60px' },
     };
+    this.events = {};
     this.panelManager = null;
     this.checkPostInNewTabThrottled = debounce((href) => {
       return this.checkPostInNewTab(href);
@@ -1108,7 +1228,21 @@
     this.ensureAndHighlightPostsDebounced = debounce(() => {
       this.ensureAndHighlightPosts();
     }, this.timing.debounceDelay);
+    this.on = (event, callback) => {
+      if (!this.events[event]) this.events[event] = [];
+      this.events[event].push(callback);
+    };
+    this.off = (event, callback) => {
+      if (!this.events[event]) return;
+      this.events[event] = this.events[event].filter((cb) => cb !== callback);
+    };
+    this.emit = (event, data) => {
+      if (!this.events[event]) return;
+      this.events[event].forEach((cb) => cb(data));
+    };
   }
+  XGhosted.POST_SELECTOR =
+    'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
   XGhosted.prototype.saveState = function () {
     const serializableArticles = {};
     if (this.state.persistProcessedPosts) {
@@ -1116,18 +1250,90 @@
         serializableArticles[id] = { analysis: { ...analysis }, checked };
       }
     }
-    GM_setValue('xGhostedState', {
+    const newState = {
       isPanelVisible: this.state.isPanelVisible,
       isCollapsingEnabled: this.state.isCollapsingEnabled,
       isManualCheckEnabled: this.state.isManualCheckEnabled,
+      // Remove isPollingEnabled from saved state
+      themeMode: this.state.themeMode,
       processedPosts: serializableArticles,
-    });
+      panelPosition: { ...this.state.panelPosition },
+    };
+    const oldState = GM_getValue('xGhostedState', {});
+    const newProcessedPostsArray = Array.from(
+      this.state.processedPosts.entries()
+    );
+    const oldProcessedPostsArray = Array.from(
+      (oldState.processedPosts
+        ? Object.entries(oldState.processedPosts)
+        : []
+      ).map(([id, { analysis, checked }]) => [
+        id,
+        {
+          analysis: {
+            ...analysis,
+            quality: postQuality[analysis.quality.name],
+          },
+          checked,
+        },
+      ])
+    );
+    const processedPostsChanged =
+      JSON.stringify(newProcessedPostsArray) !==
+      JSON.stringify(oldProcessedPostsArray);
+    const otherStateChanged =
+      JSON.stringify({
+        isPanelVisible: newState.isPanelVisible,
+        isCollapsingEnabled: newState.isCollapsingEnabled,
+        isManualCheckEnabled: newState.isManualCheckEnabled,
+        themeMode: newState.themeMode,
+        panelPosition: newState.panelPosition,
+      }) !==
+      JSON.stringify({
+        isPanelVisible: oldState.isPanelVisible,
+        isCollapsingEnabled: oldState.isCollapsingEnabled,
+        isManualCheckEnabled: oldState.isManualCheckEnabled,
+        themeMode: oldState.themeMode,
+        panelPosition: oldState.panelPosition,
+      });
+    if (processedPostsChanged || otherStateChanged) {
+      GM_setValue('xGhostedState', newState);
+      this.emit('state-updated', {
+        ...this.state,
+        processedPosts: new Map(this.state.processedPosts),
+      });
+    }
   };
   XGhosted.prototype.loadState = function () {
     const savedState = GM_getValue('xGhostedState', {});
     this.state.isPanelVisible = savedState.isPanelVisible ?? true;
     this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
     this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
+    this.state.themeMode = savedState.themeMode ?? null;
+    if (
+      savedState.panelPosition &&
+      savedState.panelPosition.right &&
+      savedState.panelPosition.top
+    ) {
+      const panelWidth = 350;
+      const panelHeight = 48;
+      const windowWidth = this.document.defaultView.innerWidth;
+      const windowHeight = this.document.defaultView.innerHeight;
+      let right = parseFloat(savedState.panelPosition.right);
+      let top = parseFloat(savedState.panelPosition.top);
+      right = isNaN(right)
+        ? 10
+        : Math.max(0, Math.min(right, windowWidth - panelWidth));
+      top = isNaN(top)
+        ? 60
+        : Math.max(0, Math.min(top, windowHeight - panelHeight));
+      this.state.panelPosition = { right: `${right}px`, top: `${top}px` };
+    } else {
+      this.log(
+        'No valid saved panelPosition, using default: right=10px, top=60px'
+      );
+      this.state.panelPosition = { right: '10px', top: '60px' };
+    }
     if (this.state.persistProcessedPosts) {
       const savedPosts = savedState.processedPosts || {};
       for (const [id, { analysis, checked }] of Object.entries(savedPosts)) {
@@ -1140,6 +1346,29 @@
         });
       }
     }
+  };
+  XGhosted.prototype.setPanelPosition = function (panelPosition) {
+    if (!panelPosition || !panelPosition.right || !panelPosition.top) {
+      this.log('setPanelPosition: Invalid panelPosition, using default');
+      panelPosition = { right: '10px', top: '60px' };
+    }
+    const panelWidth = 350;
+    const panelHeight = 48;
+    const windowWidth = this.document.defaultView.innerWidth;
+    const windowHeight = this.document.defaultView.innerHeight;
+    let right = parseFloat(panelPosition.right);
+    let top = parseFloat(panelPosition.top);
+    right = isNaN(right)
+      ? 10
+      : Math.max(0, Math.min(right, windowWidth - panelWidth));
+    top = isNaN(top)
+      ? 60
+      : Math.max(0, Math.min(top, windowHeight - panelHeight));
+    this.state.panelPosition = { right: `${right}px`, top: `${top}px` };
+    this.emit('panel-position-changed', {
+      panelPosition: { ...this.state.panelPosition },
+    });
+    this.saveState();
   };
   XGhosted.prototype.updateState = function (url) {
     this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(
@@ -1170,11 +1399,11 @@
     exportToCSV(csvData, 'processed_posts.csv', this.document, this.log);
   };
   XGhosted.prototype.checkPostInNewTab = function (href) {
+    this.log(`Checking post in new tab: ${href}`);
     const fullUrl = `https://x.com${href}`;
     const newWindow = this.document.defaultView.open(fullUrl, '_blank');
-    let attempts = 0,
-      maxAttempts = 10;
-    let emptyCount = 0;
+    let attempts = 0;
+    const maxAttempts = 10;
     return new Promise((resolve) => {
       const checkInterval = setInterval(() => {
         attempts++;
@@ -1182,16 +1411,7 @@
           const doc = newWindow.document;
           if (doc.body.textContent.includes('Rate limit exceeded')) {
             clearInterval(checkInterval);
-            this.log('Rate limit detected in tab, pausing operations');
-            if (typeof jest === 'undefined') {
-              alert(
-                `Rate limit exceeded by X. Pausing all operations for ${this.timing.rateLimitPause / 1e3} seconds.`
-              );
-            } else {
-              this.log(
-                `Rate limit alert: Pausing all operations for ${this.timing.rateLimitPause / 1e3} seconds.`
-              );
-            }
+            this.log('Rate limit detected, pausing operations');
             this.state.isRateLimited = true;
             newWindow.close();
             setTimeout(() => {
@@ -1201,81 +1421,48 @@
             }, this.timing.rateLimitPause);
             return;
           }
-          const threadPosts = doc.querySelectorAll(
-            'div[data-testid="cellInnerDiv"]'
-          );
-          if (threadPosts.length === 0) {
-            emptyCount++;
-            if (emptyCount >= 3) {
-              clearInterval(checkInterval);
-              this.log(
-                'Repeated empty results, possible rate limit, pausing operations'
-              );
-              alert(
-                `Possible rate limit detected (no articles loaded). Pausing for ${this.timing.rateLimitPause / 1e3} seconds.`
-              );
-              this.state.isRateLimited = true;
+          const targetPost = doc.querySelector(`[data-xghosted-id="${href}"]`);
+          if (targetPost) {
+            this.log(`Original post found in new tab: ${href}`);
+            clearInterval(checkInterval);
+            const hasProblem =
+              doc.querySelector('[data-xghosted="postquality.problem"]') !==
+              null;
+            if (hasProblem) {
+              newWindow.scrollTo(0, 0);
+              this.log(`Problem found in thread at ${href}`);
+            } else {
               newWindow.close();
-              setTimeout(() => {
-                this.log('Resuming after empty result pause');
-                this.state.isRateLimited = false;
-                resolve(false);
-              }, this.timing.rateLimitPause);
-              return;
+              this.log(`No problem found in thread at ${href}`);
             }
-            return;
+            resolve(hasProblem);
           }
-          clearInterval(checkInterval);
-          if (threadPosts.length < 2) {
-            this.log(
-              `Thread at ${fullUrl} has fewer than 2 posts (${threadPosts.length})\u2014assuming not a problem`
-            );
-            newWindow.close();
-            resolve(false);
-            return;
-          }
-          let isProblem = false;
-          for (let threadPost of threadPosts) {
-            const analysis = identifyPost(threadPost, false);
-            if (analysis.quality === postQuality.PROBLEM) {
-              isProblem = true;
-              break;
-            }
-          }
-          newWindow.close();
-          resolve(isProblem);
         }
         if (attempts >= maxAttempts) {
           clearInterval(checkInterval);
           if (newWindow) newWindow.close();
-          this.log(
-            `Failed to load thread at ${fullUrl} within ${maxAttempts} attempts`
-          );
+          this.log(`Failed to process ${href} within ${maxAttempts} attempts`);
           resolve(false);
         }
       }, 500);
     });
   };
-  XGhosted.prototype.userRequestedPostCheck = function (href) {
+  XGhosted.prototype.userRequestedPostCheck = function (href, post) {
+    this.log(`User requested check for ${href}`);
     const cached = this.state.processedPosts.get(href);
     if (
       !cached ||
-      cached.analysis.quality.name !== postQuality.POTENTIAL_PROBLEM.name ||
-      !this.state.isManualCheckEnabled
+      cached.analysis.quality.name !== postQuality.POTENTIAL_PROBLEM.name
     ) {
-      this.log(
-        `Manual check skipped for ${href}: not a potential problem or manual mode off`
-      );
-      return;
-    }
-    const post = this.document.querySelector(`div[data-xghosted-id="${href}"]`);
-    if (!post) {
-      this.log(`Post element not found for ${href}`);
+      this.log(`Manual check skipped for ${href}: not a potential problem`);
       return;
     }
     if (!cached.checked) {
-      this.checkPostInNewTabThrottled(href).then((isProblem) => {
-        if (this.state.isRateLimited) return;
+      this.log(`Manual check starting for ${href}`);
+      this.checkPostInNewTab(href).then((isProblem) => {
+        this.log(
+          `Manual check result for ${href}: ${isProblem ? 'problem' : 'good'}`
+        );
         post.classList.remove(
           'xghosted-potential_problem',
           'xghosted-good',
@@ -1286,35 +1473,44 @@
           'data-xghosted',
           `postquality.${isProblem ? 'problem' : 'good'}`
         );
+        const eyeballContainer = post.querySelector('.xghosted-eyeball');
+        if (eyeballContainer)
+          eyeballContainer.classList.remove('xghosted-eyeball');
         cached.analysis.quality = isProblem
           ? postQuality.PROBLEM
           : postQuality.GOOD;
         cached.checked = true;
         this.saveState();
-        this.log(
-          `Manual check completed for ${href}: marked as ${isProblem ? 'problem' : 'good'}`
-        );
+        this.log(`Post Manual check completed for ${href}`);
       });
     } else {
       this.log(`Manual check skipped for ${href}: already checked`);
     }
   };
-  XGhosted.prototype.replaceMenuButton = function (post, href) {
-    replaceMenuButton(post, href, this.document, this.log, (href2) => {
-      if (this.state.isRateLimited) {
-        this.log('Tab check skipped due to rate limit pause');
-        return;
-      }
-      this.userRequestedPostCheck(href2);
+  XGhosted.prototype.handleStartPolling = function () {
+    this.state.isPollingEnabled = true;
+    this.startPolling();
+    this.saveState();
+    this.emit('polling-state-updated', {
+      isPollingEnabled: this.state.isPollingEnabled,
     });
+    this.log('Polling started');
+  };
+  XGhosted.prototype.handleStopPolling = function () {
+    this.state.isPollingEnabled = false;
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+    this.saveState();
+    this.emit('polling-state-updated', {
+      isPollingEnabled: this.state.isPollingEnabled,
+    });
+    this.log('Polling stopped');
   };
   XGhosted.prototype.handleStart = function () {
     this.state.isCollapsingEnabled = true;
     this.state.isCollapsingRunning = true;
-    const articles = this.document.querySelectorAll(
-      'div[data-testid="cellInnerDiv"]'
-    );
-    this.collapseArticlesWithDelay(articles);
   };
   XGhosted.prototype.handleStop = function () {
     this.state.isCollapsingEnabled = false;
@@ -1322,61 +1518,55 @@
   XGhosted.prototype.handleReset = function () {
     this.state.isCollapsingEnabled = false;
     this.state.isCollapsingRunning = false;
-    this.document
-      .querySelectorAll('div[data-testid="cellInnerDiv"]')
-      .forEach(this.expandArticle);
-    this.state.processedPosts = /* @__PURE__ */ new Map();
-    this.state.fullyProcessedPosts = /* @__PURE__ */ new Set();
-    this.state.problemLinks = /* @__PURE__ */ new Set();
+    const collapsedPosts = this.document.querySelectorAll(
+      '.xghosted-collapsed'
+    );
+    collapsedPosts.forEach((post) => {
+      post.classList.remove('xghosted-collapsed');
+      const postId = post.getAttribute('data-xghosted-id') || 'unknown';
+      this.log(`Expanded collapsed post: ${postId}`);
+    });
+    this.log('Auto-collapse reset: all collapsed posts expanded');
+    this.saveState();
+    this.emit('state-updated', {
+      ...this.state,
+      processedPosts: new Map(this.state.processedPosts),
+    });
   };
   XGhosted.prototype.clearProcessedPosts = function () {
     this.state.processedPosts.clear();
-    this.state.fullyProcessedPosts.clear();
-    this.state.problemLinks.clear();
     this.saveState();
     this.ensureAndHighlightPosts();
   };
   XGhosted.prototype.handleManualCheckToggle = function () {
     this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
     this.log(`Manual Check toggled to ${this.state.isManualCheckEnabled}`);
+    this.emit('manual-check-toggled', {
+      isManualCheckEnabled: this.state.isManualCheckEnabled,
+    });
+    this.saveState();
+  };
+  XGhosted.prototype.togglePanelVisibility = function (newVisibility) {
+    const previousVisibility = this.state.isPanelVisible;
+    this.state.isPanelVisible =
+      typeof newVisibility === 'boolean'
+        ? newVisibility
+        : !this.state.isPanelVisible;
+    if (previousVisibility !== this.state.isPanelVisible) {
+      this.emit('panel-visibility-toggled', {
+        isPanelVisible: this.state.isPanelVisible,
+      });
+      this.saveState();
+    }
+  };
+  XGhosted.prototype.setThemeMode = function (newMode) {
+    this.state.themeMode = newMode;
+    this.saveState();
+    this.emit('theme-mode-changed', { themeMode: newMode });
+    this.log(`Theme mode set to ${newMode} and event emitted`);
   };
   XGhosted.prototype.handleClear = function () {
     if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
-  };
-  XGhosted.prototype.collapseArticlesWithDelay = function (articles) {
-    let index = 0;
-    const interval = setInterval(() => {
-      if (
-        index >= articles.length ||
-        !this.state.isCollapsingEnabled ||
-        this.state.isRateLimited
-      ) {
-        clearInterval(interval);
-        this.state.isCollapsingRunning = false;
-        this.log('Collapsing completed or stopped');
-        return;
-      }
-      const article = articles[index];
-      const timeElement = article.querySelector('.css-146c3p1.r-1loqt21 time');
-      const href = timeElement?.parentElement?.getAttribute('href');
-      if (href && !this.state.fullyProcessedPosts.has(href)) {
-        const analysis = this.state.processedPosts.get(href)?.analysis;
-        if (
-          analysis &&
-          (analysis.quality === postQuality.PROBLEM ||
-            analysis.quality === postQuality.POTENTIAL_PROBLEM)
-        ) {
-          article.style.height = '0px';
-          article.style.overflow = 'hidden';
-          article.style.margin = '0';
-          article.style.padding = '0';
-          this.state.problemLinks.add(href);
-          this.log(`Collapsed article with href: ${href}`);
-        }
-        this.state.fullyProcessedPosts.add(href);
-      }
-      index++;
-    }, 200);
   };
   XGhosted.prototype.expandArticle = function (article) {
     if (article) {
@@ -1400,12 +1590,9 @@
     }
     return results;
   };
-  XGhosted.prototype.highlightPosts = function () {
+  XGhosted.prototype.highlightPosts = function (posts) {
+    this.state.isHighlighting = true;
     this.updateState(this.document.location.href);
-    if (!this.state.postContainer) {
-      this.log('No posts container set, skipping highlighting');
-      return [];
-    }
     const processPostAnalysis = (post, analysis) => {
       if (!(post instanceof this.document.defaultView.Element)) {
         this.log('Skipping invalid DOM element:', post);
@@ -1413,29 +1600,104 @@
       }
       const id = analysis.link;
       const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
-      post.setAttribute('data-xghosted', `postquality.${qualityName}`);
       post.setAttribute('data-xghosted-id', id);
-      if (analysis.quality === postQuality.PROBLEM) {
-        post.classList.add('xghosted-problem');
-      } else if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
-        post.classList.add('xghosted-potential_problem');
-        this.replaceMenuButton(post, id);
+      post.setAttribute('data-xghosted', `postquality.${qualityName}`);
+      post.classList.add(`xghosted-${qualityName}`);
+      if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
+        const shareButtonContainer = post.querySelector(
+          'button[aria-label="Share post"]'
+        )?.parentElement;
+        if (shareButtonContainer) {
+          shareButtonContainer.classList.add('xghosted-eyeball');
+        } else {
+          this.log(`No share button container found for post with href: ${id}`);
+        }
       }
-      this.state.processedPosts.set(id, { analysis, checked: false });
+      if (id) {
+        this.state.processedPosts.set(id, { analysis, checked: false });
+      }
     };
-    const results = identifyPosts(
-      this.document,
-      'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])',
-      this.state.isWithReplies,
-      this.state.fillerCount,
-      processPostAnalysis
-    );
-    this.state = {
-      ...this.state,
-      processedPosts: new Map(this.state.processedPosts),
-    };
-    this.saveState();
+    const checkReplies = this.state.isWithReplies;
+    const results = [];
+    const postsToProcess =
+      posts || this.document.querySelectorAll(XGhosted.POST_SELECTOR);
+    let postsProcessed = 0;
+    let cachedAnalysis = false;
+    postsToProcess.forEach((post) => {
+      const postId = getRelativeLinkToPost(post);
+      if (postId) {
+        cachedAnalysis = this.state.processedPosts.get(postId)?.analysis;
+      }
+      let analysis = cachedAnalysis
+        ? { ...cachedAnalysis }
+        : identifyPost(post, checkReplies);
+      if (!cachedAnalysis) postsProcessed++;
+      processPostAnalysis(post, analysis);
+      results.push(analysis);
+    });
+    if (postsProcessed > 0) {
+      this.state = {
+        ...this.state,
+        processedPosts: new Map(this.state.processedPosts),
+      };
+      this.emit('state-updated', {
+        ...this.state,
+        processedPosts: new Map(this.state.processedPosts),
+      });
+      this.log(
+        `Highlighted ${postsProcessed} new posts, state-updated emitted`
+      );
+      this.saveState();
+    }
+    this.state.isHighlighting = false;
     return results;
+  };
+  XGhosted.prototype.startPolling = function () {
+    if (!this.state.isPollingEnabled) {
+      this.log('Polling not started: polling is disabled');
+      return;
+    }
+    const pollInterval = this.timing.pollInterval || 1e3;
+    this.log('Starting polling for post changes...');
+    this.pollTimer = setInterval(() => {
+      if (this.state.isHighlighting) {
+        this.log('Polling skipped\u2014highlighting in progress');
+        return;
+      }
+      const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
+      const postCount = posts.length;
+      if (postCount > 0) {
+        this.log(`Found ${postCount} new posts, highlighting...`);
+        this.highlightPosts(posts);
+      } else if (
+        !this.document.querySelector('div[data-xghosted="posts-container"]')
+      ) {
+        this.log(
+          'No posts and no container found, ensuring and highlighting...'
+        );
+        this.ensureAndHighlightPosts();
+      }
+      if (this.state.isCollapsingRunning) {
+        const postToCollapse = this.document.querySelector(
+          'div[data-xghosted="postquality.undefined"]:not(.xghosted-collapsed), div[data-xghosted="postquality.good"]:not(.xghosted-collapsed)'
+        );
+        if (postToCollapse) {
+          postToCollapse.classList.add('xghosted-collapsed');
+          const postId =
+            postToCollapse.getAttribute('data-xghosted-id') || 'unknown';
+          this.log(`Collapsed post: ${postId}`);
+          this.saveState();
+        } else {
+          this.log('No more posts to collapse');
+          this.state.isCollapsingRunning = false;
+          this.state.isCollapsingEnabled = false;
+          this.emit('state-updated', {
+            ...this.state,
+            processedPosts: new Map(this.state.processedPosts),
+          });
+        }
+      }
+    }, pollInterval);
   };
   XGhosted.prototype.getThemeMode = function () {
     return detectTheme(this.document);
@@ -1508,18 +1770,94 @@
   XGhosted.prototype.init = function () {
     this.log('Initializing XGhosted...');
     this.loadState();
-    const initialTheme = this.getThemeMode();
-    this.panelManager = new window.PanelManager(this.document, this);
-    this.panelManager.updateTheme(initialTheme);
+    if (!this.state.themeMode) {
+      this.state.themeMode = this.getThemeMode();
+      this.log(`No saved themeMode found, detected: ${this.state.themeMode}`);
+      this.saveState();
+    } else {
+    }
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
-    .xghosted-problem { border: 2px solid red; }
+    .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
+    .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.1); }
+    .xghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.1); }
     .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-    .xghosted-good { }
-    .xghosted-undefined { }
+    .xghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
+    .xghosted-eyeball::after {
+      content: '\u{1F440}';
+      color: rgb(29, 155, 240);
+      padding: 8px;
+      cursor: pointer;
+      text-decoration: none;
+    }
   `;
     this.document.head.appendChild(styleSheet);
-    this.saveState();
+    this.document.addEventListener(
+      'click',
+      (e) => {
+        const eyeball =
+          e.target.closest('.xghosted-eyeball') ||
+          (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
+        if (eyeball) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.log('Eyeball clicked! Digging in...');
+          const clickedPost = eyeball.closest('div[data-xghosted-id]');
+          const href = clickedPost?.getAttribute('data-xghosted-id');
+          if (!href) {
+            this.log('No href found for clicked eyeball');
+            return;
+          }
+          this.log(`Processing eyeball click for: ${href}`);
+          if (this.state.isRateLimited) {
+            this.log(`Eyeball click skipped for ${href} due to rate limit`);
+            return;
+          }
+          const cached = this.state.processedPosts.get(href);
+          if (this.state.isManualCheckEnabled) {
+            this.userRequestedPostCheck(href, clickedPost);
+          } else {
+            this.document.defaultView.open(`https://x.com${href}`, '_blank');
+            if (cached) {
+              cached.checked = true;
+              eyeball.classList.remove('xghosted-eyeball');
+              this.saveState();
+              this.log(`Opened ${href} in new tab and marked as checked`);
+            }
+          }
+        }
+      },
+      { capture: true }
+    );
+    this.on('theme-mode-changed', ({ themeMode }) => {
+      this.state.themeMode = themeMode;
+      this.saveState();
+      this.log(`Theme mode updated to ${themeMode} via event`);
+    });
+    if (!window.preact || !window.preactHooks || !window.htm) {
+      this.log(
+        'Preact dependencies missing. Skipping GUI Panel initialization.'
+      );
+      this.panelManager = null;
+    } else {
+      try {
+        this.panelManager = new window.PanelManager(
+          this.document,
+          this,
+          this.state.themeMode
+        );
+        this.log('GUI Panel initialized successfully');
+      } catch (error) {
+        this.log(
+          `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`
+        );
+        this.panelManager = null;
+      }
+    }
+    this.emit('polling-state-updated', {
+      isPollingEnabled: this.state.isPollingEnabled,
+    });
+    this.startPolling();
   };
   var XGhosted = XGhosted;
 
@@ -1532,6 +1870,7 @@
       tabCheckThrottle: 5000,
       exportThrottle: 5000,
       rateLimitPause: RATE_LIMIT_PAUSE,
+      pollInterval: 1000,
     },
     useTampermonkeyLog: true,
     persistProcessedPosts: false,
@@ -1539,25 +1878,4 @@
   const xGhosted = new XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
   xGhosted.init();
-
-  // Observe URL changes with throttling
-  let lastUrl = window.location.href;
-  let lastProcessedTime = 0;
-  const observer = new MutationObserver(() => {
-    const now = Date.now();
-    if (now - lastProcessedTime < config.timing.throttleDelay) {
-      return; // Skip if too soon
-    }
-    lastProcessedTime = now;
-
-    const currentUrl = window.location.href;
-    if (currentUrl !== lastUrl) {
-      lastUrl = currentUrl;
-      xGhosted.updateState(currentUrl);
-      xGhosted.ensureAndHighlightPostsDebounced();
-    } else {
-      xGhosted.ensureAndHighlightPostsDebounced();
-    }
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
 })();
