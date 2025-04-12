@@ -155,7 +155,11 @@ function Panel({
   };
 
   const toggleTools = () => {
-    setIsToolsExpanded(!isToolsExpanded);
+    setIsToolsExpanded((prev) => {
+      const newState = !prev;
+      console.log('isToolsExpanded toggled to:', newState);
+      return newState;
+    });
   };
 
   const handleModeChange = (e) => {
@@ -173,8 +177,7 @@ function Panel({
     setIsModalOpen(false);
   };
 
-  // Log the state to confirm isPollingEnabled
-  // console.log(`Panel rendering: isPollingEnabled=${state.isPollingEnabled}`);
+  const toolsIconClass = isToolsExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
 
   return html`
     <div>
@@ -207,7 +210,7 @@ function Panel({
           align-items: center;
           padding-bottom: 12px;
           border-bottom: 1px solid var(--border-color);
-          margin-bottom: 12px;
+          margin-bottom: 8px;
         }
         .tools-section {
           display: ${isToolsExpanded ? 'block' : 'none'};
@@ -215,20 +218,31 @@ function Panel({
           border-radius: 8px;
           background: ${config.THEMES[currentMode].bg}F0;
           box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-          margin-bottom: 12px;
+          margin-bottom: 8px;
+          border-bottom: 1px solid var(--border-color);
+        }
+        .manual-check-separator {
+          border-bottom: 1px solid var(--border-color);
+          margin-bottom: 0px;
+        }
+        .manual-check-section {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-bottom: 0px;
         }
         .control-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
           padding-bottom: 8px;
-          margin-bottom: 12px;
+          margin-bottom: 8px;
+          border-bottom: 1px solid var(--border-color);
         }
         .content-wrapper {
           max-height: calc(100vh - 150px);
           overflow-y: auto;
           padding-right: 8px;
-          margin-bottom: 12px;
         }
         .panel-button {
           background: var(--button-bg);
@@ -330,11 +344,12 @@ function Panel({
         ${isVisible ? html`
           <div class="toolbar">
             <button
+              key=${isToolsExpanded ? 'tools-expanded' : 'tools-collapsed'}
               class="panel-button"
               onClick=${toggleTools}
               aria-label="Toggle Tools Section"
             >
-              <i className="fas fa-chevron-down" style="marginRight: 6px;"></i> Tools
+              <i className=${toolsIconClass} style="marginRight: 6px;"></i> Tools
             </button>
             <div style="display: flex; align-items: center; gap: 10px; padding-left: 10px;">
               <button
@@ -372,7 +387,7 @@ function Panel({
                   <option value="light">Light</option>
                 </select>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;">
+              <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px;">
                 <button
                   class="panel-button"
                   onClick=${copyCallback}
@@ -402,17 +417,18 @@ function Panel({
                   <i className="fas fa-trash" style="marginRight: 8px;"></i> Clear
                 </button>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="manual-check-separator"></div>
+              <div class="manual-check-section">
                 <button
                   class="panel-button"
                   style=${{
-                    background: state.isManualCheckEnabled
-                      ? config.THEMES[currentMode].hover
-                      : config.THEMES[currentMode].button,
-                    border: state.isManualCheckEnabled
-                      ? `1px solid ${config.THEMES[currentMode].hover}`
-                      : `1px solid ${config.THEMES[currentMode].border}`,
-                  }}
+        background: state.isManualCheckEnabled
+          ? config.THEMES[currentMode].hover
+          : config.THEMES[currentMode].button,
+        border: state.isManualCheckEnabled
+          ? `1px solid ${config.THEMES[currentMode].hover}`
+          : `1px solid ${config.THEMES[currentMode].border}`,
+      }}
                   onClick=${onManualCheckToggle}
                   aria-label=${`Toggle Manual Check: Currently ${state.isManualCheckEnabled ? 'On' : 'Off'}`}
                 >
@@ -433,7 +449,7 @@ function Panel({
                 aria-label=${state.isCollapsingEnabled ? 'Stop Auto Collapse' : 'Start Auto Collapse'}
               >
                 <i
-                  class=${state.isCollapsingEnabled ? 'fa-solid fa-circle-stop' : 'fa-solid fa-circle-play'}
+                  class=${state.isPollingEnabled ? 'fa-solid fa-circle-stop' : 'fa-solid fa-circle-play'}
                   style="marginRight: 6px;"
                 ></i>
                 ${state.isCollapsingEnabled ? 'Stop' : 'Start'}
@@ -455,8 +471,8 @@ function Panel({
               ${flagged.map(([href, { analysis, checked }]) => html`
                 <div class="link-row" style="padding: 4px 0;">
                   ${analysis.quality.name === "Problem"
-                    ? html`<span class="status-dot status-problem"></span>`
-                    : html`<span
+          ? html`<span class="status-dot status-problem"></span>`
+          : html`<span
                                 class="status-eyeball"
                                 tabIndex="0"
                                 role="button"

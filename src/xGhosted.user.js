@@ -467,7 +467,11 @@
       onToggle(newVisibility);
     };
     const toggleTools = () => {
-      setIsToolsExpanded(!isToolsExpanded);
+      setIsToolsExpanded((prev) => {
+        const newState = !prev;
+        console.log('isToolsExpanded toggled to:', newState);
+        return newState;
+      });
     };
     const handleModeChange = (e) => {
       const newMode = e.target.value;
@@ -481,6 +485,9 @@
       onImportCSV(csvText);
       setIsModalOpen(false);
     };
+    const toolsIconClass = isToolsExpanded
+      ? 'fas fa-chevron-up'
+      : 'fas fa-chevron-down';
     return html`
       <div>
         <style>
@@ -514,7 +521,7 @@
             align-items: center;
             padding-bottom: 12px;
             border-bottom: 1px solid var(--border-color);
-            margin-bottom: 12px;
+            margin-bottom: 8px;
           }
           .tools-section {
             display: ${isToolsExpanded ? 'block' : 'none'};
@@ -522,20 +529,31 @@
             border-radius: 8px;
             background: ${config.THEMES[currentMode].bg}F0;
             box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-            margin-bottom: 12px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+          }
+          .manual-check-separator {
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 0px;
+          }
+          .manual-check-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 0px;
           }
           .control-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding-bottom: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
           }
           .content-wrapper {
             max-height: calc(100vh - 150px);
             overflow-y: auto;
             padding-right: 8px;
-            margin-bottom: 12px;
           }
           .panel-button {
             background: var(--button-bg);
@@ -640,12 +658,15 @@
             ? html`
                 <div class="toolbar">
                   <button
+                    key=${isToolsExpanded
+                      ? 'tools-expanded'
+                      : 'tools-collapsed'}
                     class="panel-button"
                     onClick=${toggleTools}
                     aria-label="Toggle Tools Section"
                   >
                     <i
-                      className="fas fa-chevron-down"
+                      className=${toolsIconClass}
                       style="marginRight: 6px;"
                     ></i>
                     Tools
@@ -707,7 +728,7 @@
                       </select>
                     </div>
                     <div
-                      style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;"
+                      style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px;"
                     >
                       <button
                         class="panel-button"
@@ -754,9 +775,8 @@
                         Clear
                       </button>
                     </div>
-                    <div
-                      style="display: flex; flex-direction: column; gap: 12px;"
-                    >
+                    <div class="manual-check-separator"></div>
+                    <div class="manual-check-section">
                       <button
                         class="panel-button"
                         style=${{
@@ -802,7 +822,7 @@
                         : 'Start Auto Collapse'}
                     >
                       <i
-                        class=${state.isCollapsingEnabled
+                        class=${state.isPollingEnabled
                           ? 'fa-solid fa-circle-stop'
                           : 'fa-solid fa-circle-play'}
                         style="marginRight: 6px;"

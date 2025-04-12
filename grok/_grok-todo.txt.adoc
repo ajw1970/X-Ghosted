@@ -41,10 +41,9 @@
 * [x] Start/Stop icon isn't updating for polling until doing something else to trigger a panel refresh
 * [x] Rename handleStart/Stop/Reset to clarify Collapsing
 * [x] Combine start/stop buttons for auto collapsing
-* [ ] Stop auto collapsing didn't stop it from continuing with each poll.
+* [x] Stop auto collapsing didn't stop it from continuing with each poll.
 
 * [ ] Fix resize panel
-* [ ] When manually checking, also scroll to the top after verifying the original post was identified.
 
 * Clarify dom for post container and X.com behavior
 
