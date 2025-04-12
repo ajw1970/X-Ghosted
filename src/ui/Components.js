@@ -174,7 +174,7 @@ function Panel({
   };
 
   // Log the state to confirm isPollingEnabled
-  console.log(`Panel rendering: isPollingEnabled=${state.isPollingEnabled}`);
+  // console.log(`Panel rendering: isPollingEnabled=${state.isPollingEnabled}`);
 
   return html`
     <div>

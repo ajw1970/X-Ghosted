@@ -278,7 +278,7 @@ XGhosted.prototype.handleStartPolling = function () {
   this.startPolling(); // Restart polling if it was stopped
   this.saveState();
   this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
-  this.log('Polling started');
+  // this.log('Polling started');
 };
 
 XGhosted.prototype.handleStopPolling = function () {
@@ -289,7 +289,7 @@ XGhosted.prototype.handleStopPolling = function () {
   }
   this.saveState();
   this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
-  this.log('Polling stopped');
+  // this.log('Polling stopped');
 };
 
 XGhosted.prototype.handleStart = function () {

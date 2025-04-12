@@ -462,7 +462,6 @@
       onImportCSV(csvText);
       setIsModalOpen(false);
     };
-    console.log(`Panel rendering: isPollingEnabled=${state.isPollingEnabled}`);
     return html`
       <div>
         <style>
@@ -987,7 +986,6 @@
       this.state.isPollingEnabled = isPollingEnabled;
       this.renderPanel();
       this.applyPanelStyles();
-      this.log(`Panel updated: Polling state changed to ${isPollingEnabled}`);
     });
     this.renderPanel();
   };
@@ -1014,9 +1012,6 @@
       this.uiElements.panelContainer.style.border = `2px solid ${borderColor}`;
       this.uiElements.panelContainer.style.borderRadius = '12px';
     }
-    this.log(
-      `Applied panel styles: right=${position.right}, top=${position.top}, borderColor=${borderColor}, isPollingEnabled=${this.state.isPollingEnabled}`
-    );
   };
   window.PanelManager.prototype.init = function () {
     this.uiElements.panelContainer = this.document.createElement('div');
@@ -1076,7 +1071,6 @@
       this.state.isPollingEnabled = isPollingEnabled;
       this.renderPanel();
       this.applyPanelStyles();
-      this.log(`Panel updated: Polling state changed to ${isPollingEnabled}`);
     });
     this.renderPanel();
   };
@@ -1099,9 +1093,6 @@
       border-radius: 12px;
     }
   `;
-    this.log(
-      `Applied panel styles: right=${position.right}, top=${position.top}, borderColor=${borderColor}`
-    );
   };
   window.PanelManager.prototype.startDrag = function (e) {
     if (e.target.closest('button, select, input, textarea')) return;
@@ -1494,7 +1485,6 @@
     this.emit('polling-state-updated', {
       isPollingEnabled: this.state.isPollingEnabled,
     });
-    this.log('Polling started');
   };
   XGhosted.prototype.handleStopPolling = function () {
     this.state.isPollingEnabled = false;
@@ -1506,7 +1496,6 @@
     this.emit('polling-state-updated', {
       isPollingEnabled: this.state.isPollingEnabled,
     });
-    this.log('Polling stopped');
   };
   XGhosted.prototype.handleStart = function () {
     this.state.isCollapsingEnabled = true;

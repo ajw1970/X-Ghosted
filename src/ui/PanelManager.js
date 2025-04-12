@@ -129,7 +129,7 @@ window.PanelManager.prototype.init = function () {
     this.state.isPollingEnabled = isPollingEnabled;
     this.renderPanel();
     this.applyPanelStyles();
-    this.log(`Panel updated: Polling state changed to ${isPollingEnabled}`);
+    // this.log(`Panel updated: Polling state changed to ${isPollingEnabled}`);
   });
 
   this.renderPanel();
@@ -157,7 +157,6 @@ window.PanelManager.prototype.applyPanelStyles = function () {
     this.uiElements.panelContainer.style.border = `2px solid ${borderColor}`;
     this.uiElements.panelContainer.style.borderRadius = '12px';
   }
-  this.log(`Applied panel styles: right=${position.right}, top=${position.top}, borderColor=${borderColor}, isPollingEnabled=${this.state.isPollingEnabled}`);
 };
 
 window.PanelManager.prototype.init = function () {
@@ -224,7 +223,7 @@ window.PanelManager.prototype.init = function () {
     this.state.isPollingEnabled = isPollingEnabled;
     this.renderPanel();
     this.applyPanelStyles();
-    this.log(`Panel updated: Polling state changed to ${isPollingEnabled}`);
+    // this.log(`Panel updated: Polling state changed to ${isPollingEnabled}`);
   });
 
   this.renderPanel();
@@ -247,7 +246,7 @@ window.PanelManager.prototype.applyPanelStyles = function () {
       border-radius: 12px;
     }
   `;
-  this.log(`Applied panel styles: right=${position.right}, top=${position.top}, borderColor=${borderColor}`);
+  // this.log(`Applied panel styles: right=${position.right}, top=${position.top}, borderColor=${borderColor}`);
 };
 
 window.PanelManager.prototype.startDrag = function (e) {
