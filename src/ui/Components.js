@@ -205,14 +205,13 @@ function Panel({
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         .toolbar {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-bottom: 12px;
-          border-bottom: 1px solid var(--border-color);
-          margin-bottom: 12px;
-          padding-left: 10px;
-        }
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 12px;
+}
         .tools-section {
           display: ${isToolsExpanded ? 'block' : 'none'};
           padding: 12px;
@@ -333,23 +332,24 @@ function Panel({
       <div id="xghosted-panel">
       ${isVisible ? html`
         <div class="toolbar">
-          <div style="display: flex; align-items: center; gap: 10px; padding-left: 10px;">
-            <button
-              class="panel-button"
-              onClick=${toggleTools}
-              aria-label="Toggle Tools Section"
-            >
-              <i className="fas fa-chevron-down" style="marginRight: 6px;"></i> Tools
-            </button>
-            <button
-              class="panel-button"
-              onClick=${toggleVisibility}
-              aria-label="Hide Panel"
-            >
-              <i className="fas fa-eye-slash" style="marginRight: 6px;"></i> Hide
-            </button>
-          </div>
-        </div>
+  <button
+    class="panel-button"
+    onClick=${toggleTools}
+    aria-label="Toggle Tools Section"
+  >
+    <i className="fas fa-chevron-down" style="marginRight: 6px;"></i> Tools
+  </button>
+  <div style="display: flex; align-items: center; gap: 10px;">
+    {/* Placeholder for Stop/Start Highlighting button - to be added in Step 2 */}
+    <button
+      class="panel-button"
+      onClick=${toggleVisibility}
+      aria-label="Hide Panel"
+    >
+      <i className="fas fa-eye-slash" style="marginRight: 6px;"></i> Hide
+    </button>
+  </div>
+</div>
         <div class="tools-section">
           <div style="display: flex; flex-direction: column; gap: 12px; padding: 15px;">
             <div style="padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">

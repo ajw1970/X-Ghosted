@@ -503,7 +503,6 @@
             padding-bottom: 12px;
             border-bottom: 1px solid var(--border-color);
             margin-bottom: 12px;
-            padding-left: 10px;
           }
           .tools-section {
             display: ${isToolsExpanded ? 'block' : 'none'};
@@ -628,20 +627,20 @@
           ${isVisible
             ? html`
                 <div class="toolbar">
-                  <div
-                    style="display: flex; align-items: center; gap: 10px; padding-left: 10px;"
+                  <button
+                    class="panel-button"
+                    onClick=${toggleTools}
+                    aria-label="Toggle Tools Section"
                   >
-                    <button
-                      class="panel-button"
-                      onClick=${toggleTools}
-                      aria-label="Toggle Tools Section"
-                    >
-                      <i
-                        className="fas fa-chevron-down"
-                        style="marginRight: 6px;"
-                      ></i>
-                      Tools
-                    </button>
+                    <i
+                      className="fas fa-chevron-down"
+                      style="marginRight: 6px;"
+                    ></i>
+                    Tools
+                  </button>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    {/* Placeholder for Stop/Start Highlighting button - to be
+                    added in Step 2 */}
                     <button
                       class="panel-button"
                       onClick=${toggleVisibility}
