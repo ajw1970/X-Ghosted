@@ -44,6 +44,7 @@
 * [x] Stop auto collapsing didn't stop it from continuing with each poll.
 
 * [x] User requested eyeball check should stop polling.
+* [x] Allow file upload for import CSV
 
 * [ ] Fix resize panel
 

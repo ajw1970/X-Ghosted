@@ -318,6 +318,25 @@
   var html = window.htm.bind(window.preact.h);
   function Modal({ isOpen, onClose, onSubmit, mode, config }) {
     const [csvText, setCsvText] = useState('');
+    const handleFileChange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.name.endsWith('.csv')) {
+        alert('Please select a CSV file.');
+        e.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target.result;
+        setCsvText(text);
+      };
+      reader.onerror = () => {
+        alert('Error reading the file.');
+        e.target.value = '';
+      };
+      reader.readAsText(file);
+    };
     return html`
       <div>
         <style>
@@ -355,6 +374,19 @@
             padding: 4px;
             resize: none;
           }
+          .modal-file-input {
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 8px;
+            background: var(--modal-button-bg);
+            color: var(--modal-button-text);
+            border: 1px solid var(--modal-border);
+            border-radius: 4px;
+            cursor: pointer;
+          }
+          .modal-file-input:hover {
+            background: var(--modal-hover-bg);
+          }
           .modal-button-container {
             display: flex;
             justify-content: center;
@@ -384,11 +416,18 @@
         </style>
         <div class="modal">
           <div>
+            <input
+              type="file"
+              class="modal-file-input"
+              accept=".csv"
+              onChange=${handleFileChange}
+              aria-label="Select CSV file to import"
+            />
             <textarea
               class="modal-textarea"
               value=${csvText}
               onInput=${(e) => setCsvText(e.target.value)}
-              placeholder="Paste CSV content (e.g. Link Quality Reason Checked)"
+              placeholder="Paste CSV content (e.g. Link Quality Reason Checked) or select a file above"
               aria-label="CSV content input"
             ></textarea>
             <div class="modal-button-container">
