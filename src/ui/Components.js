@@ -321,149 +321,161 @@ function Panel({
         .link-item a:hover {
           text-decoration: underline;
         }
+        .problem-posts-header {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 12px;
+}
       </style>
       <div id="xghosted-panel">
-        ${isVisible ? html`
-          <div class="toolbar">
-            <span>Problem Posts (${flagged.length}):</span>
-            <div style="display: flex; align-items: center; gap: 10px; padding-left: 10px;">
+      ${isVisible ? html`
+        <div class="toolbar">
+          <div style="display: flex; align-items: center; gap: 10px; padding-left: 10px;">
+            <button
+              class="panel-button"
+              onClick=${toggleTools}
+              aria-label="Toggle Tools Section"
+            >
+              <i className="fas fa-chevron-down" style="marginRight: 6px;"></i> Tools
+            </button>
+            <button
+              class="panel-button"
+              onClick=${toggleVisibility}
+              aria-label="Hide Panel"
+            >
+              <i className="fas fa-eye-slash" style="marginRight: 6px;"></i> Hide
+            </button>
+          </div>
+        </div>
+        <div class="tools-section">
+          <div style="display: flex; flex-direction: column; gap: 12px; padding: 15px;">
+            <div style="padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+              <select
+                class="mode-selector"
+                style="width: 100%; padding: 8px 12px; fontSize: 14px;"
+                value=${currentMode}
+                onChange=${handleModeChange}
+              >
+                <option value="dark">Dark</option>
+                <option value="dim">Dim</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;">
               <button
                 class="panel-button"
-                onClick=${toggleTools}
-                aria-label="Toggle Tools Section"
+                onClick=${copyCallback}
+                aria-label="Copy Problem Links"
               >
-                <i className="fas fa-chevron-down" style="marginRight: 6px;"></i> Tools
+                <i className="fas fa-copy" style="marginRight: 8px;"></i> Copy
               </button>
               <button
                 class="panel-button"
-                onClick=${toggleVisibility}
-                aria-label="Hide Panel"
+                onClick=${onExportCSV}
+                aria-label="Export Posts to CSV"
               >
-                <i className="fas fa-eye-slash" style="marginRight: 6px;"></i> Hide
+                <i className="fas fa-file-export" style="marginRight: 8px;"></i> Export CSV
+              </button>
+              <button
+                class="panel-button"
+                onClick=${handleImportCSV}
+                aria-label="Import Posts from CSV"
+              >
+                <i className="fas fa-file-import" style="marginRight: 8px;"></i> Import CSV
+              </button>
+              <button
+                class="panel-button"
+                onClick=${onClear}
+                aria-label="Clear Processed Posts"
+              >
+                <i className="fas fa-trash" style="marginRight: 8px;"></i> Clear
+              </button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <button
+                class="panel-button"
+                style=${{
+                  background: state.isManualCheckEnabled
+                    ? config.THEMES[currentMode].hover
+                    : config.THEMES[currentMode].button,
+                  border: state.isManualCheckEnabled
+                    ? `1px solid ${config.THEMES[currentMode].hover}`
+                    : `1px solid ${config.THEMES[currentMode].border}`,
+                }}
+                onClick=${onManualCheckToggle}
+                aria-label=${`Toggle Manual Check: Currently ${state.isManualCheckEnabled ? 'On' : 'Off'}`}
+              >
+                <i className="fas fa-toggle-on" style="marginRight: 8px;"></i> Manual Check: ${state.isManualCheckEnabled ? 'On' : 'Off'}
               </button>
             </div>
           </div>
-          <div class="tools-section">
-            <div style="display: flex; flex-direction: column; gap: 12px; padding: 15px;">
-              <div style="padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
-                <select
-                  class="mode-selector"
-                  style="width: 100%; padding: 8px 12px; fontSize: 14px;"
-                  value=${currentMode}
-                  onChange=${handleModeChange}
-                >
-                  <option value="dark">Dark</option>
-                  <option value="dim">Dim</option>
-                  <option value="light">Light</option>
-                </select>
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;">
-                <button
-                  class="panel-button"
-                  onClick=${copyCallback}
-                  aria-label="Copy Problem Links"
-                >
-                  <i className="fas fa-copy" style="marginRight: 8px;"></i> Copy
-                </button>
-                <button
-                  class="panel-button"
-                  onClick=${onExportCSV}
-                  aria-label="Export Posts to CSV"
-                >
-                  <i className="fas fa-file-export" style="marginRight: 8px;"></i> Export CSV
-                </button>
-                <button
-                  class="panel-button"
-                  onClick=${handleImportCSV}
-                  aria-label="Import Posts from CSV"
-                >
-                  <i className="fas fa-file-import" style="marginRight: 8px;"></i> Import CSV
-                </button>
-                <button
-                  class="panel-button"
-                  onClick=${onClear}
-                  aria-label="Clear Processed Posts"
-                >
-                  <i className="fas fa-trash" style="marginRight: 8px;"></i> Clear
-                </button>
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 12px;">
-                <button
-                  class="panel-button"
-                  style=${{
-        background: state.isManualCheckEnabled
-          ? config.THEMES[currentMode].hover
-          : config.THEMES[currentMode].button,
-        border: state.isManualCheckEnabled
-          ? `1px solid ${config.THEMES[currentMode].hover}`
-          : `1px solid ${config.THEMES[currentMode].border}`,
-      }}
-                  onClick=${onManualCheckToggle}
-                  aria-label=${`Toggle Manual Check: Currently ${state.isManualCheckEnabled ? 'On' : 'Off'}`}
-                >
-                  <i className="fas fa-toggle-on" style="marginRight: 8px;"></i> Manual Check: ${state.isManualCheckEnabled ? 'On' : 'Off'}
-                </button>
-              </div>
-            </div>
+        </div>
+        <div class="control-row">
+          <span class="status-label">
+            ${state.isRateLimited ? 'Paused (Rate Limit)' : state.isCollapsingEnabled ? 'Auto Collapse Running' : 'Auto Collapse Off'}
+          </span>
+          <div style="display: flex; gap: 8px;">
+            <button
+              class="panel-button"
+              onClick=${onStart}
+              aria-label="Start Auto Collapse"
+            >
+              <i className="fas fa-play" style="marginRight: 6px;"></i> Start
+            </button>
+            <button
+              class="panel-button"
+              onClick=${onStop}
+              aria-label="Stop Auto Collapse"
+            >
+              <i className="fas fa-pause" style="marginRight: 6px;"></i> Stop
+            </button>
+            <button
+              class="panel-button"
+              onClick=${onReset}
+              aria-label="Reset Auto Collapse"
+            >
+              <i className="fas fa-undo" style="marginRight: 6px;"></i> Reset
+            </button>
           </div>
-          <div class="control-row">
-            <span class="status-label">
-              ${state.isRateLimited ? 'Paused (Rate Limit)' : state.isCollapsingEnabled ? 'Auto Collapse Running' : 'Auto Collapse Off'}
-            </span>
-            <div style="display: flex; gap: 8px;">
-              <button
-                class="panel-button"
-                onClick=${onStart}
-                aria-label="Start Auto Collapse"
-              >
-                <i className="fas fa-play" style="marginRight: 6px;"></i> Start
-              </button>
-              <button
-                class="panel-button"
-                onClick=${onStop}
-                aria-label="Stop Auto Collapse"
-              >
-                <i className="fas fa-pause" style="marginRight: 6px;"></i> Stop
-              </button>
-              <button
-                class="panel-button"
-                onClick=${onReset}
-                aria-label="Reset Auto Collapse"
-              >
-                <i className="fas fa-undo" style="marginRight: 6px;"></i> Reset
-              </button>
-            </div>
+        </div>
+        <div class="content-wrapper">
+          <div class="problem-posts-header">
+            Problem Posts (${flagged.length}):
           </div>
-          <div class="problem-links-wrapper content-wrapper">
+          <div class="problem-links-wrapper">
             ${flagged.map(([href, { analysis, checked }]) => html`
               <div class="link-row" style="padding: 4px 0;">
                 ${analysis.quality.name === "Problem"
-          ? html`<span class="status-dot status-problem"></span>`
-          : html`<span
-                      class="status-eyeball"
-                      tabIndex="0"
-                      role="button"
-                      aria-label="Check post manually"
-                      onClick=${() => !checked && onEyeballClick(href)}
-                      onKeyDown=${(e) => e.key === 'Enter' && !checked && onEyeballClick(href)}
-                    >👀</span>`}
+                  ? html`<span class="status-dot status-problem"></span>`
+                  : html`<span
+                              class="status-eyeball"
+                              tabIndex="0"
+                              role="button"
+                              aria-label="Check post manually"
+                              onClick=${() => !checked && onEyeballClick(href)}
+                              onKeyDown=${(e) => e.key === 'Enter' && !checked && onEyeballClick(href)}
+                            >👀</span>`}
                 <div class="link-item">
                   <a href="https://x.com${href}" target="_blank">${href}</a>
                 </div>
               </div>
             `)}
           </div>
-        ` : html`
-          <div style="display: flex; justify-content: flex-end;">
-            <button
-              class="panel-button"
-              onClick=${toggleVisibility}
-              aria-label="Show Panel"
-            >
-              <i className="fas fa-eye" style="marginRight: 6px;"></i> Show
-            </button>
-          </div>
-        `}
+        </div>
+      ` : html`
+        <div style="display: flex; justify-content: flex-end;">
+          <button
+            class="panel-button"
+            onClick=${toggleVisibility}
+            aria-label="Show Panel"
+          >
+            <i className="fas fa-eye" style="marginRight: 6px;"></i> Show
+          </button>
+        </div>
+      `}
       </div>
       <${Modal}
         isOpen=${isModalOpen}

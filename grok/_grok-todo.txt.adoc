@@ -36,6 +36,7 @@
 
 * [x] Fix move panel
 * [ ] Fix resize panel
+* [ ] Add ability to disable xGhosted from the panel (meaning the polling stops so that no new highlighting happens)
 * [ ] When manually checking, also scroll to the top after verifying the original post was identified.
 
 * Clarify dom for post container and X.com behavior

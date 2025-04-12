@@ -615,12 +615,19 @@
           .link-item a:hover {
             text-decoration: underline;
           }
+          .problem-posts-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 12px;
+          }
         </style>
         <div id="xghosted-panel">
           ${isVisible
             ? html`
                 <div class="toolbar">
-                  <span>Problem Posts (${flagged.length}):</span>
                   <div
                     style="display: flex; align-items: center; gap: 10px; padding-left: 10px;"
                   >
@@ -775,34 +782,40 @@
                     </button>
                   </div>
                 </div>
-                <div class="problem-links-wrapper content-wrapper">
-                  ${flagged.map(
-                    ([href, { analysis, checked }]) => html`
-                      <div class="link-row" style="padding: 4px 0;">
-                        ${analysis.quality.name === 'Problem'
-                          ? html`<span
-                              class="status-dot status-problem"
-                            ></span>`
-                          : html`<span
-                              class="status-eyeball"
-                              tabIndex="0"
-                              role="button"
-                              aria-label="Check post manually"
-                              onClick=${() => !checked && onEyeballClick(href)}
-                              onKeyDown=${(e) =>
-                                e.key === 'Enter' &&
-                                !checked &&
-                                onEyeballClick(href)}
-                              >👀</span
-                            >`}
-                        <div class="link-item">
-                          <a href="https://x.com${href}" target="_blank"
-                            >${href}</a
-                          >
+                <div class="content-wrapper">
+                  <div class="problem-posts-header">
+                    Problem Posts (${flagged.length}):
+                  </div>
+                  <div class="problem-links-wrapper">
+                    ${flagged.map(
+                      ([href, { analysis, checked }]) => html`
+                        <div class="link-row" style="padding: 4px 0;">
+                          ${analysis.quality.name === 'Problem'
+                            ? html`<span
+                                class="status-dot status-problem"
+                              ></span>`
+                            : html`<span
+                                class="status-eyeball"
+                                tabIndex="0"
+                                role="button"
+                                aria-label="Check post manually"
+                                onClick=${() =>
+                                  !checked && onEyeballClick(href)}
+                                onKeyDown=${(e) =>
+                                  e.key === 'Enter' &&
+                                  !checked &&
+                                  onEyeballClick(href)}
+                                >👀</span
+                              >`}
+                          <div class="link-item">
+                            <a href="https://x.com${href}" target="_blank"
+                              >${href}</a
+                            >
+                          </div>
                         </div>
-                      </div>
-                    `
-                  )}
+                      `
+                    )}
+                  </div>
                 </div>
               `
             : html`
