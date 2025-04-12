@@ -46,6 +46,7 @@
 * [x] User requested eyeball check should stop polling.
 * [x] Allow file upload for import CSV
 
+* [ ] Add border to Start Polling button when polling is stopped to make it clear what to use to restart polling.
 * [ ] Fix resize panel
 
 * Clarify dom for post container and X.com behavior
