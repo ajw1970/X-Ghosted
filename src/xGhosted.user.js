@@ -412,6 +412,8 @@
     onManualCheckToggle,
     onToggle,
     onEyeballClick,
+    onStartPolling,
+    onStopPolling,
   }) {
     const flagged = useMemo(
       () =>
@@ -460,6 +462,7 @@
       onImportCSV(csvText);
       setIsModalOpen(false);
     };
+    console.log(`Panel rendering: isPollingEnabled=${state.isPollingEnabled}`);
     return html`
       <div>
         <style>
@@ -471,15 +474,6 @@
             --hover-bg: ${config.THEMES[currentMode].hover};
             --border-color: ${config.THEMES[currentMode].border};
             --scroll-color: ${config.THEMES[currentMode].scroll};
-            --panel-border: ${currentMode === 'light'
-              ? '#333333'
-              : currentMode === 'dim'
-                ? '#D9D9D9'
-                : '#D9D9D9'};
-          }
-          #xghosted-panel-container {
-            border: 2px solid var(--panel-border);
-            border-radius: 12px;
           }
           #xghosted-panel {
             width: ${isVisible ? config.PANEL.WIDTH : '80px'};
@@ -638,9 +632,28 @@
                     ></i>
                     Tools
                   </button>
-                  <div style="display: flex; align-items: center; gap: 10px;">
-                    {/* Placeholder for Stop/Start Highlighting button - to be
-                    added in Step 2 */}
+                  <div
+                    style="display: flex; align-items: center; gap: 10px; padding-left: 10px;"
+                  >
+                    <button
+                      class="panel-button"
+                      onClick=${state.isPollingEnabled
+                        ? onStopPolling
+                        : onStartPolling}
+                      aria-label=${state.isPollingEnabled
+                        ? 'Stop Polling'
+                        : 'Start Polling'}
+                    >
+                      <i
+                        class=${state.isPollingEnabled
+                          ? 'fas fa-stop-circle'
+                          : 'fas fa-play-circle'}
+                        style="marginRight: 6px;"
+                      ></i>
+                      ${state.isPollingEnabled
+                        ? 'Stop Polling'
+                        : 'Start Polling'}
+                    </button>
                     <button
                       class="panel-button"
                       onClick=${toggleVisibility}
@@ -849,13 +862,13 @@
     this.log = xGhostedInstance.log;
     this.state = {
       panelPosition: { right: '10px', top: '60px' },
-      // Default, overridden by xGhosted
       instance: xGhostedInstance,
       processedPosts: /* @__PURE__ */ new Map(),
       isPanelVisible: true,
       isRateLimited: false,
       isCollapsingEnabled: false,
       isManualCheckEnabled: false,
+      isPollingEnabled: true,
       themeMode,
     };
     this.uiElements = {
@@ -901,6 +914,7 @@
       panel: null,
       panelContainer: null,
     };
+    this.styleElement = null;
     this.dragState = {
       isDragging: false,
       startX: 0,
@@ -926,6 +940,8 @@
     this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
     this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
     this.uiElements.panelContainer.style.left = 'auto';
+    this.styleElement = this.document.createElement('style');
+    this.document.head.appendChild(this.styleElement);
     this.applyPanelStyles();
     this.uiElements.panelContainer.addEventListener(
       'mousedown',
@@ -950,6 +966,7 @@
     this.xGhosted.on('theme-mode-changed', ({ themeMode }) => {
       this.state.themeMode = themeMode;
       this.renderPanel();
+      this.applyPanelStyles();
     });
     this.xGhosted.on('panel-position-changed', ({ panelPosition }) => {
       this.state.panelPosition = { ...panelPosition };
@@ -958,15 +975,25 @@
           this.state.panelPosition.right;
         this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
         this.uiElements.panelContainer.style.left = 'auto';
-      } else {
+        this.applyPanelStyles();
       }
+    });
+    this.xGhosted.on('polling-state-updated', ({ isPollingEnabled }) => {
+      this.state.isPollingEnabled = isPollingEnabled;
+      this.renderPanel();
+      this.applyPanelStyles();
+      this.log(`Panel updated: Polling state changed to ${isPollingEnabled}`);
     });
     this.renderPanel();
   };
   window.PanelManager.prototype.applyPanelStyles = function () {
     const position = this.state.panelPosition || { right: '10px', top: '60px' };
-    const styleSheet = this.document.createElement('style');
-    styleSheet.textContent = `
+    const borderColor = this.state.isPollingEnabled
+      ? this.state.themeMode === 'light'
+        ? '#333333'
+        : '#D9D9D9'
+      : '#FFA500';
+    this.styleElement.textContent = `
     button:active { transform: scale(0.95); }
     #xghosted-panel-container {
       position: fixed;
@@ -974,9 +1001,102 @@
       top: ${position.top};
       z-index: ${this.uiElements.config.PANEL.Z_INDEX};
       cursor: move;
+      border: 2px solid ${borderColor} !important;
+      border-radius: 12px;
     }
   `;
-    this.document.head.appendChild(styleSheet);
+    if (this.uiElements.panelContainer) {
+      this.uiElements.panelContainer.style.border = `2px solid ${borderColor}`;
+      this.uiElements.panelContainer.style.borderRadius = '12px';
+    }
+    this.log(
+      `Applied panel styles: right=${position.right}, top=${position.top}, borderColor=${borderColor}, isPollingEnabled=${this.state.isPollingEnabled}`
+    );
+  };
+  window.PanelManager.prototype.init = function () {
+    this.uiElements.panelContainer = this.document.createElement('div');
+    this.uiElements.panelContainer.id = 'xghosted-panel-container';
+    this.uiElements.panel = this.document.createElement('div');
+    this.uiElements.panelContainer.appendChild(this.uiElements.panel);
+    this.document.body.appendChild(this.uiElements.panelContainer);
+    this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
+    this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
+    this.state.isRateLimited = this.xGhosted.state.isRateLimited;
+    this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
+    this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
+    this.state.panelPosition =
+      this.xGhosted.state.panelPosition || this.state.panelPosition;
+    this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
+    this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+    this.uiElements.panelContainer.style.left = 'auto';
+    this.styleElement = this.document.createElement('style');
+    this.document.head.appendChild(this.styleElement);
+    this.applyPanelStyles();
+    this.uiElements.panelContainer.addEventListener(
+      'mousedown',
+      this.startDrag.bind(this)
+    );
+    this.document.addEventListener('mousemove', this.doDrag.bind(this));
+    this.document.addEventListener('mouseup', this.stopDrag.bind(this));
+    this.xGhosted.on('state-updated', (newState) => {
+      this.state.processedPosts = new Map(newState.processedPosts);
+      this.state.isRateLimited = newState.isRateLimited;
+      this.state.isCollapsingEnabled = newState.isCollapsingEnabled;
+      this.renderPanel();
+    });
+    this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
+      this.state.isManualCheckEnabled = isManualCheckEnabled;
+      this.renderPanel();
+    });
+    this.xGhosted.on('panel-visibility-toggled', ({ isPanelVisible }) => {
+      this.state.isPanelVisible = isPanelVisible;
+      this.renderPanel();
+    });
+    this.xGhosted.on('theme-mode-changed', ({ themeMode }) => {
+      this.state.themeMode = themeMode;
+      this.renderPanel();
+      this.applyPanelStyles();
+    });
+    this.xGhosted.on('panel-position-changed', ({ panelPosition }) => {
+      this.state.panelPosition = { ...panelPosition };
+      if (this.uiElements.panelContainer) {
+        this.uiElements.panelContainer.style.right =
+          this.state.panelPosition.right;
+        this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+        this.uiElements.panelContainer.style.left = 'auto';
+        this.applyPanelStyles();
+      }
+    });
+    this.xGhosted.on('polling-state-updated', ({ isPollingEnabled }) => {
+      this.state.isPollingEnabled = isPollingEnabled;
+      this.renderPanel();
+      this.applyPanelStyles();
+      this.log(`Panel updated: Polling state changed to ${isPollingEnabled}`);
+    });
+    this.renderPanel();
+  };
+  window.PanelManager.prototype.applyPanelStyles = function () {
+    const position = this.state.panelPosition || { right: '10px', top: '60px' };
+    const borderColor = this.state.isPollingEnabled
+      ? this.state.themeMode === 'light'
+        ? '#333333'
+        : '#D9D9D9'
+      : '#FFA500';
+    this.styleElement.textContent = `
+    button:active { transform: scale(0.95); }
+    #xghosted-panel-container {
+      position: fixed;
+      right: ${position.right};
+      top: ${position.top};
+      z-index: ${this.uiElements.config.PANEL.Z_INDEX};
+      cursor: move;
+      border: 2px solid ${borderColor};
+      border-radius: 12px;
+    }
+  `;
+    this.log(
+      `Applied panel styles: right=${position.right}, top=${position.top}, borderColor=${borderColor}`
+    );
   };
   window.PanelManager.prototype.startDrag = function (e) {
     if (e.target.closest('button, select, input, textarea')) return;
@@ -1039,6 +1159,8 @@
           );
           this.xGhosted.userRequestedPostCheck(href, post);
         },
+        onStartPolling: this.xGhosted.handleStartPolling.bind(this.xGhosted),
+        onStopPolling: this.xGhosted.handleStopPolling.bind(this.xGhosted),
       }),
       this.uiElements.panel
     );
@@ -1089,6 +1211,8 @@
       isPanelVisible: true,
       themeMode: null,
       isHighlighting: false,
+      isPollingEnabled: true,
+      // Renamed from isHighlightingEnabled
       panelPosition: { right: '10px', top: '60px' },
     };
     this.events = {};
@@ -1125,6 +1249,8 @@
       isPanelVisible: this.state.isPanelVisible,
       isCollapsingEnabled: this.state.isCollapsingEnabled,
       isManualCheckEnabled: this.state.isManualCheckEnabled,
+      isPollingEnabled: this.state.isPollingEnabled,
+      // Renamed from isHighlightingEnabled
       themeMode: this.state.themeMode,
       processedPosts: serializableArticles,
       panelPosition: { ...this.state.panelPosition },
@@ -1179,6 +1305,7 @@
     this.state.isPanelVisible = savedState.isPanelVisible ?? true;
     this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
     this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
+    this.state.isPollingEnabled = savedState.isPollingEnabled ?? true;
     this.state.themeMode = savedState.themeMode ?? null;
     if (
       savedState.panelPosition &&
@@ -1357,6 +1484,27 @@
       this.log(`Manual check skipped for ${href}: already checked`);
     }
   };
+  XGhosted.prototype.handleStartPolling = function () {
+    this.state.isPollingEnabled = true;
+    this.startPolling();
+    this.saveState();
+    this.emit('polling-state-updated', {
+      isPollingEnabled: this.state.isPollingEnabled,
+    });
+    this.log('Polling started');
+  };
+  XGhosted.prototype.handleStopPolling = function () {
+    this.state.isPollingEnabled = false;
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+    this.saveState();
+    this.emit('polling-state-updated', {
+      isPollingEnabled: this.state.isPollingEnabled,
+    });
+    this.log('Polling stopped');
+  };
   XGhosted.prototype.handleStart = function () {
     this.state.isCollapsingEnabled = true;
     this.state.isCollapsingRunning = true;
@@ -1502,6 +1650,10 @@
     return results;
   };
   XGhosted.prototype.startPolling = function () {
+    if (!this.state.isPollingEnabled) {
+      this.log('Polling not started: polling is disabled');
+      return;
+    }
     const pollInterval = this.timing.pollInterval || 1e3;
     this.log('Starting polling for post changes...');
     this.pollTimer = setInterval(() => {
@@ -1699,7 +1851,11 @@
         this.panelManager = null;
       }
     }
-    this.startPolling();
+    if (this.state.isPollingEnabled) {
+      this.startPolling();
+    } else {
+      this.log('Polling is disabled on init');
+    }
   };
   var XGhosted = XGhosted;
 

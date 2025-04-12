@@ -34,6 +34,7 @@ function XGhosted(doc, config = {}) {
     isPanelVisible: true,
     themeMode: null,
     isHighlighting: false,
+    isPollingEnabled: true, // Renamed from isHighlightingEnabled
     panelPosition: { right: '10px', top: '60px' }
   };
   this.events = {};
@@ -72,6 +73,7 @@ XGhosted.prototype.saveState = function () {
     isPanelVisible: this.state.isPanelVisible,
     isCollapsingEnabled: this.state.isCollapsingEnabled,
     isManualCheckEnabled: this.state.isManualCheckEnabled,
+    isPollingEnabled: this.state.isPollingEnabled, // Renamed from isHighlightingEnabled
     themeMode: this.state.themeMode,
     processedPosts: serializableArticles,
     panelPosition: { ...this.state.panelPosition }
@@ -114,6 +116,7 @@ XGhosted.prototype.loadState = function () {
   this.state.isPanelVisible = savedState.isPanelVisible ?? true;
   this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
   this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
+  this.state.isPollingEnabled = savedState.isPollingEnabled ?? true; // Renamed from isHighlightingEnabled
   this.state.themeMode = savedState.themeMode ?? null;
 
   if (savedState.panelPosition && savedState.panelPosition.right && savedState.panelPosition.top) {
@@ -270,6 +273,25 @@ XGhosted.prototype.userRequestedPostCheck = function (href, post) {
   }
 };
 
+XGhosted.prototype.handleStartPolling = function () {
+  this.state.isPollingEnabled = true;
+  this.startPolling(); // Restart polling if it was stopped
+  this.saveState();
+  this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
+  this.log('Polling started');
+};
+
+XGhosted.prototype.handleStopPolling = function () {
+  this.state.isPollingEnabled = false;
+  if (this.pollTimer) {
+    clearInterval(this.pollTimer);
+    this.pollTimer = null;
+  }
+  this.saveState();
+  this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
+  this.log('Polling stopped');
+};
+
 XGhosted.prototype.handleStart = function () {
   this.state.isCollapsingEnabled = true;
   this.state.isCollapsingRunning = true;
@@ -409,6 +431,10 @@ XGhosted.prototype.highlightPosts = function (posts) {
 };
 
 XGhosted.prototype.startPolling = function () {
+  if (!this.state.isPollingEnabled) {
+    this.log('Polling not started: polling is disabled');
+    return;
+  }
   const pollInterval = this.timing.pollInterval || 1000;
   this.log('Starting polling for post changes...');
   this.pollTimer = setInterval(() => {
@@ -599,7 +625,11 @@ XGhosted.prototype.init = function () {
     }
   }
 
-  this.startPolling();
+  if (this.state.isPollingEnabled) {
+    this.startPolling();
+  } else {
+    this.log('Polling is disabled on init');
+  }
 };
 
 export { XGhosted };

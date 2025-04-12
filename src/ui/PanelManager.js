@@ -3,13 +3,14 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
   this.xGhosted = xGhostedInstance;
   this.log = xGhostedInstance.log;
   this.state = {
-    panelPosition: { right: '10px', top: '60px' }, // Default, overridden by xGhosted
+    panelPosition: { right: '10px', top: '60px' },
     instance: xGhostedInstance,
     processedPosts: new Map(),
     isPanelVisible: true,
     isRateLimited: false,
     isCollapsingEnabled: false,
     isManualCheckEnabled: false,
+    isPollingEnabled: true,
     themeMode: themeMode,
   };
   this.uiElements = {
@@ -55,6 +56,7 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
     panel: null,
     panelContainer: null,
   };
+  this.styleElement = null;
   this.dragState = {
     isDragging: false,
     startX: 0,
@@ -63,6 +65,99 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
     initialTop: 0,
   };
   this.init();
+};
+window.PanelManager.prototype.init = function () {
+  this.uiElements.panelContainer = this.document.createElement('div');
+  this.uiElements.panelContainer.id = 'xghosted-panel-container';
+  this.uiElements.panel = this.document.createElement('div');
+  this.uiElements.panelContainer.appendChild(this.uiElements.panel);
+  this.document.body.appendChild(this.uiElements.panelContainer);
+
+  this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
+  this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
+  this.state.isRateLimited = this.xGhosted.state.isRateLimited;
+  this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
+  this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
+  this.state.panelPosition = this.xGhosted.state.panelPosition || this.state.panelPosition;
+
+  this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
+  this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+  this.uiElements.panelContainer.style.left = 'auto';
+
+  this.styleElement = this.document.createElement('style');
+  this.document.head.appendChild(this.styleElement);
+  this.applyPanelStyles();
+
+  this.uiElements.panelContainer.addEventListener('mousedown', this.startDrag.bind(this));
+  this.document.addEventListener('mousemove', this.doDrag.bind(this));
+  this.document.addEventListener('mouseup', this.stopDrag.bind(this));
+
+  this.xGhosted.on('state-updated', (newState) => {
+    this.state.processedPosts = new Map(newState.processedPosts);
+    this.state.isRateLimited = newState.isRateLimited;
+    this.state.isCollapsingEnabled = newState.isCollapsingEnabled;
+    this.renderPanel();
+  });
+
+  this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
+    this.state.isManualCheckEnabled = isManualCheckEnabled;
+    this.renderPanel();
+  });
+
+  this.xGhosted.on('panel-visibility-toggled', ({ isPanelVisible }) => {
+    this.state.isPanelVisible = isPanelVisible;
+    this.renderPanel();
+  });
+
+  this.xGhosted.on('theme-mode-changed', ({ themeMode }) => {
+    this.state.themeMode = themeMode;
+    this.renderPanel();
+    this.applyPanelStyles();
+  });
+
+  this.xGhosted.on('panel-position-changed', ({ panelPosition }) => {
+    this.state.panelPosition = { ...panelPosition };
+    if (this.uiElements.panelContainer) {
+      this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
+      this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+      this.uiElements.panelContainer.style.left = 'auto';
+      this.applyPanelStyles();
+    }
+  });
+
+  this.xGhosted.on('polling-state-updated', ({ isPollingEnabled }) => {
+    this.state.isPollingEnabled = isPollingEnabled;
+    this.renderPanel();
+    this.applyPanelStyles();
+    this.log(`Panel updated: Polling state changed to ${isPollingEnabled}`);
+  });
+
+  this.renderPanel();
+};
+
+window.PanelManager.prototype.applyPanelStyles = function () {
+  const position = this.state.panelPosition || { right: '10px', top: '60px' };
+  const borderColor = this.state.isPollingEnabled
+    ? (this.state.themeMode === 'light' ? '#333333' : '#D9D9D9')
+    : '#FFA500';
+  this.styleElement.textContent = `
+    button:active { transform: scale(0.95); }
+    #xghosted-panel-container {
+      position: fixed;
+      right: ${position.right};
+      top: ${position.top};
+      z-index: ${this.uiElements.config.PANEL.Z_INDEX};
+      cursor: move;
+      border: 2px solid ${borderColor} !important;
+      border-radius: 12px;
+    }
+  `;
+  // Fallback: Directly set the style on the element
+  if (this.uiElements.panelContainer) {
+    this.uiElements.panelContainer.style.border = `2px solid ${borderColor}`;
+    this.uiElements.panelContainer.style.borderRadius = '12px';
+  }
+  this.log(`Applied panel styles: right=${position.right}, top=${position.top}, borderColor=${borderColor}, isPollingEnabled=${this.state.isPollingEnabled}`);
 };
 
 window.PanelManager.prototype.init = function () {
@@ -82,8 +177,10 @@ window.PanelManager.prototype.init = function () {
   this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
   this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
   this.uiElements.panelContainer.style.left = 'auto';
-  // this.log(`PanelManager init: right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`);
 
+  // Initialize the style element
+  this.styleElement = this.document.createElement('style');
+  this.document.head.appendChild(this.styleElement);
   this.applyPanelStyles();
 
   this.uiElements.panelContainer.addEventListener('mousedown', this.startDrag.bind(this));
@@ -95,25 +192,22 @@ window.PanelManager.prototype.init = function () {
     this.state.isRateLimited = newState.isRateLimited;
     this.state.isCollapsingEnabled = newState.isCollapsingEnabled;
     this.renderPanel();
-    // this.log('Panel updated due to state-updated event');
   });
 
   this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
     this.state.isManualCheckEnabled = isManualCheckEnabled;
     this.renderPanel();
-    // this.log(`Panel updated: Manual Check toggled to ${isManualCheckEnabled}`);
   });
 
   this.xGhosted.on('panel-visibility-toggled', ({ isPanelVisible }) => {
     this.state.isPanelVisible = isPanelVisible;
     this.renderPanel();
-    // this.log(`Panel visibility updated to ${isPanelVisible}`);
   });
 
   this.xGhosted.on('theme-mode-changed', ({ themeMode }) => {
     this.state.themeMode = themeMode;
     this.renderPanel();
-    // this.log(`Panel updated to theme mode ${themeMode} via event`);
+    this.applyPanelStyles();
   });
 
   this.xGhosted.on('panel-position-changed', ({ panelPosition }) => {
@@ -122,10 +216,15 @@ window.PanelManager.prototype.init = function () {
       this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
       this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
       this.uiElements.panelContainer.style.left = 'auto';
-      // this.log(`Panel position updated: right=${panelPosition.right}, top=${panelPosition.top}`);
-    } else {
-      // this.log('Panel position update skipped: panelContainer not initialized');
+      this.applyPanelStyles();
     }
+  });
+
+  this.xGhosted.on('polling-state-updated', ({ isPollingEnabled }) => {
+    this.state.isPollingEnabled = isPollingEnabled;
+    this.renderPanel();
+    this.applyPanelStyles();
+    this.log(`Panel updated: Polling state changed to ${isPollingEnabled}`);
   });
 
   this.renderPanel();
@@ -133,8 +232,10 @@ window.PanelManager.prototype.init = function () {
 
 window.PanelManager.prototype.applyPanelStyles = function () {
   const position = this.state.panelPosition || { right: '10px', top: '60px' };
-  const styleSheet = this.document.createElement('style');
-  styleSheet.textContent = `
+  const borderColor = this.state.isPollingEnabled
+    ? (this.state.themeMode === 'light' ? '#333333' : '#D9D9D9')
+    : '#FFA500';
+  this.styleElement.textContent = `
     button:active { transform: scale(0.95); }
     #xghosted-panel-container {
       position: fixed;
@@ -142,10 +243,11 @@ window.PanelManager.prototype.applyPanelStyles = function () {
       top: ${position.top};
       z-index: ${this.uiElements.config.PANEL.Z_INDEX};
       cursor: move;
+      border: 2px solid ${borderColor};
+      border-radius: 12px;
     }
   `;
-  this.document.head.appendChild(styleSheet);
-  // this.log(`Applied panel styles: right=${position.right}, top=${position.top}`);
+  this.log(`Applied panel styles: right=${position.right}, top=${position.top}, borderColor=${borderColor}`);
 };
 
 window.PanelManager.prototype.startDrag = function (e) {
@@ -215,6 +317,8 @@ window.PanelManager.prototype.renderPanel = function () {
         const post = this.document.querySelector(`[data-xghosted-id="${href}"]`);
         this.xGhosted.userRequestedPostCheck(href, post);
       },
+      onStartPolling: this.xGhosted.handleStartPolling.bind(this.xGhosted),
+      onStopPolling: this.xGhosted.handleStopPolling.bind(this.xGhosted),
     }),
     this.uiElements.panel
   );
