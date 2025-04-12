@@ -82,7 +82,7 @@ window.PanelManager.prototype.init = function () {
   this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
   this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
   this.uiElements.panelContainer.style.left = 'auto';
-  this.log(`PanelManager init: right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`);
+  // this.log(`PanelManager init: right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`);
 
   this.applyPanelStyles();
 
@@ -95,25 +95,25 @@ window.PanelManager.prototype.init = function () {
     this.state.isRateLimited = newState.isRateLimited;
     this.state.isCollapsingEnabled = newState.isCollapsingEnabled;
     this.renderPanel();
-    this.log('Panel updated due to state-updated event');
+    // this.log('Panel updated due to state-updated event');
   });
 
   this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
     this.state.isManualCheckEnabled = isManualCheckEnabled;
     this.renderPanel();
-    this.log(`Panel updated: Manual Check toggled to ${isManualCheckEnabled}`);
+    // this.log(`Panel updated: Manual Check toggled to ${isManualCheckEnabled}`);
   });
 
   this.xGhosted.on('panel-visibility-toggled', ({ isPanelVisible }) => {
     this.state.isPanelVisible = isPanelVisible;
     this.renderPanel();
-    this.log(`Panel visibility updated to ${isPanelVisible}`);
+    // this.log(`Panel visibility updated to ${isPanelVisible}`);
   });
 
   this.xGhosted.on('theme-mode-changed', ({ themeMode }) => {
     this.state.themeMode = themeMode;
     this.renderPanel();
-    this.log(`Panel updated to theme mode ${themeMode} via event`);
+    // this.log(`Panel updated to theme mode ${themeMode} via event`);
   });
 
   this.xGhosted.on('panel-position-changed', ({ panelPosition }) => {
@@ -122,9 +122,9 @@ window.PanelManager.prototype.init = function () {
       this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
       this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
       this.uiElements.panelContainer.style.left = 'auto';
-      this.log(`Panel position updated: right=${panelPosition.right}, top=${panelPosition.top}`);
+      // this.log(`Panel position updated: right=${panelPosition.right}, top=${panelPosition.top}`);
     } else {
-      this.log('Panel position update skipped: panelContainer not initialized');
+      // this.log('Panel position update skipped: panelContainer not initialized');
     }
   });
 
@@ -145,7 +145,7 @@ window.PanelManager.prototype.applyPanelStyles = function () {
     }
   `;
   this.document.head.appendChild(styleSheet);
-  this.log(`Applied panel styles: right=${position.right}, top=${position.top}`);
+  // this.log(`Applied panel styles: right=${position.right}, top=${position.top}`);
 };
 
 window.PanelManager.prototype.startDrag = function (e) {
@@ -157,7 +157,7 @@ window.PanelManager.prototype.startDrag = function (e) {
   const rect = this.uiElements.panelContainer.getBoundingClientRect();
   this.dragState.initialRight = window.innerWidth - rect.right;
   this.dragState.initialTop = rect.top;
-  this.log('Started dragging panel');
+  // this.log('Started dragging panel');
 };
 
 window.PanelManager.prototype.doDrag = function (e) {
@@ -180,14 +180,14 @@ window.PanelManager.prototype.doDrag = function (e) {
   this.uiElements.panelContainer.style.left = 'auto';
 
   this.state.panelPosition = { right: `${newRight}px`, top: `${newTop}px` };
-  this.log(`Dragging panel: right=${newRight}, top=${newTop}`);
+  // this.log(`Dragging panel: right=${newRight}, top=${newTop}`);
 };
 
 window.PanelManager.prototype.stopDrag = function () {
   if (this.dragState.isDragging) {
     this.dragState.isDragging = false;
     this.xGhosted.setPanelPosition(this.state.panelPosition);
-    this.log(`Stopped dragging panel, updated position: right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`);
+    // this.log(`Stopped dragging panel, updated position: right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`);
   }
 };
 
@@ -218,7 +218,7 @@ window.PanelManager.prototype.renderPanel = function () {
     }),
     this.uiElements.panel
   );
-  this.log('Panel rendered');
+  // this.log('Panel rendered');
 };
 
 window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
@@ -227,14 +227,14 @@ window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
 
   if (previousVisibility !== this.state.isPanelVisible) {
     this.xGhosted.togglePanelVisibility(this.state.isPanelVisible);
-    this.log(`Panel visibility toggled to ${this.state.isPanelVisible}`);
+    // this.log(`Panel visibility toggled to ${this.state.isPanelVisible}`);
   }
 };
 
 window.PanelManager.prototype.updateTheme = function (newMode) {
   this.state.themeMode = newMode;
   this.renderPanel();
-  this.log(`Panel theme updated to ${newMode}`);
+  // this.log(`Panel theme updated to ${newMode}`);
 };
 
 window.PanelManager.prototype.handleModeChange = function (newMode) {
