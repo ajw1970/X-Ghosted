@@ -5,7 +5,6 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
   this.state = {
     panelPosition: null,
     instance: xGhostedInstance,
-    // Local state to mirror xGhosted state, updated via events
     processedPosts: new Map(),
     isPanelVisible: true,
     isRateLimited: false,
@@ -54,13 +53,24 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
       }
     },
     panel: null,
+    panelContainer: null,
+  };
+  this.dragState = {
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    initialLeft: 0,
+    initialTop: 0,
   };
   this.init();
 };
 
 window.PanelManager.prototype.init = function () {
+  this.uiElements.panelContainer = this.document.createElement('div');
+  this.uiElements.panelContainer.id = 'xghosted-panel-container';
   this.uiElements.panel = this.document.createElement('div');
-  this.document.body.appendChild(this.uiElements.panel);
+  this.uiElements.panelContainer.appendChild(this.uiElements.panel);
+  this.document.body.appendChild(this.uiElements.panelContainer);
   this.applyPanelStyles();
 
   this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
@@ -68,6 +78,10 @@ window.PanelManager.prototype.init = function () {
   this.state.isRateLimited = this.xGhosted.state.isRateLimited;
   this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
   this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
+
+  this.uiElements.panelContainer.addEventListener('mousedown', this.startDrag.bind(this));
+  this.document.addEventListener('mousemove', this.doDrag.bind(this));
+  this.document.addEventListener('mouseup', this.stopDrag.bind(this));
 
   this.xGhosted.on('state-updated', (newState) => {
     this.state.processedPosts = new Map(newState.processedPosts);
@@ -102,14 +116,60 @@ window.PanelManager.prototype.applyPanelStyles = function () {
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
     button:active { transform: scale(0.95); }
+    #xghosted-panel-container {
+      position: fixed;
+      top: ${this.uiElements.config.PANEL.TOP};
+      right: ${this.uiElements.config.PANEL.RIGHT};
+      z-index: ${this.uiElements.config.PANEL.Z_INDEX};
+      cursor: move;
+    }
   `;
   this.document.head.appendChild(styleSheet);
+};
+
+window.PanelManager.prototype.startDrag = function (e) {
+  if (e.target.closest('button, select, input, textarea')) return;
+  e.preventDefault();
+  this.dragState.isDragging = true;
+  this.dragState.startX = e.clientX;
+  this.dragState.startY = e.clientY;
+  const rect = this.uiElements.panelContainer.getBoundingClientRect();
+  this.dragState.initialLeft = rect.left;
+  this.dragState.initialTop = rect.top;
+  this.log('Started dragging panel');
+};
+
+window.PanelManager.prototype.doDrag = function (e) {
+  if (!this.dragState.isDragging) return;
+  const deltaX = e.clientX - this.dragState.startX;
+  const deltaY = e.clientY - this.dragState.startY;
+  let newLeft = this.dragState.initialLeft + deltaX;
+  let newTop = this.dragState.initialTop + deltaY;
+
+  const panelWidth = this.uiElements.panelContainer.offsetWidth;
+  const panelHeight = this.uiElements.panelContainer.offsetHeight;
+  const windowWidth = window.innerWidth;
+  const windowHeight = window.innerHeight;
+
+  newLeft = Math.max(0, Math.min(newLeft, windowWidth - panelWidth));
+  newTop = Math.max(0, Math.min(newTop, windowHeight - panelHeight));
+
+  this.uiElements.panelContainer.style.left = `${newLeft}px`;
+  this.uiElements.panelContainer.style.top = `${newTop}px`;
+  this.uiElements.panelContainer.style.right = 'auto';
+};
+
+window.PanelManager.prototype.stopDrag = function () {
+  if (this.dragState.isDragging) {
+    this.dragState.isDragging = false;
+    this.log('Stopped dragging panel');
+  }
 };
 
 window.PanelManager.prototype.renderPanel = function () {
   window.preact.render(
     window.preact.h(window.Panel, {
-      state: this.state, // Use local state instead of xGhosted.state
+      state: this.state,
       config: this.uiElements.config,
       copyCallback: this.xGhosted.copyLinks.bind(this.xGhosted),
       mode: this.state.themeMode,
@@ -133,8 +193,7 @@ window.PanelManager.prototype.renderPanel = function () {
 };
 
 window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
-  this.xGhosted.togglePanelVisibility(newVisibility); // Delegate to xGhosted
-  // Rendering is handled by the event listener
+  this.xGhosted.togglePanelVisibility(newVisibility);
 };
 
 window.PanelManager.prototype.updateTheme = function (newMode) {

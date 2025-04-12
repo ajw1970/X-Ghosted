@@ -471,6 +471,15 @@
             --hover-bg: ${config.THEMES[currentMode].hover};
             --border-color: ${config.THEMES[currentMode].border};
             --scroll-color: ${config.THEMES[currentMode].scroll};
+            --panel-border: ${currentMode === 'light'
+              ? '#333333'
+              : currentMode === 'dim'
+                ? '#D9D9D9'
+                : '#D9D9D9'};
+          }
+          #xghosted-panel-container {
+            border: 2px solid var(--panel-border);
+            border-radius: 12px;
           }
           #xghosted-panel {
             width: ${isVisible ? config.PANEL.WIDTH : '80px'};
@@ -478,14 +487,11 @@
             min-width: ${isVisible ? '250px' : '80px'};
             padding: ${isVisible ? '12px' : '4px'};
             transition: all 0.2s ease;
-            position: fixed;
-            top: ${config.PANEL.TOP};
-            right: ${config.PANEL.RIGHT};
+            position: relative;
             z-index: ${config.PANEL.Z_INDEX};
             font-family: ${config.PANEL.FONT};
             background: var(--bg-color);
             color: var(--text-color);
-            border: 1px solid var(--border-color);
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
           }
@@ -828,7 +834,6 @@
     this.state = {
       panelPosition: null,
       instance: xGhostedInstance,
-      // Local state to mirror xGhosted state, updated via events
       processedPosts: /* @__PURE__ */ new Map(),
       isPanelVisible: true,
       isRateLimited: false,
@@ -877,18 +882,35 @@
         },
       },
       panel: null,
+      panelContainer: null,
+    };
+    this.dragState = {
+      isDragging: false,
+      startX: 0,
+      startY: 0,
+      initialLeft: 0,
+      initialTop: 0,
     };
     this.init();
   };
   window.PanelManager.prototype.init = function () {
+    this.uiElements.panelContainer = this.document.createElement('div');
+    this.uiElements.panelContainer.id = 'xghosted-panel-container';
     this.uiElements.panel = this.document.createElement('div');
-    this.document.body.appendChild(this.uiElements.panel);
+    this.uiElements.panelContainer.appendChild(this.uiElements.panel);
+    this.document.body.appendChild(this.uiElements.panelContainer);
     this.applyPanelStyles();
     this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
     this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
     this.state.isRateLimited = this.xGhosted.state.isRateLimited;
     this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
     this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
+    this.uiElements.panelContainer.addEventListener(
+      'mousedown',
+      this.startDrag.bind(this)
+    );
+    this.document.addEventListener('mousemove', this.doDrag.bind(this));
+    this.document.addEventListener('mouseup', this.stopDrag.bind(this));
     this.xGhosted.on('state-updated', (newState) => {
       this.state.processedPosts = new Map(newState.processedPosts);
       this.state.isRateLimited = newState.isRateLimited;
@@ -919,14 +941,53 @@
     const styleSheet = this.document.createElement('style');
     styleSheet.textContent = `
     button:active { transform: scale(0.95); }
+    #xghosted-panel-container {
+      position: fixed;
+      top: ${this.uiElements.config.PANEL.TOP};
+      right: ${this.uiElements.config.PANEL.RIGHT};
+      z-index: ${this.uiElements.config.PANEL.Z_INDEX};
+      cursor: move;
+    }
   `;
     this.document.head.appendChild(styleSheet);
+  };
+  window.PanelManager.prototype.startDrag = function (e) {
+    if (e.target.closest('button, select, input, textarea')) return;
+    e.preventDefault();
+    this.dragState.isDragging = true;
+    this.dragState.startX = e.clientX;
+    this.dragState.startY = e.clientY;
+    const rect = this.uiElements.panelContainer.getBoundingClientRect();
+    this.dragState.initialLeft = rect.left;
+    this.dragState.initialTop = rect.top;
+    this.log('Started dragging panel');
+  };
+  window.PanelManager.prototype.doDrag = function (e) {
+    if (!this.dragState.isDragging) return;
+    const deltaX = e.clientX - this.dragState.startX;
+    const deltaY = e.clientY - this.dragState.startY;
+    let newLeft = this.dragState.initialLeft + deltaX;
+    let newTop = this.dragState.initialTop + deltaY;
+    const panelWidth = this.uiElements.panelContainer.offsetWidth;
+    const panelHeight = this.uiElements.panelContainer.offsetHeight;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    newLeft = Math.max(0, Math.min(newLeft, windowWidth - panelWidth));
+    newTop = Math.max(0, Math.min(newTop, windowHeight - panelHeight));
+    this.uiElements.panelContainer.style.left = `${newLeft}px`;
+    this.uiElements.panelContainer.style.top = `${newTop}px`;
+    this.uiElements.panelContainer.style.right = 'auto';
+  };
+  window.PanelManager.prototype.stopDrag = function () {
+    if (this.dragState.isDragging) {
+      this.dragState.isDragging = false;
+      this.log('Stopped dragging panel');
+    }
   };
   window.PanelManager.prototype.renderPanel = function () {
     window.preact.render(
       window.preact.h(window.Panel, {
         state: this.state,
-        // Use local state instead of xGhosted.state
         config: this.uiElements.config,
         copyCallback: this.xGhosted.copyLinks.bind(this.xGhosted),
         mode: this.state.themeMode,

@@ -86,9 +86,9 @@ function Modal({ isOpen, onClose, onSubmit, mode, config }) {
             <button
               class="modal-button"
               onClick=${() => {
-                setCsvText('');
-                onClose();
-              }}
+      setCsvText('');
+      onClose();
+    }}
               aria-label="Close modal and clear input"
             >
               <i className="fas fa-times" style="marginRight: 6px;"></i> Close
@@ -182,6 +182,14 @@ function Panel({
           --hover-bg: ${config.THEMES[currentMode].hover};
           --border-color: ${config.THEMES[currentMode].border};
           --scroll-color: ${config.THEMES[currentMode].scroll};
+          --panel-border: ${currentMode === 'light' ? '#333333' :
+      currentMode === 'dim' ? '#D9D9D9' :
+        '#D9D9D9'
+    };
+        }
+        #xghosted-panel-container {
+          border: 2px solid var(--panel-border);
+          border-radius: 12px;
         }
         #xghosted-panel {
           width: ${isVisible ? config.PANEL.WIDTH : '80px'};
@@ -189,14 +197,11 @@ function Panel({
           min-width: ${isVisible ? '250px' : '80px'};
           padding: ${isVisible ? '12px' : '4px'};
           transition: all 0.2s ease;
-          position: fixed;
-          top: ${config.PANEL.TOP};
-          right: ${config.PANEL.RIGHT};
+          position: relative;
           z-index: ${config.PANEL.Z_INDEX};
           font-family: ${config.PANEL.FONT};
           background: var(--bg-color);
           color: var(--text-color);
-          border: 1px solid var(--border-color);
           border-radius: 12px;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
