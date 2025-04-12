@@ -38,7 +38,7 @@
 * [x] Adjust layout to open up room in top tool bar. Move post counter down to be a listing header.
 * [x] Add ability to disable xGhosted from the panel (meaning the polling stops so that no new highlighting happens). Have the panel container element change color to indicate.
 * [x] Dial in size of panel when collapsed.
-* [ ] Start/Stop icon isn't updating for polling until doing something else to trigger a panel refresh
+* [x] Start/Stop icon isn't updating for polling until doing something else to trigger a panel refresh
 * [ ] Rename handleStart/Stop/Reset to clarify Collapsing
 * [ ] Fix resize panel
 * [ ] When manually checking, also scroll to the top after verifying the original post was identified.

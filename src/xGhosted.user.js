@@ -636,6 +636,9 @@
                     style="display: flex; align-items: center; gap: 10px; padding-left: 10px;"
                   >
                     <button
+                      key=${state.isPollingEnabled
+                        ? 'stop-button'
+                        : 'start-button'}
                       class="panel-button"
                       onClick=${state.isPollingEnabled
                         ? onStopPolling
@@ -646,8 +649,8 @@
                     >
                       <i
                         class=${state.isPollingEnabled
-                          ? 'fas fa-stop-circle'
-                          : 'fas fa-play-circle'}
+                          ? 'fa-solid fa-circle-stop'
+                          : 'fa-solid fa-circle-play'}
                         style="marginRight: 6px;"
                       ></i>
                       ${state.isPollingEnabled

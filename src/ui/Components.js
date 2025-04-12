@@ -338,13 +338,17 @@ function Panel({
             </button>
             <div style="display: flex; align-items: center; gap: 10px; padding-left: 10px;">
               <button
-                class="panel-button"
-                onClick=${state.isPollingEnabled ? onStopPolling : onStartPolling}
-                aria-label=${state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
-              >
-                <i class=${state.isPollingEnabled ? 'fas fa-stop-circle' : 'fas fa-play-circle'} style="marginRight: 6px;"></i>
-                ${state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
-              </button>
+  key=${state.isPollingEnabled ? 'stop-button' : 'start-button'}
+  class="panel-button"
+  onClick=${state.isPollingEnabled ? onStopPolling : onStartPolling}
+  aria-label=${state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
+>
+  <i
+    class=${state.isPollingEnabled ? 'fa-solid fa-circle-stop' : 'fa-solid fa-circle-play'}
+    style="marginRight: 6px;"
+  ></i>
+  ${state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
+</button>
               <button
                 class="panel-button"
                 onClick=${toggleVisibility}
