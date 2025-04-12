@@ -189,10 +189,10 @@ function Panel({
           --scroll-color: ${config.THEMES[currentMode].scroll};
         }
         #xghosted-panel {
-          width: ${isVisible ? config.PANEL.WIDTH : '80px'};
+          width: ${isVisible ? config.PANEL.WIDTH : 'auto'};
           max-height: ${isVisible ? config.PANEL.MAX_HEIGHT : '48px'};
-          min-width: ${isVisible ? '250px' : '80px'};
-          padding: ${isVisible ? '12px' : '4px'};
+          min-width: ${isVisible ? '250px' : '60px'};
+          padding: ${isVisible ? '12px' : '4px 4px 4px 4px'};
           transition: width 0.2s ease, max-height 0.2s ease;
           position: relative;
           font-family: ${config.PANEL.FONT};
@@ -470,7 +470,7 @@ function Panel({
             </div>
           </div>
         ` : html`
-          <div style="display: flex; justify-content: flex-end;">
+          <div style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
             <button
               class="panel-button"
               onClick=${toggleVisibility}

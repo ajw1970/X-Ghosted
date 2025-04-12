@@ -73,7 +73,7 @@ XGhosted.prototype.saveState = function () {
     isPanelVisible: this.state.isPanelVisible,
     isCollapsingEnabled: this.state.isCollapsingEnabled,
     isManualCheckEnabled: this.state.isManualCheckEnabled,
-    isPollingEnabled: this.state.isPollingEnabled, // Renamed from isHighlightingEnabled
+    // Remove isPollingEnabled from saved state
     themeMode: this.state.themeMode,
     processedPosts: serializableArticles,
     panelPosition: { ...this.state.panelPosition }
@@ -116,7 +116,7 @@ XGhosted.prototype.loadState = function () {
   this.state.isPanelVisible = savedState.isPanelVisible ?? true;
   this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
   this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
-  this.state.isPollingEnabled = savedState.isPollingEnabled ?? true; // Renamed from isHighlightingEnabled
+  // Remove loading of isPollingEnabled; it will use the default value from the constructor
   this.state.themeMode = savedState.themeMode ?? null;
 
   if (savedState.panelPosition && savedState.panelPosition.right && savedState.panelPosition.top) {
@@ -625,11 +625,10 @@ XGhosted.prototype.init = function () {
     }
   }
 
-  if (this.state.isPollingEnabled) {
-    this.startPolling();
-  } else {
-    this.log('Polling is disabled on init');
-  }
+  // Emit polling state to sync PanelManager
+  this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
+
+  this.startPolling();
 };
 
 export { XGhosted };

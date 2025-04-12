@@ -476,10 +476,10 @@
             --scroll-color: ${config.THEMES[currentMode].scroll};
           }
           #xghosted-panel {
-            width: ${isVisible ? config.PANEL.WIDTH : '80px'};
+            width: ${isVisible ? config.PANEL.WIDTH : 'auto'};
             max-height: ${isVisible ? config.PANEL.MAX_HEIGHT : '48px'};
-            min-width: ${isVisible ? '250px' : '80px'};
-            padding: ${isVisible ? '12px' : '4px'};
+            min-width: ${isVisible ? '250px' : '60px'};
+            padding: ${isVisible ? '12px' : '4px 4px 4px 4px'};
             transition:
               width 0.2s ease,
               max-height 0.2s ease;
@@ -831,7 +831,9 @@
                 </div>
               `
             : html`
-                <div style="display: flex; justify-content: flex-end;">
+                <div
+                  style="display: flex; justify-content: flex-end; padding: 0; margin: 0;"
+                >
                   <button
                     class="panel-button"
                     onClick=${toggleVisibility}
@@ -1249,8 +1251,7 @@
       isPanelVisible: this.state.isPanelVisible,
       isCollapsingEnabled: this.state.isCollapsingEnabled,
       isManualCheckEnabled: this.state.isManualCheckEnabled,
-      isPollingEnabled: this.state.isPollingEnabled,
-      // Renamed from isHighlightingEnabled
+      // Remove isPollingEnabled from saved state
       themeMode: this.state.themeMode,
       processedPosts: serializableArticles,
       panelPosition: { ...this.state.panelPosition },
@@ -1305,7 +1306,6 @@
     this.state.isPanelVisible = savedState.isPanelVisible ?? true;
     this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
     this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
-    this.state.isPollingEnabled = savedState.isPollingEnabled ?? true;
     this.state.themeMode = savedState.themeMode ?? null;
     if (
       savedState.panelPosition &&
@@ -1851,11 +1851,10 @@
         this.panelManager = null;
       }
     }
-    if (this.state.isPollingEnabled) {
-      this.startPolling();
-    } else {
-      this.log('Polling is disabled on init');
-    }
+    this.emit('polling-state-updated', {
+      isPollingEnabled: this.state.isPollingEnabled,
+    });
+    this.startPolling();
   };
   var XGhosted = XGhosted;
 
