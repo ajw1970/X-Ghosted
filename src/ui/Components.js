@@ -196,9 +196,8 @@ function Panel({
           max-height: ${isVisible ? config.PANEL.MAX_HEIGHT : '48px'};
           min-width: ${isVisible ? '250px' : '80px'};
           padding: ${isVisible ? '12px' : '4px'};
-          transition: all 0.2s ease;
+          transition: width 0.2s ease, max-height 0.2s ease;
           position: relative;
-          z-index: ${config.PANEL.Z_INDEX};
           font-family: ${config.PANEL.FONT};
           background: var(--bg-color);
           color: var(--text-color);
@@ -455,13 +454,15 @@ function Panel({
             `)}
           </div>
         ` : html`
-          <button
-            class="panel-button"
-            onClick=${toggleVisibility}
-            aria-label="Show Panel"
-          >
-            <i className="fas fa-eye" style="marginRight: 6px;"></i> Show
-          </button>
+          <div style="display: flex; justify-content: flex-end;">
+            <button
+              class="panel-button"
+              onClick=${toggleVisibility}
+              aria-label="Show Panel"
+            >
+              <i className="fas fa-eye" style="marginRight: 6px;"></i> Show
+            </button>
+          </div>
         `}
       </div>
       <${Modal}

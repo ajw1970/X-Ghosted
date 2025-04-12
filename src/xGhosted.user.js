@@ -486,9 +486,10 @@
             max-height: ${isVisible ? config.PANEL.MAX_HEIGHT : '48px'};
             min-width: ${isVisible ? '250px' : '80px'};
             padding: ${isVisible ? '12px' : '4px'};
-            transition: all 0.2s ease;
+            transition:
+              width 0.2s ease,
+              max-height 0.2s ease;
             position: relative;
-            z-index: ${config.PANEL.Z_INDEX};
             font-family: ${config.PANEL.FONT};
             background: var(--bg-color);
             color: var(--text-color);
@@ -805,13 +806,16 @@
                 </div>
               `
             : html`
-                <button
-                  class="panel-button"
-                  onClick=${toggleVisibility}
-                  aria-label="Show Panel"
-                >
-                  <i className="fas fa-eye" style="marginRight: 6px;"></i> Show
-                </button>
+                <div style="display: flex; justify-content: flex-end;">
+                  <button
+                    class="panel-button"
+                    onClick=${toggleVisibility}
+                    aria-label="Show Panel"
+                  >
+                    <i className="fas fa-eye" style="marginRight: 6px;"></i>
+                    Show
+                  </button>
+                </div>
               `}
         </div>
         <${Modal}
@@ -832,7 +836,7 @@
     this.xGhosted = xGhostedInstance;
     this.log = xGhostedInstance.log;
     this.state = {
-      panelPosition: null,
+      panelPosition: { right: '10px', top: '60px' },
       instance: xGhostedInstance,
       processedPosts: /* @__PURE__ */ new Map(),
       isPanelVisible: true,
@@ -888,7 +892,7 @@
       isDragging: false,
       startX: 0,
       startY: 0,
-      initialLeft: 0,
+      initialRight: 0,
       initialTop: 0,
     };
     this.init();
@@ -905,6 +909,8 @@
     this.state.isRateLimited = this.xGhosted.state.isRateLimited;
     this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
     this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
+    this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
+    this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
     this.uiElements.panelContainer.addEventListener(
       'mousedown',
       this.startDrag.bind(this)
@@ -943,8 +949,8 @@
     button:active { transform: scale(0.95); }
     #xghosted-panel-container {
       position: fixed;
-      top: ${this.uiElements.config.PANEL.TOP};
-      right: ${this.uiElements.config.PANEL.RIGHT};
+      right: ${this.state.panelPosition.right};
+      top: ${this.state.panelPosition.top};
       z-index: ${this.uiElements.config.PANEL.Z_INDEX};
       cursor: move;
     }
@@ -958,7 +964,7 @@
     this.dragState.startX = e.clientX;
     this.dragState.startY = e.clientY;
     const rect = this.uiElements.panelContainer.getBoundingClientRect();
-    this.dragState.initialLeft = rect.left;
+    this.dragState.initialRight = window.innerWidth - rect.right;
     this.dragState.initialTop = rect.top;
     this.log('Started dragging panel');
   };
@@ -966,17 +972,20 @@
     if (!this.dragState.isDragging) return;
     const deltaX = e.clientX - this.dragState.startX;
     const deltaY = e.clientY - this.dragState.startY;
-    let newLeft = this.dragState.initialLeft + deltaX;
+    let newRight = this.dragState.initialRight - deltaX;
     let newTop = this.dragState.initialTop + deltaY;
     const panelWidth = this.uiElements.panelContainer.offsetWidth;
     const panelHeight = this.uiElements.panelContainer.offsetHeight;
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
-    newLeft = Math.max(0, Math.min(newLeft, windowWidth - panelWidth));
+    newRight = Math.max(0, Math.min(newRight, windowWidth - panelWidth));
     newTop = Math.max(0, Math.min(newTop, windowHeight - panelHeight));
-    this.uiElements.panelContainer.style.left = `${newLeft}px`;
+    this.uiElements.panelContainer.style.right = `${newRight}px`;
     this.uiElements.panelContainer.style.top = `${newTop}px`;
-    this.uiElements.panelContainer.style.right = 'auto';
+    this.uiElements.panelContainer.style.left = 'auto';
+    this.state.panelPosition.right = `${newRight}px`;
+    this.state.panelPosition.top = `${newTop}px`;
+    this.log(`Dragging panel: right=${newRight}, top=${newTop}`);
   };
   window.PanelManager.prototype.stopDrag = function () {
     if (this.dragState.isDragging) {
@@ -1014,7 +1023,15 @@
     this.log('Panel rendered');
   };
   window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
-    this.xGhosted.togglePanelVisibility(newVisibility);
+    const previousVisibility = this.state.isPanelVisible;
+    this.state.isPanelVisible =
+      typeof newVisibility === 'boolean'
+        ? newVisibility
+        : !this.state.isPanelVisible;
+    if (previousVisibility !== this.state.isPanelVisible) {
+      this.xGhosted.togglePanelVisibility(this.state.isPanelVisible);
+      this.log(`Panel visibility toggled to ${this.state.isPanelVisible}`);
+    }
   };
   window.PanelManager.prototype.updateTheme = function (newMode) {
     this.state.themeMode = newMode;
