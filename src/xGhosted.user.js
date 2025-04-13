@@ -271,7 +271,6 @@
         'div[data-testid="cellInnerDiv"]'
       );
       if (!potentialPosts.length) {
-        log('No posts found with data-testid="cellInnerDiv"');
         return null;
       }
       let firstPost = null;
@@ -507,13 +506,11 @@
           const modalStyleSheet = this.document.createElement('style');
           modalStyleSheet.textContent = window.xGhostedStyles.modal;
           this.document.head.appendChild(modalStyleSheet);
-          this.log('Injected Modal CSS');
         }
         if (window.xGhostedStyles.panel) {
           const panelStyleSheet = this.document.createElement('style');
           panelStyleSheet.textContent = window.xGhostedStyles.panel;
           this.document.head.appendChild(panelStyleSheet);
-          this.log('Injected Panel CSS');
         }
       }
       this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
@@ -729,12 +726,8 @@
       window.preactHooks.useEffect(() => {
         setUpdateCounter((prev) => prev + 1);
       }, [state.processedPosts]);
-      window.preactHooks.useEffect(() => {
-        console.log('isModalOpen changed to:', isModalOpen);
-      }, [isModalOpen]);
-      window.preactHooks.useEffect(() => {
-        console.log('Manual Check state:', state.isManualCheckEnabled);
-      }, [state.isManualCheckEnabled]);
+      window.preactHooks.useEffect(() => {}, [isModalOpen]);
+      window.preactHooks.useEffect(() => {}, [state.isManualCheckEnabled]);
       const toggleVisibility = () => {
         const newVisibility = !isVisible;
         setIsVisible(newVisibility);
@@ -1190,7 +1183,7 @@
         tabCheckThrottle: 5e3,
         exportThrottle: 5e3,
         pollInterval: 1e3,
-        scrollInterval: 2e3,
+        scrollInterval: 1500,
       };
       this.timing = { ...defaultTiming, ...config.timing };
       this.document = doc;
@@ -1543,7 +1536,6 @@
         const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
         const postCount = posts.length;
         if (postCount > 0) {
-          this.log(`Found ${postCount} new posts, highlighting...`);
           this.highlightPosts(posts);
         } else if (
           !this.document.querySelector('div[data-xghosted="posts-container"]')
@@ -1629,10 +1621,8 @@
     XGhosted.prototype.ensureAndHighlightPosts = function () {
       let results = this.highlightPosts();
       if (results.length === 0 && !this.state.postContainer) {
-        this.log('No posts highlighted, attempting to find container...');
         this.state.postContainer = findPostContainer(this.document, this.log);
         if (this.state.postContainer) {
-          this.log('Container found, retrying highlightPosts...');
           results = this.highlightPosts();
         } else {
           this.log('Container still not found, skipping highlighting');

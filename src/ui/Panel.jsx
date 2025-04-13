@@ -42,11 +42,11 @@ function Panel({
   }, [state.processedPosts]);
 
   window.preactHooks.useEffect(() => {
-    console.log('isModalOpen changed to:', isModalOpen);
+    // console.log('isModalOpen changed to:', isModalOpen);
   }, [isModalOpen]);
 
   window.preactHooks.useEffect(() => {
-    console.log('Manual Check state:', state.isManualCheckEnabled);
+    // console.log('Manual Check state:', state.isManualCheckEnabled);
   }, [state.isManualCheckEnabled]);
 
   const toggleVisibility = () => {

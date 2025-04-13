@@ -15,7 +15,7 @@ function XGhosted(doc, config = {}) {
     tabCheckThrottle: 5000,
     exportThrottle: 5000,
     pollInterval: 1000,
-    scrollInterval: 2000
+    scrollInterval: 1500
   };
   this.timing = { ...defaultTiming, ...config.timing };
   this.document = doc;
@@ -313,7 +313,7 @@ XGhosted.prototype.startPolling = function () {
     const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
     const postCount = posts.length;
     if (postCount > 0) {
-      this.log(`Found ${postCount} new posts, highlighting...`);
+      // this.log(`Found ${postCount} new posts, highlighting...`);
       this.highlightPosts(posts);
     } else if (!this.document.querySelector('div[data-xghosted="posts-container"]')) {
       this.log('No posts and no container found, ensuring and highlighting...');
@@ -395,10 +395,10 @@ XGhosted.prototype.expandArticle = function (article) {
 XGhosted.prototype.ensureAndHighlightPosts = function () {
   let results = this.highlightPosts();
   if (results.length === 0 && !this.state.postContainer) {
-    this.log('No posts highlighted, attempting to find container...');
+    // this.log('No posts highlighted, attempting to find container...');
     this.state.postContainer = findPostContainer(this.document, this.log);
     if (this.state.postContainer) {
-      this.log('Container found, retrying highlightPosts...');
+      // this.log('Container found, retrying highlightPosts...');
       results = this.highlightPosts();
     } else {
       this.log('Container still not found, skipping highlighting');

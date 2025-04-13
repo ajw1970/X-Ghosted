@@ -1,7 +1,7 @@
 function findPostContainer(doc, log = () => { }) {
   const potentialPosts = doc.querySelectorAll('div[data-testid="cellInnerDiv"]');
   if (!potentialPosts.length) {
-    log('No posts found with data-testid="cellInnerDiv"');
+    // log('No posts found with data-testid="cellInnerDiv"');
     return null;
   }
 

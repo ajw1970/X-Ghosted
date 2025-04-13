@@ -179,13 +179,13 @@ window.PanelManager.prototype.init = function () {
       const modalStyleSheet = this.document.createElement('style');
       modalStyleSheet.textContent = window.xGhostedStyles.modal;
       this.document.head.appendChild(modalStyleSheet);
-      this.log('Injected Modal CSS');
+      // this.log('Injected Modal CSS');
     }
     if (window.xGhostedStyles.panel) {
       const panelStyleSheet = this.document.createElement('style');
       panelStyleSheet.textContent = window.xGhostedStyles.panel;
       this.document.head.appendChild(panelStyleSheet);
-      this.log('Injected Panel CSS');
+      // this.log('Injected Panel CSS');
     }
   }
 
