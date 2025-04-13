@@ -5,8 +5,9 @@ import { debounce } from './utils/debounce';
 import { findPostContainer } from './dom/findPostContainer.js';
 import { getRelativeLinkToPost } from './utils/getRelativeLinkToPost.js';
 import { copyTextToClipboard, exportToCSV } from './utils/clipboardUtils.js';
-import './ui/Components.js';
 import './ui/PanelManager.js';
+import './ui/Panel.jsx';
+import './ui/Modal.jsx';
 
 function XGhosted(doc, config = {}) {
   const defaultTiming = {
@@ -34,7 +35,7 @@ function XGhosted(doc, config = {}) {
     isPanelVisible: true,
     themeMode: null,
     isHighlighting: false,
-    isPollingEnabled: true, // Renamed from isHighlightingEnabled
+    isPollingEnabled: true,
     panelPosition: { right: '10px', top: '60px' }
   };
   this.events = {};
@@ -73,7 +74,6 @@ XGhosted.prototype.saveState = function () {
     isPanelVisible: this.state.isPanelVisible,
     isCollapsingEnabled: this.state.isCollapsingEnabled,
     isManualCheckEnabled: this.state.isManualCheckEnabled,
-    // Remove isPollingEnabled from saved state
     themeMode: this.state.themeMode,
     processedPosts: serializableArticles,
     panelPosition: { ...this.state.panelPosition }
@@ -84,7 +84,7 @@ XGhosted.prototype.saveState = function () {
   const oldProcessedPostsArray = Array.from(
     (oldState.processedPosts ? Object.entries(oldState.processedPosts) : []).map(([id, { analysis, checked }]) => [
       id,
-      { analysis: { ...analysis, quality: postQuality[analysis.quality.name] }, checked },
+      { analysis: { ...analysis, quality: postQuality[analysis.quality.name] }, checked }
     ])
   );
 
@@ -104,10 +104,8 @@ XGhosted.prototype.saveState = function () {
   });
 
   if (processedPostsChanged || otherStateChanged) {
-    // this.log(`Saving state with panelPosition: right=${newState.panelPosition.right}, top=${newState.panelPosition.top}`);
     GM_setValue('xGhostedState', newState);
     this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
-    // this.log('State saved and state-updated emitted');
   }
 };
 
@@ -116,12 +114,11 @@ XGhosted.prototype.loadState = function () {
   this.state.isPanelVisible = savedState.isPanelVisible ?? true;
   this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
   this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
-  // Remove loading of isPollingEnabled; it will use the default value from the constructor
   this.state.themeMode = savedState.themeMode ?? null;
 
   if (savedState.panelPosition && savedState.panelPosition.right && savedState.panelPosition.top) {
     const panelWidth = 350;
-    const panelHeight = 48; // Collapsed height for clamping
+    const panelHeight = 48;
     const windowWidth = this.document.defaultView.innerWidth;
     const windowHeight = this.document.defaultView.innerHeight;
 
@@ -131,7 +128,6 @@ XGhosted.prototype.loadState = function () {
     top = isNaN(top) ? 60 : Math.max(0, Math.min(top, windowHeight - panelHeight));
 
     this.state.panelPosition = { right: `${right}px`, top: `${top}px` };
-    // this.log(`Loaded panelPosition: right=${right}, top=${top}`);
   } else {
     this.log('No valid saved panelPosition, using default: right=10px, top=60px');
     this.state.panelPosition = { right: '10px', top: '60px' };
@@ -155,21 +151,18 @@ XGhosted.prototype.setPanelPosition = function (panelPosition) {
   }
 
   const panelWidth = 350;
-  const panelHeight = 48; // Collapsed height for clamping
+  const panelHeight = 48;
   const windowWidth = this.document.defaultView.innerWidth;
   const windowHeight = this.document.defaultView.innerHeight;
 
   let right = parseFloat(panelPosition.right);
   let top = parseFloat(panelPosition.top);
-  // this.log(`setPanelPosition input: right=${right}, top=${top}`);
-
   right = isNaN(right) ? 10 : Math.max(0, Math.min(right, windowWidth - panelWidth));
   top = isNaN(top) ? 60 : Math.max(0, Math.min(top, windowHeight - panelHeight));
 
   this.state.panelPosition = { right: `${right}px`, top: `${top}px` };
   this.emit('panel-position-changed', { panelPosition: { ...this.state.panelPosition } });
   this.saveState();
-  // this.log(`Panel position set: right=${right}, top=${top}`);
 };
 
 XGhosted.prototype.updateState = function (url) {
@@ -255,12 +248,10 @@ XGhosted.prototype.userRequestedPostCheck = function (href, post) {
     return;
   }
   if (!cached.checked) {
-    // Stop polling before starting the manual check
     this.handleStopPolling();
     this.log(`Manual check starting for ${href}`);
     this.checkPostInNewTab(href).then((isProblem) => {
       this.log(`Manual check result for ${href}: ${isProblem ? 'problem' : 'good'}`);
-      // Re-query the post element to ensure it's still in the DOM
       const currentPost = this.document.querySelector(`[data-xghosted-id="${href}"]`);
       if (!currentPost) {
         this.log(`Post with href ${href} no longer exists in the DOM, skipping DOM update`);
@@ -275,14 +266,11 @@ XGhosted.prototype.userRequestedPostCheck = function (href, post) {
           this.log(`Eyeball container not found for post with href: ${href}`);
         }
       }
-      // Update the state regardless of DOM presence
       cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
       cached.checked = true;
       this.state.processedPosts.set(href, cached);
       this.saveState();
       this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
-      // Resume polling after the check completes
-      // this.handleStartPolling();
       this.log(`User requested post check completed for ${href}`);
     });
   } else {
@@ -292,10 +280,9 @@ XGhosted.prototype.userRequestedPostCheck = function (href, post) {
 
 XGhosted.prototype.handleStartPolling = function () {
   this.state.isPollingEnabled = true;
-  this.startPolling(); // Restart polling if it was stopped
+  this.startPolling();
   this.saveState();
   this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
-  // this.log('Polling started');
 };
 
 XGhosted.prototype.handleStopPolling = function () {
@@ -306,7 +293,6 @@ XGhosted.prototype.handleStopPolling = function () {
   }
   this.saveState();
   this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
-  // this.log('Polling stopped');
 };
 
 XGhosted.prototype.startAutoCollapsing = function () {
@@ -353,7 +339,6 @@ XGhosted.prototype.togglePanelVisibility = function (newVisibility) {
   const previousVisibility = this.state.isPanelVisible;
   this.state.isPanelVisible = typeof newVisibility === 'boolean' ? newVisibility : !this.state.isPanelVisible;
   if (previousVisibility !== this.state.isPanelVisible) {
-    // this.log(`Panel visibility toggled to ${this.state.isPanelVisible}`);
     this.emit('panel-visibility-toggled', { isPanelVisible: this.state.isPanelVisible });
     this.saveState();
   }
@@ -500,9 +485,10 @@ XGhosted.prototype.getThemeMode = function () {
 
 XGhosted.prototype.copyLinks = function () {
   const linksText = Array.from(this.state.processedPosts.entries())
-    .filter(([_, { analysis }]) =>
-      analysis.quality === postQuality.PROBLEM ||
-      analysis.quality === postQuality.POTENTIAL_PROBLEM
+    .filter(
+      ([_, { analysis }]) =>
+        analysis.quality === postQuality.PROBLEM ||
+        analysis.quality === postQuality.POTENTIAL_PROBLEM
     )
     .map(([link]) => `https://x.com${link}`)
     .join('\n');
@@ -573,8 +559,6 @@ XGhosted.prototype.init = function () {
     this.state.themeMode = this.getThemeMode();
     this.log(`No saved themeMode found, detected: ${this.state.themeMode}`);
     this.saveState();
-  } else {
-    // this.log(`Loaded saved themeMode: ${this.state.themeMode}`);
   }
 
   const styleSheet = this.document.createElement('style');
@@ -593,6 +577,21 @@ XGhosted.prototype.init = function () {
     }
   `;
   this.document.head.appendChild(styleSheet);
+
+  if (window.xGhostedStyles) {
+    if (window.xGhostedStyles.modal) {
+      const modalStyleSheet = this.document.createElement('style');
+      modalStyleSheet.textContent = window.xGhostedStyles.modal;
+      this.document.head.appendChild(modalStyleSheet);
+      this.log('Injected Modal CSS');
+    }
+    if (window.xGhostedStyles.panel) {
+      const panelStyleSheet = this.document.createElement('style');
+      panelStyleSheet.textContent = window.xGhostedStyles.panel;
+      this.document.head.appendChild(panelStyleSheet);
+      this.log('Injected Panel CSS');
+    }
+  }
 
   this.document.addEventListener('click', (e) => {
     const eyeball = e.target.closest('.xghosted-eyeball') ||
@@ -633,7 +632,7 @@ XGhosted.prototype.init = function () {
     this.log(`Theme mode updated to ${themeMode} via event`);
   });
 
-  if (!window.preact || !window.preactHooks || !window.htm) {
+  if (!window.preact || !window.preactHooks) {
     this.log('Preact dependencies missing. Skipping GUI Panel initialization.');
     this.panelManager = null;
   } else {
@@ -646,10 +645,9 @@ XGhosted.prototype.init = function () {
     }
   }
 
-  // Emit polling state to sync PanelManager
   this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
 
   this.startPolling();
 };
 
-export { XGhosted };
+window.XGhosted = XGhosted;
