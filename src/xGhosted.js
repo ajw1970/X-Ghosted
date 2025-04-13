@@ -7,7 +7,6 @@ import { getRelativeLinkToPost } from './utils/getRelativeLinkToPost.js';
 import { copyTextToClipboard, exportToCSV } from './utils/clipboardUtils.js';
 import './ui/PanelManager.js';
 import './ui/Panel.jsx';
-import './ui/Modal.jsx';
 
 function XGhosted(doc, config = {}) {
   const defaultTiming = {
@@ -504,7 +503,7 @@ XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
   }
   const headers = lines[0];
   const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
-  if (!expectedHeaders.every((h, i) => h === headers[i])) {
+  if (!expectedHeaders.every((header, i) => header === headers[i])) {
     this.log('CSV header mismatch');
     return;
   }
@@ -622,4 +621,5 @@ XGhosted.prototype.init = function () {
 };
 
 window.XGhosted = XGhosted;
-export { XGhosted }
+
+export { XGhosted };

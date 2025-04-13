@@ -317,6 +317,100 @@
     }
 
     // src/ui/PanelManager.js
+    function Modal({ isOpen, onClose, onSubmit, mode, config }) {
+      const [csvText, setCsvText] = window.preactHooks.useState('');
+      const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!file.name.endsWith('.csv')) {
+          alert('Please select a CSV file.');
+          e.target.value = '';
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const text = event.target.result;
+          setCsvText(text);
+        };
+        reader.onerror = () => {
+          alert('Error reading the file.');
+          e.target.value = '';
+        };
+        reader.readAsText(file);
+      };
+      return window.preact.h(
+        'div',
+        null,
+        window.preact.h(
+          'div',
+          {
+            className: 'modal',
+            style: {
+              display: isOpen ? 'block' : 'none',
+              '--modal-bg': config.THEMES[mode].bg,
+              '--modal-text': config.THEMES[mode].text,
+              '--modal-button-bg': config.THEMES[mode].button,
+              '--modal-button-text': config.THEMES[mode].buttonText,
+              '--modal-hover-bg': config.THEMES[mode].hover,
+              '--modal-border': config.THEMES[mode].border,
+            },
+          },
+          window.preact.h(
+            'div',
+            null,
+            window.preact.h('input', {
+              type: 'file',
+              className: 'modal-file-input',
+              accept: '.csv',
+              onChange: handleFileChange,
+              'aria-label': 'Select CSV file to import',
+            }),
+            window.preact.h('textarea', {
+              className: 'modal-textarea',
+              value: csvText,
+              onInput: (e) => setCsvText(e.target.value),
+              placeholder:
+                'Paste CSV content (e.g. Link Quality Reason Checked) or select a file above',
+              'aria-label': 'CSV content input',
+            }),
+            window.preact.h(
+              'div',
+              { className: 'modal-button-container' },
+              window.preact.h(
+                'button',
+                {
+                  className: 'modal-button',
+                  onClick: () => onSubmit(csvText),
+                  'aria-label': 'Submit CSV content',
+                },
+                window.preact.h('i', {
+                  className: 'fas fa-check',
+                  style: { marginRight: '6px' },
+                }),
+                'Submit'
+              ),
+              window.preact.h(
+                'button',
+                {
+                  className: 'modal-button',
+                  onClick: () => {
+                    setCsvText('');
+                    onClose();
+                  },
+                  'aria-label': 'Close modal and clear input',
+                },
+                window.preact.h('i', {
+                  className: 'fas fa-times',
+                  style: { marginRight: '6px' },
+                }),
+                'Close'
+              )
+            )
+          )
+        )
+      );
+    }
+    window.Modal = Modal;
     window.PanelManager = function (
       doc,
       xGhostedInstance,
@@ -474,7 +568,11 @@
           this.renderPanel();
         }
       );
-      this.renderPanel();
+      if (window.preact && window.preact.h) {
+        this.renderPanel();
+      } else {
+        this.log('Preact h not available, skipping panel render');
+      }
     };
     window.PanelManager.prototype.applyPanelStyles = function () {
       const position = this.state.panelPosition || {
@@ -544,9 +642,7 @@
           xGhosted: this.xGhosted,
           mode: this.state.themeMode,
           onModeChange: this.handleModeChange.bind(this),
-          // Bind to fix potential issue
           onToggle: this.toggleVisibility.bind(this),
-          // Bind to fix Hide/Show bug
           onEyeballClick: (href) => {
             const post = this.document.querySelector(
               `[data-xghosted-id="${href}"]`
@@ -576,8 +672,6 @@
     };
 
     // src/ui/Panel.jsx
-    var { h, Fragment } = window.preact;
-    var { useState, useEffect, useMemo } = window.preactHooks;
     function Panel({
       state,
       config,
@@ -587,7 +681,7 @@
       onToggle,
       onEyeballClick,
     }) {
-      const flagged = useMemo(
+      const flagged = window.preactHooks.useMemo(
         () =>
           Array.from(state.processedPosts.entries()).filter(
             ([_, { analysis }]) =>
@@ -596,25 +690,28 @@
           ),
         [state.processedPosts]
       );
-      const [isVisible, setIsVisible] = useState(state.isPanelVisible);
-      const [isToolsExpanded, setIsToolsExpanded] = useState(false);
-      const [isModalOpen, setIsModalOpen] = useState(false);
-      const [currentMode, setCurrentMode] = useState(mode);
-      const [updateCounter, setUpdateCounter] = useState(0);
-      useEffect(() => {
+      const [isVisible, setIsVisible] = window.preactHooks.useState(
+        state.isPanelVisible
+      );
+      const [isToolsExpanded, setIsToolsExpanded] =
+        window.preactHooks.useState(false);
+      const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
+      const [currentMode, setCurrentMode] = window.preactHooks.useState(mode);
+      const [updateCounter, setUpdateCounter] = window.preactHooks.useState(0);
+      window.preactHooks.useEffect(() => {
         if (state.isPanelVisible !== isVisible) {
           setIsVisible(state.isPanelVisible);
         }
       }, [state.isPanelVisible, isVisible]);
-      useEffect(() => {
+      window.preactHooks.useEffect(() => {
         if (mode !== currentMode) {
           setCurrentMode(mode);
         }
       }, [mode, currentMode]);
-      useEffect(() => {
+      window.preactHooks.useEffect(() => {
         setUpdateCounter((prev) => prev + 1);
       }, [state.processedPosts]);
-      useEffect(() => {
+      window.preactHooks.useEffect(() => {
         console.log('isModalOpen changed to:', isModalOpen);
       }, [isModalOpen]);
       const toggleVisibility = () => {
@@ -626,12 +723,7 @@
         console.log('Tools button clicked');
         setIsToolsExpanded((prev) => {
           const newState = !prev;
-          console.log(
-            'isToolsExpanded toggled to:',
-            newState,
-            'icon:',
-            toolsIconClass
-          );
+          console.log('isToolsExpanded toggled to:', newState);
           return newState;
         });
       };
@@ -658,10 +750,10 @@
       const autoScrollIconClass = state.isAutoScrollingEnabled
         ? 'fa-solid fa-circle-stop'
         : 'fa-solid fa-circle-play';
-      return /* @__PURE__ */ h(
+      return /* @__PURE__ */ window.preact.h(
         'div',
         null,
-        /* @__PURE__ */ h(
+        /* @__PURE__ */ window.preact.h(
           'div',
           {
             id: 'xghosted-panel',
@@ -686,13 +778,13 @@
             },
           },
           isVisible
-            ? /* @__PURE__ */ h(
-                Fragment,
+            ? /* @__PURE__ */ window.preact.h(
+                window.preact.Fragment,
                 null,
-                /* @__PURE__ */ h(
+                /* @__PURE__ */ window.preact.h(
                   'div',
                   { className: 'toolbar' },
-                  /* @__PURE__ */ h(
+                  /* @__PURE__ */ window.preact.h(
                     'button',
                     {
                       key: isToolsExpanded
@@ -702,7 +794,7 @@
                       onClick: toggleTools,
                       'aria-label': 'Toggle Tools Section',
                     },
-                    /* @__PURE__ */ h('i', {
+                    /* @__PURE__ */ window.preact.h('i', {
                       className: toolsIconClass,
                       style: { marginRight: '6px' },
                       onError: () =>
@@ -712,7 +804,7 @@
                     }),
                     'Tools'
                   ),
-                  /* @__PURE__ */ h(
+                  /* @__PURE__ */ window.preact.h(
                     'div',
                     {
                       style: {
@@ -722,7 +814,7 @@
                         paddingLeft: '10px',
                       },
                     },
-                    /* @__PURE__ */ h(
+                    /* @__PURE__ */ window.preact.h(
                       'button',
                       {
                         key: state.isPollingEnabled
@@ -737,7 +829,7 @@
                           ? 'Stop Polling'
                           : 'Start Polling',
                       },
-                      /* @__PURE__ */ h('i', {
+                      /* @__PURE__ */ window.preact.h('i', {
                         className: pollingIconClass,
                         style: { marginRight: '6px' },
                         onError: () =>
@@ -747,7 +839,7 @@
                       }),
                       state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'
                     ),
-                    /* @__PURE__ */ h(
+                    /* @__PURE__ */ window.preact.h(
                       'button',
                       {
                         key: state.isAutoScrollingEnabled
@@ -759,7 +851,7 @@
                           ? 'Stop Auto-Scroll'
                           : 'Start Auto-Scroll',
                       },
-                      /* @__PURE__ */ h('i', {
+                      /* @__PURE__ */ window.preact.h('i', {
                         className: autoScrollIconClass,
                         style: { marginRight: '6px' },
                         onError: () =>
@@ -771,14 +863,14 @@
                         ? 'Stop Scroll'
                         : 'Start Scroll'
                     ),
-                    /* @__PURE__ */ h(
+                    /* @__PURE__ */ window.preact.h(
                       'button',
                       {
                         className: 'panel-button',
                         onClick: toggleVisibility,
                         'aria-label': 'Hide Panel',
                       },
-                      /* @__PURE__ */ h('i', {
+                      /* @__PURE__ */ window.preact.h('i', {
                         className: 'fas fa-eye-slash',
                         style: { marginRight: '6px' },
                         onError: () =>
@@ -790,7 +882,7 @@
                     )
                   )
                 ),
-                /* @__PURE__ */ h(
+                /* @__PURE__ */ window.preact.h(
                   'div',
                   {
                     className: 'tools-section',
@@ -804,7 +896,7 @@
                       borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
                     },
                   },
-                  /* @__PURE__ */ h(
+                  /* @__PURE__ */ window.preact.h(
                     'div',
                     {
                       style: {
@@ -814,7 +906,7 @@
                         padding: '15px',
                       },
                     },
-                    /* @__PURE__ */ h(
+                    /* @__PURE__ */ window.preact.h(
                       'div',
                       {
                         style: {
@@ -822,7 +914,7 @@
                           borderBottom: '1px solid var(--border-color)',
                         },
                       },
-                      /* @__PURE__ */ h(
+                      /* @__PURE__ */ window.preact.h(
                         'select',
                         {
                           className: 'mode-selector',
@@ -834,12 +926,24 @@
                           value: currentMode,
                           onChange: handleModeChange,
                         },
-                        /* @__PURE__ */ h('option', { value: 'dark' }, 'Dark'),
-                        /* @__PURE__ */ h('option', { value: 'dim' }, 'Dim'),
-                        /* @__PURE__ */ h('option', { value: 'light' }, 'Light')
+                        /* @__PURE__ */ window.preact.h(
+                          'option',
+                          { value: 'dark' },
+                          'Dark'
+                        ),
+                        /* @__PURE__ */ window.preact.h(
+                          'option',
+                          { value: 'dim' },
+                          'Dim'
+                        ),
+                        /* @__PURE__ */ window.preact.h(
+                          'option',
+                          { value: 'light' },
+                          'Light'
+                        )
                       )
                     ),
-                    /* @__PURE__ */ h(
+                    /* @__PURE__ */ window.preact.h(
                       'div',
                       {
                         style: {
@@ -849,14 +953,14 @@
                           marginBottom: '8px',
                         },
                       },
-                      /* @__PURE__ */ h(
+                      /* @__PURE__ */ window.preact.h(
                         'button',
                         {
                           className: 'panel-button',
                           onClick: () => xGhosted.copyLinks(),
                           'aria-label': 'Copy Problem Links',
                         },
-                        /* @__PURE__ */ h('i', {
+                        /* @__PURE__ */ window.preact.h('i', {
                           className: 'fas fa-copy',
                           style: { marginRight: '8px' },
                           onError: () =>
@@ -866,14 +970,14 @@
                         }),
                         'Copy'
                       ),
-                      /* @__PURE__ */ h(
+                      /* @__PURE__ */ window.preact.h(
                         'button',
                         {
                           className: 'panel-button',
                           onClick: () => xGhosted.exportProcessedPostsCSV(),
                           'aria-label': 'Export Posts to CSV',
                         },
-                        /* @__PURE__ */ h('i', {
+                        /* @__PURE__ */ window.preact.h('i', {
                           className: 'fas fa-file-export',
                           style: { marginRight: '8px' },
                           onError: () =>
@@ -883,14 +987,14 @@
                         }),
                         'Export CSV'
                       ),
-                      /* @__PURE__ */ h(
+                      /* @__PURE__ */ window.preact.h(
                         'button',
                         {
                           className: 'panel-button',
                           onClick: handleImportCSV,
                           'aria-label': 'Import Posts from CSV',
                         },
-                        /* @__PURE__ */ h('i', {
+                        /* @__PURE__ */ window.preact.h('i', {
                           className: 'fas fa-file-import',
                           style: { marginRight: '8px' },
                           onError: () =>
@@ -900,14 +1004,14 @@
                         }),
                         'Import CSV'
                       ),
-                      /* @__PURE__ */ h(
+                      /* @__PURE__ */ window.preact.h(
                         'button',
                         {
                           className: 'panel-button',
                           onClick: () => xGhosted.handleClear(),
                           'aria-label': 'Clear Processed Posts',
                         },
-                        /* @__PURE__ */ h('i', {
+                        /* @__PURE__ */ window.preact.h('i', {
                           className: 'fas fa-trash',
                           style: { marginRight: '8px' },
                           onError: () =>
@@ -918,13 +1022,13 @@
                         'Clear'
                       )
                     ),
-                    /* @__PURE__ */ h('div', {
+                    /* @__PURE__ */ window.preact.h('div', {
                       className: 'manual-check-separator',
                     }),
-                    /* @__PURE__ */ h(
+                    /* @__PURE__ */ window.preact.h(
                       'div',
                       { className: 'manual-check-section' },
-                      /* @__PURE__ */ h(
+                      /* @__PURE__ */ window.preact.h(
                         'button',
                         {
                           className: 'panel-button',
@@ -939,7 +1043,7 @@
                           onClick: () => xGhosted.handleManualCheckToggle(),
                           'aria-label': `Toggle Manual Check: Currently ${state.isManualCheckEnabled ? 'On' : 'Off'}`,
                         },
-                        /* @__PURE__ */ h('i', {
+                        /* @__PURE__ */ window.preact.h('i', {
                           className: 'fas fa-toggle-on',
                           style: { marginRight: '8px' },
                           onError: () =>
@@ -953,21 +1057,21 @@
                     )
                   )
                 ),
-                /* @__PURE__ */ h(
+                /* @__PURE__ */ window.preact.h(
                   'div',
                   { className: 'content-wrapper' },
-                  /* @__PURE__ */ h(
+                  /* @__PURE__ */ window.preact.h(
                     'div',
                     { className: 'problem-posts-header' },
                     'Problem Posts (',
                     flagged.length,
                     '):'
                   ),
-                  /* @__PURE__ */ h(
+                  /* @__PURE__ */ window.preact.h(
                     'div',
                     { className: 'problem-links-wrapper' },
                     flagged.map(([href, { analysis, checked }]) =>
-                      /* @__PURE__ */ h(
+                      /* @__PURE__ */ window.preact.h(
                         'div',
                         {
                           className: 'link-row',
@@ -975,14 +1079,14 @@
                           key: href,
                         },
                         analysis.quality.name === 'Problem'
-                          ? /* @__PURE__ */ h('span', {
+                          ? /* @__PURE__ */ window.preact.h('span', {
                               className: 'status-dot status-problem',
                             })
-                          : /* @__PURE__ */ h(
+                          : /* @__PURE__ */ window.preact.h(
                               'span',
                               {
                                 className: 'status-eyeball',
-                                tabIndex: '0',
+                                tabIndex: 0,
                                 role: 'button',
                                 'aria-label': 'Check post manually',
                                 onClick: () => !checked && onEyeballClick(href),
@@ -993,10 +1097,10 @@
                               },
                               '\u{1F440}'
                             ),
-                        /* @__PURE__ */ h(
+                        /* @__PURE__ */ window.preact.h(
                           'div',
                           { className: 'link-item' },
-                          /* @__PURE__ */ h(
+                          /* @__PURE__ */ window.preact.h(
                             'a',
                             { href: `https://x.com${href}`, target: '_blank' },
                             href
@@ -1007,7 +1111,7 @@
                   )
                 )
               )
-            : /* @__PURE__ */ h(
+            : /* @__PURE__ */ window.preact.h(
                 'div',
                 {
                   style: {
@@ -1017,14 +1121,14 @@
                     margin: '0',
                   },
                 },
-                /* @__PURE__ */ h(
+                /* @__PURE__ */ window.preact.h(
                   'button',
                   {
                     className: 'panel-button',
                     onClick: toggleVisibility,
                     'aria-label': 'Show Panel',
                   },
-                  /* @__PURE__ */ h('i', {
+                  /* @__PURE__ */ window.preact.h('i', {
                     className: 'fas fa-eye',
                     style: { marginRight: '6px' },
                     onError: () =>
@@ -1034,7 +1138,7 @@
                 )
               )
         ),
-        /* @__PURE__ */ h(window.Modal, {
+        window.preact.h(window.Modal, {
           isOpen: isModalOpen,
           onClose: () => setIsModalOpen(false),
           onSubmit: handleModalSubmit,
@@ -1044,104 +1148,6 @@
       );
     }
     window.Panel = Panel;
-
-    // src/ui/Modal.jsx
-    var { h: h2, Fragment: Fragment2 } = window.preact;
-    var { useState: useState2 } = window.preactHooks;
-    function Modal({ isOpen, onClose, onSubmit, mode, config }) {
-      const [csvText, setCsvText] = useState2('');
-      const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        if (!file.name.endsWith('.csv')) {
-          alert('Please select a CSV file.');
-          e.target.value = '';
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const text = event.target.result;
-          setCsvText(text);
-        };
-        reader.onerror = () => {
-          alert('Error reading the file.');
-          e.target.value = '';
-        };
-        reader.readAsText(file);
-      };
-      return /* @__PURE__ */ h2(
-        'div',
-        null,
-        /* @__PURE__ */ h2(
-          'div',
-          {
-            className: 'modal',
-            style: {
-              display: isOpen ? 'block' : 'none',
-              '--modal-bg': config.THEMES[mode].bg,
-              '--modal-text': config.THEMES[mode].text,
-              '--modal-button-bg': config.THEMES[mode].button,
-              '--modal-button-text': config.THEMES[mode].buttonText,
-              '--modal-hover-bg': config.THEMES[mode].hover,
-              '--modal-border': config.THEMES[mode].border,
-            },
-          },
-          /* @__PURE__ */ h2(
-            'div',
-            null,
-            /* @__PURE__ */ h2('input', {
-              type: 'file',
-              className: 'modal-file-input',
-              accept: '.csv',
-              onChange: handleFileChange,
-              'aria-label': 'Select CSV file to import',
-            }),
-            /* @__PURE__ */ h2('textarea', {
-              className: 'modal-textarea',
-              value: csvText,
-              onInput: (e) => setCsvText(e.target.value),
-              placeholder:
-                'Paste CSV content (e.g. Link Quality Reason Checked) or select a file above',
-              'aria-label': 'CSV content input',
-            }),
-            /* @__PURE__ */ h2(
-              'div',
-              { className: 'modal-button-container' },
-              /* @__PURE__ */ h2(
-                'button',
-                {
-                  className: 'modal-button',
-                  onClick: () => onSubmit(csvText),
-                  'aria-label': 'Submit CSV content',
-                },
-                /* @__PURE__ */ h2('i', {
-                  className: 'fas fa-check',
-                  style: { marginRight: '6px' },
-                }),
-                'Submit'
-              ),
-              /* @__PURE__ */ h2(
-                'button',
-                {
-                  className: 'modal-button',
-                  onClick: () => {
-                    setCsvText('');
-                    onClose();
-                  },
-                  'aria-label': 'Close modal and clear input',
-                },
-                /* @__PURE__ */ h2('i', {
-                  className: 'fas fa-times',
-                  style: { marginRight: '6px' },
-                }),
-                'Close'
-              )
-            )
-          )
-        )
-      );
-    }
-    window.Modal = Modal;
 
     // src/xGhosted.js
     function XGhosted(doc, config = {}) {
@@ -1709,7 +1715,7 @@
       }
       const headers = lines[0];
       const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
-      if (!expectedHeaders.every((h3, i) => h3 === headers[i])) {
+      if (!expectedHeaders.every((header, i) => header === headers[i])) {
         this.log('CSV header mismatch');
         return;
       }

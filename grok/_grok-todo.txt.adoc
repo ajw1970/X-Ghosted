@@ -46,7 +46,7 @@
 * [x] User requested eyeball check should stop polling.
 * [x] Allow file upload for import CSV
 
-* [ ] Fix duplicate variables in user file like h and h2 for instance.
+* [x] Fix duplicate variables in user file like h and h2 for instance.
 * [ ] Update Modal to look and feel like Panel.
 * [x] Fix panel layout and margins.
 * [x] Fix panel width when collapsed.
@@ -54,6 +54,8 @@
 * [x] Switch to Auto Scroll instead of Auto Collapse. 
 ** [ ] Stop when no more scrolling available. Separate polling timer for scrolling. Maybe use smooth scrolling too?
 ** [x] Use separate polling. 
+* [ ] Fix tests
+* [ ] Identify, isolate, and test critical behaviors to prevent regression
 
 * [ ] xGhosted should highlight posts just fine without panel working.
 * [ ] Fix resize panel

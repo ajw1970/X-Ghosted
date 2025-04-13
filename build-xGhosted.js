@@ -34,10 +34,11 @@ const panelCssContent = fs.readFileSync(
       loader: {
         '.jsx': 'jsx',
         '.js': 'jsx',
-        '.css': 'text'
+        '.css': 'text',
       },
       jsxFactory: 'window.preact.h',
-      jsxFragment: 'window.preact.Fragment'
+      jsxFragment: 'window.preact.Fragment',
+      external: ['window.preact', 'window.preactHooks'],
     });
 
     let bundledCode = result.outputFiles[0].text;
@@ -55,7 +56,7 @@ const panelCssContent = fs.readFileSync(
       singleQuote: true,
       tabWidth: 2,
       trailingComma: 'es5',
-      printWidth: 80
+      printWidth: 80,
     });
 
     fs.writeFileSync(OUTPUT_FILE, finalContent, 'utf8');

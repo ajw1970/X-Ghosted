@@ -1,3 +1,99 @@
+// Modal component (moved from Modal.jsx to avoid esbuild renaming)
+function Modal({ isOpen, onClose, onSubmit, mode, config }) {
+  const [csvText, setCsvText] = window.preactHooks.useState('');
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.name.endsWith('.csv')) {
+      alert('Please select a CSV file.');
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      setCsvText(text);
+    };
+    reader.onerror = () => {
+      alert('Error reading the file.');
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  };
+  return window.preact.h(
+    'div',
+    null,
+    window.preact.h(
+      'div',
+      {
+        className: 'modal',
+        style: {
+          display: isOpen ? 'block' : 'none',
+          '--modal-bg': config.THEMES[mode].bg,
+          '--modal-text': config.THEMES[mode].text,
+          '--modal-button-bg': config.THEMES[mode].button,
+          '--modal-button-text': config.THEMES[mode].buttonText,
+          '--modal-hover-bg': config.THEMES[mode].hover,
+          '--modal-border': config.THEMES[mode].border,
+        },
+      },
+      window.preact.h(
+        'div',
+        null,
+        window.preact.h('input', {
+          type: 'file',
+          className: 'modal-file-input',
+          accept: '.csv',
+          onChange: handleFileChange,
+          'aria-label': 'Select CSV file to import',
+        }),
+        window.preact.h('textarea', {
+          className: 'modal-textarea',
+          value: csvText,
+          onInput: (e) => setCsvText(e.target.value),
+          placeholder:
+            'Paste CSV content (e.g. Link Quality Reason Checked) or select a file above',
+          'aria-label': 'CSV content input',
+        }),
+        window.preact.h(
+          'div',
+          { className: 'modal-button-container' },
+          window.preact.h(
+            'button',
+            {
+              className: 'modal-button',
+              onClick: () => onSubmit(csvText),
+              'aria-label': 'Submit CSV content',
+            },
+            window.preact.h('i', {
+              className: 'fas fa-check',
+              style: { marginRight: '6px' },
+            }),
+            'Submit'
+          ),
+          window.preact.h(
+            'button',
+            {
+              className: 'modal-button',
+              onClick: () => {
+                setCsvText('');
+                onClose();
+              },
+              'aria-label': 'Close modal and clear input',
+            },
+            window.preact.h('i', {
+              className: 'fas fa-times',
+              style: { marginRight: '6px' },
+            }),
+            'Close'
+          )
+        )
+      )
+    )
+  );
+}
+window.Modal = Modal;
+
 window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
   this.document = doc;
   this.xGhosted = xGhostedInstance;
@@ -154,7 +250,11 @@ window.PanelManager.prototype.init = function () {
     this.renderPanel();
   });
 
-  this.renderPanel();
+  if (window.preact && window.preact.h) {
+    this.renderPanel();
+  } else {
+    this.log('Preact h not available, skipping panel render');
+  }
 };
 
 window.PanelManager.prototype.applyPanelStyles = function () {
@@ -227,8 +327,8 @@ window.PanelManager.prototype.renderPanel = function () {
       config: this.uiElements.config,
       xGhosted: this.xGhosted,
       mode: this.state.themeMode,
-      onModeChange: this.handleModeChange.bind(this), // Bind to fix potential issue
-      onToggle: this.toggleVisibility.bind(this), // Bind to fix Hide/Show bug
+      onModeChange: this.handleModeChange.bind(this),
+      onToggle: this.toggleVisibility.bind(this),
       onEyeballClick: (href) => {
         const post = this.document.querySelector(`[data-xghosted-id="${href}"]`);
         this.xGhosted.userRequestedPostCheck(href, post);
