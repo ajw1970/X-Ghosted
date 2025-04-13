@@ -1,4 +1,3 @@
-// Modal component (moved from Modal.jsx to avoid esbuild renaming)
 function Modal({ isOpen, onClose, onSubmit, mode, config }) {
   const [csvText, setCsvText] = window.preactHooks.useState('');
   const handleFileChange = (e) => {
@@ -39,54 +38,54 @@ function Modal({ isOpen, onClose, onSubmit, mode, config }) {
       },
       window.preact.h(
         'div',
-        null,
+        { className: 'modal-file-input-container' },
         window.preact.h('input', {
           type: 'file',
           className: 'modal-file-input',
           accept: '.csv',
           onChange: handleFileChange,
           'aria-label': 'Select CSV file to import',
-        }),
-        window.preact.h('textarea', {
-          className: 'modal-textarea',
-          value: csvText,
-          onInput: (e) => setCsvText(e.target.value),
-          placeholder:
-            'Paste CSV content (e.g. Link Quality Reason Checked) or select a file above',
-          'aria-label': 'CSV content input',
-        }),
+        })
+      ),
+      window.preact.h('textarea', {
+        className: 'modal-textarea',
+        value: csvText,
+        onInput: (e) => setCsvText(e.target.value),
+        placeholder:
+          'Paste CSV content (e.g. Link Quality Reason Checked) or select a file above',
+        'aria-label': 'CSV content input',
+      }),
+      window.preact.h(
+        'div',
+        { className: 'modal-button-container' },
         window.preact.h(
-          'div',
-          { className: 'modal-button-container' },
-          window.preact.h(
-            'button',
-            {
-              className: 'modal-button',
-              onClick: () => onSubmit(csvText),
-              'aria-label': 'Submit CSV content',
+          'button',
+          {
+            className: 'modal-button',
+            onClick: () => onSubmit(csvText),
+            'aria-label': 'Submit CSV content',
+          },
+          window.preact.h('i', {
+            className: 'fas fa-check',
+            style: { marginRight: '6px' },
+          }),
+          'Submit'
+        ),
+        window.preact.h(
+          'button',
+          {
+            className: 'modal-button',
+            onClick: () => {
+              setCsvText('');
+              onClose();
             },
-            window.preact.h('i', {
-              className: 'fas fa-check',
-              style: { marginRight: '6px' },
-            }),
-            'Submit'
-          ),
-          window.preact.h(
-            'button',
-            {
-              className: 'modal-button',
-              onClick: () => {
-                setCsvText('');
-                onClose();
-              },
-              'aria-label': 'Close modal and clear input',
-            },
-            window.preact.h('i', {
-              className: 'fas fa-times',
-              style: { marginRight: '6px' },
-            }),
-            'Close'
-          )
+            'aria-label': 'Close modal and clear input',
+          },
+          window.preact.h('i', {
+            className: 'fas fa-times',
+            style: { marginRight: '6px' },
+          }),
+          'Close'
         )
       )
     )
@@ -112,7 +111,7 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
   this.uiElements = {
     config: {
       PANEL: {
-        WIDTH: '350px',
+        WIDTH: '400px',
         MAX_HEIGHT: 'calc(100vh - 70px)',
         TOP: '60px',
         RIGHT: '10px',
@@ -124,28 +123,31 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
           bg: '#FFFFFF',
           text: '#292F33',
           buttonText: '#000000',
-          border: '#E1E8ED',
-          button: '#B0BEC5',
+          border: '#B0BEC5',
+          button: '#3A4A5B', /* Match dim for consistency, better contrast */
           hover: '#90A4AE',
           scroll: '#CCD6DD',
+          placeholder: '#666666',
         },
         dim: {
           bg: '#15202B',
           text: '#D9D9D9',
-          buttonText: '#D9D9D9',
-          border: '#38444D',
-          button: '#38444D',
-          hover: '#4A5C6D',
+          buttonText: '#FFFFFF',
+          border: '#8292A2',
+          button: '#3A4A5B',
+          hover: '#8292A2',
           scroll: '#4A5C6D',
+          placeholder: '#A0A0A0',
         },
         dark: {
           bg: '#000000',
           text: '#D9D9D9',
-          buttonText: '#D9D9D9',
-          border: '#333333',
-          button: '#333333',
-          hover: '#444444',
+          buttonText: '#FFFFFF',
+          border: '#888888',
+          button: '#3A4A5B', /* Match dim for consistency */
+          hover: '#888888',
           scroll: '#666666',
+          placeholder: '#A0A0A0',
         },
       },
     },
@@ -210,10 +212,12 @@ window.PanelManager.prototype.init = function () {
   this.xGhosted.on('state-updated', (newState) => {
     this.state.processedPosts = new Map(newState.processedPosts);
     this.state.isRateLimited = newState.isRateLimited;
+    this.state.isManualCheckEnabled = newState.isManualCheckEnabled;
     this.renderPanel();
   });
 
   this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
+    this.log(`PanelManager: manual-check-toggled received, isManualCheckEnabled: ${isManualCheckEnabled}`);
     this.state.isManualCheckEnabled = isManualCheckEnabled;
     this.renderPanel();
   });

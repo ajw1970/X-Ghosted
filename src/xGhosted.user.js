@@ -42,6 +42,13 @@
     return;
   }
 
+  // Check if Font Awesome loaded
+  if (typeof window.FontAwesome === 'undefined') {
+    log(
+      'xGhosted: Font Awesome failed to load, icons may not display correctly'
+    );
+  }
+
   // --- Inject Module (single resolved xGhosted.js with all dependencies inlined) ---
   (() => {
     // src/utils/postQuality.js
@@ -357,54 +364,54 @@
           },
           window.preact.h(
             'div',
-            null,
+            { className: 'modal-file-input-container' },
             window.preact.h('input', {
               type: 'file',
               className: 'modal-file-input',
               accept: '.csv',
               onChange: handleFileChange,
               'aria-label': 'Select CSV file to import',
-            }),
-            window.preact.h('textarea', {
-              className: 'modal-textarea',
-              value: csvText,
-              onInput: (e) => setCsvText(e.target.value),
-              placeholder:
-                'Paste CSV content (e.g. Link Quality Reason Checked) or select a file above',
-              'aria-label': 'CSV content input',
-            }),
+            })
+          ),
+          window.preact.h('textarea', {
+            className: 'modal-textarea',
+            value: csvText,
+            onInput: (e) => setCsvText(e.target.value),
+            placeholder:
+              'Paste CSV content (e.g. Link Quality Reason Checked) or select a file above',
+            'aria-label': 'CSV content input',
+          }),
+          window.preact.h(
+            'div',
+            { className: 'modal-button-container' },
             window.preact.h(
-              'div',
-              { className: 'modal-button-container' },
-              window.preact.h(
-                'button',
-                {
-                  className: 'modal-button',
-                  onClick: () => onSubmit(csvText),
-                  'aria-label': 'Submit CSV content',
+              'button',
+              {
+                className: 'modal-button',
+                onClick: () => onSubmit(csvText),
+                'aria-label': 'Submit CSV content',
+              },
+              window.preact.h('i', {
+                className: 'fas fa-check',
+                style: { marginRight: '6px' },
+              }),
+              'Submit'
+            ),
+            window.preact.h(
+              'button',
+              {
+                className: 'modal-button',
+                onClick: () => {
+                  setCsvText('');
+                  onClose();
                 },
-                window.preact.h('i', {
-                  className: 'fas fa-check',
-                  style: { marginRight: '6px' },
-                }),
-                'Submit'
-              ),
-              window.preact.h(
-                'button',
-                {
-                  className: 'modal-button',
-                  onClick: () => {
-                    setCsvText('');
-                    onClose();
-                  },
-                  'aria-label': 'Close modal and clear input',
-                },
-                window.preact.h('i', {
-                  className: 'fas fa-times',
-                  style: { marginRight: '6px' },
-                }),
-                'Close'
-              )
+                'aria-label': 'Close modal and clear input',
+              },
+              window.preact.h('i', {
+                className: 'fas fa-times',
+                style: { marginRight: '6px' },
+              }),
+              'Close'
             )
           )
         )
@@ -433,7 +440,7 @@
       this.uiElements = {
         config: {
           PANEL: {
-            WIDTH: '350px',
+            WIDTH: '400px',
             MAX_HEIGHT: 'calc(100vh - 70px)',
             TOP: '60px',
             RIGHT: '10px',
@@ -445,28 +452,33 @@
               bg: '#FFFFFF',
               text: '#292F33',
               buttonText: '#000000',
-              border: '#E1E8ED',
-              button: '#B0BEC5',
+              border: '#B0BEC5',
+              button: '#3A4A5B',
+              /* Match dim for consistency, better contrast */
               hover: '#90A4AE',
               scroll: '#CCD6DD',
+              placeholder: '#666666',
             },
             dim: {
               bg: '#15202B',
               text: '#D9D9D9',
-              buttonText: '#D9D9D9',
-              border: '#38444D',
-              button: '#38444D',
-              hover: '#4A5C6D',
+              buttonText: '#FFFFFF',
+              border: '#8292A2',
+              button: '#3A4A5B',
+              hover: '#8292A2',
               scroll: '#4A5C6D',
+              placeholder: '#A0A0A0',
             },
             dark: {
               bg: '#000000',
               text: '#D9D9D9',
-              buttonText: '#D9D9D9',
-              border: '#333333',
-              button: '#333333',
-              hover: '#444444',
+              buttonText: '#FFFFFF',
+              border: '#888888',
+              button: '#3A4A5B',
+              /* Match dim for consistency */
+              hover: '#888888',
               scroll: '#666666',
+              placeholder: '#A0A0A0',
             },
           },
         },
@@ -530,9 +542,13 @@
       this.xGhosted.on('state-updated', (newState) => {
         this.state.processedPosts = new Map(newState.processedPosts);
         this.state.isRateLimited = newState.isRateLimited;
+        this.state.isManualCheckEnabled = newState.isManualCheckEnabled;
         this.renderPanel();
       });
       this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
+        this.log(
+          `PanelManager: manual-check-toggled received, isManualCheckEnabled: ${isManualCheckEnabled}`
+        );
         this.state.isManualCheckEnabled = isManualCheckEnabled;
         this.renderPanel();
       });
@@ -697,6 +713,8 @@
         window.preactHooks.useState(false);
       const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
       const [currentMode, setCurrentMode] = window.preactHooks.useState(mode);
+      const [isDropdownOpen, setIsDropdownOpen] =
+        window.preactHooks.useState(false);
       const [updateCounter, setUpdateCounter] = window.preactHooks.useState(0);
       window.preactHooks.useEffect(() => {
         if (state.isPanelVisible !== isVisible) {
@@ -714,6 +732,9 @@
       window.preactHooks.useEffect(() => {
         console.log('isModalOpen changed to:', isModalOpen);
       }, [isModalOpen]);
+      window.preactHooks.useEffect(() => {
+        console.log('Manual Check state:', state.isManualCheckEnabled);
+      }, [state.isManualCheckEnabled]);
       const toggleVisibility = () => {
         const newVisibility = !isVisible;
         setIsVisible(newVisibility);
@@ -727,10 +748,10 @@
           return newState;
         });
       };
-      const handleModeChange = (e) => {
-        const newMode = e.target.value;
+      const handleModeChange = (newMode) => {
         setCurrentMode(newMode);
         onModeChange(newMode);
+        setIsDropdownOpen(false);
       };
       const handleImportCSV = () => {
         console.log('Import CSV button clicked');
@@ -750,6 +771,9 @@
       const autoScrollIconClass = state.isAutoScrollingEnabled
         ? 'fa-solid fa-circle-stop'
         : 'fa-solid fa-circle-play';
+      const themeOptions = ['dark', 'dim', 'light'].filter(
+        (option) => option !== currentMode
+      );
       return /* @__PURE__ */ window.preact.h(
         'div',
         null,
@@ -758,17 +782,10 @@
           {
             id: 'xghosted-panel',
             style: {
-              '--bg-color': config.THEMES[currentMode].bg,
-              '--text-color': config.THEMES[currentMode].text,
-              '--button-bg': config.THEMES[currentMode].button,
-              '--button-text': config.THEMES[currentMode].buttonText,
-              '--hover-bg': config.THEMES[currentMode].hover,
-              '--border-color': config.THEMES[currentMode].border,
-              '--scroll-color': config.THEMES[currentMode].scroll,
               width: isVisible ? config.PANEL.WIDTH : 'auto',
               maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
               minWidth: isVisible ? '250px' : '60px',
-              padding: isVisible ? '12px' : '4px',
+              padding: isVisible ? '8px 8px 12px 8px' : '4px',
               transition: 'width 0.2s ease, max-height 0.2s ease',
               fontFamily: config.PANEL.FONT,
               background: config.THEMES[currentMode].bg,
@@ -796,7 +813,7 @@
                     },
                     /* @__PURE__ */ window.preact.h('i', {
                       className: toolsIconClass,
-                      style: { marginRight: '6px' },
+                      style: { marginRight: '12px' },
                       onError: () =>
                         console.error(
                           'Font Awesome icon failed to load: tools'
@@ -809,9 +826,9 @@
                     {
                       style: {
                         display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'center',
-                        gap: '10px',
-                        paddingLeft: '10px',
+                        flex: 1,
                       },
                     },
                     /* @__PURE__ */ window.preact.h(
@@ -831,13 +848,13 @@
                       },
                       /* @__PURE__ */ window.preact.h('i', {
                         className: pollingIconClass,
-                        style: { marginRight: '6px' },
+                        style: { marginRight: '12px' },
                         onError: () =>
                           console.error(
                             'Font Awesome icon failed to load: polling'
                           ),
                       }),
-                      state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'
+                      'Polling'
                     ),
                     /* @__PURE__ */ window.preact.h(
                       'button',
@@ -853,15 +870,13 @@
                       },
                       /* @__PURE__ */ window.preact.h('i', {
                         className: autoScrollIconClass,
-                        style: { marginRight: '6px' },
+                        style: { marginRight: '12px' },
                         onError: () =>
                           console.error(
                             'Font Awesome icon failed to load: auto-scroll'
                           ),
                       }),
-                      state.isAutoScrollingEnabled
-                        ? 'Stop Scroll'
-                        : 'Start Scroll'
+                      'Scroll'
                     ),
                     /* @__PURE__ */ window.preact.h(
                       'button',
@@ -872,7 +887,7 @@
                       },
                       /* @__PURE__ */ window.preact.h('i', {
                         className: 'fas fa-eye-slash',
-                        style: { marginRight: '6px' },
+                        style: { marginRight: '12px' },
                         onError: () =>
                           console.error(
                             'Font Awesome icon failed to load: eye-slash'
@@ -890,7 +905,7 @@
                       display: isToolsExpanded ? 'block' : 'none',
                       padding: '12px',
                       borderRadius: '8px',
-                      background: `${config.THEMES[currentMode].bg}F0`,
+                      background: config.THEMES[currentMode].bg,
                       boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
                       marginBottom: '8px',
                       borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
@@ -915,32 +930,43 @@
                         },
                       },
                       /* @__PURE__ */ window.preact.h(
-                        'select',
-                        {
-                          className: 'mode-selector',
-                          style: {
-                            width: '100%',
-                            padding: '8px 12px',
-                            fontSize: '14px',
+                        'div',
+                        { className: 'custom-dropdown' },
+                        /* @__PURE__ */ window.preact.h(
+                          'button',
+                          {
+                            className: 'panel-button dropdown-button',
+                            onClick: () => setIsDropdownOpen(!isDropdownOpen),
+                            'aria-expanded': isDropdownOpen,
+                            'aria-label': 'Select Theme',
                           },
-                          value: currentMode,
-                          onChange: handleModeChange,
-                        },
-                        /* @__PURE__ */ window.preact.h(
-                          'option',
-                          { value: 'dark' },
-                          'Dark'
+                          currentMode.charAt(0).toUpperCase() +
+                            currentMode.slice(1),
+                          /* @__PURE__ */ window.preact.h('i', {
+                            className: isDropdownOpen
+                              ? 'fas fa-chevron-up'
+                              : 'fas fa-chevron-down',
+                            style: { marginLeft: '8px' },
+                          })
                         ),
-                        /* @__PURE__ */ window.preact.h(
-                          'option',
-                          { value: 'dim' },
-                          'Dim'
-                        ),
-                        /* @__PURE__ */ window.preact.h(
-                          'option',
-                          { value: 'light' },
-                          'Light'
-                        )
+                        isDropdownOpen &&
+                          /* @__PURE__ */ window.preact.h(
+                            'div',
+                            { className: 'dropdown-menu' },
+                            themeOptions.map((option) =>
+                              /* @__PURE__ */ window.preact.h(
+                                'div',
+                                {
+                                  key: option,
+                                  className: 'dropdown-item',
+                                  onClick: () => handleModeChange(option),
+                                  role: 'option',
+                                  'aria-selected': currentMode === option,
+                                },
+                                option.charAt(0).toUpperCase() + option.slice(1)
+                              )
+                            )
+                          )
                       )
                     ),
                     /* @__PURE__ */ window.preact.h(
@@ -1031,24 +1057,31 @@
                       /* @__PURE__ */ window.preact.h(
                         'button',
                         {
+                          key: state.isManualCheckEnabled
+                            ? 'manual-check-on'
+                            : 'manual-check-off',
                           className: 'panel-button',
                           style: {
                             background: state.isManualCheckEnabled
                               ? config.THEMES[currentMode].hover
                               : config.THEMES[currentMode].button,
                             border: state.isManualCheckEnabled
-                              ? `1px solid ${config.THEMES[currentMode].hover}`
-                              : `1px solid ${config.THEMES[currentMode].border}`,
+                              ? `2px solid ${config.THEMES[currentMode].hover}`
+                              : `2px solid ${config.THEMES[currentMode].border}`,
+                            boxShadow:
+                              '0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 0.2)',
                           },
                           onClick: () => xGhosted.handleManualCheckToggle(),
                           'aria-label': `Toggle Manual Check: Currently ${state.isManualCheckEnabled ? 'On' : 'Off'}`,
                         },
                         /* @__PURE__ */ window.preact.h('i', {
-                          className: 'fas fa-toggle-on',
-                          style: { marginRight: '8px' },
+                          className: state.isManualCheckEnabled
+                            ? 'fas fa-toggle-on'
+                            : 'fas fa-toggle-off',
+                          style: { marginRight: '12px' },
                           onError: () =>
                             console.error(
-                              'Font Awesome icon failed to load: toggle-on'
+                              'Font Awesome icon failed to load: toggle'
                             ),
                         }),
                         'Manual Check: ',
@@ -1212,7 +1245,7 @@
       }
       const newState = {
         isPanelVisible: this.state.isPanelVisible,
-        isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
+        // Exclude isAutoScrollingEnabled from being saved
         isManualCheckEnabled: this.state.isManualCheckEnabled,
         themeMode: this.state.themeMode,
         processedPosts: serializableArticles,
@@ -1243,14 +1276,12 @@
       const otherStateChanged =
         JSON.stringify({
           isPanelVisible: newState.isPanelVisible,
-          isAutoScrollingEnabled: newState.isAutoScrollingEnabled,
           isManualCheckEnabled: newState.isManualCheckEnabled,
           themeMode: newState.themeMode,
           panelPosition: newState.panelPosition,
         }) !==
         JSON.stringify({
           isPanelVisible: oldState.isPanelVisible,
-          isAutoScrollingEnabled: oldState.isAutoScrollingEnabled,
           isManualCheckEnabled: oldState.isManualCheckEnabled,
           themeMode: oldState.themeMode,
           panelPosition: oldState.panelPosition,
@@ -1266,8 +1297,6 @@
     XGhosted.prototype.loadState = function () {
       const savedState = GM_getValue('xGhostedState', {});
       this.state.isPanelVisible = savedState.isPanelVisible ?? true;
-      this.state.isAutoScrollingEnabled =
-        savedState.isAutoScrollingEnabled ?? false;
       this.state.isManualCheckEnabled =
         savedState.isManualCheckEnabled ?? false;
       this.state.themeMode = savedState.themeMode ?? null;
@@ -1841,97 +1870,134 @@
   })();
 
   window.xGhostedStyles = window.xGhostedStyles || {};
-  window.xGhostedStyles.modal = `.modal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--modal-bg);
-    color: var(--modal-text);
-    border: 1px solid var(--modal-border);
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    z-index: 10000;
-    width: 300px;
-  }
-  
-  .modal-textarea {
-    width: 100%;
-    height: 100px;
-    margin-bottom: 15px;
-    background: var(--modal-bg);
-    color: var(--modal-text);
-    border: 1px solid var(--modal-border);
-    border-radius: 4px;
-    padding: 4px;
-    resize: none;
-  }
-  
-  .modal-file-input {
-    width: 100%;
-    margin-bottom: 15px;
-    padding: 8px;
-    background: var(--modal-button-bg);
-    color: var(--modal-button-text);
-    border: 1px solid var(--modal-border);
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  
-  .modal-file-input:hover {
-    background: var(--modal-hover-bg);
-  }
-  
-  .modal-button-container {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-  }
-  
-  .modal-button {
-    background: var(--modal-button-bg);
-    color: var(--modal-button-text);
-    border: none;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    transition: background 0.2s ease, transform 0.1s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .modal-button:hover {
-    background: var(--modal-hover-bg);
-    transform: translateY(-1px);
-  }`;
+  window.xGhostedStyles.modal = `.modal * {
+  box-sizing: border-box;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 450px;
+  max-height: calc(100vh - 100px);
+  background: var(--modal-bg);
+  color: var(--modal-text);
+  border: 2px solid var(--modal-border);
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+  padding: 12px;
+  z-index: 10000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+}
+
+.modal-file-input-container {
+  width: 100%;
+  max-width: 426px;
+}
+
+.modal-file-input {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: var(--modal-button-bg);
+  color: var(--modal-button-text);
+  border: 2px solid var(--modal-border);
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.modal-textarea {
+  width: 100%;
+  max-width: 426px;
+  height: 150px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: var(--modal-button-bg);
+  color: var(--modal-button-text);
+  border: 2px solid var(--modal-border);
+  border-radius: 8px;
+  font-size: 14px;
+  resize: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.modal-textarea::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
+}
+
+.modal-button-container {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.modal-button-container > button:not(:last-child) {
+  margin-right: 10px;
+}
+
+.modal-button {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--modal-button-bg);
+  color: var(--modal-button-text);
+  border: 2px solid var(--modal-border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+  transition: background 0.2s ease;
+}
+
+.modal-button:hover {
+  background: var(--modal-hover-bg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.3);
+}
+
+.modal-button:active {
+  transform: scale(0.95);
+}`;
   window.xGhostedStyles.panel = `.toolbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 4px 8px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--border-color);
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .toolbar > div {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  margin-left: 12px;
+}
+
+.toolbar > div > button:not(:last-child) {
+  margin-right: 12px;
+}
+
+.tools-section {
+  /* No opacity to prevent affecting children */
+}
+
+.tools-section > div > div:first-child {
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .manual-check-separator {
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 0px;
+  border-bottom: 2px solid var(--border-color);
+  margin: 8px 0;
 }
 
 .manual-check-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   margin-bottom: 0px;
 }
 
@@ -1939,12 +2005,14 @@
   max-height: calc(100vh - 150px);
   overflow-y: auto;
   padding-right: 4px;
+  padding-left: 8px;
+  padding-top: 0;
 }
 
 .panel-button {
-  background: var(--button-bg);
+  background: linear-gradient(to bottom, var(--button-bg), color-mix(in srgb, var(--button-bg) 70%, #000000));
   color: var(--button-text);
-  border: none;
+  border: 2px solid var(--border-color);
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -1953,15 +2021,14 @@
   transition: background 0.2s ease, transform 0.1s ease;
   display: flex;
   align-items: center;
-  gap: 6px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
   max-width: 160px;
   text-align: center;
 }
 
 .panel-button:hover {
   background: var(--hover-bg);
-  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.3);
 }
 
 .panel-button:active {
@@ -1972,18 +2039,44 @@
   border: 2px solid #FFA500;
 }
 
-.mode-selector {
-  background: var(--button-bg);
-  color: var(--text-color);
-  border: none;
-  padding: 6px 10px;
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.dropdown-button {
+  width: 100%;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 8px 12px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--button-bg, #3A4A5B);
+  color: var(--button-text);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.dropdown-item {
+  padding: 8px 12px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  min-width: 80px;
-  appearance: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-weight: 600; /* Bolder text for better readability */
+  background-color: var(--button-bg, #3A4A5B);
+  color: var(--button-text);
+}
+
+.dropdown-item:hover {
+  background-color: var(--hover-bg);
+  color: var(--button-text);
 }
 
 .status-label {
@@ -2019,7 +2112,6 @@
   display: grid;
   grid-template-columns: 20px 1fr;
   align-items: center;
-  gap: 8px;
 }
 
 .problem-links-wrapper {
@@ -2039,19 +2131,20 @@
   background: var(--bg-color);
 }
 
-select:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--scroll-color);
-}
-
 .link-item {
   padding: 2px 0;
   overflow-wrap: break-word;
   word-break: break-all;
 }
 
+.link-item a {
+  color: var(--text-color);
+  text-decoration: none;
+}
+
 .link-item a:hover {
   text-decoration: underline;
+  color: var(--hover-bg);
 }
 
 .problem-posts-header {
@@ -2061,6 +2154,11 @@ select:focus {
   padding-bottom: 4px;
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 8px;
+}
+
+.panel-button i {
+  font-size: 14px;
+  line-height: 1;
 }`;
 
   // --- Initialization with Resource Limits and Rate Limiting ---

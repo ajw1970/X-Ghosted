@@ -71,7 +71,7 @@ XGhosted.prototype.saveState = function () {
   }
   const newState = {
     isPanelVisible: this.state.isPanelVisible,
-    isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
+    // Exclude isAutoScrollingEnabled from being saved
     isManualCheckEnabled: this.state.isManualCheckEnabled,
     themeMode: this.state.themeMode,
     processedPosts: serializableArticles,
@@ -90,13 +90,11 @@ XGhosted.prototype.saveState = function () {
   const processedPostsChanged = JSON.stringify(newProcessedPostsArray) !== JSON.stringify(oldProcessedPostsArray);
   const otherStateChanged = JSON.stringify({
     isPanelVisible: newState.isPanelVisible,
-    isAutoScrollingEnabled: newState.isAutoScrollingEnabled,
     isManualCheckEnabled: newState.isManualCheckEnabled,
     themeMode: newState.themeMode,
     panelPosition: newState.panelPosition
   }) !== JSON.stringify({
     isPanelVisible: oldState.isPanelVisible,
-    isAutoScrollingEnabled: oldState.isAutoScrollingEnabled,
     isManualCheckEnabled: oldState.isManualCheckEnabled,
     themeMode: oldState.themeMode,
     panelPosition: oldState.panelPosition
@@ -111,7 +109,7 @@ XGhosted.prototype.saveState = function () {
 XGhosted.prototype.loadState = function () {
   const savedState = GM_getValue('xGhostedState', {});
   this.state.isPanelVisible = savedState.isPanelVisible ?? true;
-  this.state.isAutoScrollingEnabled = savedState.isAutoScrollingEnabled ?? false;
+  // Skip loading isAutoScrollingEnabled; it should always start as false
   this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
   this.state.themeMode = savedState.themeMode ?? null;
 

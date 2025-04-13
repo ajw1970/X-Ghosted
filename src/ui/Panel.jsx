@@ -22,6 +22,7 @@ function Panel({
   const [isToolsExpanded, setIsToolsExpanded] = window.preactHooks.useState(false);
   const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
   const [currentMode, setCurrentMode] = window.preactHooks.useState(mode);
+  const [isDropdownOpen, setIsDropdownOpen] = window.preactHooks.useState(false);
   const [updateCounter, setUpdateCounter] = window.preactHooks.useState(0);
 
   window.preactHooks.useEffect(() => {
@@ -44,6 +45,10 @@ function Panel({
     console.log('isModalOpen changed to:', isModalOpen);
   }, [isModalOpen]);
 
+  window.preactHooks.useEffect(() => {
+    console.log('Manual Check state:', state.isManualCheckEnabled);
+  }, [state.isManualCheckEnabled]);
+
   const toggleVisibility = () => {
     const newVisibility = !isVisible;
     setIsVisible(newVisibility);
@@ -59,10 +64,10 @@ function Panel({
     });
   };
 
-  const handleModeChange = (e) => {
-    const newMode = e.target.value;
+  const handleModeChange = (newMode) => {
     setCurrentMode(newMode);
     onModeChange(newMode);
+    setIsDropdownOpen(false);
   };
 
   const handleImportCSV = () => {
@@ -86,22 +91,17 @@ function Panel({
     ? 'fa-solid fa-circle-stop'
     : 'fa-solid fa-circle-play';
 
+  const themeOptions = ['dark', 'dim', 'light'].filter(option => option !== currentMode);
+
   return (
     <div>
       <div
         id="xghosted-panel"
         style={{
-          '--bg-color': config.THEMES[currentMode].bg,
-          '--text-color': config.THEMES[currentMode].text,
-          '--button-bg': config.THEMES[currentMode].button,
-          '--button-text': config.THEMES[currentMode].buttonText,
-          '--hover-bg': config.THEMES[currentMode].hover,
-          '--border-color': config.THEMES[currentMode].border,
-          '--scroll-color': config.THEMES[currentMode].scroll,
           width: isVisible ? config.PANEL.WIDTH : 'auto',
           maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
           minWidth: isVisible ? '250px' : '60px',
-          padding: isVisible ? '12px' : '4px',
+          padding: isVisible ? '8px 8px 12px 8px' : '4px',
           transition: 'width 0.2s ease, max-height 0.2s ease',
           fontFamily: config.PANEL.FONT,
           background: config.THEMES[currentMode].bg,
@@ -121,7 +121,7 @@ function Panel({
               >
                 <i
                   className={toolsIconClass}
-                  style={{ marginRight: '6px' }}
+                  style={{ marginRight: '12px' }}
                   onError={() =>
                     console.error('Font Awesome icon failed to load: tools')
                   }
@@ -131,58 +131,46 @@ function Panel({
               <div
                 style={{
                   display: 'flex',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  gap: '10px',
-                  paddingLeft: '10px',
+                  flex: 1,
                 }}
               >
                 <button
                   key={state.isPollingEnabled ? 'stop-button' : 'start-button'}
-                  className={`panel-button ${
-                    state.isPollingEnabled ? '' : 'polling-stopped'
-                  }`}
+                  className={`panel-button ${state.isPollingEnabled ? '' : 'polling-stopped'}`}
                   onClick={() =>
                     state.isPollingEnabled
                       ? xGhosted.handleStopPolling()
                       : xGhosted.handleStartPolling()
                   }
-                  aria-label={
-                    state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'
-                  }
+                  aria-label={state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
                 >
                   <i
                     className={pollingIconClass}
-                    style={{ marginRight: '6px' }}
+                    style={{ marginRight: '12px' }}
                     onError={() =>
                       console.error('Font Awesome icon failed to load: polling')
                     }
                   />
-                  {state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
+                  Polling
                 </button>
                 <button
-                  key={
-                    state.isAutoScrollingEnabled
-                      ? 'scroll-stop'
-                      : 'scroll-start'
-                  }
+                  key={state.isAutoScrollingEnabled ? 'scroll-stop' : 'scroll-start'}
                   className="panel-button"
                   onClick={() => xGhosted.toggleAutoScrolling()}
                   aria-label={
-                    state.isAutoScrollingEnabled
-                      ? 'Stop Auto-Scroll'
-                      : 'Start Auto-Scroll'
+                    state.isAutoScrollingEnabled ? 'Stop Auto-Scroll' : 'Start Auto-Scroll'
                   }
                 >
                   <i
                     className={autoScrollIconClass}
-                    style={{ marginRight: '6px' }}
+                    style={{ marginRight: '12px' }}
                     onError={() =>
-                      console.error(
-                        'Font Awesome icon failed to load: auto-scroll'
-                      )
+                      console.error('Font Awesome icon failed to load: auto-scroll')
                     }
                   />
-                  {state.isAutoScrollingEnabled ? 'Stop Scroll' : 'Start Scroll'}
+                  Scroll
                 </button>
                 <button
                   className="panel-button"
@@ -191,7 +179,7 @@ function Panel({
                 >
                   <i
                     className="fas fa-eye-slash"
-                    style={{ marginRight: '6px' }}
+                    style={{ marginRight: '12px' }}
                     onError={() =>
                       console.error('Font Awesome icon failed to load: eye-slash')
                     }
@@ -206,7 +194,7 @@ function Panel({
                 display: isToolsExpanded ? 'block' : 'none',
                 padding: '12px',
                 borderRadius: '8px',
-                background: `${config.THEMES[currentMode].bg}F0`,
+                background: config.THEMES[currentMode].bg,
                 boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
                 marginBottom: '8px',
                 borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
@@ -226,16 +214,35 @@ function Panel({
                     borderBottom: '1px solid var(--border-color)',
                   }}
                 >
-                  <select
-                    className="mode-selector"
-                    style={{ width: '100%', padding: '8px 12px', fontSize: '14px' }}
-                    value={currentMode}
-                    onChange={handleModeChange}
-                  >
-                    <option value="dark">Dark</option>
-                    <option value="dim">Dim</option>
-                    <option value="light">Light</option>
-                  </select>
+                  <div className="custom-dropdown">
+                    <button
+                      className="panel-button dropdown-button"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      aria-expanded={isDropdownOpen}
+                      aria-label="Select Theme"
+                    >
+                      {currentMode.charAt(0).toUpperCase() + currentMode.slice(1)}
+                      <i
+                        className={isDropdownOpen ? 'fas fa-chevron-up' : 'fas fa-chevron-down'}
+                        style={{ marginLeft: '8px' }}
+                      />
+                    </button>
+                    {isDropdownOpen && (
+                      <div className="dropdown-menu">
+                        {themeOptions.map((option) => (
+                          <div
+                            key={option}
+                            className="dropdown-item"
+                            onClick={() => handleModeChange(option)}
+                            role="option"
+                            aria-selected={currentMode === option}
+                          >
+                            {option.charAt(0).toUpperCase() + option.slice(1)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div
                   style={{
@@ -268,9 +275,7 @@ function Panel({
                       className="fas fa-file-export"
                       style={{ marginRight: '8px' }}
                       onError={() =>
-                        console.error(
-                          'Font Awesome icon failed to load: file-export'
-                        )
+                        console.error('Font Awesome icon failed to load: file-export')
                       }
                     />
                     Export CSV
@@ -284,9 +289,7 @@ function Panel({
                       className="fas fa-file-import"
                       style={{ marginRight: '8px' }}
                       onError={() =>
-                        console.error(
-                          'Font Awesome icon failed to load: file-import'
-                        )
+                        console.error('Font Awesome icon failed to load: file-import')
                       }
                     />
                     Import CSV
@@ -309,27 +312,27 @@ function Panel({
                 <div className="manual-check-separator" />
                 <div className="manual-check-section">
                   <button
+                    key={state.isManualCheckEnabled ? 'manual-check-on' : 'manual-check-off'}
                     className="panel-button"
                     style={{
                       background: state.isManualCheckEnabled
                         ? config.THEMES[currentMode].hover
                         : config.THEMES[currentMode].button,
                       border: state.isManualCheckEnabled
-                        ? `1px solid ${config.THEMES[currentMode].hover}`
-                        : `1px solid ${config.THEMES[currentMode].border}`,
+                        ? `2px solid ${config.THEMES[currentMode].hover}`
+                        : `2px solid ${config.THEMES[currentMode].border}`,
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 0.2)',
                     }}
                     onClick={() => xGhosted.handleManualCheckToggle()}
-                    aria-label={`Toggle Manual Check: Currently ${
-                      state.isManualCheckEnabled ? 'On' : 'Off'
-                    }`}
+                    aria-label={`Toggle Manual Check: Currently ${state.isManualCheckEnabled ? 'On' : 'Off'}`}
                   >
                     <i
-                      className="fas fa-toggle-on"
-                      style={{ marginRight: '8px' }}
+                      className={
+                        state.isManualCheckEnabled ? 'fas fa-toggle-on' : 'fas fa-toggle-off'
+                      }
+                      style={{ marginRight: '12px' }}
                       onError={() =>
-                        console.error(
-                          'Font Awesome icon failed to load: toggle-on'
-                        )
+                        console.error('Font Awesome icon failed to load: toggle')
                       }
                     />
                     Manual Check: {state.isManualCheckEnabled ? 'On' : 'Off'}
@@ -400,14 +403,16 @@ function Panel({
           </div>
         )}
       </div>
-      {window.preact.h(window.Modal, {
-        isOpen: isModalOpen,
-        onClose: () => setIsModalOpen(false),
-        onSubmit: handleModalSubmit,
-        mode: currentMode,
-        config,
-      })}
-    </div>
+      {
+        window.preact.h(window.Modal, {
+          isOpen: isModalOpen,
+          onClose: () => setIsModalOpen(false),
+          onSubmit: handleModalSubmit,
+          mode: currentMode,
+          config,
+        })
+      }
+    </div >
   );
 }
 

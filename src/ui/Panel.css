@@ -1,26 +1,40 @@
 .toolbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 4px 8px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--border-color);
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .toolbar > div {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  margin-left: 12px;
+}
+
+.toolbar > div > button:not(:last-child) {
+  margin-right: 12px;
+}
+
+.tools-section {
+  /* No opacity to prevent affecting children */
+}
+
+.tools-section > div > div:first-child {
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .manual-check-separator {
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 0px;
+  border-bottom: 2px solid var(--border-color);
+  margin: 8px 0;
 }
 
 .manual-check-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   margin-bottom: 0px;
 }
 
@@ -28,12 +42,14 @@
   max-height: calc(100vh - 150px);
   overflow-y: auto;
   padding-right: 4px;
+  padding-left: 8px;
+  padding-top: 0;
 }
 
 .panel-button {
-  background: var(--button-bg);
+  background: linear-gradient(to bottom, var(--button-bg), color-mix(in srgb, var(--button-bg) 70%, #000000));
   color: var(--button-text);
-  border: none;
+  border: 2px solid var(--border-color);
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -42,15 +58,14 @@
   transition: background 0.2s ease, transform 0.1s ease;
   display: flex;
   align-items: center;
-  gap: 6px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
   max-width: 160px;
   text-align: center;
 }
 
 .panel-button:hover {
   background: var(--hover-bg);
-  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.3);
 }
 
 .panel-button:active {
@@ -61,18 +76,44 @@
   border: 2px solid #FFA500;
 }
 
-.mode-selector {
-  background: var(--button-bg);
-  color: var(--text-color);
-  border: none;
-  padding: 6px 10px;
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.dropdown-button {
+  width: 100%;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 8px 12px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--button-bg, #3A4A5B);
+  color: var(--button-text);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.dropdown-item {
+  padding: 8px 12px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  min-width: 80px;
-  appearance: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-weight: 600; /* Bolder text for better readability */
+  background-color: var(--button-bg, #3A4A5B);
+  color: var(--button-text);
+}
+
+.dropdown-item:hover {
+  background-color: var(--hover-bg);
+  color: var(--button-text);
 }
 
 .status-label {
@@ -108,7 +149,6 @@
   display: grid;
   grid-template-columns: 20px 1fr;
   align-items: center;
-  gap: 8px;
 }
 
 .problem-links-wrapper {
@@ -128,19 +168,20 @@
   background: var(--bg-color);
 }
 
-select:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--scroll-color);
-}
-
 .link-item {
   padding: 2px 0;
   overflow-wrap: break-word;
   word-break: break-all;
 }
 
+.link-item a {
+  color: var(--text-color);
+  text-decoration: none;
+}
+
 .link-item a:hover {
   text-decoration: underline;
+  color: var(--hover-bg);
 }
 
 .problem-posts-header {
@@ -150,4 +191,9 @@ select:focus {
   padding-bottom: 4px;
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 8px;
+}
+
+.panel-button i {
+  font-size: 14px;
+  line-height: 1;
 }

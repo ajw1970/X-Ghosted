@@ -39,6 +39,11 @@
     return;
   }
 
+  // Check if Font Awesome loaded
+  if (typeof window.FontAwesome === 'undefined') {
+    log('xGhosted: Font Awesome failed to load, icons may not display correctly');
+  }
+
   // --- Inject Module (single resolved xGhosted.js with all dependencies inlined) ---
   // INJECT: xGhosted
 
