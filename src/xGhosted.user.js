@@ -1151,7 +1151,7 @@
         tabCheckThrottle: 5e3,
         exportThrottle: 5e3,
         pollInterval: 1e3,
-        scrollInterval: 3e3,
+        scrollInterval: 2e3,
       };
       this.timing = { ...defaultTiming, ...config.timing };
       this.document = doc;

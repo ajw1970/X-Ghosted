@@ -16,7 +16,7 @@ function XGhosted(doc, config = {}) {
     tabCheckThrottle: 5000,
     exportThrottle: 5000,
     pollInterval: 1000,
-    scrollInterval: 3000
+    scrollInterval: 2000
   };
   this.timing = { ...defaultTiming, ...config.timing };
   this.document = doc;
@@ -622,3 +622,4 @@ XGhosted.prototype.init = function () {
 };
 
 window.XGhosted = XGhosted;
+export { XGhosted }
