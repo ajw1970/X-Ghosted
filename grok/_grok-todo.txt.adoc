@@ -47,15 +47,15 @@
 * [x] Allow file upload for import CSV
 
 * [ ] Fix duplicate variables in user file like h and h2 for instance.
-* [ ] Fix panel layout and margins.
-* [ ] Fix panel width when collapsed.
-* [ ] Add border to Start Polling button when polling is stopped to make it clear what to use to restart polling.
-* [ ] Switch to Auto Scroll instead of Auto Collapse. 
+* [ ] Update Modal to look and feel like Panel.
+* [x] Fix panel layout and margins.
+* [x] Fix panel width when collapsed.
+* [x] Add border to Start Polling button when polling is stopped to make it clear what to use to restart polling.
+* [x] Switch to Auto Scroll instead of Auto Collapse. 
 ** [ ] Stop when no more scrolling available. Separate polling timer for scrolling. Maybe use smooth scrolling too?
-** [ ] Use separate polling. 
-** [ ] Start/Stop Polling for postIdentification
-** [ ] Start/Stop Polling for auto scrolling
-* [ ] Reset would be removed or just jumb back to top of page?
+** [x] Use separate polling. 
+
+* [ ] xGhosted should highlight posts just fine without panel working.
 * [ ] Fix resize panel
 
 * Clarify dom for post container and X.com behavior
