@@ -8,9 +8,9 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
     processedPosts: new Map(),
     isPanelVisible: true,
     isRateLimited: false,
-    isCollapsingEnabled: false,
     isManualCheckEnabled: false,
     isPollingEnabled: true,
+    isAutoScrollingEnabled: false,
     themeMode,
   };
   this.uiElements = {
@@ -94,8 +94,9 @@ window.PanelManager.prototype.init = function () {
   this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
   this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
   this.state.isRateLimited = this.xGhosted.state.isRateLimited;
-  this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
   this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
+  this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
+  this.state.isAutoScrollingEnabled = this.xGhosted.state.isAutoScrollingEnabled;
   this.state.panelPosition = this.xGhosted.state.panelPosition || this.state.panelPosition;
 
   this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
@@ -113,7 +114,6 @@ window.PanelManager.prototype.init = function () {
   this.xGhosted.on('state-updated', (newState) => {
     this.state.processedPosts = new Map(newState.processedPosts);
     this.state.isRateLimited = newState.isRateLimited;
-    this.state.isCollapsingEnabled = newState.isCollapsingEnabled;
     this.renderPanel();
   });
 
@@ -147,6 +147,11 @@ window.PanelManager.prototype.init = function () {
     this.state.isPollingEnabled = isPollingEnabled;
     this.renderPanel();
     this.applyPanelStyles();
+  });
+
+  this.xGhosted.on('auto-scrolling-toggled', ({ isAutoScrollingEnabled }) => {
+    this.state.isAutoScrollingEnabled = isAutoScrollingEnabled;
+    this.renderPanel();
   });
 
   this.renderPanel();
@@ -220,23 +225,14 @@ window.PanelManager.prototype.renderPanel = function () {
     window.preact.h(window.Panel, {
       state: this.state,
       config: this.uiElements.config,
-      copyCallback: this.xGhosted.copyLinks.bind(this.xGhosted),
+      xGhosted: this.xGhosted,
       mode: this.state.themeMode,
-      onModeChange: this.handleModeChange.bind(this),
-      onStartAutoCollapsing: this.xGhosted.startAutoCollapsing.bind(this.xGhosted),
-      onStopAutoCollapsing: this.xGhosted.stopAutoCollapsing.bind(this.xGhosted),
-      onResetAutoCollapsing: this.xGhosted.resetAutoCollapsing.bind(this.xGhosted),
-      onExportCSV: this.xGhosted.exportProcessedPostsCSV.bind(this.xGhosted),
-      onImportCSV: this.xGhosted.importProcessedPostsCSV.bind(this.xGhosted),
-      onClear: this.xGhosted.handleClear.bind(this.xGhosted),
-      onManualCheckToggle: this.xGhosted.handleManualCheckToggle.bind(this.xGhosted),
-      onToggle: this.toggleVisibility.bind(this),
+      onModeChange: this.handleModeChange.bind(this), // Bind to fix potential issue
+      onToggle: this.toggleVisibility.bind(this), // Bind to fix Hide/Show bug
       onEyeballClick: (href) => {
         const post = this.document.querySelector(`[data-xghosted-id="${href}"]`);
         this.xGhosted.userRequestedPostCheck(href, post);
       },
-      onStartPolling: this.xGhosted.handleStartPolling.bind(this.xGhosted),
-      onStopPolling: this.xGhosted.handleStopPolling.bind(this.xGhosted),
     }),
     this.uiElements.panel
   );

@@ -6,20 +6,11 @@ const { useState, useEffect, useMemo } = window.preactHooks;
 function Panel({
   state,
   config,
-  copyCallback,
+  xGhosted,
   mode,
   onModeChange,
-  onStartAutoCollapsing,
-  onStopAutoCollapsing,
-  onResetAutoCollapsing,
-  onExportCSV,
-  onImportCSV,
-  onClear,
-  onManualCheckToggle,
   onToggle,
   onEyeballClick,
-  onStartPolling,
-  onStopPolling,
 }) {
   const flagged = useMemo(
     () =>
@@ -84,12 +75,13 @@ function Panel({
   };
 
   const handleModalSubmit = (csvText) => {
-    onImportCSV(csvText);
+    xGhosted.importProcessedPostsCSV(csvText);
     setIsModalOpen(false);
   };
 
   const toolsIconClass = isToolsExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
   const pollingIconClass = state.isPollingEnabled ? 'fa-solid fa-circle-stop' : 'fa-solid fa-circle-play';
+  const autoScrollIconClass = state.isAutoScrollingEnabled ? 'fa-solid fa-circle-stop' : 'fa-solid fa-circle-play';
 
   return (
     <div>
@@ -134,8 +126,8 @@ function Panel({
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingLeft: '10px' }}>
                 <button
                   key={state.isPollingEnabled ? 'stop-button' : 'start-button'}
-                  className="panel-button"
-                  onClick={state.isPollingEnabled ? onStopPolling : onStartPolling}
+                  className={`panel-button ${state.isPollingEnabled ? '' : 'polling-stopped'}`}
+                  onClick={() => state.isPollingEnabled ? xGhosted.handleStopPolling() : xGhosted.handleStartPolling()}
                   aria-label={state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
                 >
                   <i
@@ -144,6 +136,19 @@ function Panel({
                     onError={() => console.error('Font Awesome icon failed to load: polling')}
                   ></i>
                   {state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
+                </button>
+                <button
+                  key={state.isAutoScrollingEnabled ? 'scroll-stop' : 'scroll-start'}
+                  className="panel-button"
+                  onClick={() => xGhosted.toggleAutoScrolling()}
+                  aria-label={state.isAutoScrollingEnabled ? 'Stop Auto-Scroll' : 'Start Auto-Scroll'}
+                >
+                  <i
+                    className={autoScrollIconClass}
+                    style={{ marginRight: '6px' }}
+                    onError={() => console.error('Font Awesome icon failed to load: auto-scroll')}
+                  ></i>
+                  {state.isAutoScrollingEnabled ? 'Stop Scroll' : 'Start Scroll'}
                 </button>
                 <button
                   className="panel-button"
@@ -187,7 +192,7 @@ function Panel({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '8px' }}>
                   <button
                     className="panel-button"
-                    onClick={copyCallback}
+                    onClick={() => xGhosted.copyLinks()}
                     aria-label="Copy Problem Links"
                   >
                     <i
@@ -199,7 +204,7 @@ function Panel({
                   </button>
                   <button
                     className="panel-button"
-                    onClick={onExportCSV}
+                    onClick={() => xGhosted.exportProcessedPostsCSV()}
                     aria-label="Export Posts to CSV"
                   >
                     <i
@@ -223,7 +228,7 @@ function Panel({
                   </button>
                   <button
                     className="panel-button"
-                    onClick={onClear}
+                    onClick={() => xGhosted.handleClear()}
                     aria-label="Clear Processed Posts"
                   >
                     <i
@@ -246,7 +251,7 @@ function Panel({
                         ? `1px solid ${config.THEMES[currentMode].hover}`
                         : `1px solid ${config.THEMES[currentMode].border}`
                     }}
-                    onClick={onManualCheckToggle}
+                    onClick={() => xGhosted.handleManualCheckToggle()}
                     aria-label={`Toggle Manual Check: Currently ${state.isManualCheckEnabled ? 'On' : 'Off'}`}
                   >
                     <i
@@ -257,38 +262,6 @@ function Panel({
                     Manual Check: {state.isManualCheckEnabled ? 'On' : 'Off'}
                   </button>
                 </div>
-              </div>
-            </div>
-            <div className="control-row">
-              <span className="status-label">
-                {state.isRateLimited ? 'Paused (Rate Limit)' : state.isCollapsingEnabled ? 'Auto Collapse Running' : 'Auto Collapse Stopped'}
-              </span>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  key={state.isCollapsingEnabled ? 'stop-button' : 'start-button'}
-                  className="panel-button"
-                  onClick={state.isCollapsingEnabled ? onStopAutoCollapsing : onStartAutoCollapsing}
-                  aria-label={state.isCollapsingEnabled ? 'Stop Auto Collapse' : 'Start Auto Collapse'}
-                >
-                  <i
-                    className={pollingIconClass}
-                    style={{ marginRight: '6px' }}
-                    onError={() => console.error('Font Awesome icon failed to load: collapse')}
-                  ></i>
-                  {state.isCollapsingEnabled ? 'Stop' : 'Start'}
-                </button>
-                <button
-                  className="panel-button"
-                  onClick={onResetAutoCollapsing}
-                  aria-label="Reset Auto Collapse"
-                >
-                  <i
-                    className="fas fa-undo"
-                    style={{ marginRight: '6px' }}
-                    onError={() => console.error('Font Awesome icon failed to load: undo')}
-                  ></i>
-                  Reset
-                </button>
               </div>
             </div>
             <div className="content-wrapper">

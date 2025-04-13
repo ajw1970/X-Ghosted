@@ -24,20 +24,6 @@
   margin-bottom: 0px;
 }
 
-.control-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 8px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.control-row > div {
-  display: flex;
-  gap: 8px;
-}
-
 .content-wrapper {
   max-height: calc(100vh - 150px);
   overflow-y: auto;
@@ -48,7 +34,7 @@
   background: var(--button-bg);
   color: var(--button-text);
   border: none;
-  padding: 8px 12px; /* Restored from HTM */
+  padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 12px;
@@ -69,6 +55,10 @@
 
 .panel-button:active {
   transform: scale(0.95);
+}
+
+.polling-stopped {
+  border: 2px solid #FFA500;
 }
 
 .mode-selector {

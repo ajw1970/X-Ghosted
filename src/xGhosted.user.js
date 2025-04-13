@@ -331,9 +331,9 @@
         processedPosts: /* @__PURE__ */ new Map(),
         isPanelVisible: true,
         isRateLimited: false,
-        isCollapsingEnabled: false,
         isManualCheckEnabled: false,
         isPollingEnabled: true,
+        isAutoScrollingEnabled: false,
         themeMode,
       };
       this.uiElements = {
@@ -413,9 +413,11 @@
       this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
       this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
       this.state.isRateLimited = this.xGhosted.state.isRateLimited;
-      this.state.isCollapsingEnabled = this.xGhosted.state.isCollapsingEnabled;
       this.state.isManualCheckEnabled =
         this.xGhosted.state.isManualCheckEnabled;
+      this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
+      this.state.isAutoScrollingEnabled =
+        this.xGhosted.state.isAutoScrollingEnabled;
       this.state.panelPosition =
         this.xGhosted.state.panelPosition || this.state.panelPosition;
       this.uiElements.panelContainer.style.right =
@@ -434,7 +436,6 @@
       this.xGhosted.on('state-updated', (newState) => {
         this.state.processedPosts = new Map(newState.processedPosts);
         this.state.isRateLimited = newState.isRateLimited;
-        this.state.isCollapsingEnabled = newState.isCollapsingEnabled;
         this.renderPanel();
       });
       this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
@@ -466,6 +467,13 @@
         this.renderPanel();
         this.applyPanelStyles();
       });
+      this.xGhosted.on(
+        'auto-scrolling-toggled',
+        ({ isAutoScrollingEnabled }) => {
+          this.state.isAutoScrollingEnabled = isAutoScrollingEnabled;
+          this.renderPanel();
+        }
+      );
       this.renderPanel();
     };
     window.PanelManager.prototype.applyPanelStyles = function () {
@@ -533,37 +541,18 @@
         window.preact.h(window.Panel, {
           state: this.state,
           config: this.uiElements.config,
-          copyCallback: this.xGhosted.copyLinks.bind(this.xGhosted),
+          xGhosted: this.xGhosted,
           mode: this.state.themeMode,
           onModeChange: this.handleModeChange.bind(this),
-          onStartAutoCollapsing: this.xGhosted.startAutoCollapsing.bind(
-            this.xGhosted
-          ),
-          onStopAutoCollapsing: this.xGhosted.stopAutoCollapsing.bind(
-            this.xGhosted
-          ),
-          onResetAutoCollapsing: this.xGhosted.resetAutoCollapsing.bind(
-            this.xGhosted
-          ),
-          onExportCSV: this.xGhosted.exportProcessedPostsCSV.bind(
-            this.xGhosted
-          ),
-          onImportCSV: this.xGhosted.importProcessedPostsCSV.bind(
-            this.xGhosted
-          ),
-          onClear: this.xGhosted.handleClear.bind(this.xGhosted),
-          onManualCheckToggle: this.xGhosted.handleManualCheckToggle.bind(
-            this.xGhosted
-          ),
+          // Bind to fix potential issue
           onToggle: this.toggleVisibility.bind(this),
+          // Bind to fix Hide/Show bug
           onEyeballClick: (href) => {
             const post = this.document.querySelector(
               `[data-xghosted-id="${href}"]`
             );
             this.xGhosted.userRequestedPostCheck(href, post);
           },
-          onStartPolling: this.xGhosted.handleStartPolling.bind(this.xGhosted),
-          onStopPolling: this.xGhosted.handleStopPolling.bind(this.xGhosted),
         }),
         this.uiElements.panel
       );
@@ -592,20 +581,11 @@
     function Panel({
       state,
       config,
-      copyCallback,
+      xGhosted,
       mode,
       onModeChange,
-      onStartAutoCollapsing,
-      onStopAutoCollapsing,
-      onResetAutoCollapsing,
-      onExportCSV,
-      onImportCSV,
-      onClear,
-      onManualCheckToggle,
       onToggle,
       onEyeballClick,
-      onStartPolling,
-      onStopPolling,
     }) {
       const flagged = useMemo(
         () =>
@@ -666,13 +646,16 @@
         console.log('isModalOpen set to:', true);
       };
       const handleModalSubmit = (csvText) => {
-        onImportCSV(csvText);
+        xGhosted.importProcessedPostsCSV(csvText);
         setIsModalOpen(false);
       };
       const toolsIconClass = isToolsExpanded
         ? 'fas fa-chevron-up'
         : 'fas fa-chevron-down';
       const pollingIconClass = state.isPollingEnabled
+        ? 'fa-solid fa-circle-stop'
+        : 'fa-solid fa-circle-play';
+      const autoScrollIconClass = state.isAutoScrollingEnabled
         ? 'fa-solid fa-circle-stop'
         : 'fa-solid fa-circle-play';
       return /* @__PURE__ */ h(
@@ -745,10 +728,11 @@
                         key: state.isPollingEnabled
                           ? 'stop-button'
                           : 'start-button',
-                        className: 'panel-button',
-                        onClick: state.isPollingEnabled
-                          ? onStopPolling
-                          : onStartPolling,
+                        className: `panel-button ${state.isPollingEnabled ? '' : 'polling-stopped'}`,
+                        onClick: () =>
+                          state.isPollingEnabled
+                            ? xGhosted.handleStopPolling()
+                            : xGhosted.handleStartPolling(),
                         'aria-label': state.isPollingEnabled
                           ? 'Stop Polling'
                           : 'Start Polling',
@@ -762,6 +746,30 @@
                           ),
                       }),
                       state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'
+                    ),
+                    /* @__PURE__ */ h(
+                      'button',
+                      {
+                        key: state.isAutoScrollingEnabled
+                          ? 'scroll-stop'
+                          : 'scroll-start',
+                        className: 'panel-button',
+                        onClick: () => xGhosted.toggleAutoScrolling(),
+                        'aria-label': state.isAutoScrollingEnabled
+                          ? 'Stop Auto-Scroll'
+                          : 'Start Auto-Scroll',
+                      },
+                      /* @__PURE__ */ h('i', {
+                        className: autoScrollIconClass,
+                        style: { marginRight: '6px' },
+                        onError: () =>
+                          console.error(
+                            'Font Awesome icon failed to load: auto-scroll'
+                          ),
+                      }),
+                      state.isAutoScrollingEnabled
+                        ? 'Stop Scroll'
+                        : 'Start Scroll'
                     ),
                     /* @__PURE__ */ h(
                       'button',
@@ -845,7 +853,7 @@
                         'button',
                         {
                           className: 'panel-button',
-                          onClick: copyCallback,
+                          onClick: () => xGhosted.copyLinks(),
                           'aria-label': 'Copy Problem Links',
                         },
                         /* @__PURE__ */ h('i', {
@@ -862,7 +870,7 @@
                         'button',
                         {
                           className: 'panel-button',
-                          onClick: onExportCSV,
+                          onClick: () => xGhosted.exportProcessedPostsCSV(),
                           'aria-label': 'Export Posts to CSV',
                         },
                         /* @__PURE__ */ h('i', {
@@ -896,7 +904,7 @@
                         'button',
                         {
                           className: 'panel-button',
-                          onClick: onClear,
+                          onClick: () => xGhosted.handleClear(),
                           'aria-label': 'Clear Processed Posts',
                         },
                         /* @__PURE__ */ h('i', {
@@ -928,7 +936,7 @@
                               ? `1px solid ${config.THEMES[currentMode].hover}`
                               : `1px solid ${config.THEMES[currentMode].border}`,
                           },
-                          onClick: onManualCheckToggle,
+                          onClick: () => xGhosted.handleManualCheckToggle(),
                           'aria-label': `Toggle Manual Check: Currently ${state.isManualCheckEnabled ? 'On' : 'Off'}`,
                         },
                         /* @__PURE__ */ h('i', {
@@ -942,64 +950,6 @@
                         'Manual Check: ',
                         state.isManualCheckEnabled ? 'On' : 'Off'
                       )
-                    )
-                  )
-                ),
-                /* @__PURE__ */ h(
-                  'div',
-                  { className: 'control-row' },
-                  /* @__PURE__ */ h(
-                    'span',
-                    { className: 'status-label' },
-                    state.isRateLimited
-                      ? 'Paused (Rate Limit)'
-                      : state.isCollapsingEnabled
-                        ? 'Auto Collapse Running'
-                        : 'Auto Collapse Stopped'
-                  ),
-                  /* @__PURE__ */ h(
-                    'div',
-                    { style: { display: 'flex', gap: '8px' } },
-                    /* @__PURE__ */ h(
-                      'button',
-                      {
-                        key: state.isCollapsingEnabled
-                          ? 'stop-button'
-                          : 'start-button',
-                        className: 'panel-button',
-                        onClick: state.isCollapsingEnabled
-                          ? onStopAutoCollapsing
-                          : onStartAutoCollapsing,
-                        'aria-label': state.isCollapsingEnabled
-                          ? 'Stop Auto Collapse'
-                          : 'Start Auto Collapse',
-                      },
-                      /* @__PURE__ */ h('i', {
-                        className: pollingIconClass,
-                        style: { marginRight: '6px' },
-                        onError: () =>
-                          console.error(
-                            'Font Awesome icon failed to load: collapse'
-                          ),
-                      }),
-                      state.isCollapsingEnabled ? 'Stop' : 'Start'
-                    ),
-                    /* @__PURE__ */ h(
-                      'button',
-                      {
-                        className: 'panel-button',
-                        onClick: onResetAutoCollapsing,
-                        'aria-label': 'Reset Auto Collapse',
-                      },
-                      /* @__PURE__ */ h('i', {
-                        className: 'fas fa-undo',
-                        style: { marginRight: '6px' },
-                        onError: () =>
-                          console.error(
-                            'Font Awesome icon failed to load: undo'
-                          ),
-                      }),
-                      'Reset'
                     )
                   )
                 ),
@@ -1201,6 +1151,7 @@
         tabCheckThrottle: 5e3,
         exportThrottle: 5e3,
         pollInterval: 1e3,
+        scrollInterval: 3e3,
       };
       this.timing = { ...defaultTiming, ...config.timing };
       this.document = doc;
@@ -1216,8 +1167,7 @@
         isWithReplies: false,
         isRateLimited: false,
         isManualCheckEnabled: true,
-        isCollapsingEnabled: false,
-        isCollapsingRunning: false,
+        isAutoScrollingEnabled: false,
         isPanelVisible: true,
         themeMode: null,
         isHighlighting: false,
@@ -1256,7 +1206,7 @@
       }
       const newState = {
         isPanelVisible: this.state.isPanelVisible,
-        isCollapsingEnabled: this.state.isCollapsingEnabled,
+        isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
         isManualCheckEnabled: this.state.isManualCheckEnabled,
         themeMode: this.state.themeMode,
         processedPosts: serializableArticles,
@@ -1287,14 +1237,14 @@
       const otherStateChanged =
         JSON.stringify({
           isPanelVisible: newState.isPanelVisible,
-          isCollapsingEnabled: newState.isCollapsingEnabled,
+          isAutoScrollingEnabled: newState.isAutoScrollingEnabled,
           isManualCheckEnabled: newState.isManualCheckEnabled,
           themeMode: newState.themeMode,
           panelPosition: newState.panelPosition,
         }) !==
         JSON.stringify({
           isPanelVisible: oldState.isPanelVisible,
-          isCollapsingEnabled: oldState.isCollapsingEnabled,
+          isAutoScrollingEnabled: oldState.isAutoScrollingEnabled,
           isManualCheckEnabled: oldState.isManualCheckEnabled,
           themeMode: oldState.themeMode,
           panelPosition: oldState.panelPosition,
@@ -1310,7 +1260,8 @@
     XGhosted.prototype.loadState = function () {
       const savedState = GM_getValue('xGhostedState', {});
       this.state.isPanelVisible = savedState.isPanelVisible ?? true;
-      this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
+      this.state.isAutoScrollingEnabled =
+        savedState.isAutoScrollingEnabled ?? false;
       this.state.isManualCheckEnabled =
         savedState.isManualCheckEnabled ?? false;
       this.state.themeMode = savedState.themeMode ?? null;
@@ -1521,6 +1472,7 @@
     XGhosted.prototype.handleStartPolling = function () {
       this.state.isPollingEnabled = true;
       this.startPolling();
+      this.startAutoScrolling();
       this.saveState();
       this.emit('polling-state-updated', {
         isPollingEnabled: this.state.isPollingEnabled,
@@ -1532,41 +1484,68 @@
         clearInterval(this.pollTimer);
         this.pollTimer = null;
       }
+      if (this.scrollTimer) {
+        clearInterval(this.scrollTimer);
+        this.scrollTimer = null;
+      }
       this.saveState();
       this.emit('polling-state-updated', {
         isPollingEnabled: this.state.isPollingEnabled,
       });
     };
-    XGhosted.prototype.startAutoCollapsing = function () {
-      this.state.isCollapsingEnabled = true;
-      this.state.isCollapsingRunning = true;
+    XGhosted.prototype.startPolling = function () {
+      if (!this.state.isPollingEnabled) {
+        this.log('Polling not started: polling is disabled');
+        return;
+      }
+      const pollInterval = this.timing.pollInterval || 1e3;
+      this.log('Starting polling for post changes...');
+      this.pollTimer = setInterval(() => {
+        if (this.state.isHighlighting) {
+          this.log('Polling skipped\u2014highlighting in progress');
+          return;
+        }
+        const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
+        const postCount = posts.length;
+        if (postCount > 0) {
+          this.log(`Found ${postCount} new posts, highlighting...`);
+          this.highlightPosts(posts);
+        } else if (
+          !this.document.querySelector('div[data-xghosted="posts-container"]')
+        ) {
+          this.log(
+            'No posts and no container found, ensuring and highlighting...'
+          );
+          this.ensureAndHighlightPosts();
+        }
+      }, pollInterval);
     };
-    XGhosted.prototype.stopAutoCollapsing = function () {
-      this.state.isCollapsingEnabled = false;
-      this.state.isCollapsingRunning = false;
-      this.emit('state-updated', {
-        ...this.state,
-        processedPosts: new Map(this.state.processedPosts),
-      });
-      this.saveState();
-      this.log('Auto-collapsing stopped');
+    XGhosted.prototype.startAutoScrolling = function () {
+      if (!this.state.isPollingEnabled) {
+        this.log('Auto-scrolling not started: polling is disabled');
+        return;
+      }
+      const scrollInterval = this.timing.scrollInterval || 3e3;
+      this.log('Starting auto-scrolling timer...');
+      this.scrollTimer = setInterval(() => {
+        if (!this.state.isPollingEnabled) {
+          this.log('Auto-scrolling skipped\u2014polling is disabled');
+          return;
+        }
+        if (this.state.isAutoScrollingEnabled) {
+          this.log('Performing smooth scroll down...');
+          window.scrollBy({
+            top: window.innerHeight * 0.8,
+            behavior: 'smooth',
+          });
+        }
+      }, scrollInterval);
     };
-    XGhosted.prototype.resetAutoCollapsing = function () {
-      this.state.isCollapsingEnabled = false;
-      this.state.isCollapsingRunning = false;
-      const collapsedPosts = this.document.querySelectorAll(
-        '.xghosted-collapsed'
-      );
-      collapsedPosts.forEach((post) => {
-        post.classList.remove('xghosted-collapsed');
-        const postId = post.getAttribute('data-xghosted-id') || 'unknown';
-        this.log(`Expanded collapsed post: ${postId}`);
-      });
-      this.log('Auto-collapse reset: all collapsed posts expanded');
+    XGhosted.prototype.toggleAutoScrolling = function () {
+      this.state.isAutoScrollingEnabled = !this.state.isAutoScrollingEnabled;
       this.saveState();
-      this.emit('state-updated', {
-        ...this.state,
-        processedPosts: new Map(this.state.processedPosts),
+      this.emit('auto-scrolling-toggled', {
+        isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
       });
     };
     XGhosted.prototype.clearProcessedPosts = function () {
@@ -1691,53 +1670,6 @@
       }
       this.state.isHighlighting = false;
       return results;
-    };
-    XGhosted.prototype.startPolling = function () {
-      if (!this.state.isPollingEnabled) {
-        this.log('Polling not started: polling is disabled');
-        return;
-      }
-      const pollInterval = this.timing.pollInterval || 1e3;
-      this.log('Starting polling for post changes...');
-      this.pollTimer = setInterval(() => {
-        if (this.state.isHighlighting) {
-          this.log('Polling skipped\u2014highlighting in progress');
-          return;
-        }
-        const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
-        const postCount = posts.length;
-        if (postCount > 0) {
-          this.log(`Found ${postCount} new posts, highlighting...`);
-          this.highlightPosts(posts);
-        } else if (
-          !this.document.querySelector('div[data-xghosted="posts-container"]')
-        ) {
-          this.log(
-            'No posts and no container found, ensuring and highlighting...'
-          );
-          this.ensureAndHighlightPosts();
-        }
-        if (this.state.isCollapsingRunning) {
-          const postToCollapse = this.document.querySelector(
-            'div[data-xghosted="postquality.undefined"]:not(.xghosted-collapsed), div[data-xghosted="postquality.good"]:not(.xghosted-collapsed)'
-          );
-          if (postToCollapse) {
-            postToCollapse.classList.add('xghosted-collapsed');
-            const postId =
-              postToCollapse.getAttribute('data-xghosted-id') || 'unknown';
-            this.log(`Collapsed post: ${postId}`);
-            this.saveState();
-          } else {
-            this.log('No more posts to collapse');
-            this.state.isCollapsingRunning = false;
-            this.state.isCollapsingEnabled = false;
-            this.emit('state-updated', {
-              ...this.state,
-              processedPosts: new Map(this.state.processedPosts),
-            });
-          }
-        }
-      }, pollInterval);
     };
     XGhosted.prototype.getThemeMode = function () {
       return detectTheme(this.document);
@@ -1897,6 +1829,7 @@
         isPollingEnabled: this.state.isPollingEnabled,
       });
       this.startPolling();
+      this.startAutoScrolling();
     };
     window.XGhosted = XGhosted;
   })();
@@ -1996,20 +1929,6 @@
   margin-bottom: 0px;
 }
 
-.control-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 8px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.control-row > div {
-  display: flex;
-  gap: 8px;
-}
-
 .content-wrapper {
   max-height: calc(100vh - 150px);
   overflow-y: auto;
@@ -2020,7 +1939,7 @@
   background: var(--button-bg);
   color: var(--button-text);
   border: none;
-  padding: 8px 12px; /* Restored from HTM */
+  padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 12px;
@@ -2041,6 +1960,10 @@
 
 .panel-button:active {
   transform: scale(0.95);
+}
+
+.polling-stopped {
+  border: 2px solid #FFA500;
 }
 
 .mode-selector {

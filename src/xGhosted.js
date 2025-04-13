@@ -15,7 +15,8 @@ function XGhosted(doc, config = {}) {
     throttleDelay: 1000,
     tabCheckThrottle: 5000,
     exportThrottle: 5000,
-    pollInterval: 1000
+    pollInterval: 1000,
+    scrollInterval: 3000
   };
   this.timing = { ...defaultTiming, ...config.timing };
   this.document = doc;
@@ -30,8 +31,7 @@ function XGhosted(doc, config = {}) {
     isWithReplies: false,
     isRateLimited: false,
     isManualCheckEnabled: true,
-    isCollapsingEnabled: false,
-    isCollapsingRunning: false,
+    isAutoScrollingEnabled: false,
     isPanelVisible: true,
     themeMode: null,
     isHighlighting: false,
@@ -72,7 +72,7 @@ XGhosted.prototype.saveState = function () {
   }
   const newState = {
     isPanelVisible: this.state.isPanelVisible,
-    isCollapsingEnabled: this.state.isCollapsingEnabled,
+    isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
     isManualCheckEnabled: this.state.isManualCheckEnabled,
     themeMode: this.state.themeMode,
     processedPosts: serializableArticles,
@@ -91,13 +91,13 @@ XGhosted.prototype.saveState = function () {
   const processedPostsChanged = JSON.stringify(newProcessedPostsArray) !== JSON.stringify(oldProcessedPostsArray);
   const otherStateChanged = JSON.stringify({
     isPanelVisible: newState.isPanelVisible,
-    isCollapsingEnabled: newState.isCollapsingEnabled,
+    isAutoScrollingEnabled: newState.isAutoScrollingEnabled,
     isManualCheckEnabled: newState.isManualCheckEnabled,
     themeMode: newState.themeMode,
     panelPosition: newState.panelPosition
   }) !== JSON.stringify({
     isPanelVisible: oldState.isPanelVisible,
-    isCollapsingEnabled: oldState.isCollapsingEnabled,
+    isAutoScrollingEnabled: oldState.isAutoScrollingEnabled,
     isManualCheckEnabled: oldState.isManualCheckEnabled,
     themeMode: oldState.themeMode,
     panelPosition: oldState.panelPosition
@@ -112,7 +112,7 @@ XGhosted.prototype.saveState = function () {
 XGhosted.prototype.loadState = function () {
   const savedState = GM_getValue('xGhostedState', {});
   this.state.isPanelVisible = savedState.isPanelVisible ?? true;
-  this.state.isCollapsingEnabled = savedState.isCollapsingEnabled ?? false;
+  this.state.isAutoScrollingEnabled = savedState.isAutoScrollingEnabled ?? false;
   this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
   this.state.themeMode = savedState.themeMode ?? null;
 
@@ -281,6 +281,7 @@ XGhosted.prototype.userRequestedPostCheck = function (href, post) {
 XGhosted.prototype.handleStartPolling = function () {
   this.state.isPollingEnabled = true;
   this.startPolling();
+  this.startAutoScrolling();
   this.saveState();
   this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
 };
@@ -291,35 +292,65 @@ XGhosted.prototype.handleStopPolling = function () {
     clearInterval(this.pollTimer);
     this.pollTimer = null;
   }
+  if (this.scrollTimer) {
+    clearInterval(this.scrollTimer);
+    this.scrollTimer = null;
+  }
   this.saveState();
   this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
 };
 
-XGhosted.prototype.startAutoCollapsing = function () {
-  this.state.isCollapsingEnabled = true;
-  this.state.isCollapsingRunning = true;
+XGhosted.prototype.startPolling = function () {
+  if (!this.state.isPollingEnabled) {
+    this.log('Polling not started: polling is disabled');
+    return;
+  }
+  const pollInterval = this.timing.pollInterval || 1000;
+  this.log('Starting polling for post changes...');
+  this.pollTimer = setInterval(() => {
+    if (this.state.isHighlighting) {
+      this.log('Polling skipped—highlighting in progress');
+      return;
+    }
+
+    const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
+    const postCount = posts.length;
+    if (postCount > 0) {
+      this.log(`Found ${postCount} new posts, highlighting...`);
+      this.highlightPosts(posts);
+    } else if (!this.document.querySelector('div[data-xghosted="posts-container"]')) {
+      this.log('No posts and no container found, ensuring and highlighting...');
+      this.ensureAndHighlightPosts();
+    }
+  }, pollInterval);
 };
 
-XGhosted.prototype.stopAutoCollapsing = function () {
-  this.state.isCollapsingEnabled = false;
-  this.state.isCollapsingRunning = false;
-  this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
-  this.saveState();
-  this.log('Auto-collapsing stopped');
+XGhosted.prototype.startAutoScrolling = function () {
+  if (!this.state.isPollingEnabled) {
+    this.log('Auto-scrolling not started: polling is disabled');
+    return;
+  }
+  const scrollInterval = this.timing.scrollInterval || 3000;
+  this.log('Starting auto-scrolling timer...');
+  this.scrollTimer = setInterval(() => {
+    if (!this.state.isPollingEnabled) {
+      this.log('Auto-scrolling skipped—polling is disabled');
+      return;
+    }
+    if (this.state.isAutoScrollingEnabled) {
+      this.log('Performing smooth scroll down...');
+      window.scrollBy({
+        top: window.innerHeight * 0.8,
+        behavior: 'smooth'
+      });
+    }
+  }, scrollInterval);
 };
 
-XGhosted.prototype.resetAutoCollapsing = function () {
-  this.state.isCollapsingEnabled = false;
-  this.state.isCollapsingRunning = false;
-  const collapsedPosts = this.document.querySelectorAll('.xghosted-collapsed');
-  collapsedPosts.forEach(post => {
-    post.classList.remove('xghosted-collapsed');
-    const postId = post.getAttribute('data-xghosted-id') || 'unknown';
-    this.log(`Expanded collapsed post: ${postId}`);
-  });
-  this.log('Auto-collapse reset: all collapsed posts expanded');
+XGhosted.prototype.toggleAutoScrolling = function () {
+  this.state.isAutoScrollingEnabled = !this.state.isAutoScrollingEnabled;
   this.saveState();
-  this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
+  this.emit('auto-scrolling-toggled', { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled });
 };
 
 XGhosted.prototype.clearProcessedPosts = function () {
@@ -431,49 +462,6 @@ XGhosted.prototype.highlightPosts = function (posts) {
   }
   this.state.isHighlighting = false;
   return results;
-};
-
-XGhosted.prototype.startPolling = function () {
-  if (!this.state.isPollingEnabled) {
-    this.log('Polling not started: polling is disabled');
-    return;
-  }
-  const pollInterval = this.timing.pollInterval || 1000;
-  this.log('Starting polling for post changes...');
-  this.pollTimer = setInterval(() => {
-    if (this.state.isHighlighting) {
-      this.log('Polling skipped—highlighting in progress');
-      return;
-    }
-
-    const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
-    const postCount = posts.length;
-    if (postCount > 0) {
-      this.log(`Found ${postCount} new posts, highlighting...`);
-      this.highlightPosts(posts);
-    } else if (!this.document.querySelector('div[data-xghosted="posts-container"]')) {
-      this.log('No posts and no container found, ensuring and highlighting...');
-      this.ensureAndHighlightPosts();
-    }
-
-    if (this.state.isCollapsingRunning) {
-      const postToCollapse = this.document.querySelector(
-        'div[data-xghosted="postquality.undefined"]:not(.xghosted-collapsed), ' +
-        'div[data-xghosted="postquality.good"]:not(.xghosted-collapsed)'
-      );
-      if (postToCollapse) {
-        postToCollapse.classList.add('xghosted-collapsed');
-        const postId = postToCollapse.getAttribute('data-xghosted-id') || 'unknown';
-        this.log(`Collapsed post: ${postId}`);
-        this.saveState();
-      } else {
-        this.log('No more posts to collapse');
-        this.state.isCollapsingRunning = false;
-        this.state.isCollapsingEnabled = false;
-        this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
-      }
-    }
-  }, pollInterval);
 };
 
 XGhosted.prototype.getThemeMode = function () {
@@ -630,6 +618,7 @@ XGhosted.prototype.init = function () {
   this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
 
   this.startPolling();
+  this.startAutoScrolling();
 };
 
 window.XGhosted = XGhosted;
