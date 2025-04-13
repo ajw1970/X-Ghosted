@@ -11,12 +11,12 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
     isCollapsingEnabled: false,
     isManualCheckEnabled: false,
     isPollingEnabled: true,
-    themeMode: themeMode,
+    themeMode,
   };
   this.uiElements = {
     config: {
       PANEL: {
-        WIDTH: '350px', // Reverted to 350px
+        WIDTH: '350px',
         MAX_HEIGHT: 'calc(100vh - 70px)',
         TOP: '60px',
         RIGHT: '10px',
@@ -29,18 +29,18 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
           text: '#292F33',
           buttonText: '#000000',
           border: '#E1E8ED',
-          button: '#D0D7DE',
-          hover: '#B0BEC5',
-          scroll: '#CCD6DD'
+          button: '#B0BEC5',
+          hover: '#90A4AE',
+          scroll: '#CCD6DD',
         },
         dim: {
           bg: '#15202B',
-          text: '#E0E0E0',
-          buttonText: '#FFFFFF',
+          text: '#D9D9D9',
+          buttonText: '#D9D9D9',
           border: '#38444D',
-          button: '#4A5C6D',
-          hover: '#5A6C7D',
-          scroll: '#4A5C6D'
+          button: '#38444D',
+          hover: '#4A5C6D',
+          scroll: '#4A5C6D',
         },
         dark: {
           bg: '#000000',
@@ -49,9 +49,9 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
           border: '#333333',
           button: '#333333',
           hover: '#444444',
-          scroll: '#666666'
+          scroll: '#666666',
         },
-      }
+      },
     },
     panel: null,
     panelContainer: null,
@@ -74,6 +74,22 @@ window.PanelManager.prototype.init = function () {
   this.uiElements.panel.id = 'xghosted-panel';
   this.uiElements.panelContainer.appendChild(this.uiElements.panel);
   this.document.body.appendChild(this.uiElements.panelContainer);
+
+  // Inject CSS early
+  if (window.xGhostedStyles) {
+    if (window.xGhostedStyles.modal) {
+      const modalStyleSheet = this.document.createElement('style');
+      modalStyleSheet.textContent = window.xGhostedStyles.modal;
+      this.document.head.appendChild(modalStyleSheet);
+      this.log('Injected Modal CSS');
+    }
+    if (window.xGhostedStyles.panel) {
+      const panelStyleSheet = this.document.createElement('style');
+      panelStyleSheet.textContent = window.xGhostedStyles.panel;
+      this.document.head.appendChild(panelStyleSheet);
+      this.log('Injected Panel CSS');
+    }
+  }
 
   this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
   this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
@@ -139,9 +155,8 @@ window.PanelManager.prototype.init = function () {
 window.PanelManager.prototype.applyPanelStyles = function () {
   const position = this.state.panelPosition || { right: '10px', top: '60px' };
   const borderColor = this.state.isPollingEnabled
-    ? (this.state.themeMode === 'light' ? '#333333' : '#D9D9D9')
+    ? this.state.themeMode === 'light' ? '#333333' : '#D9D9D9'
     : '#FFA500';
-  const theme = this.uiElements.config.THEMES[this.state.themeMode] || this.uiElements.config.THEMES.light;
   this.styleElement.textContent = `
     button:active { transform: scale(0.95); }
     #xghosted-panel-container {
@@ -152,22 +167,6 @@ window.PanelManager.prototype.applyPanelStyles = function () {
       cursor: move;
       border: 2px solid ${borderColor};
       border-radius: 12px;
-      background: ${theme.bg};
-      color: ${theme.text};
-      width: ${this.uiElements.config.PANEL.WIDTH};
-      max-height: ${this.uiElements.config.PANEL.MAX_HEIGHT};
-      font-family: ${this.uiElements.config.PANEL.FONT};
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      box-sizing: border-box;
-    }
-    #xghosted-panel {
-      width: 100%;
-      max-width: calc(100% - 8px); /* Account for 4px padding on each side */
-      max-height: 100%;
-      padding: 4px; /* Reduced from 8px */
-      position: relative;
-      overflow-x: hidden;
-      box-sizing: border-box;
     }
   `;
 };
@@ -190,7 +189,7 @@ window.PanelManager.prototype.doDrag = function (e) {
   let newRight = this.dragState.initialRight - deltaX;
   let newTop = this.dragState.initialTop + deltaY;
 
-  const panelWidth = 350; // Updated to match reverted panel width
+  const panelWidth = 350;
   const panelHeight = this.uiElements.panelContainer.offsetHeight;
   const windowWidth = window.innerWidth;
   const windowHeight = window.innerHeight;

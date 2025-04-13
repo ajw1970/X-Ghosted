@@ -388,13 +388,11 @@ XGhosted.prototype.highlightPosts = function (posts) {
       this.log('Skipping invalid DOM element:', post);
       return;
     }
-
     const id = analysis.link;
     const qualityName = analysis.quality.name.toLowerCase().replace(' ', '_');
     post.setAttribute('data-xghosted-id', id);
     post.setAttribute('data-xghosted', `postquality.${qualityName}`);
     post.classList.add(`xghosted-${qualityName}`);
-
     if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
       const shareButtonContainer = post.querySelector('button[aria-label="Share post"]')?.parentElement;
       if (shareButtonContainer) {
@@ -403,7 +401,6 @@ XGhosted.prototype.highlightPosts = function (posts) {
         this.log(`No share button container found for post with href: ${id}`);
       }
     }
-
     if (id) {
       this.state.processedPosts.set(id, { analysis, checked: false });
     }
@@ -577,21 +574,6 @@ XGhosted.prototype.init = function () {
     }
   `;
   this.document.head.appendChild(styleSheet);
-
-  if (window.xGhostedStyles) {
-    if (window.xGhostedStyles.modal) {
-      const modalStyleSheet = this.document.createElement('style');
-      modalStyleSheet.textContent = window.xGhostedStyles.modal;
-      this.document.head.appendChild(modalStyleSheet);
-      this.log('Injected Modal CSS');
-    }
-    if (window.xGhostedStyles.panel) {
-      const panelStyleSheet = this.document.createElement('style');
-      panelStyleSheet.textContent = window.xGhostedStyles.panel;
-      this.document.head.appendChild(panelStyleSheet);
-      this.log('Injected Panel CSS');
-    }
-  }
 
   this.document.addEventListener('click', (e) => {
     const eyeball = e.target.closest('.xghosted-eyeball') ||

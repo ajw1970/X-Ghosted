@@ -340,7 +340,6 @@
         config: {
           PANEL: {
             WIDTH: '350px',
-            // Reverted to 350px
             MAX_HEIGHT: 'calc(100vh - 70px)',
             TOP: '60px',
             RIGHT: '10px',
@@ -353,17 +352,17 @@
               text: '#292F33',
               buttonText: '#000000',
               border: '#E1E8ED',
-              button: '#D0D7DE',
-              hover: '#B0BEC5',
+              button: '#B0BEC5',
+              hover: '#90A4AE',
               scroll: '#CCD6DD',
             },
             dim: {
               bg: '#15202B',
-              text: '#E0E0E0',
-              buttonText: '#FFFFFF',
+              text: '#D9D9D9',
+              buttonText: '#D9D9D9',
               border: '#38444D',
-              button: '#4A5C6D',
-              hover: '#5A6C7D',
+              button: '#38444D',
+              hover: '#4A5C6D',
               scroll: '#4A5C6D',
             },
             dark: {
@@ -397,6 +396,20 @@
       this.uiElements.panel.id = 'xghosted-panel';
       this.uiElements.panelContainer.appendChild(this.uiElements.panel);
       this.document.body.appendChild(this.uiElements.panelContainer);
+      if (window.xGhostedStyles) {
+        if (window.xGhostedStyles.modal) {
+          const modalStyleSheet = this.document.createElement('style');
+          modalStyleSheet.textContent = window.xGhostedStyles.modal;
+          this.document.head.appendChild(modalStyleSheet);
+          this.log('Injected Modal CSS');
+        }
+        if (window.xGhostedStyles.panel) {
+          const panelStyleSheet = this.document.createElement('style');
+          panelStyleSheet.textContent = window.xGhostedStyles.panel;
+          this.document.head.appendChild(panelStyleSheet);
+          this.log('Injected Panel CSS');
+        }
+      }
       this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
       this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
       this.state.isRateLimited = this.xGhosted.state.isRateLimited;
@@ -465,9 +478,6 @@
           ? '#333333'
           : '#D9D9D9'
         : '#FFA500';
-      const theme =
-        this.uiElements.config.THEMES[this.state.themeMode] ||
-        this.uiElements.config.THEMES.light;
       this.styleElement.textContent = `
     button:active { transform: scale(0.95); }
     #xghosted-panel-container {
@@ -478,22 +488,6 @@
       cursor: move;
       border: 2px solid ${borderColor};
       border-radius: 12px;
-      background: ${theme.bg};
-      color: ${theme.text};
-      width: ${this.uiElements.config.PANEL.WIDTH};
-      max-height: ${this.uiElements.config.PANEL.MAX_HEIGHT};
-      font-family: ${this.uiElements.config.PANEL.FONT};
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      box-sizing: border-box;
-    }
-    #xghosted-panel {
-      width: 100%;
-      max-width: calc(100% - 8px); /* Account for 4px padding on each side */
-      max-height: 100%;
-      padding: 4px; /* Reduced from 8px */
-      position: relative;
-      overflow-x: hidden;
-      box-sizing: border-box;
     }
   `;
     };
@@ -652,7 +646,12 @@
         console.log('Tools button clicked');
         setIsToolsExpanded((prev) => {
           const newState = !prev;
-          console.log('isToolsExpanded toggled to:', newState);
+          console.log(
+            'isToolsExpanded toggled to:',
+            newState,
+            'icon:',
+            toolsIconClass
+          );
           return newState;
         });
       };
@@ -691,6 +690,16 @@
               '--hover-bg': config.THEMES[currentMode].hover,
               '--border-color': config.THEMES[currentMode].border,
               '--scroll-color': config.THEMES[currentMode].scroll,
+              width: isVisible ? config.PANEL.WIDTH : 'auto',
+              maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
+              minWidth: isVisible ? '250px' : '60px',
+              padding: isVisible ? '12px' : '4px',
+              transition: 'width 0.2s ease, max-height 0.2s ease',
+              fontFamily: config.PANEL.FONT,
+              background: config.THEMES[currentMode].bg,
+              color: config.THEMES[currentMode].text,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
             },
           },
           isVisible
@@ -713,8 +722,12 @@
                     /* @__PURE__ */ h('i', {
                       className: toolsIconClass,
                       style: { marginRight: '6px' },
+                      onError: () =>
+                        console.error(
+                          'Font Awesome icon failed to load: tools'
+                        ),
                     }),
-                    ' Tools'
+                    'Tools'
                   ),
                   /* @__PURE__ */ h(
                     'div',
@@ -743,6 +756,10 @@
                       /* @__PURE__ */ h('i', {
                         className: pollingIconClass,
                         style: { marginRight: '6px' },
+                        onError: () =>
+                          console.error(
+                            'Font Awesome icon failed to load: polling'
+                          ),
                       }),
                       state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'
                     ),
@@ -756,15 +773,28 @@
                       /* @__PURE__ */ h('i', {
                         className: 'fas fa-eye-slash',
                         style: { marginRight: '6px' },
+                        onError: () =>
+                          console.error(
+                            'Font Awesome icon failed to load: eye-slash'
+                          ),
                       }),
-                      ' Hide'
+                      'Hide'
                     )
                   )
                 ),
                 /* @__PURE__ */ h(
                   'div',
                   {
-                    className: `tools-section ${isToolsExpanded ? 'visible' : ''}`,
+                    className: 'tools-section',
+                    style: {
+                      display: isToolsExpanded ? 'block' : 'none',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      background: `${config.THEMES[currentMode].bg}F0`,
+                      boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
+                      marginBottom: '8px',
+                      borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
+                    },
                   },
                   /* @__PURE__ */ h(
                     'div',
@@ -821,8 +851,12 @@
                         /* @__PURE__ */ h('i', {
                           className: 'fas fa-copy',
                           style: { marginRight: '8px' },
+                          onError: () =>
+                            console.error(
+                              'Font Awesome icon failed to load: copy'
+                            ),
                         }),
-                        ' Copy'
+                        'Copy'
                       ),
                       /* @__PURE__ */ h(
                         'button',
@@ -834,8 +868,12 @@
                         /* @__PURE__ */ h('i', {
                           className: 'fas fa-file-export',
                           style: { marginRight: '8px' },
+                          onError: () =>
+                            console.error(
+                              'Font Awesome icon failed to load: file-export'
+                            ),
                         }),
-                        ' Export CSV'
+                        'Export CSV'
                       ),
                       /* @__PURE__ */ h(
                         'button',
@@ -847,8 +885,12 @@
                         /* @__PURE__ */ h('i', {
                           className: 'fas fa-file-import',
                           style: { marginRight: '8px' },
+                          onError: () =>
+                            console.error(
+                              'Font Awesome icon failed to load: file-import'
+                            ),
                         }),
-                        ' Import CSV'
+                        'Import CSV'
                       ),
                       /* @__PURE__ */ h(
                         'button',
@@ -860,8 +902,12 @@
                         /* @__PURE__ */ h('i', {
                           className: 'fas fa-trash',
                           style: { marginRight: '8px' },
+                          onError: () =>
+                            console.error(
+                              'Font Awesome icon failed to load: trash'
+                            ),
                         }),
-                        ' Clear'
+                        'Clear'
                       )
                     ),
                     /* @__PURE__ */ h('div', {
@@ -888,8 +934,12 @@
                         /* @__PURE__ */ h('i', {
                           className: 'fas fa-toggle-on',
                           style: { marginRight: '8px' },
+                          onError: () =>
+                            console.error(
+                              'Font Awesome icon failed to load: toggle-on'
+                            ),
                         }),
-                        ' Manual Check: ',
+                        'Manual Check: ',
                         state.isManualCheckEnabled ? 'On' : 'Off'
                       )
                     )
@@ -927,6 +977,10 @@
                       /* @__PURE__ */ h('i', {
                         className: pollingIconClass,
                         style: { marginRight: '6px' },
+                        onError: () =>
+                          console.error(
+                            'Font Awesome icon failed to load: collapse'
+                          ),
                       }),
                       state.isCollapsingEnabled ? 'Stop' : 'Start'
                     ),
@@ -940,8 +994,12 @@
                       /* @__PURE__ */ h('i', {
                         className: 'fas fa-undo',
                         style: { marginRight: '6px' },
+                        onError: () =>
+                          console.error(
+                            'Font Awesome icon failed to load: undo'
+                          ),
                       }),
-                      ' Reset'
+                      'Reset'
                     )
                   )
                 ),
@@ -1019,8 +1077,10 @@
                   /* @__PURE__ */ h('i', {
                     className: 'fas fa-eye',
                     style: { marginRight: '6px' },
+                    onError: () =>
+                      console.error('Font Awesome icon failed to load: eye'),
                   }),
-                  ' Show'
+                  'Show'
                 )
               )
         ),
@@ -1771,20 +1831,6 @@
     }
   `;
       this.document.head.appendChild(styleSheet);
-      if (window.xGhostedStyles) {
-        if (window.xGhostedStyles.modal) {
-          const modalStyleSheet = this.document.createElement('style');
-          modalStyleSheet.textContent = window.xGhostedStyles.modal;
-          this.document.head.appendChild(modalStyleSheet);
-          this.log('Injected Modal CSS');
-        }
-        if (window.xGhostedStyles.panel) {
-          const panelStyleSheet = this.document.createElement('style');
-          panelStyleSheet.textContent = window.xGhostedStyles.panel;
-          this.document.head.appendChild(panelStyleSheet);
-          this.log('Injected Panel CSS');
-        }
-      }
       this.document.addEventListener(
         'click',
         (e) => {
@@ -1938,20 +1984,6 @@
   gap: 8px;
 }
 
-.tools-section {
-  display: none;
-  padding: 4px 8px; /* Adjusted to match panel padding */
-  border-radius: 8px;
-  background: var(--bg-color-f0);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.tools-section.visible {
-  display: block;
-}
-
 .manual-check-separator {
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 0px;
@@ -1988,7 +2020,7 @@
   background: var(--button-bg);
   color: var(--button-text);
   border: none;
-  padding: 6px 8px;
+  padding: 8px 12px; /* Restored from HTM */
   border-radius: 8px;
   cursor: pointer;
   font-size: 12px;

@@ -12,20 +12,6 @@
   gap: 8px;
 }
 
-.tools-section {
-  display: none;
-  padding: 4px 8px; /* Adjusted to match panel padding */
-  border-radius: 8px;
-  background: var(--bg-color-f0);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.tools-section.visible {
-  display: block;
-}
-
 .manual-check-separator {
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 0px;
@@ -62,7 +48,7 @@
   background: var(--button-bg);
   color: var(--button-text);
   border: none;
-  padding: 6px 8px;
+  padding: 8px 12px; /* Restored from HTM */
   border-radius: 8px;
   cursor: pointer;
   font-size: 12px;

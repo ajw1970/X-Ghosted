@@ -66,7 +66,7 @@ function Panel({
     console.log('Tools button clicked');
     setIsToolsExpanded((prev) => {
       const newState = !prev;
-      console.log('isToolsExpanded toggled to:', newState);
+      console.log('isToolsExpanded toggled to:', newState, 'icon:', toolsIconClass);
       return newState;
     });
   };
@@ -102,7 +102,17 @@ function Panel({
           '--button-text': config.THEMES[currentMode].buttonText,
           '--hover-bg': config.THEMES[currentMode].hover,
           '--border-color': config.THEMES[currentMode].border,
-          '--scroll-color': config.THEMES[currentMode].scroll
+          '--scroll-color': config.THEMES[currentMode].scroll,
+          width: isVisible ? config.PANEL.WIDTH : 'auto',
+          maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
+          minWidth: isVisible ? '250px' : '60px',
+          padding: isVisible ? '12px' : '4px',
+          transition: 'width 0.2s ease, max-height 0.2s ease',
+          fontFamily: config.PANEL.FONT,
+          background: config.THEMES[currentMode].bg,
+          color: config.THEMES[currentMode].text,
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         }}
       >
         {isVisible ? (
@@ -114,7 +124,12 @@ function Panel({
                 onClick={toggleTools}
                 aria-label="Toggle Tools Section"
               >
-                <i className={toolsIconClass} style={{ marginRight: '6px' }}></i> Tools
+                <i
+                  className={toolsIconClass}
+                  style={{ marginRight: '6px' }}
+                  onError={() => console.error('Font Awesome icon failed to load: tools')}
+                ></i>
+                Tools
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingLeft: '10px' }}>
                 <button
@@ -123,7 +138,11 @@ function Panel({
                   onClick={state.isPollingEnabled ? onStopPolling : onStartPolling}
                   aria-label={state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
                 >
-                  <i className={pollingIconClass} style={{ marginRight: '6px' }}></i>
+                  <i
+                    className={pollingIconClass}
+                    style={{ marginRight: '6px' }}
+                    onError={() => console.error('Font Awesome icon failed to load: polling')}
+                  ></i>
                   {state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
                 </button>
                 <button
@@ -131,11 +150,27 @@ function Panel({
                   onClick={toggleVisibility}
                   aria-label="Hide Panel"
                 >
-                  <i className="fas fa-eye-slash" style={{ marginRight: '6px' }}></i> Hide
+                  <i
+                    className="fas fa-eye-slash"
+                    style={{ marginRight: '6px' }}
+                    onError={() => console.error('Font Awesome icon failed to load: eye-slash')}
+                  ></i>
+                  Hide
                 </button>
               </div>
             </div>
-            <div className={`tools-section ${isToolsExpanded ? 'visible' : ''}`}>
+            <div
+              className="tools-section"
+              style={{
+                display: isToolsExpanded ? 'block' : 'none',
+                padding: '12px',
+                borderRadius: '8px',
+                background: `${config.THEMES[currentMode].bg}F0`,
+                boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
+                marginBottom: '8px',
+                borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
+              }}
+            >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '15px' }}>
                 <div style={{ paddingBottom: '12px', borderBottom: '1px solid var(--border-color)' }}>
                   <select
@@ -155,28 +190,48 @@ function Panel({
                     onClick={copyCallback}
                     aria-label="Copy Problem Links"
                   >
-                    <i className="fas fa-copy" style={{ marginRight: '8px' }}></i> Copy
+                    <i
+                      className="fas fa-copy"
+                      style={{ marginRight: '8px' }}
+                      onError={() => console.error('Font Awesome icon failed to load: copy')}
+                    ></i>
+                    Copy
                   </button>
                   <button
                     className="panel-button"
                     onClick={onExportCSV}
                     aria-label="Export Posts to CSV"
                   >
-                    <i className="fas fa-file-export" style={{ marginRight: '8px' }}></i> Export CSV
+                    <i
+                      className="fas fa-file-export"
+                      style={{ marginRight: '8px' }}
+                      onError={() => console.error('Font Awesome icon failed to load: file-export')}
+                    ></i>
+                    Export CSV
                   </button>
                   <button
                     className="panel-button"
                     onClick={handleImportCSV}
                     aria-label="Import Posts from CSV"
                   >
-                    <i className="fas fa-file-import" style={{ marginRight: '8px' }}></i> Import CSV
+                    <i
+                      className="fas fa-file-import"
+                      style={{ marginRight: '8px' }}
+                      onError={() => console.error('Font Awesome icon failed to load: file-import')}
+                    ></i>
+                    Import CSV
                   </button>
                   <button
                     className="panel-button"
                     onClick={onClear}
                     aria-label="Clear Processed Posts"
                   >
-                    <i className="fas fa-trash" style={{ marginRight: '8px' }}></i> Clear
+                    <i
+                      className="fas fa-trash"
+                      style={{ marginRight: '8px' }}
+                      onError={() => console.error('Font Awesome icon failed to load: trash')}
+                    ></i>
+                    Clear
                   </button>
                 </div>
                 <div className="manual-check-separator"></div>
@@ -194,7 +249,12 @@ function Panel({
                     onClick={onManualCheckToggle}
                     aria-label={`Toggle Manual Check: Currently ${state.isManualCheckEnabled ? 'On' : 'Off'}`}
                   >
-                    <i className="fas fa-toggle-on" style={{ marginRight: '8px' }}></i> Manual Check: {state.isManualCheckEnabled ? 'On' : 'Off'}
+                    <i
+                      className="fas fa-toggle-on"
+                      style={{ marginRight: '8px' }}
+                      onError={() => console.error('Font Awesome icon failed to load: toggle-on')}
+                    ></i>
+                    Manual Check: {state.isManualCheckEnabled ? 'On' : 'Off'}
                   </button>
                 </div>
               </div>
@@ -210,7 +270,11 @@ function Panel({
                   onClick={state.isCollapsingEnabled ? onStopAutoCollapsing : onStartAutoCollapsing}
                   aria-label={state.isCollapsingEnabled ? 'Stop Auto Collapse' : 'Start Auto Collapse'}
                 >
-                  <i className={pollingIconClass} style={{ marginRight: '6px' }}></i>
+                  <i
+                    className={pollingIconClass}
+                    style={{ marginRight: '6px' }}
+                    onError={() => console.error('Font Awesome icon failed to load: collapse')}
+                  ></i>
                   {state.isCollapsingEnabled ? 'Stop' : 'Start'}
                 </button>
                 <button
@@ -218,7 +282,12 @@ function Panel({
                   onClick={onResetAutoCollapsing}
                   aria-label="Reset Auto Collapse"
                 >
-                  <i className="fas fa-undo" style={{ marginRight: '6px' }}></i> Reset
+                  <i
+                    className="fas fa-undo"
+                    style={{ marginRight: '6px' }}
+                    onError={() => console.error('Font Awesome icon failed to load: undo')}
+                  ></i>
+                  Reset
                 </button>
               </div>
             </div>
@@ -258,7 +327,12 @@ function Panel({
               onClick={toggleVisibility}
               aria-label="Show Panel"
             >
-              <i className="fas fa-eye" style={{ marginRight: '6px' }}></i> Show
+              <i
+                className="fas fa-eye"
+                style={{ marginRight: '6px' }}
+                onError={() => console.error('Font Awesome icon failed to load: eye')}
+              ></i>
+              Show
             </button>
           </div>
         )}
