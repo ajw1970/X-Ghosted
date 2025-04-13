@@ -46,7 +46,21 @@
 * [x] User requested eyeball check should stop polling.
 * [x] Allow file upload for import CSV
 
-* [ ] Add border to Start Polling button when polling is stopped to make it clear what to use to restart polling.
+* [x] Fix duplicate variables in user file like h and h2 for instance.
+* [x] Theme Selection loses border when panel is active but regains it when clicking outside the browser.
+* [ ] Update Modal to look and feel like Panel. Still needs contrast improvements in Dim and dark themes. The textbox hint is unreadable.
+* [ ] Add gap between eyeballs and link in the panel list
+* [x] Stop persisting auto scroll
+* [x] Fix panel layout and margins.
+* [x] Fix panel width when collapsed.
+* [x] Add border to Start Polling button when polling is stopped to make it clear what to use to restart polling.
+* [x] Switch to Auto Scroll instead of Auto Collapse. 
+** [ ] Stop when no more scrolling available. Separate polling timer for scrolling. Maybe use smooth scrolling too?
+** [x] Use separate polling. 
+* [ ] Fix tests
+* [ ] Identify, isolate, and test critical behaviors to prevent regression
+
+* [ ] xGhosted should highlight posts just fine without panel working.
 * [ ] Fix resize panel
 
 * Clarify dom for post container and X.com behavior

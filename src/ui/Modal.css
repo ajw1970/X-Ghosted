@@ -1,0 +1,91 @@
+.modal * {
+  box-sizing: border-box;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 450px;
+  max-height: calc(100vh - 100px);
+  background: var(--modal-bg);
+  color: var(--modal-text);
+  border: 2px solid var(--modal-border);
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+  padding: 12px;
+  z-index: 10000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+}
+
+.modal-file-input-container {
+  width: 100%;
+  max-width: 426px;
+}
+
+.modal-file-input {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: var(--modal-button-bg);
+  color: var(--modal-button-text);
+  border: 2px solid var(--modal-border);
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.modal-textarea {
+  width: 100%;
+  max-width: 426px;
+  height: 150px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: var(--modal-button-bg);
+  color: var(--modal-button-text);
+  border: 2px solid var(--modal-border);
+  border-radius: 8px;
+  font-size: 14px;
+  resize: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.modal-textarea::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
+}
+
+.modal-button-container {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.modal-button-container > button:not(:last-child) {
+  margin-right: 10px;
+}
+
+.modal-button {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--modal-button-bg);
+  color: var(--modal-button-text);
+  border: 2px solid var(--modal-border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+  transition: background 0.2s ease;
+}
+
+.modal-button:hover {
+  background: var(--modal-hover-bg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.3);
+}
+
+.modal-button:active {
+  transform: scale(0.95);
+}
