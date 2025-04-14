@@ -50,6 +50,8 @@
 * [x] Theme Selection loses border when panel is active but regains it when clicking outside the browser.
 * [ ] Update Modal to look and feel like Panel. Still needs contrast improvements in Dim and dark themes. The textbox hint is unreadable.
 * [ ] Add gap between eyeballs and link in the panel list
+* [ ] Add Identified Posts (count) to header too.
+* [ ] Need tp be able to pin/unpin the panel or maybe dock it.
 * [x] Stop persisting auto scroll
 * [x] Fix panel layout and margins.
 * [x] Fix panel width when collapsed.
