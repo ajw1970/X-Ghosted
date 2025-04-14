@@ -1,0 +1,92 @@
+= Prompt for Next Interaction with Grok
+:subject: Advancing xGhosted v0.6.1 with Preact UI Stabilization Before Functional Enhancements
+== Context
+I'm developing xGhosted (v0.6.1), a Tampermonkey userscript for X.com to detect and highlight problem posts, using Preact for the UI via the Panel component in src/ui/Components.js and core logic/state management in src/xGhosted.js. State persistence is handled with GM_setValue and GM_getValue. The project uses esbuild to bundle src/xGhosted.js and its dependencies into src/xGhosted.user.js, with Preact and HTM loaded via CDN in production. The test suite has 68 passing tests across 15 suites, using Vitest with JSDOM.
+== Current Implementation
+=== Core Logic (src/xGhosted.js)
+Manages state (processedPosts, isPanelVisible, mode, etc.) and persists it.
+
+Detects post quality (GOOD, PROBLEM, POTENTIAL_PROBLEM, UNDEFINED) using DOM tagging (data-xghosted="postquality.<quality>", data-xghosted-id="link") and CSS classes (xghosted-<quality>).
+
+Provides callbacks (e.g., onToggle, onCopy) to the Panel component via props.
+
+Uses highlightPosts to process posts and checkPostInNewTab for thread analysis, with rate limit handling.
+
+Renders the Panel component using window.preact.render and window.Panel.
+
+=== UI (src/ui/Components.js)
+Defines the Panel component with Preact and HTM, rendered into a div#xghosted-panel.
+
+Receives props from xGhosted.js (e.g., state, mode, isPanelVisible, callbacks).
+
+Handles UI rendering (toolbar, buttons, problem links) and local state (e.g., flagged, isVisible) with Preact hooks.
+
+Theme styles are embedded, but a regression has caused a white background, cramped buttons, and reduced spacing, making buttons (e.g., Import CSV) invisible or inaccessible.
+
+== Goals for This Interaction
+=== Restore Panel Layout and Visibility (Form)
+Currently: The panel has regressed to a white background, cramped buttons, and reduced spacing; buttons like "Import CSV" are not visible.
+
+Tasks:
+Restore theme alignment with detectTheme.js (dark, dim, or light based on page), fixing the white background issue.
+
+Ensure all buttons (Copy, Export CSV, Import CSV, Clear, Manual Check) are visible in the toolbar with consistent spacing (marginRight: '12px') and padding (16px when visible).
+
+Verify panel toggling (isVisible) works, showing/hiding content correctly without layout collapse.
+
+=== Synchronize State with UI
+Currently: isPanelVisible and mode may not fully sync between xGhosted.js and Panel at startup or after state changes.
+
+Tasks:
+Ensure Panel reflects xGhosted.js state (isPanelVisible, mode) on initialization and updates.
+
+Confirm saved state from GM_getValue restores panel visibility and theme correctly.
+
+=== Enhance Functionality (Deferred Until Form is Stable)
+Note: These are deferred until the panel layout is restored and buttons are visible.
+
+Fix Import CSV Button: Implement a prompt in importProcessedPostsCSV to accept CSV input, parse it, update processedPosts, and refresh the panel with logs.
+
+Add Logging for Manual Check Toggle: Add a log in handleManualCheckToggle to report its state.
+
+=== Testing
+Tasks:
+Update tests in src/xGhosted.test.js to verify panel visibility, button presence, and theme application.
+
+Manually test panel layout, visibility toggle, and theme switching on a 50+ post /with_replies page.
+
+== Files Involved
+src/xGhosted.js: Core logic, state management, and panel rendering.
+
+src/ui/Components.js: Panel component with UI rendering and styling.
+
+src/xGhosted.test.js: Tests for core functionality and UI.
+
+src/dom/detectTheme.js: Theme detection logic.
+
+== Instructions for Grok
+Review the attached files (src/xGhosted.js, src/ui/Components.js, src/xGhosted.test.js, src/dom/detectTheme.js).
+
+Provide one clean, copy-paste-ready code block per task (e.g., updated function or test), with a clear description of what’s changed and where it goes (e.g., "Replace Panel function in src/ui/Components.js").
+
+Address one goal at a time unless I request multiple—start with Goal 1 (Restore Panel Layout and Visibility).
+
+Ensure code works with Preact globals (window.preact, window.htm) for production and local imports for tests (per jest.setup.mjs).
+
+Log changes using this.log (mapped to GM_log or console.log) in src/xGhosted.js where applicable.
+
+Suggest additional improvements only after solving the requested task.
+
+Focus on form (UI stability and visibility) before function (behavioral enhancements).
+
+== Additional Notes
+Production uses CDN-loaded Preact (@require https://unpkg.com/preact@10.26.4/dist/preact.min.js) and HTM (@require https://unpkg.com/htm@3.1.1/dist/htm.umd.js).
+
+Tests use local Preact/HTM from node_modules, bridged via jest.setup.mjs.
+
+Avoid snippets—provide complete blocks or full files if changes span multiple sections.
+
+Current issues: Panel layout regression (white background, hidden/cramped buttons), potential state sync issues, Import CSV non-functional, Manual Check lacks logging.
+
+== Attachments
+Include the full set of files provided in this query (src/xGhosted.js, src/ui/Components.js, src/xGhosted.test.js, src/dom/detectTheme.js, etc.) to ensure Grok has the latest versions.

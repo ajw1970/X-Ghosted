@@ -1,0 +1,7 @@
+Grok: READ ME FIRST
+
+Build context with _grok-step[1-4] files—these are your guiding principles. Let me know if they need clarification or improvement for optimal performance.
+
+Optionally, use _grok-context.adoc.txt (if present) for a quick snapshot of my latest project state as a starting point, especially if skipping step files initially.
+
+Then, if provided, check my attachments against line-counts.txt to ensure no truncated copies.

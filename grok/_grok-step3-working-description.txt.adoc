@@ -1,0 +1,27 @@
+= Grok Step 3: Working Description
+:revision-date: March 28, 2025
+
+== Current State
+- *UI*: Highlights PROBLEM (red), POTENTIAL_PROBLEM (yellow with eye icons), GOOD (none), UNDEFINED (none). Tags container with `data-xGhosted="posts-container"`, posts with `data-xGhosted="postquality.<quality>"` and `data-xGhosted-id="link"`. CSS highlights via `xGhosted-<quality>`. Fails with message if container’s missing. Panel lists posts, Show/Hide fixed.
+- *Core*: Detects post quality via DOM tagging in `xGhosted.js`, persists state (including optional `processedPosts` persistence) with `GM_setValue`/`GM_getValue`. Manual mode default. Tags posts, skips tagged ones. `checkPostInNewTab` analyzes threads via throttled Promise, `highlightPosts` updates DOM/state. Observer on container with 5s timeout—DOM settling tabled.
+- *Tests*: 74 tests passing across 17 suites, ensuring coverage of DOM attributes, CSS classes, and asynchronous rate limit handling.
+- *Build*: Esbuild bundles `xGhosted.js` with dependencies into `xGhosted.user.js`—Tampermonkey-ready.
+
+== End Goal: Version 0.6.1 Features
+- DOM-driven detection with tagging, CSS highlights, fail-on-missing behavior, refresh handling—all implemented.
+
+== Technical Details
+- *Depends On*: `GM_setValue`/`GM_getValue`, `jest`, JSDOM, `esbuild`, `prettier`.
+- *Modules*: `xGhosted.js`, `createPanel.js`, `renderPanel.js`, utils like `postQuality.js`.
+- *Build Script*: `build-xGhosted.js` with esbuild.
+
+== Next Steps
+See `_grok-step4-roadmap-to-next-release.txt.adoc`.
+
+== Revision History
+- March 23, 2025: Updated for 0.6.1—24 tests pass. CSV export and Manual Check Mode added.
+- March 24, 2025: Step 5 done—userscript wrapper with safety optimizations.
+- March 26, 2025: Fixed `build-xGhosted.js`, enforced 1000-article cap, fixed "Hide".
+- March 27, 2025: Added manual testing findings: Show/Hide, PROBLEM highlighting, Clear/Export CSV.
+- March 28, 2025: Removed inline styling, refined `checkPostInNewTab` and `highlightPosts` for DOM-driven approach.
+- March 28, 2025: Confirmed all tests passing, including rate limit handling.
