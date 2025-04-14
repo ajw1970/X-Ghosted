@@ -6,10 +6,17 @@ import { format } from 'prettier';
 const SRC_DIR = path.resolve('src');
 const OUTPUT_FILE = path.resolve(SRC_DIR, 'xGhosted.user.js');
 
-const templateContent = fs.readFileSync(
+// Read package.json to get version
+const packageJson = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
+const appVersion = packageJson.version;
+
+let templateContent = fs.readFileSync(
   path.resolve(SRC_DIR, 'xGhosted.template.js'),
   'utf8'
 );
+
+// Replace version placeholder in template
+templateContent = templateContent.replace(/{{VERSION}}/g, appVersion);
 
 const modalCssContent = fs.readFileSync(
   path.resolve(SRC_DIR, 'ui/Modal.css'),

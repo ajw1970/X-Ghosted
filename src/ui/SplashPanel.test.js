@@ -12,7 +12,7 @@ describe('SplashPanel', () => {
   });
 
   it('initializes and renders default content', () => {
-    const splash = new SplashPanel(doc, logger);
+    const splash = new SplashPanel(doc, logger, '0.6.1');
     
     expect(doc.getElementById('xghosted-splash')).toBeTruthy();
     expect(doc.querySelector('h2').textContent).toBe('Welcome to xGhosted!');
@@ -23,7 +23,7 @@ describe('SplashPanel', () => {
   });
 
   it('updates content on xghosted:init event', () => {
-    const splash = new SplashPanel(doc, logger);
+    const splash = new SplashPanel(doc, logger, '0.6.1');
     
     doc.dispatchEvent(new dom.window.CustomEvent('xghosted:init', {
       detail: {
@@ -43,7 +43,7 @@ describe('SplashPanel', () => {
   });
 
   it('removes container on close button click', () => {
-    const splash = new SplashPanel(doc, logger);
+    const splash = new SplashPanel(doc, logger, '0.6.1');
     
     const closeButton = doc.querySelector('button');
     closeButton.click();

@@ -1,7 +1,9 @@
+// File: src/xGhosted.template.js
+// --------------------------------
 // ==UserScript==
 // @name         xGhosted-Test
 // @namespace    http://tampermonkey.net/
-// @version      0.6.1
+// @version      {{VERSION}}
 // @description  Highlight and manage problem posts on X.com with a resizable, draggable panel
 // @author       You
 // @match        https://x.com/*
@@ -26,7 +28,7 @@
   }
 
   // Log startup with safety focus
-  log('xGhosted v0.6.1 starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds');
+  log('xGhosted v{{VERSION}} starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds');
 
   // Check if Preact and Preact Hooks dependencies loaded
   if (!window.preact || !window.preactHooks) {
@@ -67,8 +69,8 @@
   const xGhosted = new XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
 
-  // Initialize SplashPanel
-  const splashPanel = new window.SplashPanel(document, log);
+  // Initialize SplashPanel with version
+  const splashPanel = new window.SplashPanel(document, log, '{{VERSION}}');
 
   xGhosted.init();
 })();

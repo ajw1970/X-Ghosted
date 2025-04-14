@@ -1,3 +1,5 @@
+// File: src/xGhosted.template.js
+// --------------------------------
 // ==UserScript==
 // @name         xGhosted-Test
 // @namespace    http://tampermonkey.net/
@@ -2162,7 +2164,7 @@
 }`;
 
   // --- Inject SplashPanel ---
-  window.SplashPanel = function SplashPanel(doc, logger) {
+  window.SplashPanel = function SplashPanel(doc, logger, version) {
     this.document = doc;
     this.logger = logger;
     this.container = null;
@@ -2193,7 +2195,7 @@
     this.render = function (config) {
       this.container.innerHTML = `
       <h2 style="margin: 0 0 10px 0; font-size: 24px; color: #333; display: block;">Welcome to xGhosted!</h2>
-      <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Tampermonkey Version: 0.6.1</p>
+      <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Tampermonkey Version: ${version}</p>
       <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Poll Interval: ${config.pollInterval} ms</p>
       <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Scroll Interval: ${config.scrollInterval} ms</p>
       <button style="padding: 8px 16px; background: #3A4A5B; color: #fff; border: 2px solid #8292A2; border-radius: 8px; cursor: pointer; font-size: 14px; display: inline-block;">Close</button>
@@ -2228,8 +2230,8 @@
   const xGhosted = new XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
 
-  // Initialize SplashPanel
-  const splashPanel = new window.SplashPanel(document, log);
+  // Initialize SplashPanel with version
+  const splashPanel = new window.SplashPanel(document, log, '0.6.1');
 
   xGhosted.init();
 })();
