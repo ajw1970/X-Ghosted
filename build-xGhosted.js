@@ -2,6 +2,7 @@ import esbuild from 'esbuild';
 import fs from 'fs';
 import path from 'path';
 import { format } from 'prettier';
+import { execSync } from 'child_process';
 
 const SRC_DIR = path.resolve('src');
 const OUTPUT_FILE = path.resolve(SRC_DIR, 'xGhosted.user.js');
@@ -10,13 +11,27 @@ const OUTPUT_FILE = path.resolve(SRC_DIR, 'xGhosted.user.js');
 const packageJson = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
 const appVersion = packageJson.version;
 
+// Detect current Git branch
+let branchName;
+try {
+  branchName = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
+} catch (err) {
+  console.warn('Failed to detect Git branch, defaulting to main:', err.message);
+  branchName = 'main';
+}
+
+// Compute suffix: empty for main, -BranchName for others
+const suffix = branchName.toLowerCase() === 'main' ? '' : `-${branchName}`;
+
 let templateContent = fs.readFileSync(
   path.resolve(SRC_DIR, 'xGhosted.template.js'),
   'utf8'
 );
 
-// Replace version placeholder in template
-templateContent = templateContent.replace(/{{VERSION}}/g, appVersion);
+// Replace placeholders in template
+templateContent = templateContent
+  .replace(/{{VERSION}}/g, appVersion)
+  .replace(/{{Suffix}}/g, suffix);
 
 const modalCssContent = fs.readFileSync(
   path.resolve(SRC_DIR, 'ui/Modal.css'),

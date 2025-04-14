@@ -1,7 +1,9 @@
 // File: src/xGhosted.template.js
 // --------------------------------
+// File: src/xGhosted.template.js
+// --------------------------------
 // ==UserScript==
-// @name         xGhosted-Test
+// @name         xGhosted{{Suffix}}
 // @namespace    http://tampermonkey.net/
 // @version      {{VERSION}}
 // @description  Highlight and manage problem posts on X.com with a resizable, draggable panel
