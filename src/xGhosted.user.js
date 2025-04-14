@@ -1701,6 +1701,7 @@
         }
       };
       const checkReplies = this.state.isWithReplies;
+      const userProfileName = this.state.userProfileName;
       const results = [];
       const postsToProcess =
         posts || this.document.querySelectorAll(XGhosted.POST_SELECTOR);
@@ -1714,6 +1715,9 @@
         let analysis = cachedAnalysis
           ? { ...cachedAnalysis }
           : identifyPost(post, checkReplies);
+        if (analysis?.quality === postQuality.PROBLEM) {
+          this.handleStopPolling();
+        }
         if (!cachedAnalysis) postsProcessed++;
         processPostAnalysis(post, analysis);
         results.push(analysis);

@@ -446,6 +446,8 @@ XGhosted.prototype.highlightPosts = function (posts) {
   };
 
   const checkReplies = this.state.isWithReplies;
+  const userProfileName = this.state.userProfileName; // TODO: Upcoming feature will need this
+
   const results = [];
   const postsToProcess = posts || this.document.querySelectorAll(XGhosted.POST_SELECTOR);
 
@@ -457,6 +459,10 @@ XGhosted.prototype.highlightPosts = function (posts) {
       cachedAnalysis = this.state.processedPosts.get(postId)?.analysis;
     }
     let analysis = cachedAnalysis ? { ...cachedAnalysis } : identifyPost(post, checkReplies);
+    if (analysis?.quality === postQuality.PROBLEM) {
+      this.handleStopPolling();
+    }
+
     if (!cachedAnalysis) postsProcessed++;
     processPostAnalysis(post, analysis);
     results.push(analysis);

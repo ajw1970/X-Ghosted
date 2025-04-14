@@ -51,9 +51,9 @@
 * [x] Update Modal to look and feel like Panel. Still needs contrast improvements in Dim and dark themes. The textbox hint is unreadable.
 * [ ] Add gap between eyeballs and link in the panel list
 * [ ] Add Identified Posts (count) to header too.
-* [ ] Need t0 be able to pin/unpin the panel or maybe dock it. Have this be a configurable option that defaults to pinned with a persisted state value. 
+* [ ] Need to be able to pin/unpin the panel or maybe dock it. Have this be a configurable option that defaults to pinned with a persisted state value. 
 * [ ] Add a copy icon near the url list to make it easy to copy the problems without going to the Tools menu.
-* [ ] Stop polling when a first order problem is identified.
+* [x] Stop polling when a first order problem is identified.
 * [x] Update xGhosted.template.js with a userscript name suffix that is set to "-{{BranchName}}" when not on main git branch.
 * [x] Use build-xGhosted to replace placeholder in xGhosted.template.js with package.json version. Have this included in the Splash Screen.
 * [ ] If on with_replies, get account name from url and make sure to highlight reply to a problem that didn't belong to that account. As it is now, a bad post can have a good looking reply but we want the user to notice that they might want to step out of that conversation.
