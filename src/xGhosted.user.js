@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         xGhosted
+// @name         xGhosted-Test
 // @namespace    http://tampermonkey.net/
 // @version      0.6.1
 // @description  Highlight and manage problem posts on X.com with a resizable, draggable panel
@@ -1772,6 +1772,16 @@
         this.log(`No saved themeMode found, detected: ${this.state.themeMode}`);
         this.saveState();
       }
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:init', {
+          detail: {
+            config: {
+              pollInterval: this.timing.pollInterval,
+              scrollInterval: this.timing.scrollInterval,
+            },
+          },
+        })
+      );
       const styleSheet = this.document.createElement('style');
       styleSheet.textContent = `
     .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
@@ -2151,6 +2161,56 @@
   line-height: 1;
 }`;
 
+  // --- Inject SplashPanel ---
+  window.SplashPanel = function SplashPanel(doc, logger) {
+    this.document = doc;
+    this.logger = logger;
+    this.container = null;
+    this.init = function () {
+      this.logger('Initializing SplashPanel...');
+      this.container = this.document.createElement('div');
+      this.container.id = 'xghosted-splash';
+      this.container.style.cssText =
+        'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; border: 2px solid #333; border-radius: 12px; padding: 20px; z-index: 10000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);';
+      this.document.body.appendChild(this.container);
+      this.render({
+        pollInterval: 'Unknown',
+        scrollInterval: 'Unknown',
+      });
+      this.document.addEventListener(
+        'xghosted:init',
+        (e) => {
+          const config = e.detail?.config || {};
+          this.logger('Received xghosted:init with config:', config);
+          this.render({
+            pollInterval: config.pollInterval || 'Unknown',
+            scrollInterval: config.scrollInterval || 'Unknown',
+          });
+        },
+        { once: true }
+      );
+    };
+    this.render = function (config) {
+      this.container.innerHTML = `
+      <h2 style="margin: 0 0 10px 0; font-size: 24px; color: #333; display: block;">Welcome to xGhosted!</h2>
+      <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Tampermonkey Version: 0.6.1</p>
+      <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Poll Interval: ${config.pollInterval} ms</p>
+      <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Scroll Interval: ${config.scrollInterval} ms</p>
+      <button style="padding: 8px 16px; background: #3A4A5B; color: #fff; border: 2px solid #8292A2; border-radius: 8px; cursor: pointer; font-size: 14px; display: inline-block;">Close</button>
+    `;
+      const closeButton = this.container.querySelector('button');
+      closeButton.addEventListener('click', () => {
+        this.logger('SplashPanel closed');
+        this.container.remove();
+      });
+    };
+    try {
+      this.init();
+    } catch (error) {
+      this.logger(`SplashPanel failed to initialize: ${error.message}`);
+    }
+  };
+
   // --- Initialization with Resource Limits and Rate Limiting ---
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
   const config = {
@@ -2167,5 +2227,9 @@
   };
   const xGhosted = new XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
+
+  // Initialize SplashPanel
+  const splashPanel = new window.SplashPanel(document, log);
+
   xGhosted.init();
 })();

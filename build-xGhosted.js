@@ -23,7 +23,8 @@ const panelCssContent = fs.readFileSync(
 
 (async () => {
   try {
-    const result = await esbuild.build({
+    // Build xGhosted.js
+    const xGhostedResult = await esbuild.build({
       entryPoints: [path.resolve(SRC_DIR, 'xGhosted.js')],
       bundle: true,
       minify: false,
@@ -41,15 +42,35 @@ const panelCssContent = fs.readFileSync(
       external: ['window.preact', 'window.preactHooks'],
     });
 
-    let bundledCode = result.outputFiles[0].text;
+    let xGhostedCode = xGhostedResult.outputFiles[0].text;
 
-    bundledCode += `
+    xGhostedCode += `
       window.xGhostedStyles = window.xGhostedStyles || {};
       window.xGhostedStyles.modal = \`${modalCssContent.replace(/`/g, '\\`')}\`;
       window.xGhostedStyles.panel = \`${panelCssContent.replace(/`/g, '\\`')}\`;
     `;
 
-    let finalContent = templateContent.replace('// INJECT: xGhosted', bundledCode);
+    // Build SplashPanel.js
+    const splashPanelResult = await esbuild.build({
+      entryPoints: [path.resolve(SRC_DIR, 'ui/SplashPanel.js')],
+      bundle: false, // No bundling, treat as raw JS
+      minify: false,
+      sourcemap: false,
+      target: ['es2020'],
+      write: false,
+      outfile: 'SplashPanel.js',
+      loader: { '.js': 'js' },
+    });
+
+    let splashPanelCode = splashPanelResult.outputFiles[0].text;
+    // Remove export statement and assign to window.SplashPanel
+    splashPanelCode = splashPanelCode.replace(/export\s*{[^}]*}/, '');
+    splashPanelCode = `window.SplashPanel = ${splashPanelCode.trim()};`;
+
+    // Inject both into template
+    let finalContent = templateContent
+      .replace('// INJECT: xGhosted', xGhostedCode)
+      .replace('// INJECT: SplashPanel', splashPanelCode);
 
     finalContent = await format(finalContent, {
       parser: 'babel',
@@ -60,7 +81,7 @@ const panelCssContent = fs.readFileSync(
     });
 
     fs.writeFileSync(OUTPUT_FILE, finalContent, 'utf8');
-    console.log(`Build complete! Formatted output written to ${OUTPUT_FILE}`);
+    console.log(`Build complete! Output written to ${OUTPUT_FILE}`);
   } catch (err) {
     console.error('Build failed:', err);
     process.exit(1);

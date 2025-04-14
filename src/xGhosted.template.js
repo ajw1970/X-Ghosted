@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         xGhosted
+// @name         xGhosted-Test
 // @namespace    http://tampermonkey.net/
 // @version      0.6.1
 // @description  Highlight and manage problem posts on X.com with a resizable, draggable panel
@@ -47,6 +47,9 @@
   // --- Inject Module (single resolved xGhosted.js with all dependencies inlined) ---
   // INJECT: xGhosted
 
+  // --- Inject SplashPanel ---
+  // INJECT: SplashPanel
+
   // --- Initialization with Resource Limits and Rate Limiting ---
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
   const config = {
@@ -63,5 +66,9 @@
   };
   const xGhosted = new XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
+
+  // Initialize SplashPanel
+  const splashPanel = new window.SplashPanel(document, log);
+
   xGhosted.init();
 })();

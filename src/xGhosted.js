@@ -543,6 +543,16 @@ XGhosted.prototype.init = function () {
     this.saveState();
   }
 
+  // Emit xghosted:init event with config data
+  this.document.dispatchEvent(new CustomEvent('xghosted:init', {
+    detail: {
+      config: {
+        pollInterval: this.timing.pollInterval,
+        scrollInterval: this.timing.scrollInterval
+      }
+    }
+  }));
+
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
     .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
