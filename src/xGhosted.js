@@ -5,6 +5,7 @@ import { debounce } from './utils/debounce';
 import { findPostContainer } from './dom/findPostContainer.js';
 import { getRelativeLinkToPost } from './utils/getRelativeLinkToPost.js';
 import { copyTextToClipboard, exportToCSV } from './utils/clipboardUtils.js';
+import { parseUrl } from './dom/parseUrl.js';
 import './ui/PanelManager.js';
 import './ui/Panel.jsx';
 
@@ -35,7 +36,8 @@ function XGhosted(doc, config = {}) {
     themeMode: null,
     isHighlighting: false,
     isPollingEnabled: true,
-    panelPosition: { right: '10px', top: '60px' }
+    panelPosition: { right: '10px', top: '60px' },
+    userProfileName: null
   };
   this.events = {};
   this.panelManager = null;
@@ -163,11 +165,20 @@ XGhosted.prototype.setPanelPosition = function (panelPosition) {
 };
 
 XGhosted.prototype.updateState = function (url) {
-  this.state.isWithReplies = /https:\/\/x\.com\/[^/]+\/with_replies/.test(url);
+  const { isWithReplies, userProfileName } = parseUrl(url);
+  this.state.isWithReplies = isWithReplies;
   if (this.state.lastUrl !== url) {
     this.state.postContainer = null;
     this.state.processedPosts.clear();
     this.state.lastUrl = url;
+  }
+  if (this.state.userProfileName !== userProfileName) {
+    this.state.userProfileName = userProfileName;
+    this.document.dispatchEvent(new CustomEvent('xghosted:user-profile-updated', {
+      detail: {
+        userProfileName: this.state.userProfileName
+      }
+    }));
   }
 };
 

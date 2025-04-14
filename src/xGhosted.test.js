@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 import { XGhosted } from './xGhosted.js';
 import { postQuality } from './utils/postQuality.js';
 import { summarizeRatedPosts } from './utils/summarizeRatedPosts.js';
-import * as identifyPostModule from './utils/identifyPost.js'; // For accessing the mock
+import * as identifyPostModule from './utils/identifyPost.js';
 import { findPostContainer } from './dom/findPostContainer.js';
 
 // Mock the identifyPost module globally with async import
@@ -13,7 +13,7 @@ vi.mock('./utils/identifyPost.js', async () => {
   const actual = await vi.importActual('./utils/identifyPost.js');
   return {
     ...actual,
-    identifyPost: vi.fn(actual.identifyPost), // Use the original function directly
+    identifyPost: vi.fn(actual.identifyPost),
   };
 });
 
@@ -75,6 +75,7 @@ describe('xGhosted', () => {
       ...xGhosted.state,
       themeMode: 'dark',
       isManualCheckEnabled: false,
+      userProfileName: 'user'
     };
   }, 30000);
 
@@ -83,11 +84,37 @@ describe('xGhosted', () => {
     vi.clearAllMocks();
   });
 
-  test('updateState sets with_replies flag and resets on URL change', () => {
+  test('updateState sets with_replies flag, userProfileName, and resets on URL change', () => {
     expect(xGhosted.state.isWithReplies).toBe(true);
-    xGhosted.updateState('https://x.com/user');
+    expect(xGhosted.state.userProfileName).toBe('user');
+    xGhosted.updateState('https://x.com/otherUser');
     expect(xGhosted.state.isWithReplies).toBe(false);
+    expect(xGhosted.state.userProfileName).toBe('otherUser');
     expect(xGhosted.state.processedPosts.size).toBe(0);
+  });
+
+  test('updateState dispatches user-profile-updated event when userProfileName changes', () => {
+    // Spy on document.dispatchEvent
+    const spy = vi.spyOn(document, 'dispatchEvent');
+
+    // Trigger the state update
+    xGhosted.updateState('https://x.com/newUser/with_replies');
+
+    // Check that dispatchEvent was called with the correct CustomEvent
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'xghosted:user-profile-updated',
+        detail: { userProfileName: 'newUser' }
+      })
+    );
+
+    // Verify the state was updated
+    expect(xGhosted.state.userProfileName).toBe('newUser');
+
+    // Reset the spy and test no dispatch on same user
+    spy.mockClear();
+    xGhosted.updateState('https://x.com/newUser');
+    expect(spy).not.toHaveBeenCalled();
   });
 
   test('checkPostInNewTab handles rate limit', async () => {

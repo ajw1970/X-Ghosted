@@ -42,6 +42,24 @@ describe('SplashPanel', () => {
     });
   });
 
+  it('displays userProfileName on xghosted:user-profile-updated event', async () => {
+    const splash = new SplashPanel(doc, logger, '0.6.1');
+    
+    doc.dispatchEvent(new dom.window.CustomEvent('xghosted:user-profile-updated', {
+      detail: {
+        userProfileName: 'ApostleJohnW'
+      }
+    }));
+
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(doc.querySelectorAll('p')[0].textContent).toBe('Tampermonkey Version: 0.6.1');
+    expect(doc.querySelectorAll('p')[1].textContent).toBe('Profile: ApostleJohnW');
+    expect(doc.querySelectorAll('p')[2].textContent).toBe('Poll Interval: Unknown ms');
+    expect(doc.querySelectorAll('p')[3].textContent).toBe('Scroll Interval: Unknown ms');
+    expect(logger).toHaveBeenCalledWith('Received xghosted:user-profile-updated with userProfileName:', 'ApostleJohnW');
+  });
+
   it('removes container on close button click', () => {
     const splash = new SplashPanel(doc, logger, '0.6.1');
     

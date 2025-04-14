@@ -46,7 +46,7 @@ const panelCssContent = fs.readFileSync(
       },
       jsxFactory: 'window.preact.h',
       jsxFragment: 'window.preact.Fragment',
-      external: ['window.preact', 'window.preactHooks'],
+      external: ['window.preact', 'window.preactHooks']
     });
 
     let xGhostedCode = xGhostedResult.outputFiles[0].text;
