@@ -1,7 +1,3 @@
-// File: src/xGhosted.template.js
-// --------------------------------
-// File: src/xGhosted.template.js
-// --------------------------------
 // ==UserScript==
 // @name         xGhosted{{Suffix}}
 // @namespace    http://tampermonkey.net/
@@ -36,9 +32,9 @@
   if (!window.preact || !window.preactHooks) {
     log(
       'xGhosted: Aborting - Failed to load dependencies. Preact: ' +
-        (window.preact ? 'loaded' : 'missing') +
-        ', Preact Hooks: ' +
-        (window.preactHooks ? 'loaded' : 'missing')
+      (window.preact ? 'loaded' : 'missing') +
+      ', Preact Hooks: ' +
+      (window.preactHooks ? 'loaded' : 'missing')
     );
     return;
   }
@@ -56,6 +52,13 @@
 
   // --- Initialization with Resource Limits and Rate Limiting ---
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
+  const postsManager = new ProcessedPostsManager({
+    storage: {
+      get: GM_getValue,
+      set: GM_setValue
+    },
+    log
+  });
   const config = {
     timing: {
       debounceDelay: 500,
@@ -65,9 +68,9 @@
       rateLimitPause: RATE_LIMIT_PAUSE,
       pollInterval: 1000
     },
-    showSplash: false, // Default to not showing splash screen
+    showSplash: true, // Default to not showing splash screen
     useTampermonkeyLog: true,
-    persistProcessedPosts: false
+    postsManager
   };
   const xGhosted = new XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
@@ -75,8 +78,25 @@
   // Initialize SplashPanel with version only if showSplash is true
   let splashPanel = null;
   if (config.showSplash) {
-    splashPanel = new window.SplashPanel(document, log, '{{VERSION}}');
+    splashPanel = new SplashPanel(document, log, '{{VERSION}}');
   }
+
+  // Wait for theme detection to initialize PanelManager
+  document.addEventListener('xghosted:theme-detected', ({ detail: { themeMode } }) => {
+    try {
+      xGhosted.panelManager = new PanelManager(
+        document,
+        xGhosted,
+        themeMode || 'light',
+        postsManager,
+        { get: GM_getValue, set: GM_setValue }
+      );
+      log('GUI Panel initialized successfully');
+    } catch (error) {
+      log(`Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`);
+      xGhosted.panelManager = null;
+    }
+  }, { once: true });
 
   xGhosted.init();
 })();

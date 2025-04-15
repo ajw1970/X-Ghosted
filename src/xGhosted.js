@@ -4,8 +4,9 @@ import { identifyPost } from './utils/identifyPost';
 import { debounce } from './utils/debounce';
 import { findPostContainer } from './dom/findPostContainer.js';
 import { getRelativeLinkToPost } from './utils/getRelativeLinkToPost.js';
-import { copyTextToClipboard, exportToCSV } from './utils/clipboardUtils.js';
+import { copyTextToClipboard } from './utils/clipboardUtils.js';
 import { parseUrl } from './dom/parseUrl.js';
+import { ProcessedPostsManager } from './utils/ProcessedPostsManager.js';
 import './ui/PanelManager.js';
 import './ui/Panel.jsx';
 
@@ -23,17 +24,18 @@ function XGhosted(doc, config = {}) {
   this.log = config.useTampermonkeyLog && typeof GM_log !== 'undefined'
     ? GM_log.bind(null)
     : console.log.bind(console);
+  this.postsManager = config.postsManager || new ProcessedPostsManager({ storage: {
+    get: GM_getValue,
+    set: GM_setValue
+  }, log: this.log });
   this.state = {
     postContainer: null,
-    processedPosts: new Map(),
-    persistProcessedPosts: config.persistProcessedPosts ?? false,
     lastUrl: '',
     isWithReplies: false,
     isRateLimited: false,
     isManualCheckEnabled: true,
     isAutoScrollingEnabled: false,
     isPanelVisible: true,
-    themeMode: null,
     isHighlighting: false,
     isPollingEnabled: true,
     panelPosition: { right: '10px', top: '60px' },
@@ -65,55 +67,33 @@ function XGhosted(doc, config = {}) {
 XGhosted.POST_SELECTOR = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
 
 XGhosted.prototype.saveState = function () {
-  const serializableArticles = {};
-  if (this.state.persistProcessedPosts) {
-    for (const [id, { analysis, checked }] of this.state.processedPosts) {
-      serializableArticles[id] = { analysis: { ...analysis }, checked };
-    }
-  }
   const newState = {
     isPanelVisible: this.state.isPanelVisible,
-    // Exclude isAutoScrollingEnabled from being saved
     isManualCheckEnabled: this.state.isManualCheckEnabled,
-    themeMode: this.state.themeMode,
-    processedPosts: serializableArticles,
     panelPosition: { ...this.state.panelPosition }
   };
   const oldState = GM_getValue('xGhostedState', {});
 
-  const newProcessedPostsArray = Array.from(this.state.processedPosts.entries());
-  const oldProcessedPostsArray = Array.from(
-    (oldState.processedPosts ? Object.entries(oldState.processedPosts) : []).map(([id, { analysis, checked }]) => [
-      id,
-      { analysis: { ...analysis, quality: postQuality[analysis.quality.name] }, checked }
-    ])
-  );
-
-  const processedPostsChanged = JSON.stringify(newProcessedPostsArray) !== JSON.stringify(oldProcessedPostsArray);
   const otherStateChanged = JSON.stringify({
     isPanelVisible: newState.isPanelVisible,
     isManualCheckEnabled: newState.isManualCheckEnabled,
-    themeMode: newState.themeMode,
     panelPosition: newState.panelPosition
   }) !== JSON.stringify({
     isPanelVisible: oldState.isPanelVisible,
     isManualCheckEnabled: oldState.isManualCheckEnabled,
-    themeMode: oldState.themeMode,
     panelPosition: oldState.panelPosition
   });
 
-  if (processedPostsChanged || otherStateChanged) {
+  if (otherStateChanged) {
     GM_setValue('xGhostedState', newState);
-    this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
+    this.emit('state-updated', { ...this.state });
   }
 };
 
 XGhosted.prototype.loadState = function () {
   const savedState = GM_getValue('xGhostedState', {});
   this.state.isPanelVisible = savedState.isPanelVisible ?? true;
-  // Skip loading isAutoScrollingEnabled; it should always start as false
   this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
-  this.state.themeMode = savedState.themeMode ?? null;
 
   if (savedState.panelPosition && savedState.panelPosition.right && savedState.panelPosition.top) {
     const panelWidth = 350;
@@ -130,16 +110,6 @@ XGhosted.prototype.loadState = function () {
   } else {
     this.log('No valid saved panelPosition, using default: right=10px, top=60px');
     this.state.panelPosition = { right: '10px', top: '60px' };
-  }
-
-  if (this.state.persistProcessedPosts) {
-    const savedPosts = savedState.processedPosts || {};
-    for (const [id, { analysis, checked }] of Object.entries(savedPosts)) {
-      this.state.processedPosts.set(id, {
-        analysis: { ...analysis, quality: postQuality[analysis.quality.name] },
-        checked,
-      });
-    }
   }
 };
 
@@ -169,7 +139,7 @@ XGhosted.prototype.updateState = function (url) {
   this.state.isWithReplies = isWithReplies;
   if (this.state.lastUrl !== url) {
     this.state.postContainer = null;
-    this.state.processedPosts.clear();
+    this.postsManager.clearPosts();
     this.state.lastUrl = url;
   }
   if (this.state.userProfileName !== userProfileName) {
@@ -180,24 +150,6 @@ XGhosted.prototype.updateState = function (url) {
       }
     }));
   }
-};
-
-XGhosted.prototype.generateCSVData = function () {
-  const headers = ['Link', 'Quality', 'Reason', 'Checked'];
-  const rows = Array.from(this.state.processedPosts.entries()).map(([id, { analysis, checked }]) => {
-    return [
-      `https://x.com${id}`,
-      analysis.quality.name,
-      analysis.reason,
-      checked ? 'true' : 'false',
-    ].join(',');
-  });
-  return [headers.join(','), ...rows].join('\n');
-};
-
-XGhosted.prototype.exportProcessedPostsCSV = function () {
-  const csvData = this.generateCSVData();
-  exportToCSV(csvData, 'processed_posts.csv', this.document, this.log);
 };
 
 XGhosted.prototype.checkPostInNewTab = function (href) {
@@ -250,7 +202,7 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
 
 XGhosted.prototype.userRequestedPostCheck = function (href, post) {
   this.log(`User requested check for ${href}`);
-  const cached = this.state.processedPosts.get(href);
+  const cached = this.postsManager.getPost(href);
   if (!cached || cached.analysis.quality.name !== postQuality.POTENTIAL_PROBLEM.name) {
     this.log(`Manual check skipped for ${href}: not a potential problem`);
     return;
@@ -276,9 +228,8 @@ XGhosted.prototype.userRequestedPostCheck = function (href, post) {
       }
       cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
       cached.checked = true;
-      this.state.processedPosts.set(href, cached);
-      this.saveState();
-      this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
+      this.postsManager.registerPost(href, cached);
+      this.emit('state-updated', { ...this.state });
       this.log(`User requested post check completed for ${href}`);
     });
   } else {
@@ -362,7 +313,7 @@ XGhosted.prototype.toggleAutoScrolling = function () {
 };
 
 XGhosted.prototype.clearProcessedPosts = function () {
-  this.state.processedPosts.clear();
+  this.postsManager.clearPosts();
   this.saveState();
   this.ensureAndHighlightPosts();
 };
@@ -381,13 +332,6 @@ XGhosted.prototype.togglePanelVisibility = function (newVisibility) {
     this.emit('panel-visibility-toggled', { isPanelVisible: this.state.isPanelVisible });
     this.saveState();
   }
-};
-
-XGhosted.prototype.setThemeMode = function (newMode) {
-  this.state.themeMode = newMode;
-  this.saveState();
-  this.emit('theme-mode-changed', { themeMode: newMode });
-  this.log(`Theme mode set to ${newMode} and event emitted`);
 };
 
 XGhosted.prototype.handleClear = function () {
@@ -441,7 +385,7 @@ XGhosted.prototype.highlightPosts = function (posts) {
       }
     }
     if (id) {
-      this.state.processedPosts.set(id, { analysis, checked: false });
+      this.postsManager.registerPost(id, { analysis, checked: false });
     }
   };
 
@@ -456,7 +400,8 @@ XGhosted.prototype.highlightPosts = function (posts) {
   postsToProcess.forEach((post) => {
     const postId = getRelativeLinkToPost(post);
     if (postId) {
-      cachedAnalysis = this.state.processedPosts.get(postId)?.analysis;
+      const cachedPost = this.postsManager.getPost(postId);
+      cachedAnalysis = cachedPost?.analysis;
     }
     let analysis = cachedAnalysis ? { ...cachedAnalysis } : identifyPost(post, checkReplies);
     if (analysis?.quality === postQuality.PROBLEM) {
@@ -469,8 +414,8 @@ XGhosted.prototype.highlightPosts = function (posts) {
   });
 
   if (postsProcessed > 0) {
-    this.state = { ...this.state, processedPosts: new Map(this.state.processedPosts) };
-    this.emit('state-updated', { ...this.state, processedPosts: new Map(this.state.processedPosts) });
+    this.state = { ...this.state };
+    this.emit('state-updated', { ...this.state });
     this.log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
     this.saveState();
   }
@@ -483,82 +428,26 @@ XGhosted.prototype.getThemeMode = function () {
 };
 
 XGhosted.prototype.copyLinks = function () {
-  const linksText = Array.from(this.state.processedPosts.entries())
-    .filter(
-      ([_, { analysis }]) =>
-        analysis.quality === postQuality.PROBLEM ||
-        analysis.quality === postQuality.POTENTIAL_PROBLEM
-    )
+  const linksText = this.postsManager.getProblemPosts()
     .map(([link]) => `https://x.com${link}`)
     .join('\n');
   copyTextToClipboard(linksText, this.log);
 };
 
-XGhosted.prototype.importProcessedPostsCSV = function (csvText) {
-  this.log('Import CSV button clicked');
-  if (typeof csvText !== 'string') {
-    this.log('Import CSV requires CSV text input');
-    return;
-  }
-  if (!csvText || typeof csvText !== 'string') {
-    this.log('Invalid CSV text provided');
-    return;
-  }
-  const lines = csvText
-    .trim()
-    .split('\n')
-    .map((line) =>
-      line
-        .split(',')
-        .map((cell) => cell.replace(/^"|"$/g, '').replace(/""/g, '"'))
-    );
-  if (lines.length < 2) {
-    this.log('CSV must have at least one data row');
-    return;
-  }
-  const headers = lines[0];
-  const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
-  if (!expectedHeaders.every((header, i) => header === headers[i])) {
-    this.log('CSV header mismatch');
-    return;
-  }
-  const qualityMap = {
-    [postQuality.UNDEFINED.name]: postQuality.UNDEFINED,
-    [postQuality.PROBLEM.name]: postQuality.PROBLEM,
-    [postQuality.POTENTIAL_PROBLEM.name]: postQuality.POTENTIAL_PROBLEM,
-    [postQuality.GOOD.name]: postQuality.GOOD,
-  };
-  lines.slice(1).forEach((row) => {
-    const [link, qualityName, reason, checkedStr] = row;
-    const quality = qualityMap[qualityName];
-    if (!quality) return;
-    const id = link.replace('https://x.com', '');
-    this.state.processedPosts.set(id, {
-      analysis: { quality, reason, link: id },
-      element: null,
-      checked: checkedStr === 'true',
-    });
-  });
-  this.log(`Imported ${lines.length - 1} posts from CSV`);
-  this.saveState();
-  this.ensureAndHighlightPosts();
-};
-
-XGhosted.prototype.clearProcessedPosts = function () {
-  this.state.processedPosts.clear();
-  this.saveState();
-  this.ensureAndHighlightPosts();
-};
-
 XGhosted.prototype.init = function () {
   this.log('Initializing XGhosted...');
-  this.loadState();
-
-  if (!this.state.themeMode) {
-    this.state.themeMode = this.getThemeMode();
-    this.log(`No saved themeMode found, detected: ${this.state.themeMode}`);
-    this.saveState();
+  
+  // Detect theme early and emit event
+  if (this.document.body) {
+    const themeMode = this.getThemeMode();
+    this.document.dispatchEvent(new CustomEvent('xghosted:theme-detected', {
+      detail: { themeMode }
+    }));
+  } else {
+    this.log('Document body not available for theme detection');
   }
+
+  this.loadState();
 
   // Emit xghosted:init event with config data
   this.document.dispatchEvent(new CustomEvent('xghosted:init', {
@@ -605,41 +494,20 @@ XGhosted.prototype.init = function () {
         this.log(`Eyeball click skipped for ${href} due to rate limit`);
         return;
       }
-      const cached = this.state.processedPosts.get(href);
+      const cached = this.postsManager.getPost(href);
       if (this.state.isManualCheckEnabled) {
         this.userRequestedPostCheck(href, clickedPost);
       } else {
         this.document.defaultView.open(`https://x.com${href}`, '_blank');
         if (cached) {
           cached.checked = true;
+          this.postsManager.registerPost(href, cached);
           eyeball.classList.remove('xghosted-eyeball');
-          this.saveState();
           this.log(`Opened ${href} in new tab and marked as checked`);
         }
       }
     }
   }, { capture: true });
-
-  this.on('theme-mode-changed', ({ themeMode }) => {
-    this.state.themeMode = themeMode;
-    this.saveState();
-    this.log(`Theme mode updated to ${themeMode} via event`);
-  });
-
-  if (!window.preact || !window.preactHooks) {
-    this.log('Preact dependencies missing. Skipping GUI Panel initialization.');
-    this.panelManager = null;
-  } else {
-    try {
-      this.panelManager = new window.PanelManager(this.document, this, this.state.themeMode);
-      this.log('GUI Panel initialized successfully');
-    } catch (error) {
-      this.log(`Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`);
-      this.panelManager = null;
-    }
-  }
-
-  this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
 
   this.startPolling();
   this.startAutoScrolling();

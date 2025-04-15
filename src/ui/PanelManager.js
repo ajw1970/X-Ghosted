@@ -1,5 +1,6 @@
 function Modal({ isOpen, onClose, onSubmit, mode, config }) {
   const [csvText, setCsvText] = window.preactHooks.useState('');
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -19,6 +20,7 @@ function Modal({ isOpen, onClose, onSubmit, mode, config }) {
     };
     reader.readAsText(file);
   };
+
   return window.preact.h(
     'div',
     null,
@@ -91,23 +93,35 @@ function Modal({ isOpen, onClose, onSubmit, mode, config }) {
     )
   );
 }
+
 window.Modal = Modal;
 
-window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
+window.PanelManager = function (
+  doc,
+  xGhostedInstance,
+  themeMode = 'light',
+  postsManager,
+  storage
+) {
   this.document = doc;
   this.xGhosted = xGhostedInstance;
   this.log = xGhostedInstance.log;
+  this.postsManager = postsManager;
+  this.storage = storage || { get: () => {}, set: () => {} };
+
+  const validThemes = ['light', 'dim', 'dark'];
   this.state = {
     panelPosition: { right: '10px', top: '60px' },
     instance: xGhostedInstance,
-    processedPosts: new Map(),
     isPanelVisible: true,
     isRateLimited: false,
     isManualCheckEnabled: false,
     isPollingEnabled: true,
     isAutoScrollingEnabled: false,
-    themeMode,
+    themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
   };
+  this.log(`PanelManager initialized with themeMode: ${this.state.themeMode}`);
+
   this.uiElements = {
     config: {
       PANEL: {
@@ -124,10 +138,13 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
           text: '#292F33',
           buttonText: '#000000',
           border: '#B0BEC5',
-          button: '#3A4A5B', /* Match dim for consistency, better contrast */
+          button: '#3A4A5B',
           hover: '#90A4AE',
           scroll: '#CCD6DD',
           placeholder: '#666666',
+          problem: 'red',
+          potentialProblem: 'yellow',
+          eyeballColor: 'rgb(29, 155, 240)',
         },
         dim: {
           bg: '#15202B',
@@ -138,16 +155,22 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
           hover: '#8292A2',
           scroll: '#4A5C6D',
           placeholder: '#A0A0A0',
+          problem: 'red',
+          potentialProblem: 'yellow',
+          eyeballColor: 'rgb(29, 155, 240)',
         },
         dark: {
           bg: '#000000',
           text: '#D9D9D9',
           buttonText: '#FFFFFF',
           border: '#888888',
-          button: '#3A4A5B', /* Match dim for consistency */
+          button: '#3A4A5B',
           hover: '#888888',
           scroll: '#666666',
           placeholder: '#A0A0A0',
+          problem: 'red',
+          potentialProblem: 'yellow',
+          eyeballColor: 'rgb(29, 155, 240)',
         },
       },
     },
@@ -166,6 +189,14 @@ window.PanelManager = function (doc, xGhostedInstance, themeMode = 'light') {
 };
 
 window.PanelManager.prototype.init = function () {
+  const savedState = this.storage.get('xGhostedState', {});
+  if (savedState.themeMode && ['light', 'dim', 'dark'].includes(savedState.themeMode)) {
+    this.state.themeMode = savedState.themeMode;
+    this.log(`Loaded saved themeMode: ${this.state.themeMode}`);
+  } else {
+    this.log(`No saved themeMode, using default: ${this.state.themeMode}`);
+  }
+
   this.uiElements.panelContainer = this.document.createElement('div');
   this.uiElements.panelContainer.id = 'xghosted-panel-container';
   this.uiElements.panel = this.document.createElement('div');
@@ -173,29 +204,26 @@ window.PanelManager.prototype.init = function () {
   this.uiElements.panelContainer.appendChild(this.uiElements.panel);
   this.document.body.appendChild(this.uiElements.panelContainer);
 
-  // Inject CSS early
   if (window.xGhostedStyles) {
     if (window.xGhostedStyles.modal) {
       const modalStyleSheet = this.document.createElement('style');
       modalStyleSheet.textContent = window.xGhostedStyles.modal;
       this.document.head.appendChild(modalStyleSheet);
-      // this.log('Injected Modal CSS');
     }
     if (window.xGhostedStyles.panel) {
       const panelStyleSheet = this.document.createElement('style');
       panelStyleSheet.textContent = window.xGhostedStyles.panel;
       this.document.head.appendChild(panelStyleSheet);
-      // this.log('Injected Panel CSS');
     }
   }
 
-  this.state.processedPosts = new Map(this.xGhosted.state.processedPosts);
   this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
   this.state.isRateLimited = this.xGhosted.state.isRateLimited;
   this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
   this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
   this.state.isAutoScrollingEnabled = this.xGhosted.state.isAutoScrollingEnabled;
-  this.state.panelPosition = this.xGhosted.state.panelPosition || this.state.panelPosition;
+  this.state.panelPosition =
+    this.xGhosted.state.panelPosition || this.state.panelPosition;
 
   this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
   this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
@@ -205,19 +233,16 @@ window.PanelManager.prototype.init = function () {
   this.document.head.appendChild(this.styleElement);
   this.applyPanelStyles();
 
-  this.uiElements.panelContainer.addEventListener('mousedown', this.startDrag.bind(this));
-  this.document.addEventListener('mousemove', this.doDrag.bind(this));
-  this.document.addEventListener('mouseup', this.stopDrag.bind(this));
-
   this.xGhosted.on('state-updated', (newState) => {
-    this.state.processedPosts = new Map(newState.processedPosts);
     this.state.isRateLimited = newState.isRateLimited;
     this.state.isManualCheckEnabled = newState.isManualCheckEnabled;
     this.renderPanel();
   });
 
   this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
-    this.log(`PanelManager: manual-check-toggled received, isManualCheckEnabled: ${isManualCheckEnabled}`);
+    this.log(
+      `PanelManager: manual-check-toggled received, isManualCheckEnabled: ${isManualCheckEnabled}`
+    );
     this.state.isManualCheckEnabled = isManualCheckEnabled;
     this.renderPanel();
   });
@@ -264,7 +289,7 @@ window.PanelManager.prototype.init = function () {
 window.PanelManager.prototype.applyPanelStyles = function () {
   const position = this.state.panelPosition || { right: '10px', top: '60px' };
   const borderColor = this.state.isPollingEnabled
-    ? this.state.themeMode === 'light' ? '#333333' : '#D9D9D9'
+    ? this.uiElements.config.THEMES[this.state.themeMode].border
     : '#FFA500';
   this.styleElement.textContent = `
     button:active { transform: scale(0.95); }
@@ -297,19 +322,15 @@ window.PanelManager.prototype.doDrag = function (e) {
   const deltaY = e.clientY - this.dragState.startY;
   let newRight = this.dragState.initialRight - deltaX;
   let newTop = this.dragState.initialTop + deltaY;
-
   const panelWidth = 350;
   const panelHeight = this.uiElements.panelContainer.offsetHeight;
   const windowWidth = window.innerWidth;
   const windowHeight = window.innerHeight;
-
   newRight = Math.max(0, Math.min(newRight, windowWidth - panelWidth));
   newTop = Math.max(0, Math.min(newTop, windowHeight - panelHeight));
-
   this.uiElements.panelContainer.style.right = `${newRight}px`;
   this.uiElements.panelContainer.style.top = `${newTop}px`;
   this.uiElements.panelContainer.style.left = 'auto';
-
   this.state.panelPosition = { right: `${newRight}px`, top: `${newTop}px` };
 };
 
@@ -325,16 +346,23 @@ window.PanelManager.prototype.renderPanel = function () {
     this.log('renderPanel: panel element not initialized, skipping render');
     return;
   }
+  this.log(
+    `renderPanel: themeMode=${this.state.themeMode}, config.THEMES=`,
+    this.uiElements.config.THEMES
+  );
   window.preact.render(
     window.preact.h(window.Panel, {
       state: this.state,
       config: this.uiElements.config,
       xGhosted: this.xGhosted,
-      mode: this.state.themeMode,
-      onModeChange: this.handleModeChange.bind(this),
-      onToggle: this.toggleVisibility.bind(this),
+      currentMode: this.state.themeMode,
+      toggleThemeMode: (newMode) => this.handleModeChange(newMode),
+      onStartPolling: () => this.xGhosted.handleStartPolling(),
+      onStopPolling: () => this.xGhosted.handleStopPolling(),
       onEyeballClick: (href) => {
-        const post = this.document.querySelector(`[data-xghosted-id="${href}"]`);
+        const post = this.document.querySelector(
+          `[data-xghosted-id="${href}"]`
+        );
         this.xGhosted.userRequestedPostCheck(href, post);
       },
     }),
@@ -344,7 +372,10 @@ window.PanelManager.prototype.renderPanel = function () {
 
 window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
   const previousVisibility = this.state.isPanelVisible;
-  this.state.isPanelVisible = typeof newVisibility === 'boolean' ? newVisibility : !this.state.isPanelVisible;
+  this.state.isPanelVisible =
+    typeof newVisibility === 'boolean'
+      ? newVisibility
+      : !this.state.isPanelVisible;
   if (previousVisibility !== this.state.isPanelVisible) {
     this.xGhosted.togglePanelVisibility(this.state.isPanelVisible);
   }
@@ -356,5 +387,50 @@ window.PanelManager.prototype.updateTheme = function (newMode) {
 };
 
 window.PanelManager.prototype.handleModeChange = function (newMode) {
-  this.xGhosted.setThemeMode(newMode);
+  this.state.themeMode = newMode;
+  const currentState = this.storage.get('xGhostedState', {});
+  const updatedState = {
+    ...currentState,
+    themeMode: newMode
+  };
+  this.storage.set('xGhostedState', updatedState);
+  this.log(`Saved themeMode: ${newMode}`);
+  this.xGhosted.emit('theme-mode-changed', { themeMode: newMode });
+  this.renderPanel();
+};
+
+window.PanelManager.prototype.generateCSVData = function () {
+  const headers = ['Link', 'Quality', 'Reason', 'Checked'];
+  const rows = this.postsManager
+    .getAllPosts()
+    .map(([id, { analysis, checked }]) => {
+      return [
+        `https://x.com${id}`,
+        analysis.quality.name,
+        analysis.reason,
+        checked ? 'true' : 'false',
+      ].join(',');
+    });
+  return [headers.join(','), ...rows].join('\n');
+};
+
+window.PanelManager.prototype.exportProcessedPostsCSV = function () {
+  const csvData = this.generateCSVData();
+  const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = this.document.createElement('a');
+  a.href = url;
+  a.download = 'processed_posts.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  this.log(`Exported CSV: processed_posts.csv`);
+};
+
+window.PanelManager.prototype.importProcessedPostsCSV = function (csvText) {
+  this.log('Import CSV button clicked');
+  const count = this.postsManager.importPosts(csvText);
+  if (count > 0) {
+    this.renderPanel();
+    this.xGhosted.ensureAndHighlightPosts();
+  }
 };
