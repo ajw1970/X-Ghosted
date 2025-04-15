@@ -1,6 +1,6 @@
 = Grok Step 3: xGhosted Decoupling Roadmap
 :toc:
-:revnumber: 0.2
+:revnumber: 0.3
 :revdate: 2025-04-15
 :author: Grok 3 (assisting user)
 
@@ -57,9 +57,9 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
     - Use `{ once: true }` for `xghosted:theme-detected` (single emission).
   - Ensure `detectTheme` runs when `document.readyState !== 'loading'` (likely guaranteed by `document-idle`).
 - **Open Questions**:
-  - Should `themeMode` be persisted at all, or is it purely a `PanelManager.js` concern?
+  - Should `themeMode` be persisted at all, or is it purely a `PanelManager.js` concern? **Resolved: Persisted in `xGhostedState.themeMode` by `PanelManager.js`.**
   - Should `xghosted:theme-detected` re-emit on dynamic theme changes (e.g., x.com theme toggle)?
-- **Status**: Not started—requires `init` restructuring and template update.
+- **Status**: Complete—`themeMode` persistence handled by `PanelManager.js` with `storage`, emitted early in `XGhosted.js`.
 
 === Task 3: Create `ProcessedPostsManager` Service
 
@@ -86,7 +86,7 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
   - **Open Questions**:
     - Should manager handle `GM_setValue`/`GM_getValue`, or should `xGhosted.template.js` pass storage callbacks?
     - Should CSV parsing/formatting stay in `PanelManager.js` or move to manager?
-    - Should `registerPost` emit events per call or batch updates (e.g., after `highlightPosts`)?
+    - Should `registerPost` emit per-post events or batch updates (e.g., after `highlightPosts`)?
 - **Status**: Conceptual—interface sketched, needs implementation.
 
 === Task 4: Move UI Logic to `PanelManager.js`
@@ -119,7 +119,7 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
     - Handle `xghosted:csv-import`/`xghosted:request-csv-export` via `ProcessedPostsManager`.
   - Keep `SplashPanel.js` instantiation (optional, based on `showSplash`).
   - Use try-catch for `PanelManager.js` to ensure `XGhosted.js` continues on failure.
-- **Status**: Planned—needs event listener for `xghosted:theme-detected` and manager injection.
+- **Status**: Partially complete `storage` passed to `PanelManager.js`, `xGhosted` injection retained for now, `SplashPanel.js` instantiation confirmed working with `showSplash`.
 
 == Decisions
 
@@ -127,6 +127,7 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
   - Run `detectTheme` early in `XGhosted.js`’s `init`, emitting `xghosted:theme-detected` when `doc.body` is available.
   - `xGhosted.template.js` waits for `xghosted:theme-detected` to create `PanelManager.js`.
   - `document.readyState !== 'loading'` assumed safe due to `document-idle`.
+  - `themeMode` persisted by `PanelManager.js` in `xGhostedState.themeMode`.
 - **ProcessedPostsManager**:
   - Acts as a service with `HasPost`, `GetPost`, `RegisterPost` for caching and updates.
   - Injected into `XGhosted.js` and `PanelManager.js` for testability.
@@ -139,7 +140,6 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
 
 == Open Questions
 
-- Should `themeMode` be persisted, or is it transient for `PanelManager.js`?
 - Should `xghosted:theme-detected` handle dynamic theme changes?
 - Should `ProcessedPostsManager` manage storage, or rely on template callbacks?
 - Should `registerPost` emit per-post events or batch updates?
@@ -147,6 +147,10 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
 
 == Next Steps
 
-- **Priority**: Implement early theme detection and `xghosted:theme-detected` event.
-- **Follow-Up**: Define `ProcessedPostsManager` interface and integrate into `highlightPosts`.
-- **Later**: Move CSV logic to `PanelManager.js` and finalize UI state management.
+- **Priority**: Move CSV logic to `PanelManager.js` and finalize UI state management (Task 4).
+- **Follow-Up**: Define `ProcessedPostsManager` interface and integrate into `highlightPosts` (Task 3).
+- **Later**: Implement full pub/sub interface, removing `xGhosted` injection from `PanelManager.js` (Task 1).
+
+== Revision History
+- April 15, 2025: Completed `themeMode` persistence in `PanelManager.js`, restored `SplashPanel` functionality, updated `xGhosted.template.js` to pass `storage`.
+- April 15, 2025: Moved from _grok-step-1-master-prompt.txt.adoc
