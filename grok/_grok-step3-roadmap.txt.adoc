@@ -1,0 +1,152 @@
+= Grok Step 3: xGhosted Decoupling Roadmap
+:toc:
+:revnumber: 0.2
+:revdate: 2025-04-15
+:author: Grok 3 (assisting user)
+
+== Overview
+
+Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGhosted.js` handles only DOM-related logic (post highlighting, thread checks) and emits events for state changes, while `xGhosted.template.js` orchestrates instantiation and wiring. The goal is a clean pub/sub interface, with `PanelManager.js` operating independently (like `SplashPanel.js`) and a new `ProcessedPostsManager` service managing shared `processedPosts` state. This step aligns with the initial decoupling phase, minimizing direct dependencies and enabling modular testing.
+
+== Objectives
+
+- Define a pub/sub interface using `CustomEvent` for communication between `XGhosted.js`, `PanelManager.js`, and a new `ProcessedPostsManager`.
+- Move UI-specific logic (e.g., CSV handling, panel visibility, position) to `PanelManager.js`.
+- Ensure `XGhosted.js` does not import or initialize `PanelManager.js`, relying on `xGhosted.template.js` for setup.
+- Detect theme early in `XGhosted.js` and emit `xghosted:theme-detected` for `PanelManager.js` instantiation.
+- Introduce `ProcessedPostsManager` to encapsulate `processedPosts`, providing caching and coordination for `XGhosted.js` and `PanelManager.js`.
+- Update `xGhosted.template.js` to pass logger, storage callbacks, and `ProcessedPostsManager` to components.
+
+== Current State
+
+- `XGhosted.js` handles DOM tasks (highlighting, thread checks), manages `processedPosts`, and initializes `PanelManager.js` directly in `init`.
+- `PanelManager.js` renders the UI, syncs state with `XGhosted.js`, and handles drag-and-drop, CSV operations, and theme changes.
+- `SplashPanel.js` is decoupled, listening for `xghosted:init` and `xghosted:user-profile-updated` without `XGhosted.js` awareness.
+- `processedPosts` is stored in `XGhosted.js`’s state, used for caching and CSV operations.
+- Theme detection (`detectTheme`) runs in `XGhosted.js`’s `init`, storing `themeMode` in state and passing it to `PanelManager.js`.
+- Files are unchanged per user confirmation, as per provided snippets (`3-xGhosted.code-part-*.txt`, `2-project.stuff.txt`).
+
+== Tasks
+
+=== Task 1: Define Pub/Sub Interface in `XGhosted.js`
+
+- **Objective**: Implement a robust event system for `XGhosted.js` to emit state changes without referencing `PanelManager.js`.
+- **Actions**:
+  - Keep existing `on`, `off`, `emit` methods for internal event handling.
+  - Use `CustomEvent` for external events: `xghosted:init`, `xghosted:state-updated`, `xghosted:polling-state-updated`, `xghosted:manual-check-toggled`, `xghosted:auto-scrolling-toggled`, `xghosted:user-profile-updated`.
+  - Add new events:
+    - `xghosted:theme-detected` for theme detection (emitted early in `init`).
+    - `xghosted:posts-updated` for `ProcessedPostsManager` changes (if event-based).
+    - `xghosted:request-csv-export` and `xghosted:csv-import` for CSV coordination (to be moved to `PanelManager.js`).
+  - Remove UI-specific events: `panel-visibility-toggled`, `panel-position-changed`, `theme-mode-changed`.
+  - Remove `PanelManager.js` initialization from `init`.
+- **Status**: Partially complete—existing events exist, but `theme-detected` and CSV events need adding, UI events need removal.
+
+=== Task 2: Move Theme Detection to Early Event
+
+- **Objective**: Run `detectTheme` as soon as `doc.body` is available, emitting `xghosted:theme-detected` for `PanelManager.js`.
+- **Actions**:
+  - In `XGhosted.js`’s `init`:
+    - Verify `doc.body` exists (redundant with `xGhosted.template.js`’s check, but safe).
+    - Call `getThemeMode` (uses `detectTheme`) and emit `xghosted:theme-detected` with `{ themeMode }`.
+    - Move before `findPostContainer` or polling setup.
+  - Remove `themeMode` from `XGhosted.js`’s `state` and `saveState`/`loadState`.
+  - Update `xGhosted.template.js`:
+    - Instantiate `XGhosted.js` and call `init`.
+    - Listen for `xghosted:theme-detected` to instantiate `PanelManager.js` with `themeMode`, `logger`, and storage callbacks.
+    - Use `{ once: true }` for `xghosted:theme-detected` (single emission).
+  - Ensure `detectTheme` runs when `document.readyState !== 'loading'` (likely guaranteed by `document-idle`).
+- **Open Questions**:
+  - Should `themeMode` be persisted at all, or is it purely a `PanelManager.js` concern?
+  - Should `xghosted:theme-detected` re-emit on dynamic theme changes (e.g., x.com theme toggle)?
+- **Status**: Not started—requires `init` restructuring and template update.
+
+=== Task 3: Create `ProcessedPostsManager` Service
+
+- **Objective**: Encapsulate `processedPosts` in a `DbProvider`-like service for caching and coordination.
+- **Actions**:
+  - Create `ProcessedPostsManager.js` with interface:
+    - `hasPost(id)`: Check if post exists.
+    - `getPost(id)`: Retrieve post data (`{ analysis, checked }` or null).
+    - `registerPost(id, data)`: Add/update post, optionally emit `xghosted:posts-updated`.
+    - `getPosts()`: Return all posts (Map or array).
+    - `clearPosts()`: Clear posts, emit `xghosted:posts-cleared`.
+    - `importPosts(posts)`: Load posts from CSV data (for `PanelManager.js`).
+    - `exportPosts()`: Return posts for CSV export.
+  - Update `XGhosted.js`:
+    - Remove `processedPosts` from `state`.
+    - In `highlightPosts`, use `manager.hasPost`/`getPost` for caching, `registerPost` for updates.
+    - Update `userRequestedPostCheck` to use `manager.registerPost` for post updates.
+  - Update `PanelManager.js`:
+    - Listen for `xghosted:posts-updated` to refresh UI.
+    - Use `manager.getPosts` for CSV export, `manager.importPosts` for imports.
+  - Update `xGhosted.template.js`:
+    - Instantiate `ProcessedPostsManager`.
+    - Pass manager instance to `XGhosted.js` and `PanelManager.js`.
+  - **Open Questions**:
+    - Should manager handle `GM_setValue`/`GM_getValue`, or should `xGhosted.template.js` pass storage callbacks?
+    - Should CSV parsing/formatting stay in `PanelManager.js` or move to manager?
+    - Should `registerPost` emit events per call or batch updates (e.g., after `highlightPosts`)?
+- **Status**: Conceptual—interface sketched, needs implementation.
+
+=== Task 4: Move UI Logic to `PanelManager.js`
+
+- **Objective**: Relocate CSV handling and UI state to `PanelManager.js`, making it self-contained.
+- **Actions**:
+  - Move CSV logic from `XGhosted.js`:
+    - Relocate `generateCSVData`, `exportProcessedPostsCSV`, `importProcessedPostsCSV` to `PanelManager.js`.
+    - Use `ProcessedPostsManager`’s `getPosts`/`importPosts` for data access.
+    - Emit `xghosted:request-csv-export` to request data, handle `xghosted:csv-data` for export.
+    - Emit `xghosted:csv-import` with parsed posts.
+  - Manage UI state in `PanelManager.js`:
+    - Store `isPanelVisible`, `panelPosition`, `themeMode` locally.
+    - Add `saveState`/`loadState` using `GM_getValue`/`GM_setValue` (passed from `xGhosted.template.js`).
+  - Update event listeners:
+    - Listen for `xghosted:init`, `xghosted:state-updated`, `xghosted:polling-state-updated`, `xghosted:manual-check-toggled`, `xghosted:auto-scrolling-toggled`, `xghosted:theme-detected`, `xghosted:posts-updated`.
+    - Emit UI actions: `xghosted:start-polling`, `xghosted:stop-polling`, `xghosted:toggle-auto-scrolling`, `xghosted:copy-links`, `xghosted:clear-posts`, `xghosted:toggle-manual-check`, `xghosted:user-post-check`.
+- **Status**: Partially planned—CSV move and UI state discussed, needs execution.
+
+=== Task 5: Update `xGhosted.template.js`
+
+- **Objective**: Orchestrate component instantiation and wiring without `XGhosted.js` dependencies.
+- **Actions**:
+  - Instantiate `ProcessedPostsManager` first.
+  - Create `XGhosted.js` with config and logger.
+  - Call `XGhosted.js.init()` to start DOM logic.
+  - Wait for `xghosted:theme-detected` to instantiate `PanelManager.js` with `themeMode`, `logger`, `GM_getValue`, `GM_setValue`, and `ProcessedPostsManager`.
+  - Wire events:
+    - Connect `PanelManager.js` actions (`xghosted:start-polling`, etc.) to `XGhosted.js` methods.
+    - Handle `xghosted:csv-import`/`xghosted:request-csv-export` via `ProcessedPostsManager`.
+  - Keep `SplashPanel.js` instantiation (optional, based on `showSplash`).
+  - Use try-catch for `PanelManager.js` to ensure `XGhosted.js` continues on failure.
+- **Status**: Planned—needs event listener for `xghosted:theme-detected` and manager injection.
+
+== Decisions
+
+- **Theme Detection**:
+  - Run `detectTheme` early in `XGhosted.js`’s `init`, emitting `xghosted:theme-detected` when `doc.body` is available.
+  - `xGhosted.template.js` waits for `xghosted:theme-detected` to create `PanelManager.js`.
+  - `document.readyState !== 'loading'` assumed safe due to `document-idle`.
+- **ProcessedPostsManager**:
+  - Acts as a service with `HasPost`, `GetPost`, `RegisterPost` for caching and updates.
+  - Injected into `XGhosted.js` and `PanelManager.js` for testability.
+  - Supports events (`xghosted:posts-updated`) for UI updates.
+  - CSV logic stays in `PanelManager.js`, using manager for data access.
+- **Decoupling**:
+  - `XGhosted.js` focuses on DOM logic (highlighting, thread checks).
+  - `PanelManager.js` handles UI rendering, state, and CSV operations.
+  - `xGhosted.template.js` manages instantiation and event wiring, like `SplashPanel.js`.
+
+== Open Questions
+
+- Should `themeMode` be persisted, or is it transient for `PanelManager.js`?
+- Should `xghosted:theme-detected` handle dynamic theme changes?
+- Should `ProcessedPostsManager` manage storage, or rely on template callbacks?
+- Should `registerPost` emit per-post events or batch updates?
+- Any specific test updates needed for `xGhosted.test.js` post-decoupling?
+
+== Next Steps
+
+- **Priority**: Implement early theme detection and `xghosted:theme-detected` event.
+- **Follow-Up**: Define `ProcessedPostsManager` interface and integrate into `highlightPosts`.
+- **Later**: Move CSV logic to `PanelManager.js` and finalize UI state management.

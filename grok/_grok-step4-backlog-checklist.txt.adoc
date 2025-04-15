@@ -1,4 +1,4 @@
-= Things we'll want to ask Grok to do
+= Grok Step 4: Backlog and Checklist
 
 * Make sure all UI/UX works
 
