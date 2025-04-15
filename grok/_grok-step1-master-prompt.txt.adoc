@@ -147,9 +147,10 @@
 
 2. *Build Hello World Splash Screen*:
    - Create `src/ui/SplashPanel.js` (plain JS) to render “Welcome to xGhosted!” with a close button, triggered by `xghosted:init`.
-   - In `xGhosted.template.js`, instantiate `SplashPanel.js` after `xGhosted.js`, passing the template’s logger for errors.
-   - Log core outputs (e.g., “xGhosted initialized, found X posts”) to the template’s logger if the panel fails.
+   - For testing, instantiate `SplashPanel.js` in `xGhosted.template.js`, after `xGhosted.js`, passing the template’s logger for errors. 
+   - Log core outputs (e.g., “xGhosted initialized”) to the template’s logger if the panel fails.
    - *Deliverable*: Splash screen proving pub/sub and template-driven logging/config.
+   - *Status*: Completed. Let's make this a setting in the template and default to not show it for now. Later, we can make it an option from the toolbar panel.
 
 3. *Refactor xGhosted.js for DOM Focus*:
    - Remove `saveState`, `loadState`, and `this.log` from `xGhosted.js`, using `logger` and `saveStateFn`/`loadStateFn` callbacks.
