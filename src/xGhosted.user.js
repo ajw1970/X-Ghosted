@@ -2280,14 +2280,18 @@
       rateLimitPause: RATE_LIMIT_PAUSE,
       pollInterval: 1000,
     },
+    showSplash: false, // Default to not showing splash screen
     useTampermonkeyLog: true,
     persistProcessedPosts: false,
   };
   const xGhosted = new XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
 
-  // Initialize SplashPanel with version
-  const splashPanel = new window.SplashPanel(document, log, '0.6.1');
+  // Initialize SplashPanel with version only if showSplash is true
+  let splashPanel = null;
+  if (config.showSplash) {
+    splashPanel = new window.SplashPanel(document, log, '0.6.1');
+  }
 
   xGhosted.init();
 })();

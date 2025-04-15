@@ -144,13 +144,14 @@
    - In `xGhosted.template.js`, define logger (`GM_log` or `console.log`) and storage (`GM_getValue`/`GM_setValue`) functions.
    - Update `xGhosted.js` to use `logger` and `saveStateFn`/`loadStateFn` callbacks, emitting events for state changes.
    - *Deliverable*: `xGhosted.js` with event API, template with logging/storage APIs.
+   - *Status*: Started. Proved concept with Splash Screen handling the new `xghosted:init` and 'xghosted:user-profile-updated' CustomEvents.
 
 2. *Build Hello World Splash Screen*:
    - Create `src/ui/SplashPanel.js` (plain JS) to render “Welcome to xGhosted!” with a close button, triggered by `xghosted:init`.
    - For testing, instantiate `SplashPanel.js` in `xGhosted.template.js`, after `xGhosted.js`, passing the template’s logger for errors. 
    - Log core outputs (e.g., “xGhosted initialized”) to the template’s logger if the panel fails.
    - *Deliverable*: Splash screen proving pub/sub and template-driven logging/config.
-   - *Status*: Completed. Let's make this a setting in the template and default to not show it for now. Later, we can make it an option from the toolbar panel.
+   - *Status*: Completed.
 
 3. *Refactor xGhosted.js for DOM Focus*:
    - Remove `saveState`, `loadState`, and `this.log` from `xGhosted.js`, using `logger` and `saveStateFn`/`loadStateFn` callbacks.
