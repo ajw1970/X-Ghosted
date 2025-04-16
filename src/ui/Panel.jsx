@@ -7,6 +7,7 @@ function Panel({
   onStartPolling,
   onStopPolling,
   onEyeballClick,
+  setPanelPosition,
 }) {
   const flagged = window.preactHooks.useMemo(
     () => xGhosted.postsManager.getProblemPosts(),
@@ -25,6 +26,7 @@ function Panel({
 
   const handleDragStart = (e) => {
     let draggedPanel = e.target.closest('#xghosted-panel');
+    if (!draggedPanel) return;
     draggedPanel.classList.add('dragging');
     let initialX = e.clientX - parseFloat(draggedPanel.style.right || 0);
     let initialY = e.clientY - parseFloat(draggedPanel.style.top || 0);
@@ -40,10 +42,12 @@ function Panel({
 
     const onMouseUp = () => {
       draggedPanel.classList.remove('dragging');
-      xGhosted.setPanelPosition({
-        right: draggedPanel.style.right,
-        top: draggedPanel.style.top,
-      });
+      if (setPanelPosition) {
+        setPanelPosition({
+          right: draggedPanel.style.right,
+          top: draggedPanel.style.top,
+        });
+      }
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
     };
@@ -222,7 +226,7 @@ function Panel({
                           role: 'option',
                           'aria-selected': currentMode === option,
                         },
-                        option.charAt(0).toUpperCase() + option.slice(1) // Fixed _option to option
+                        option.charAt(0).toUpperCase() + option.slice(1)
                       )
                     )
                   )
@@ -281,7 +285,11 @@ function Panel({
                   'button',
                   {
                     className: 'panel-button',
-                    onClick: () => xGhosted.handleClear(),
+                    onClick: () => {
+                      if (confirm('Clear all processed posts?')) {
+                        window.dispatchEvent(new CustomEvent('xghosted:posts-cleared'));
+                      }
+                    },
                     'aria-label': 'Clear Processed Posts',
                   },
                   window.preact.h('i', {

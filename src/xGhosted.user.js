@@ -829,16 +829,7 @@
       this.init();
     };
     window.PanelManager.prototype.init = function () {
-      const savedState = this.storage.get('xGhostedState', {});
-      if (
-        savedState.themeMode &&
-        ['light', 'dim', 'dark'].includes(savedState.themeMode)
-      ) {
-        this.state.themeMode = savedState.themeMode;
-        this.log(`Loaded saved themeMode: ${this.state.themeMode}`);
-      } else {
-        this.log(`No saved themeMode, using default: ${this.state.themeMode}`);
-      }
+      this.loadState();
       this.uiElements.panelContainer = this.document.createElement('div');
       this.uiElements.panelContainer.id = 'xghosted-panel-container';
       this.uiElements.panel = this.document.createElement('div');
@@ -857,15 +848,10 @@
           this.document.head.appendChild(panelStyleSheet);
         }
       }
-      this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
       this.state.isRateLimited = this.xGhosted.state.isRateLimited;
-      this.state.isManualCheckEnabled =
-        this.xGhosted.state.isManualCheckEnabled;
       this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
       this.state.isAutoScrollingEnabled =
         this.xGhosted.state.isAutoScrollingEnabled;
-      this.state.panelPosition =
-        this.xGhosted.state.panelPosition || this.state.panelPosition;
       this.uiElements.panelContainer.style.right =
         this.state.panelPosition.right;
       this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
@@ -875,35 +861,7 @@
       this.applyPanelStyles();
       this.xGhosted.on('state-updated', (newState) => {
         this.state.isRateLimited = newState.isRateLimited;
-        this.state.isManualCheckEnabled = newState.isManualCheckEnabled;
         this.renderPanel();
-      });
-      this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
-        this.log(
-          `PanelManager: manual-check-toggled received, isManualCheckEnabled: ${isManualCheckEnabled}`
-        );
-        this.state.isManualCheckEnabled = isManualCheckEnabled;
-        this.renderPanel();
-      });
-      this.xGhosted.on('panel-visibility-toggled', ({ isPanelVisible }) => {
-        this.state.isPanelVisible = isPanelVisible;
-        this.renderPanel();
-      });
-      this.xGhosted.on('theme-mode-changed', ({ themeMode }) => {
-        this.state.themeMode = themeMode;
-        this.renderPanel();
-        this.applyPanelStyles();
-      });
-      this.xGhosted.on('panel-position-changed', ({ panelPosition }) => {
-        this.state.panelPosition = { ...panelPosition };
-        if (this.uiElements.panelContainer) {
-          this.uiElements.panelContainer.style.right =
-            this.state.panelPosition.right;
-          this.uiElements.panelContainer.style.top =
-            this.state.panelPosition.top;
-          this.uiElements.panelContainer.style.left = 'auto';
-          this.applyPanelStyles();
-        }
       });
       this.xGhosted.on('polling-state-updated', ({ isPollingEnabled }) => {
         this.state.isPollingEnabled = isPollingEnabled;
@@ -922,6 +880,50 @@
       } else {
         this.log('Preact h not available, skipping panel render');
       }
+    };
+    window.PanelManager.prototype.saveState = function () {
+      const currentState = this.storage.get('xGhostedState', {});
+      const updatedState = {
+        ...currentState,
+        panel: {
+          isPanelVisible: this.state.isPanelVisible,
+          panelPosition: { ...this.state.panelPosition },
+          themeMode: this.state.themeMode,
+        },
+      };
+      this.storage.set('xGhostedState', updatedState);
+      this.log('Saved panel state');
+    };
+    window.PanelManager.prototype.loadState = function () {
+      const savedState = this.storage.get('xGhostedState', {});
+      const panelState = savedState.panel || {};
+      this.state.isPanelVisible = panelState.isPanelVisible ?? true;
+      this.state.themeMode = ['light', 'dim', 'dark'].includes(
+        panelState.themeMode
+      )
+        ? panelState.themeMode
+        : this.state.themeMode;
+      if (
+        panelState.panelPosition &&
+        panelState.panelPosition.right &&
+        panelState.panelPosition.top
+      ) {
+        const panelWidth = 350;
+        const panelHeight = 48;
+        const windowWidth = this.document.defaultView.innerWidth;
+        const windowHeight = this.document.defaultView.innerHeight;
+        const right = parseFloat(panelState.panelPosition.right);
+        const top = parseFloat(panelState.panelPosition.top);
+        this.state.panelPosition.right = isNaN(right)
+          ? '10px'
+          : `${Math.max(0, Math.min(right, windowWidth - panelWidth))}px`;
+        this.state.panelPosition.top = isNaN(top)
+          ? '60px'
+          : `${Math.max(0, Math.min(top, windowHeight - panelHeight))}px`;
+      }
+      this.log(
+        `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}`
+      );
     };
     window.PanelManager.prototype.applyPanelStyles = function () {
       const position = this.state.panelPosition || {
@@ -944,38 +946,20 @@
     }
   `;
     };
-    window.PanelManager.prototype.startDrag = function (e) {
-      if (e.target.closest('button, select, input, textarea')) return;
-      e.preventDefault();
-      this.dragState.isDragging = true;
-      this.dragState.startX = e.clientX;
-      this.dragState.startY = e.clientY;
-      const rect = this.uiElements.panelContainer.getBoundingClientRect();
-      this.dragState.initialRight = window.innerWidth - rect.right;
-      this.dragState.initialTop = rect.top;
+    window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
+      this.state.isPanelVisible =
+        typeof newVisibility === 'boolean'
+          ? newVisibility
+          : !this.state.isPanelVisible;
+      this.saveState();
+      this.renderPanel();
     };
-    window.PanelManager.prototype.doDrag = function (e) {
-      if (!this.dragState.isDragging) return;
-      const deltaX = e.clientX - this.dragState.startX;
-      const deltaY = e.clientY - this.dragState.startY;
-      let newRight = this.dragState.initialRight - deltaX;
-      let newTop = this.dragState.initialTop + deltaY;
-      const panelWidth = 350;
-      const panelHeight = this.uiElements.panelContainer.offsetHeight;
-      const windowWidth = window.innerWidth;
-      const windowHeight = window.innerHeight;
-      newRight = Math.max(0, Math.min(newRight, windowWidth - panelWidth));
-      newTop = Math.max(0, Math.min(newTop, windowHeight - panelHeight));
-      this.uiElements.panelContainer.style.right = `${newRight}px`;
-      this.uiElements.panelContainer.style.top = `${newTop}px`;
-      this.uiElements.panelContainer.style.left = 'auto';
-      this.state.panelPosition = { right: `${newRight}px`, top: `${newTop}px` };
-    };
-    window.PanelManager.prototype.stopDrag = function () {
-      if (this.dragState.isDragging) {
-        this.dragState.isDragging = false;
-        this.xGhosted.setPanelPosition(this.state.panelPosition);
-      }
+    window.PanelManager.prototype.setPanelPosition = function (position) {
+      this.state.panelPosition = { ...position };
+      this.saveState();
+      this.log(
+        `Updated panel position: right=${position.right}, top=${position.top}`
+      );
     };
     window.PanelManager.prototype.renderPanel = function () {
       if (!this.uiElements.panel) {
@@ -1001,19 +985,10 @@
             );
             this.xGhosted.userRequestedPostCheck(href, post);
           },
+          setPanelPosition: (position) => this.setPanelPosition(position),
         }),
         this.uiElements.panel
       );
-    };
-    window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
-      const previousVisibility = this.state.isPanelVisible;
-      this.state.isPanelVisible =
-        typeof newVisibility === 'boolean'
-          ? newVisibility
-          : !this.state.isPanelVisible;
-      if (previousVisibility !== this.state.isPanelVisible) {
-        this.xGhosted.togglePanelVisibility(this.state.isPanelVisible);
-      }
     };
     window.PanelManager.prototype.updateTheme = function (newMode) {
       this.state.themeMode = newMode;
@@ -1093,6 +1068,7 @@
       onStartPolling,
       onStopPolling,
       onEyeballClick,
+      setPanelPosition,
     }) {
       const flagged = window.preactHooks.useMemo(
         () => xGhosted.postsManager.getProblemPosts(),
@@ -1113,6 +1089,7 @@
       };
       const handleDragStart = (e) => {
         let draggedPanel = e.target.closest('#xghosted-panel');
+        if (!draggedPanel) return;
         draggedPanel.classList.add('dragging');
         let initialX = e.clientX - parseFloat(draggedPanel.style.right || 0);
         let initialY = e.clientY - parseFloat(draggedPanel.style.top || 0);
@@ -1132,10 +1109,12 @@
         };
         const onMouseUp = () => {
           draggedPanel.classList.remove('dragging');
-          xGhosted.setPanelPosition({
-            right: draggedPanel.style.right,
-            top: draggedPanel.style.top,
-          });
+          if (setPanelPosition) {
+            setPanelPosition({
+              right: draggedPanel.style.right,
+              top: draggedPanel.style.top,
+            });
+          }
           document.removeEventListener('mousemove', onMouseMove);
           document.removeEventListener('mouseup', onMouseUp);
         };
@@ -1323,7 +1302,6 @@
                                   'aria-selected': currentMode === option,
                                 },
                                 option.charAt(0).toUpperCase() + option.slice(1)
-                                // Fixed _option to option
                               )
                             )
                           )
@@ -1383,7 +1361,13 @@
                         'button',
                         {
                           className: 'panel-button',
-                          onClick: () => xGhosted.handleClear(),
+                          onClick: () => {
+                            if (confirm('Clear all processed posts?')) {
+                              window.dispatchEvent(
+                                new CustomEvent('xghosted:posts-cleared')
+                              );
+                            }
+                          },
                           'aria-label': 'Clear Processed Posts',
                         },
                         window.preact.h('i', {
@@ -1517,12 +1501,9 @@
         lastUrl: '',
         isWithReplies: false,
         isRateLimited: false,
-        isManualCheckEnabled: true,
         isAutoScrollingEnabled: false,
-        isPanelVisible: true,
         isHighlighting: false,
         isPollingEnabled: true,
-        panelPosition: { right: '10px', top: '60px' },
         userProfileName: null,
       };
       this.events = {};
@@ -1548,82 +1529,6 @@
     }
     XGhosted.POST_SELECTOR =
       'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
-    XGhosted.prototype.saveState = function () {
-      const newState = {
-        isPanelVisible: this.state.isPanelVisible,
-        isManualCheckEnabled: this.state.isManualCheckEnabled,
-        panelPosition: { ...this.state.panelPosition },
-      };
-      const oldState = GM_getValue('xGhostedState', {});
-      const otherStateChanged =
-        JSON.stringify({
-          isPanelVisible: newState.isPanelVisible,
-          isManualCheckEnabled: newState.isManualCheckEnabled,
-          panelPosition: newState.panelPosition,
-        }) !==
-        JSON.stringify({
-          isPanelVisible: oldState.isPanelVisible,
-          isManualCheckEnabled: oldState.isManualCheckEnabled,
-          panelPosition: oldState.panelPosition,
-        });
-      if (otherStateChanged) {
-        GM_setValue('xGhostedState', newState);
-        this.emit('state-updated', { ...this.state });
-      }
-    };
-    XGhosted.prototype.loadState = function () {
-      const savedState = GM_getValue('xGhostedState', {});
-      this.state.isPanelVisible = savedState.isPanelVisible ?? true;
-      this.state.isManualCheckEnabled =
-        savedState.isManualCheckEnabled ?? false;
-      if (
-        savedState.panelPosition &&
-        savedState.panelPosition.right &&
-        savedState.panelPosition.top
-      ) {
-        const panelWidth = 350;
-        const panelHeight = 48;
-        const windowWidth = this.document.defaultView.innerWidth;
-        const windowHeight = this.document.defaultView.innerHeight;
-        let right = parseFloat(savedState.panelPosition.right);
-        let top = parseFloat(savedState.panelPosition.top);
-        right = isNaN(right)
-          ? 10
-          : Math.max(0, Math.min(right, windowWidth - panelWidth));
-        top = isNaN(top)
-          ? 60
-          : Math.max(0, Math.min(top, windowHeight - panelHeight));
-        this.state.panelPosition = { right: `${right}px`, top: `${top}px` };
-      } else {
-        this.log(
-          'No valid saved panelPosition, using default: right=10px, top=60px'
-        );
-        this.state.panelPosition = { right: '10px', top: '60px' };
-      }
-    };
-    XGhosted.prototype.setPanelPosition = function (panelPosition) {
-      if (!panelPosition || !panelPosition.right || !panelPosition.top) {
-        this.log('setPanelPosition: Invalid panelPosition, using default');
-        panelPosition = { right: '10px', top: '60px' };
-      }
-      const panelWidth = 350;
-      const panelHeight = 48;
-      const windowWidth = this.document.defaultView.innerWidth;
-      const windowHeight = this.document.defaultView.innerHeight;
-      let right = parseFloat(panelPosition.right);
-      let top = parseFloat(panelPosition.top);
-      right = isNaN(right)
-        ? 10
-        : Math.max(0, Math.min(right, windowWidth - panelWidth));
-      top = isNaN(top)
-        ? 60
-        : Math.max(0, Math.min(top, windowHeight - panelHeight));
-      this.state.panelPosition = { right: `${right}px`, top: `${top}px` };
-      this.emit('panel-position-changed', {
-        panelPosition: { ...this.state.panelPosition },
-      });
-      this.saveState();
-    };
     XGhosted.prototype.updateState = function (url) {
       const { isWithReplies, userProfileName } = parseUrl(url);
       this.state.isWithReplies = isWithReplies;
@@ -1759,7 +1664,6 @@
       this.state.isPollingEnabled = true;
       this.startPolling();
       this.startAutoScrolling();
-      this.saveState();
       this.emit('polling-state-updated', {
         isPollingEnabled: this.state.isPollingEnabled,
       });
@@ -1774,7 +1678,6 @@
         clearInterval(this.scrollTimer);
         this.scrollTimer = null;
       }
-      this.saveState();
       this.emit('polling-state-updated', {
         isPollingEnabled: this.state.isPollingEnabled,
       });
@@ -1828,39 +1731,9 @@
     };
     XGhosted.prototype.toggleAutoScrolling = function () {
       this.state.isAutoScrollingEnabled = !this.state.isAutoScrollingEnabled;
-      this.saveState();
       this.emit('auto-scrolling-toggled', {
         isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
       });
-    };
-    XGhosted.prototype.clearProcessedPosts = function () {
-      this.postsManager.clearPosts();
-      this.saveState();
-      this.ensureAndHighlightPosts();
-    };
-    XGhosted.prototype.handleManualCheckToggle = function () {
-      this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
-      this.log(`Manual Check toggled to ${this.state.isManualCheckEnabled}`);
-      this.emit('manual-check-toggled', {
-        isManualCheckEnabled: this.state.isManualCheckEnabled,
-      });
-      this.saveState();
-    };
-    XGhosted.prototype.togglePanelVisibility = function (newVisibility) {
-      const previousVisibility = this.state.isPanelVisible;
-      this.state.isPanelVisible =
-        typeof newVisibility === 'boolean'
-          ? newVisibility
-          : !this.state.isPanelVisible;
-      if (previousVisibility !== this.state.isPanelVisible) {
-        this.emit('panel-visibility-toggled', {
-          isPanelVisible: this.state.isPanelVisible,
-        });
-        this.saveState();
-      }
-    };
-    XGhosted.prototype.handleClear = function () {
-      if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
     };
     XGhosted.prototype.expandArticle = function (article) {
       if (article) {
@@ -1942,7 +1815,6 @@
         this.log(
           `Highlighted ${postsProcessed} new posts, state-updated emitted`
         );
-        this.saveState();
       }
       this.state.isHighlighting = false;
       return results;
@@ -1962,7 +1834,6 @@
       } else {
         this.log('Document body not available for theme detection');
       }
-      this.loadState();
       this.document.dispatchEvent(
         new CustomEvent('xghosted:init', {
           detail: {
@@ -1975,6 +1846,10 @@
       );
       this.document.addEventListener('xghosted:csv-import', () => {
         this.highlightPosts();
+      });
+      this.document.addEventListener('xghosted:posts-cleared', () => {
+        this.postsManager.clearPosts();
+        this.ensureAndHighlightPosts();
       });
       const styleSheet = this.document.createElement('style');
       styleSheet.textContent = `
@@ -2014,20 +1889,7 @@
               return;
             }
             const cached = this.postsManager.getPost(href);
-            if (this.state.isManualCheckEnabled) {
-              this.userRequestedPostCheck(href, clickedPost);
-            } else {
-              this.document.defaultView.open(
-                `${this.postsManager.linkPrefix}${href}`,
-                '_blank'
-              );
-              if (cached) {
-                cached.checked = true;
-                this.postsManager.registerPost(href, cached);
-                eyeball.classList.remove('xghosted-eyeball');
-                this.log(`Opened ${href} in new tab and marked as checked`);
-              }
-            }
+            this.userRequestedPostCheck(href, clickedPost);
           }
         },
         { capture: true }
@@ -2293,16 +2155,7 @@
       this.init();
     };
     window.PanelManager.prototype.init = function () {
-      const savedState = this.storage.get('xGhostedState', {});
-      if (
-        savedState.themeMode &&
-        ['light', 'dim', 'dark'].includes(savedState.themeMode)
-      ) {
-        this.state.themeMode = savedState.themeMode;
-        this.log(`Loaded saved themeMode: ${this.state.themeMode}`);
-      } else {
-        this.log(`No saved themeMode, using default: ${this.state.themeMode}`);
-      }
+      this.loadState();
       this.uiElements.panelContainer = this.document.createElement('div');
       this.uiElements.panelContainer.id = 'xghosted-panel-container';
       this.uiElements.panel = this.document.createElement('div');
@@ -2321,15 +2174,10 @@
           this.document.head.appendChild(panelStyleSheet);
         }
       }
-      this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
       this.state.isRateLimited = this.xGhosted.state.isRateLimited;
-      this.state.isManualCheckEnabled =
-        this.xGhosted.state.isManualCheckEnabled;
       this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
       this.state.isAutoScrollingEnabled =
         this.xGhosted.state.isAutoScrollingEnabled;
-      this.state.panelPosition =
-        this.xGhosted.state.panelPosition || this.state.panelPosition;
       this.uiElements.panelContainer.style.right =
         this.state.panelPosition.right;
       this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
@@ -2339,35 +2187,7 @@
       this.applyPanelStyles();
       this.xGhosted.on('state-updated', (newState) => {
         this.state.isRateLimited = newState.isRateLimited;
-        this.state.isManualCheckEnabled = newState.isManualCheckEnabled;
         this.renderPanel();
-      });
-      this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
-        this.log(
-          `PanelManager: manual-check-toggled received, isManualCheckEnabled: ${isManualCheckEnabled}`
-        );
-        this.state.isManualCheckEnabled = isManualCheckEnabled;
-        this.renderPanel();
-      });
-      this.xGhosted.on('panel-visibility-toggled', ({ isPanelVisible }) => {
-        this.state.isPanelVisible = isPanelVisible;
-        this.renderPanel();
-      });
-      this.xGhosted.on('theme-mode-changed', ({ themeMode }) => {
-        this.state.themeMode = themeMode;
-        this.renderPanel();
-        this.applyPanelStyles();
-      });
-      this.xGhosted.on('panel-position-changed', ({ panelPosition }) => {
-        this.state.panelPosition = { ...panelPosition };
-        if (this.uiElements.panelContainer) {
-          this.uiElements.panelContainer.style.right =
-            this.state.panelPosition.right;
-          this.uiElements.panelContainer.style.top =
-            this.state.panelPosition.top;
-          this.uiElements.panelContainer.style.left = 'auto';
-          this.applyPanelStyles();
-        }
       });
       this.xGhosted.on('polling-state-updated', ({ isPollingEnabled }) => {
         this.state.isPollingEnabled = isPollingEnabled;
@@ -2386,6 +2206,50 @@
       } else {
         this.log('Preact h not available, skipping panel render');
       }
+    };
+    window.PanelManager.prototype.saveState = function () {
+      const currentState = this.storage.get('xGhostedState', {});
+      const updatedState = {
+        ...currentState,
+        panel: {
+          isPanelVisible: this.state.isPanelVisible,
+          panelPosition: { ...this.state.panelPosition },
+          themeMode: this.state.themeMode,
+        },
+      };
+      this.storage.set('xGhostedState', updatedState);
+      this.log('Saved panel state');
+    };
+    window.PanelManager.prototype.loadState = function () {
+      const savedState = this.storage.get('xGhostedState', {});
+      const panelState = savedState.panel || {};
+      this.state.isPanelVisible = panelState.isPanelVisible ?? true;
+      this.state.themeMode = ['light', 'dim', 'dark'].includes(
+        panelState.themeMode
+      )
+        ? panelState.themeMode
+        : this.state.themeMode;
+      if (
+        panelState.panelPosition &&
+        panelState.panelPosition.right &&
+        panelState.panelPosition.top
+      ) {
+        const panelWidth = 350;
+        const panelHeight = 48;
+        const windowWidth = this.document.defaultView.innerWidth;
+        const windowHeight = this.document.defaultView.innerHeight;
+        const right = parseFloat(panelState.panelPosition.right);
+        const top = parseFloat(panelState.panelPosition.top);
+        this.state.panelPosition.right = isNaN(right)
+          ? '10px'
+          : `${Math.max(0, Math.min(right, windowWidth - panelWidth))}px`;
+        this.state.panelPosition.top = isNaN(top)
+          ? '60px'
+          : `${Math.max(0, Math.min(top, windowHeight - panelHeight))}px`;
+      }
+      this.log(
+        `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}`
+      );
     };
     window.PanelManager.prototype.applyPanelStyles = function () {
       const position = this.state.panelPosition || {
@@ -2408,38 +2272,20 @@
     }
   `;
     };
-    window.PanelManager.prototype.startDrag = function (e) {
-      if (e.target.closest('button, select, input, textarea')) return;
-      e.preventDefault();
-      this.dragState.isDragging = true;
-      this.dragState.startX = e.clientX;
-      this.dragState.startY = e.clientY;
-      const rect = this.uiElements.panelContainer.getBoundingClientRect();
-      this.dragState.initialRight = window.innerWidth - rect.right;
-      this.dragState.initialTop = rect.top;
+    window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
+      this.state.isPanelVisible =
+        typeof newVisibility === 'boolean'
+          ? newVisibility
+          : !this.state.isPanelVisible;
+      this.saveState();
+      this.renderPanel();
     };
-    window.PanelManager.prototype.doDrag = function (e) {
-      if (!this.dragState.isDragging) return;
-      const deltaX = e.clientX - this.dragState.startX;
-      const deltaY = e.clientY - this.dragState.startY;
-      let newRight = this.dragState.initialRight - deltaX;
-      let newTop = this.dragState.initialTop + deltaY;
-      const panelWidth = 350;
-      const panelHeight = this.uiElements.panelContainer.offsetHeight;
-      const windowWidth = window.innerWidth;
-      const windowHeight = window.innerHeight;
-      newRight = Math.max(0, Math.min(newRight, windowWidth - panelWidth));
-      newTop = Math.max(0, Math.min(newTop, windowHeight - panelHeight));
-      this.uiElements.panelContainer.style.right = `${newRight}px`;
-      this.uiElements.panelContainer.style.top = `${newTop}px`;
-      this.uiElements.panelContainer.style.left = 'auto';
-      this.state.panelPosition = { right: `${newRight}px`, top: `${newTop}px` };
-    };
-    window.PanelManager.prototype.stopDrag = function () {
-      if (this.dragState.isDragging) {
-        this.dragState.isDragging = false;
-        this.xGhosted.setPanelPosition(this.state.panelPosition);
-      }
+    window.PanelManager.prototype.setPanelPosition = function (position) {
+      this.state.panelPosition = { ...position };
+      this.saveState();
+      this.log(
+        `Updated panel position: right=${position.right}, top=${position.top}`
+      );
     };
     window.PanelManager.prototype.renderPanel = function () {
       if (!this.uiElements.panel) {
@@ -2465,19 +2311,10 @@
             );
             this.xGhosted.userRequestedPostCheck(href, post);
           },
+          setPanelPosition: (position) => this.setPanelPosition(position),
         }),
         this.uiElements.panel
       );
-    };
-    window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
-      const previousVisibility = this.state.isPanelVisible;
-      this.state.isPanelVisible =
-        typeof newVisibility === 'boolean'
-          ? newVisibility
-          : !this.state.isPanelVisible;
-      if (previousVisibility !== this.state.isPanelVisible) {
-        this.xGhosted.togglePanelVisibility(this.state.isPanelVisible);
-      }
     };
     window.PanelManager.prototype.updateTheme = function (newMode) {
       this.state.themeMode = newMode;

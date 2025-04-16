@@ -15,32 +15,27 @@ function XGhosted(doc, config = {}) {
     tabCheckThrottle: 5000,
     exportThrottle: 5000,
     pollInterval: 1000,
-    scrollInterval: 1500
+    scrollInterval: 1500,
   };
   this.timing = { ...defaultTiming, ...config.timing };
   this.document = doc;
-  this.log = config.useTampermonkeyLog && typeof GM_log !== 'undefined'
-    ? GM_log.bind(null)
-    : console.log.bind(console);
-
-  // Require postsManager to be provided
+  this.log =
+    config.useTampermonkeyLog && typeof GM_log !== 'undefined'
+      ? GM_log.bind(null)
+      : console.log.bind(console);
   if (!config.postsManager) {
     throw new Error('XGhosted requires a postsManager instance');
   }
   this.postsManager = config.postsManager;
-
   this.state = {
     postContainer: null,
     lastUrl: '',
     isWithReplies: false,
     isRateLimited: false,
-    isManualCheckEnabled: true,
     isAutoScrollingEnabled: false,
-    isPanelVisible: true,
     isHighlighting: false,
     isPollingEnabled: true,
-    panelPosition: { right: '10px', top: '60px' },
-    userProfileName: null
+    userProfileName: null,
   };
   this.events = {};
   this.panelManager = null;
@@ -50,89 +45,21 @@ function XGhosted(doc, config = {}) {
   this.ensureAndHighlightPostsDebounced = debounce(() => {
     this.ensureAndHighlightPosts();
   }, this.timing.debounceDelay);
-
   this.on = (event, callback) => {
     if (!this.events[event]) this.events[event] = [];
     this.events[event].push(callback);
   };
   this.off = (event, callback) => {
     if (!this.events[event]) return;
-    this.events[event] = this.events[event].filter(cb => cb !== callback);
+    this.events[event] = this.events[event].filter((cb) => cb !== callback);
   };
   this.emit = (event, data) => {
     if (!this.events[event]) return;
-    this.events[event].forEach(cb => cb(data));
+    this.events[event].forEach((cb) => cb(data));
   };
 }
 
 XGhosted.POST_SELECTOR = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
-
-XGhosted.prototype.saveState = function () {
-  const newState = {
-    isPanelVisible: this.state.isPanelVisible,
-    isManualCheckEnabled: this.state.isManualCheckEnabled,
-    panelPosition: { ...this.state.panelPosition }
-  };
-  const oldState = GM_getValue('xGhostedState', {});
-  const otherStateChanged = JSON.stringify({
-    isPanelVisible: newState.isPanelVisible,
-    isManualCheckEnabled: newState.isManualCheckEnabled,
-    panelPosition: newState.panelPosition
-  }) !== JSON.stringify({
-    isPanelVisible: oldState.isPanelVisible,
-    isManualCheckEnabled: oldState.isManualCheckEnabled,
-    panelPosition: oldState.panelPosition
-  });
-
-  if (otherStateChanged) {
-    GM_setValue('xGhostedState', newState);
-    this.emit('state-updated', { ...this.state });
-  }
-};
-
-XGhosted.prototype.loadState = function () {
-  const savedState = GM_getValue('xGhostedState', {});
-  this.state.isPanelVisible = savedState.isPanelVisible ?? true;
-  this.state.isManualCheckEnabled = savedState.isManualCheckEnabled ?? false;
-
-  if (savedState.panelPosition && savedState.panelPosition.right && savedState.panelPosition.top) {
-    const panelWidth = 350;
-    const panelHeight = 48;
-    const windowWidth = this.document.defaultView.innerWidth;
-    const windowHeight = this.document.defaultView.innerHeight;
-
-    let right = parseFloat(savedState.panelPosition.right);
-    let top = parseFloat(savedState.panelPosition.top);
-    right = isNaN(right) ? 10 : Math.max(0, Math.min(right, windowWidth - panelWidth));
-    top = isNaN(top) ? 60 : Math.max(0, Math.min(top, windowHeight - panelHeight));
-
-    this.state.panelPosition = { right: `${right}px`, top: `${top}px` };
-  } else {
-    this.log('No valid saved panelPosition, using default: right=10px, top=60px');
-    this.state.panelPosition = { right: '10px', top: '60px' };
-  }
-};
-
-XGhosted.prototype.setPanelPosition = function (panelPosition) {
-  if (!panelPosition || !panelPosition.right || !panelPosition.top) {
-    this.log('setPanelPosition: Invalid panelPosition, using default');
-    panelPosition = { right: '10px', top: '60px' };
-  }
-
-  const panelWidth = 350;
-  const panelHeight = 48;
-  const windowWidth = this.document.defaultView.innerWidth;
-  const windowHeight = this.document.defaultView.innerHeight;
-
-  let right = parseFloat(panelPosition.right);
-  let top = parseFloat(panelPosition.top);
-  right = isNaN(right) ? 10 : Math.max(0, Math.min(right, windowWidth - panelWidth));
-  top = isNaN(top) ? 60 : Math.max(0, Math.min(top, windowHeight - panelHeight));
-
-  this.state.panelPosition = { right: `${right}px`, top: `${top}px` };
-  this.emit('panel-position-changed', { panelPosition: { ...this.state.panelPosition } });
-  this.saveState();
-};
 
 XGhosted.prototype.updateState = function (url) {
   const { isWithReplies, userProfileName } = parseUrl(url);
@@ -241,7 +168,6 @@ XGhosted.prototype.handleStartPolling = function () {
   this.state.isPollingEnabled = true;
   this.startPolling();
   this.startAutoScrolling();
-  this.saveState();
   this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
 };
 
@@ -255,7 +181,6 @@ XGhosted.prototype.handleStopPolling = function () {
     clearInterval(this.scrollTimer);
     this.scrollTimer = null;
   }
-  this.saveState();
   this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
 };
 
@@ -307,34 +232,7 @@ XGhosted.prototype.startAutoScrolling = function () {
 
 XGhosted.prototype.toggleAutoScrolling = function () {
   this.state.isAutoScrollingEnabled = !this.state.isAutoScrollingEnabled;
-  this.saveState();
   this.emit('auto-scrolling-toggled', { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled });
-};
-
-XGhosted.prototype.clearProcessedPosts = function () {
-  this.postsManager.clearPosts();
-  this.saveState();
-  this.ensureAndHighlightPosts();
-};
-
-XGhosted.prototype.handleManualCheckToggle = function () {
-  this.state.isManualCheckEnabled = !this.state.isManualCheckEnabled;
-  this.log(`Manual Check toggled to ${this.state.isManualCheckEnabled}`);
-  this.emit('manual-check-toggled', { isManualCheckEnabled: this.state.isManualCheckEnabled });
-  this.saveState();
-};
-
-XGhosted.prototype.togglePanelVisibility = function (newVisibility) {
-  const previousVisibility = this.state.isPanelVisible;
-  this.state.isPanelVisible = typeof newVisibility === 'boolean' ? newVisibility : !this.state.isPanelVisible;
-  if (previousVisibility !== this.state.isPanelVisible) {
-    this.emit('panel-visibility-toggled', { isPanelVisible: this.state.isPanelVisible });
-    this.saveState();
-  }
-};
-
-XGhosted.prototype.handleClear = function () {
-  if (confirm('Clear all processed posts?')) this.clearProcessedPosts();
 };
 
 XGhosted.prototype.expandArticle = function (article) {
@@ -414,7 +312,6 @@ XGhosted.prototype.highlightPosts = function (posts) {
     this.state = { ...this.state };
     this.emit('state-updated', { ...this.state });
     this.log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
-    this.saveState();
   }
   this.state.isHighlighting = false;
   return results;
@@ -437,8 +334,6 @@ XGhosted.prototype.init = function () {
     this.log('Document body not available for theme detection');
   }
 
-  this.loadState();
-
   // Emit xghosted:init event with config data
   this.document.dispatchEvent(new CustomEvent('xghosted:init', {
     detail: {
@@ -449,9 +344,13 @@ XGhosted.prototype.init = function () {
     }
   }));
 
-  // Listen for CSV import to highlight posts
+  // Listen for CSV import and posts cleared to highlight posts
   this.document.addEventListener('xghosted:csv-import', () => {
     this.highlightPosts();
+  });
+  this.document.addEventListener('xghosted:posts-cleared', () => {
+    this.postsManager.clearPosts();
+    this.ensureAndHighlightPosts();
   });
 
   const styleSheet = this.document.createElement('style');
@@ -490,17 +389,7 @@ XGhosted.prototype.init = function () {
         return;
       }
       const cached = this.postsManager.getPost(href);
-      if (this.state.isManualCheckEnabled) {
-        this.userRequestedPostCheck(href, clickedPost);
-      } else {
-        this.document.defaultView.open(`${this.postsManager.linkPrefix}${href}`, '_blank');
-        if (cached) {
-          cached.checked = true;
-          this.postsManager.registerPost(href, cached);
-          eyeball.classList.remove('xghosted-eyeball');
-          this.log(`Opened ${href} in new tab and marked as checked`);
-        }
-      }
+      this.userRequestedPostCheck(href, clickedPost);
     }
   }, { capture: true });
 
