@@ -6,7 +6,7 @@ import { execSync } from 'child_process';
 
 const SRC_DIR = path.resolve('src');
 const OUTPUT_FILE = path.resolve(SRC_DIR, 'xGhosted.user.js');
-const TEMP_ENTRY = path.resolve(SRC_DIR, '.temp-entry.js');
+const TEMP_UTILS_ENTRY = path.resolve(SRC_DIR, '.temp-utils-entry.js');
 
 // Read package.json to get version
 const packageJson = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
@@ -43,109 +43,202 @@ const panelCssContent = fs.readFileSync(
   'utf8'
 );
 
-// Dynamically find runtime .js and .jsx files, excluding SplashPanel.js
-const srcDirs = [SRC_DIR, path.join(SRC_DIR, 'ui'), path.join(SRC_DIR, 'utils'), path.join(SRC_DIR, 'dom')];
-const moduleFiles = [];
-srcDirs.forEach((dir) => {
-  if (fs.existsSync(dir)) {
-    fs.readdirSync(dir).forEach((file) => {
-      if (
-        (file.endsWith('.js') || file.endsWith('.jsx')) &&
-        file !== 'xGhosted.template.js' &&
-        file !== 'xGhosted.user.js' &&
-        file !== 'Components.js' &&
-        file !== 'SplashPanel.js' &&
-        !file.includes('.test.')
-      ) {
-        moduleFiles.push(path.join(dir, file));
-      }
-    });
+// Define modules to bundle separately
+const modules = [
+  {
+    entryPoint: path.resolve(SRC_DIR, 'xGhosted.js'),
+    placeholder: '// INJECT: xGhosted',
+    globalName: 'XGhosted'
+  },
+  {
+    entryPoint: path.resolve(SRC_DIR, 'ui/SplashPanel.js'),
+    placeholder: '// INJECT: SplashPanel',
+    globalName: 'SplashPanel'
+  },
+  {
+    entryPoint: path.resolve(SRC_DIR, 'ui/PanelManager.js'),
+    placeholder: '// INJECT: PanelManager',
+    globalName: 'PanelManager'
+  },
+  {
+    entryPoint: path.resolve(SRC_DIR, 'utils/ProcessedPostsManager.js'),
+    placeholder: '// INJECT: ProcessedPostsManager',
+    globalName: 'ProcessedPostsManager'
   }
-});
-console.log('Bundling modules:', moduleFiles);
-
-// Create temporary entry file
-const tempEntryContent = moduleFiles
-  .map((file) => {
-    const relativePath = './' + path.relative(SRC_DIR, file).replace(/\\/g, '/');
-    return `import "${relativePath}";`;
-  })
-  .join('\n');
-fs.writeFileSync(TEMP_ENTRY, tempEntryContent, 'utf8');
+];
 
 (async () => {
   try {
-    // Build xGhosted modules
-    const xGhostedResult = await esbuild.build({
-      entryPoints: [TEMP_ENTRY],
-      bundle: true,
-      minify: false,
-      sourcemap: false,
-      target: ['es2020'],
-      platform: 'browser',
-      write: false,
-      format: 'esm',
-      loader: {
-        '.jsx': 'jsx',
-        '.js': 'jsx',
-        '.css': 'text',
-      },
-      jsxFactory: 'window.preact.h',
-      jsxFragment: 'window.preact.Fragment',
-      external: ['window.preact', 'window.preactHooks'],
-    });
+    let finalContent = templateContent;
+    const sharedImports = new Set();
 
-    // Extract xGhosted code, remove wrappers
-    let xGhostedCode = xGhostedResult.outputFiles[0].text;
-    xGhostedCode = xGhostedCode.replace(/^(?:\(function\s*\(\)\s*\{)?([\s\S]*?)(?:\}\)\(\);)?$/m, '$1').trim();
+    // Collect shared dependencies dynamically, excluding UI components
+    for (const mod of modules) {
+      const result = await esbuild.build({
+        entryPoints: [mod.entryPoint],
+        bundle: true,
+        write: false,
+        format: 'esm',
+        metafile: true
+      });
+      const imports = result.metafile.inputs;
+      for (const file in imports) {
+        if (
+          file !== path.relative(process.cwd(), mod.entryPoint) &&
+          file.endsWith('.js') && // Exclude .jsx to avoid Panel.jsx
+          !file.includes('.test.') &&
+          !modules.some((m) => path.relative(process.cwd(), m.entryPoint) === file)
+        ) {
+          sharedImports.add(path.resolve(process.cwd(), file));
+        }
+      }
+    }
 
-    // Append CSS
-    xGhostedCode += `
+    // Ensure clipboardUtils.js is included for ProcessedPostsManager
+    sharedImports.add(path.resolve(SRC_DIR, 'utils/clipboardUtils.js'));
+
+    // Bundle shared utilities
+    console.log('Bundling shared utilities:', Array.from(sharedImports));
+    let utilsCode = '';
+    if (sharedImports.size > 0) {
+      // Create temporary entry point for utilities
+      const utilsEntryContent = Array.from(sharedImports)
+        .map((file) => {
+          const relativePath = './' + path.relative(SRC_DIR, file).replace(/\\/g, '/');
+          return `export * from '${relativePath}';`;
+        })
+        .join('\n');
+      fs.writeFileSync(TEMP_UTILS_ENTRY, utilsEntryContent, 'utf8');
+
+      const utilsResult = await esbuild.build({
+        entryPoints: [TEMP_UTILS_ENTRY],
+        bundle: true,
+        minify: false, // Keep readable
+        sourcemap: false,
+        target: ['es2020'],
+        platform: 'browser',
+        write: false,
+        format: 'esm',
+        loader: {
+          '.js': 'js'
+        },
+        external: ['window.preact', 'window.preactHooks'],
+        metafile: true
+      });
+
+      // Extract exported names from metafile
+      const exportedNames = new Set(
+        utilsResult.metafile.outputs[Object.keys(utilsResult.metafile.outputs)[0]].exports
+      );
+
+      utilsCode = utilsResult.outputFiles[0].text.trim();
+      // Remove export statements
+      utilsCode = utilsCode.replace(/export\s*{[^}]*}\s*;?/g, '');
+      utilsCode = utilsCode.replace(/export\s+default\s+[^;]+;?\s*/g, '');
+      utilsCode = utilsCode.replace(/export\s+const\s+\w+\s*=/g, 'const ');
+      utilsCode = utilsCode.replace(/export\s+function\s+\w+\s*\([^)]*\)\s*{[^}]*}/g, (match) => {
+        return match.replace(/export\s+function/, 'function');
+      });
+      utilsCode = utilsCode.replace(/export\s+class\s+\w+\s*{[^}]*}/g, (match) => {
+        return match.replace(/export\s+class/, 'class');
+      });
+
+      // Expose exports
+      if (exportedNames.size > 0) {
+        utilsCode = `window.XGhostedUtils = (function() { ${utilsCode}; return { ${Array.from(exportedNames).join(', ')} }; })();`;
+      } else {
+        utilsCode = `window.XGhostedUtils = (function() { ${utilsCode}; return {}; })();`;
+      }
+      finalContent = finalContent.replace('// INJECT: Utils', utilsCode);
+
+      // Clean up temporary file
+      fs.unlinkSync(TEMP_UTILS_ENTRY);
+    } else {
+      finalContent = finalContent.replace('// INJECT: Utils', '');
+    }
+
+    // Bundle each module, excluding shared dependencies
+    for (const mod of modules) {
+      console.log(`Bundling ${mod.entryPoint}`);
+      const result = await esbuild.build({
+        entryPoints: [mod.entryPoint],
+        bundle: true,
+        minify: false, // Keep readable
+        sourcemap: false,
+        target: ['es2020'],
+        platform: 'browser',
+        write: false,
+        format: 'esm',
+        loader: {
+          '.jsx': 'jsx',
+          '.js': 'js',
+          '.css': 'text'
+        },
+        jsxFactory: 'window.preact.h',
+        jsxFragment: 'window.preact.Fragment',
+        external: [
+          'window.preact',
+          'window.preactHooks',
+          ...Array.from(sharedImports).map((u) => path.relative(SRC_DIR, u).replace(/\\/g, '/'))
+        ]
+      });
+
+      // Get bundled code
+      let code = result.outputFiles[0].text.trim();
+
+      // Remove export statements
+      code = code.replace(/export\s*{[^}]*}\s*;?/g, '');
+      code = code.replace(/export\s+default\s+[^;]+;?\s*/g, '');
+      code = code.replace(/export\s+class\s+\w+\s*{[^}]*}/g, (match) => {
+        return match.replace(/export\s+class/, 'class');
+      });
+      code = code.replace(/export\s+function\s+\w+\s*\([^)]*\)\s*{[^}]*}/g, (match) => {
+        return match.replace(/export\s+function/, 'function');
+      });
+
+      // Replace imports with window.XGhostedUtils references
+      code = code.replace(/import\s*{([^}]+)}\s*from\s*['"]([^'"]+)['"]/g, (match, imports, source) => {
+        if (sharedImports.has(path.resolve(SRC_DIR, source.replace(/\\/g, '/')))) {
+          return `const { ${imports.trim()} } = window.XGhostedUtils;`;
+        }
+        return match; // Preserve other imports (e.g., Panel.jsx in PanelManager)
+      });
+
+      // Wrap in window assignment
+      code = `window.${mod.globalName} = (function() { ${code}; return ${mod.globalName}; })();`;
+
+      // Inject into template
+      finalContent = finalContent.replace(mod.placeholder, code);
+    }
+
+    // Inject CSS inside IIFE
+    const stylesCode = `
       window.xGhostedStyles = window.xGhostedStyles || {};
       window.xGhostedStyles.modal = \`${modalCssContent.replace(/`/g, '\\`')}\`;
       window.xGhostedStyles.panel = \`${panelCssContent.replace(/`/g, '\\`')}\`;
     `;
+    finalContent = finalContent.replace('// INJECT: Styles', stylesCode);
 
-    // Build SplashPanel.js
-    const splashPanelResult = await esbuild.build({
-      entryPoints: [path.resolve(SRC_DIR, 'ui/SplashPanel.js')],
-      bundle: false,
-      minify: false,
-      sourcemap: false,
-      target: ['es2020'],
-      write: false,
-      loader: { '.js': 'js' },
-    });
-
-    let splashPanelCode = splashPanelResult.outputFiles[0].text;
-    // Remove export statement and assign to window.SplashPanel
-    splashPanelCode = splashPanelCode.replace(/export\s*{[^}]*}/, '');
-    splashPanelCode = `window.SplashPanel = ${splashPanelCode.trim()};`;
-
-    // Inject into template
-    let finalContent = templateContent
-      .replace('// INJECT: xGhosted', xGhostedCode)
-      .replace('// INJECT: SplashPanel', splashPanelCode);
-
-    // Format with Prettier
-    finalContent = await format(finalContent, {
-      parser: 'babel',
-      singleQuote: true,
-      tabWidth: 2,
-      trailingComma: 'es5',
-      printWidth: 80,
-    });
-
-    // Write output
+    // Write unformatted output as fallback
     fs.writeFileSync(OUTPUT_FILE, finalContent, 'utf8');
-    console.log(`Build complete! Output written to ${OUTPUT_FILE}`);
+
+    // Attempt to format with Prettier
+    try {
+      finalContent = await format(finalContent, {
+        parser: 'babel',
+        singleQuote: true,
+        tabWidth: 2,
+        trailingComma: 'es5',
+        printWidth: 80
+      });
+      fs.writeFileSync(OUTPUT_FILE, finalContent, 'utf8');
+      console.log(`Build complete! Formatted output written to ${OUTPUT_FILE}`);
+    } catch (formatErr) {
+      console.warn(`Prettier formatting failed: ${formatErr.message}. Using unformatted output.`);
+      console.log(`Build complete! Unformatted output written to ${OUTPUT_FILE}`);
+    }
   } catch (err) {
     console.error('Build failed:', err);
     process.exit(1);
-  } finally {
-    // Clean up
-    if (fs.existsSync(TEMP_ENTRY)) {
-      fs.unlinkSync(TEMP_ENTRY);
-    }
   }
 })();

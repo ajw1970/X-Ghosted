@@ -93,7 +93,6 @@ function Modal({ isOpen, onClose, onSubmit, mode, config }) {
     )
   );
 }
-
 window.Modal = Modal;
 
 window.PanelManager = function (
@@ -107,8 +106,7 @@ window.PanelManager = function (
   this.xGhosted = xGhostedInstance;
   this.log = xGhostedInstance.log;
   this.postsManager = postsManager;
-  this.storage = storage || { get: () => {}, set: () => {} };
-
+  this.storage = storage || { get: () => { }, set: () => { } };
   const validThemes = ['light', 'dim', 'dark'];
   this.state = {
     panelPosition: { right: '10px', top: '60px' },
@@ -121,7 +119,6 @@ window.PanelManager = function (
     themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
   };
   this.log(`PanelManager initialized with themeMode: ${this.state.themeMode}`);
-
   this.uiElements = {
     config: {
       PANEL: {
@@ -190,20 +187,21 @@ window.PanelManager = function (
 
 window.PanelManager.prototype.init = function () {
   const savedState = this.storage.get('xGhostedState', {});
-  if (savedState.themeMode && ['light', 'dim', 'dark'].includes(savedState.themeMode)) {
+  if (
+    savedState.themeMode &&
+    ['light', 'dim', 'dark'].includes(savedState.themeMode)
+  ) {
     this.state.themeMode = savedState.themeMode;
     this.log(`Loaded saved themeMode: ${this.state.themeMode}`);
   } else {
     this.log(`No saved themeMode, using default: ${this.state.themeMode}`);
   }
-
   this.uiElements.panelContainer = this.document.createElement('div');
   this.uiElements.panelContainer.id = 'xghosted-panel-container';
   this.uiElements.panel = this.document.createElement('div');
   this.uiElements.panel.id = 'xghosted-panel';
   this.uiElements.panelContainer.appendChild(this.uiElements.panel);
   this.document.body.appendChild(this.uiElements.panelContainer);
-
   if (window.xGhostedStyles) {
     if (window.xGhostedStyles.modal) {
       const modalStyleSheet = this.document.createElement('style');
@@ -216,7 +214,6 @@ window.PanelManager.prototype.init = function () {
       this.document.head.appendChild(panelStyleSheet);
     }
   }
-
   this.state.isPanelVisible = this.xGhosted.state.isPanelVisible;
   this.state.isRateLimited = this.xGhosted.state.isRateLimited;
   this.state.isManualCheckEnabled = this.xGhosted.state.isManualCheckEnabled;
@@ -224,21 +221,17 @@ window.PanelManager.prototype.init = function () {
   this.state.isAutoScrollingEnabled = this.xGhosted.state.isAutoScrollingEnabled;
   this.state.panelPosition =
     this.xGhosted.state.panelPosition || this.state.panelPosition;
-
   this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
   this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
   this.uiElements.panelContainer.style.left = 'auto';
-
   this.styleElement = this.document.createElement('style');
   this.document.head.appendChild(this.styleElement);
   this.applyPanelStyles();
-
   this.xGhosted.on('state-updated', (newState) => {
     this.state.isRateLimited = newState.isRateLimited;
     this.state.isManualCheckEnabled = newState.isManualCheckEnabled;
     this.renderPanel();
   });
-
   this.xGhosted.on('manual-check-toggled', ({ isManualCheckEnabled }) => {
     this.log(
       `PanelManager: manual-check-toggled received, isManualCheckEnabled: ${isManualCheckEnabled}`
@@ -246,18 +239,15 @@ window.PanelManager.prototype.init = function () {
     this.state.isManualCheckEnabled = isManualCheckEnabled;
     this.renderPanel();
   });
-
   this.xGhosted.on('panel-visibility-toggled', ({ isPanelVisible }) => {
     this.state.isPanelVisible = isPanelVisible;
     this.renderPanel();
   });
-
   this.xGhosted.on('theme-mode-changed', ({ themeMode }) => {
     this.state.themeMode = themeMode;
     this.renderPanel();
     this.applyPanelStyles();
   });
-
   this.xGhosted.on('panel-position-changed', ({ panelPosition }) => {
     this.state.panelPosition = { ...panelPosition };
     if (this.uiElements.panelContainer) {
@@ -267,18 +257,15 @@ window.PanelManager.prototype.init = function () {
       this.applyPanelStyles();
     }
   });
-
   this.xGhosted.on('polling-state-updated', ({ isPollingEnabled }) => {
     this.state.isPollingEnabled = isPollingEnabled;
     this.renderPanel();
     this.applyPanelStyles();
   });
-
   this.xGhosted.on('auto-scrolling-toggled', ({ isAutoScrollingEnabled }) => {
     this.state.isAutoScrollingEnabled = isAutoScrollingEnabled;
     this.renderPanel();
   });
-
   if (window.preact && window.preact.h) {
     this.renderPanel();
   } else {
@@ -360,9 +347,7 @@ window.PanelManager.prototype.renderPanel = function () {
       onStartPolling: () => this.xGhosted.handleStartPolling(),
       onStopPolling: () => this.xGhosted.handleStopPolling(),
       onEyeballClick: (href) => {
-        const post = this.document.querySelector(
-          `[data-xghosted-id="${href}"]`
-        );
+        const post = this.document.querySelector(`[data-xghosted-id="${href}"]`);
         this.xGhosted.userRequestedPostCheck(href, post);
       },
     }),
@@ -391,7 +376,7 @@ window.PanelManager.prototype.handleModeChange = function (newMode) {
   const currentState = this.storage.get('xGhostedState', {});
   const updatedState = {
     ...currentState,
-    themeMode: newMode
+    themeMode: newMode,
   };
   this.storage.set('xGhostedState', updatedState);
   this.log(`Saved themeMode: ${newMode}`);
@@ -405,7 +390,7 @@ window.PanelManager.prototype.generateCSVData = function () {
     .getAllPosts()
     .map(([id, { analysis, checked }]) => {
       return [
-        `https://x.com${id}`,
+        `${this.postsManager.linkPrefix}${id}`,
         analysis.quality.name,
         analysis.reason,
         checked ? 'true' : 'false',
@@ -426,11 +411,27 @@ window.PanelManager.prototype.exportProcessedPostsCSV = function () {
   this.log(`Exported CSV: processed_posts.csv`);
 };
 
-window.PanelManager.prototype.importProcessedPostsCSV = function (csvText) {
+window.PanelManager.prototype.copyLinks = function () {
+  this.postsManager
+    .copyProblemLinks()
+    .then(() => {
+      this.log('Problem links copied to clipboard');
+      alert('Problem links copied to clipboard!');
+    })
+    .catch((err) => this.log(`Failed to copy problem links: ${err}`));
+};
+
+window.PanelManager.prototype.importProcessedPostsCSV = function (csvText, onClose) {
   this.log('Import CSV button clicked');
   const count = this.postsManager.importPosts(csvText);
   if (count > 0) {
     this.renderPanel();
-    this.xGhosted.ensureAndHighlightPosts();
+    this.document.dispatchEvent(
+      new CustomEvent('xghosted:csv-import', {
+        detail: { importedCount: count },
+      })
+    );
+    alert(`Successfully imported ${count} posts!`);
+    onClose(); // Close the modal
   }
 };

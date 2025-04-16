@@ -1,9 +1,11 @@
 import { postQuality } from './postQuality.js';
+import { copyTextToClipboard } from './clipboardUtils.js';
 
 class ProcessedPostsManager {
-  constructor({ storage, log }) {
-    this.storage = storage || { get: () => {}, set: () => {} };
+  constructor({ storage, log, linkPrefix }) {
+    this.storage = storage || { get: () => { }, set: () => { } };
     this.log = log || console.log.bind(console);
+    this.linkPrefix = linkPrefix || '';
     this.posts = {};
     this.load();
   }
@@ -109,7 +111,7 @@ class ProcessedPostsManager {
       const [link, qualityName, reason, checkedStr] = row;
       const quality = qualityMap[qualityName];
       if (!quality) return;
-      const id = link.replace('https://x.com', '');
+      const id = link.replace(this.linkPrefix, '');
       this.posts[id] = {
         analysis: { quality, reason, link: id },
         checked: checkedStr === 'true'
@@ -125,13 +127,20 @@ class ProcessedPostsManager {
     const headers = ['Link', 'Quality', 'Reason', 'Checked'];
     const rows = Object.entries(this.posts).map(([id, { analysis, checked }]) => {
       return [
-        `https://x.com${id}`,
+        `${this.linkPrefix}${id}`,
         analysis.quality.name,
         analysis.reason,
         checked ? 'true' : 'false'
       ].join(',');
     });
     return [headers.join(','), ...rows].join('\n');
+  }
+
+  copyProblemLinks() {
+    const linksText = this.getProblemPosts()
+      .map(([link]) => `${this.linkPrefix}${link}`)
+      .join('\n');
+    return copyTextToClipboard(linksText, this.log);
   }
 }
 

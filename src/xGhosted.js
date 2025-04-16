@@ -4,9 +4,7 @@ import { identifyPost } from './utils/identifyPost';
 import { debounce } from './utils/debounce';
 import { findPostContainer } from './dom/findPostContainer.js';
 import { getRelativeLinkToPost } from './utils/getRelativeLinkToPost.js';
-import { copyTextToClipboard } from './utils/clipboardUtils.js';
 import { parseUrl } from './dom/parseUrl.js';
-import { ProcessedPostsManager } from './utils/ProcessedPostsManager.js';
 import './ui/PanelManager.js';
 import './ui/Panel.jsx';
 
@@ -24,10 +22,13 @@ function XGhosted(doc, config = {}) {
   this.log = config.useTampermonkeyLog && typeof GM_log !== 'undefined'
     ? GM_log.bind(null)
     : console.log.bind(console);
-  this.postsManager = config.postsManager || new ProcessedPostsManager({ storage: {
-    get: GM_getValue,
-    set: GM_setValue
-  }, log: this.log });
+
+  // Require postsManager to be provided
+  if (!config.postsManager) {
+    throw new Error('XGhosted requires a postsManager instance');
+  }
+  this.postsManager = config.postsManager;
+
   this.state = {
     postContainer: null,
     lastUrl: '',
@@ -73,7 +74,6 @@ XGhosted.prototype.saveState = function () {
     panelPosition: { ...this.state.panelPosition }
   };
   const oldState = GM_getValue('xGhostedState', {});
-
   const otherStateChanged = JSON.stringify({
     isPanelVisible: newState.isPanelVisible,
     isManualCheckEnabled: newState.isManualCheckEnabled,
@@ -154,7 +154,7 @@ XGhosted.prototype.updateState = function (url) {
 
 XGhosted.prototype.checkPostInNewTab = function (href) {
   this.log(`Checking post in new tab: ${href}`);
-  const fullUrl = `https://x.com${href}`;
+  const fullUrl = `${this.postsManager.linkPrefix}${href}`;
   const newWindow = this.document.defaultView.open(fullUrl, '_blank');
   let attempts = 0;
   const maxAttempts = 10;
@@ -275,7 +275,6 @@ XGhosted.prototype.startPolling = function () {
     const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
     const postCount = posts.length;
     if (postCount > 0) {
-      // this.log(`Found ${postCount} new posts, highlighting...`);
       this.highlightPosts(posts);
     } else if (!this.document.querySelector('div[data-xghosted="posts-container"]')) {
       this.log('No posts and no container found, ensuring and highlighting...');
@@ -350,10 +349,8 @@ XGhosted.prototype.expandArticle = function (article) {
 XGhosted.prototype.ensureAndHighlightPosts = function () {
   let results = this.highlightPosts();
   if (results.length === 0 && !this.state.postContainer) {
-    // this.log('No posts highlighted, attempting to find container...');
     this.state.postContainer = findPostContainer(this.document, this.log);
     if (this.state.postContainer) {
-      // this.log('Container found, retrying highlightPosts...');
       results = this.highlightPosts();
     } else {
       this.log('Container still not found, skipping highlighting');
@@ -427,16 +424,9 @@ XGhosted.prototype.getThemeMode = function () {
   return detectTheme(this.document);
 };
 
-XGhosted.prototype.copyLinks = function () {
-  const linksText = this.postsManager.getProblemPosts()
-    .map(([link]) => `https://x.com${link}`)
-    .join('\n');
-  copyTextToClipboard(linksText, this.log);
-};
-
 XGhosted.prototype.init = function () {
   this.log('Initializing XGhosted...');
-  
+
   // Detect theme early and emit event
   if (this.document.body) {
     const themeMode = this.getThemeMode();
@@ -458,6 +448,11 @@ XGhosted.prototype.init = function () {
       }
     }
   }));
+
+  // Listen for CSV import to highlight posts
+  this.document.addEventListener('xghosted:csv-import', () => {
+    this.highlightPosts();
+  });
 
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
@@ -498,7 +493,7 @@ XGhosted.prototype.init = function () {
       if (this.state.isManualCheckEnabled) {
         this.userRequestedPostCheck(href, clickedPost);
       } else {
-        this.document.defaultView.open(`https://x.com${href}`, '_blank');
+        this.document.defaultView.open(`${this.postsManager.linkPrefix}${href}`, '_blank');
         if (cached) {
           cached.checked = true;
           this.postsManager.registerPost(href, cached);

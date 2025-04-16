@@ -44,20 +44,27 @@
     log('xGhosted: Font Awesome failed to load, icons may not display correctly');
   }
 
-  // --- Inject Module (single resolved xGhosted.js with all dependencies inlined) ---
-  // INJECT: xGhosted
+  // --- Inject Shared Utilities ---
+  // INJECT: Utils
 
-  // --- Inject SplashPanel ---
+  // --- Inject Modules ---
+  // INJECT: xGhosted
   // INJECT: SplashPanel
+  // INJECT: PanelManager
+  // INJECT: ProcessedPostsManager
+
+  // --- Inject Styles ---
+  // INJECT: Styles
 
   // --- Initialization with Resource Limits and Rate Limiting ---
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
-  const postsManager = new ProcessedPostsManager({
+  const postsManager = new window.ProcessedPostsManager({
     storage: {
       get: GM_getValue,
       set: GM_setValue
     },
-    log
+    log,
+    linkPrefix: 'https://x.com'
   });
   const config = {
     timing: {
@@ -68,23 +75,23 @@
       rateLimitPause: RATE_LIMIT_PAUSE,
       pollInterval: 1000
     },
-    showSplash: true, // Default to not showing splash screen
+    showSplash: true,
     useTampermonkeyLog: true,
     postsManager
   };
-  const xGhosted = new XGhosted(document, config);
+  const xGhosted = new window.XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
 
   // Initialize SplashPanel with version only if showSplash is true
   let splashPanel = null;
   if (config.showSplash) {
-    splashPanel = new SplashPanel(document, log, '{{VERSION}}');
+    splashPanel = new window.SplashPanel(document, log, '{{VERSION}}');
   }
 
   // Wait for theme detection to initialize PanelManager
   document.addEventListener('xghosted:theme-detected', ({ detail: { themeMode } }) => {
     try {
-      xGhosted.panelManager = new PanelManager(
+      xGhosted.panelManager = new window.PanelManager(
         document,
         xGhosted,
         themeMode || 'light',

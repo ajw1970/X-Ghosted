@@ -29,9 +29,9 @@ function Panel({
     let initialX = e.clientX - parseFloat(draggedPanel.style.right || 0);
     let initialY = e.clientY - parseFloat(draggedPanel.style.top || 0);
 
-    const onMouseMove = (e) => {
-      let right = initialX - e.clientX;
-      let top = e.clientY - initialY;
+    const onMouseMove = (e2) => {
+      let right = initialX - e2.clientX;
+      let top = e2.clientY - initialY;
       right = Math.max(0, Math.min(right, window.innerWidth - draggedPanel.offsetWidth));
       top = Math.max(0, Math.min(top, window.innerHeight - draggedPanel.offsetHeight));
       draggedPanel.style.right = `${right}px`;
@@ -40,7 +40,10 @@ function Panel({
 
     const onMouseUp = () => {
       draggedPanel.classList.remove('dragging');
-      xGhosted.setPanelPosition({ right: draggedPanel.style.right, top: draggedPanel.style.top });
+      xGhosted.setPanelPosition({
+        right: draggedPanel.style.right,
+        top: draggedPanel.style.top,
+      });
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
     };
@@ -49,13 +52,16 @@ function Panel({
     document.addEventListener('mouseup', onMouseUp);
   };
 
-  const themeOptions = ['dark', 'dim', 'light'].filter(option => option !== currentMode);
+  const themeOptions = ['dark', 'dim', 'light'].filter((option) => option !== currentMode);
 
-  return (
-    <div>
-      <div
-        id="xghosted-panel"
-        style={{
+  return window.preact.h(
+    'div',
+    null,
+    window.preact.h(
+      'div',
+      {
+        id: 'xghosted-panel',
+        style: {
           width: isVisible ? config.PANEL.WIDTH : 'auto',
           maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
           minWidth: isVisible ? '250px' : '60px',
@@ -70,69 +76,91 @@ function Panel({
           right: state.panelPosition.right,
           top: state.panelPosition.top,
           zIndex: 9999,
-        }}
-        onMouseDown={handleDragStart}
-      >
-        {isVisible ? (
-          <>
-            <div className="toolbar">
-              <button
-                className="panel-button"
-                onClick={() => setIsToolsExpanded(!isToolsExpanded)}
-                aria-label="Toggle Tools Section"
-              >
-                <i
-                  className={isToolsExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down'}
-                  style={{ marginRight: '12px' }}
-                />
-                Tools
-              </button>
-              <div
-                style={{
+        },
+        onMouseDown: handleDragStart,
+      },
+      isVisible
+        ? window.preact.h(
+          window.preact.Fragment,
+          null,
+          window.preact.h(
+            'div',
+            { className: 'toolbar' },
+            window.preact.h(
+              'button',
+              {
+                className: 'panel-button',
+                onClick: () => setIsToolsExpanded(!isToolsExpanded),
+                'aria-label': 'Toggle Tools Section',
+              },
+              window.preact.h('i', {
+                className: isToolsExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down',
+                style: { marginRight: '12px' },
+              }),
+              'Tools'
+            ),
+            window.preact.h(
+              'div',
+              {
+                style: {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   flex: 1,
-                }}
-              >
-                <button
-                  className={`panel-button ${state.isPollingEnabled ? '' : 'polling-stopped'}`}
-                  onClick={state.isPollingEnabled ? onStopPolling : onStartPolling}
-                  aria-label={state.isPollingEnabled ? 'Stop Polling' : 'Start Polling'}
-                >
-                  <i
-                    className={state.isPollingEnabled ? 'fa-solid fa-circle-stop' : 'fa-solid fa-circle-play'}
-                    style={{ marginRight: '12px' }}
-                  />
-                  Polling
-                </button>
-                <button
-                  className="panel-button"
-                  onClick={() => xGhosted.toggleAutoScrolling()}
-                  aria-label={state.isAutoScrollingEnabled ? 'Stop Auto-Scroll' : 'Start Auto-Scroll'}
-                >
-                  <i
-                    className={state.isAutoScrollingEnabled ? 'fa-solid fa-circle-stop' : 'fa-solid fa-circle-play'}
-                    style={{ marginRight: '12px' }}
-                  />
-                  Scroll
-                </button>
-                <button
-                  className="panel-button"
-                  onClick={toggleVisibility}
-                  aria-label="Hide Panel"
-                >
-                  <i
-                    className="fas fa-eye-slash"
-                    style={{ marginRight: '12px' }}
-                  />
-                  Hide
-                </button>
-              </div>
-            </div>
-            <div
-              className="tools-section"
-              style={{
+                },
+              },
+              window.preact.h(
+                'button',
+                {
+                  className: `panel-button ${state.isPollingEnabled ? '' : 'polling-stopped'}`,
+                  onClick: state.isPollingEnabled ? onStopPolling : onStartPolling,
+                  'aria-label': state.isPollingEnabled ? 'Stop Polling' : 'Start Polling',
+                },
+                window.preact.h('i', {
+                  className: state.isPollingEnabled
+                    ? 'fa-solid fa-circle-stop'
+                    : 'fa-solid fa-circle-play',
+                  style: { marginRight: '12px' },
+                }),
+                'Polling'
+              ),
+              window.preact.h(
+                'button',
+                {
+                  className: 'panel-button',
+                  onClick: () => xGhosted.toggleAutoScrolling(),
+                  'aria-label': state.isAutoScrollingEnabled
+                    ? 'Stop Auto-Scroll'
+                    : 'Start Auto-Scroll',
+                },
+                window.preact.h('i', {
+                  className: state.isAutoScrollingEnabled
+                    ? 'fa-solid fa-circle-stop'
+                    : 'fa-solid fa-circle-play',
+                  style: { marginRight: '12px' },
+                }),
+                'Scroll'
+              ),
+              window.preact.h(
+                'button',
+                {
+                  className: 'panel-button',
+                  onClick: toggleVisibility,
+                  'aria-label': 'Hide Panel',
+                },
+                window.preact.h('i', {
+                  className: 'fas fa-eye-slash',
+                  style: { marginRight: '12px' },
+                }),
+                'Hide'
+              )
+            )
+          ),
+          window.preact.h(
+            'div',
+            {
+              className: 'tools-section',
+              style: {
                 display: isToolsExpanded ? 'block' : 'none',
                 padding: '12px',
                 borderRadius: '8px',
@@ -140,151 +168,219 @@ function Panel({
                 boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
                 marginBottom: '8px',
                 borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
-              }}
-            >
-              <div
-                style={{
+              },
+            },
+            window.preact.h(
+              'div',
+              {
+                style: {
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '12px',
                   padding: '15px',
-                }}
-              >
-                <div
-                  style={{
+                },
+              },
+              window.preact.h(
+                'div',
+                {
+                  style: {
                     paddingBottom: '12px',
                     borderBottom: '1px solid var(--border-color)',
-                  }}
-                >
-                  <div className="custom-dropdown">
-                    <button
-                      className="panel-button dropdown-button"
-                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      aria-expanded={isDropdownOpen}
-                      aria-label="Select Theme"
-                    >
-                      {currentMode.charAt(0).toUpperCase() + currentMode.slice(1)}
-                      <i
-                        className={isDropdownOpen ? 'fas fa-chevron-up' : 'fas fa-chevron-down'}
-                        style={{ marginLeft: '8px' }}
-                      />
-                    </button>
-                    {isDropdownOpen && (
-                      <div className="dropdown-menu">
-                        {themeOptions.map((option) => (
-                          <div
-                            key={option}
-                            className="dropdown-item"
-                            onClick={() => {
-                              toggleThemeMode(option);
-                              setIsDropdownOpen(false);
-                            }}
-                            role="option"
-                            aria-selected={currentMode === option}
-                          >
-                            {option.charAt(0).toUpperCase() + option.slice(1)}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div
-                  style={{
+                  },
+                },
+                window.preact.h(
+                  'div',
+                  { className: 'custom-dropdown' },
+                  window.preact.h(
+                    'button',
+                    {
+                      className: 'panel-button dropdown-button',
+                      onClick: () => setIsDropdownOpen(!isDropdownOpen),
+                      'aria-expanded': isDropdownOpen,
+                      'aria-label': 'Select Theme',
+                    },
+                    currentMode.charAt(0).toUpperCase() + currentMode.slice(1),
+                    window.preact.h('i', {
+                      className: isDropdownOpen ? 'fas fa-chevron-up' : 'fas fa-chevron-down',
+                      style: { marginLeft: '8px' },
+                    })
+                  ),
+                  isDropdownOpen &&
+                  window.preact.h(
+                    'div',
+                    { className: 'dropdown-menu' },
+                    themeOptions.map((option) =>
+                      window.preact.h(
+                        'div',
+                        {
+                          key: option,
+                          className: 'dropdown-item',
+                          onClick: () => {
+                            toggleThemeMode(option);
+                            setIsDropdownOpen(false);
+                          },
+                          role: 'option',
+                          'aria-selected': currentMode === option,
+                        },
+                        option.charAt(0).toUpperCase() + option.slice(1) // Fixed _option to option
+                      )
+                    )
+                  )
+                )
+              ),
+              window.preact.h(
+                'div',
+                {
+                  style: {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '12px',
                     marginBottom: '8px',
-                  }}
-                >
-                  <button
-                    className="panel-button"
-                    onClick={() => xGhosted.copyLinks()}
-                    aria-label="Copy Problem Links"
-                  >
-                    <i className="fas fa-copy" style={{ marginRight: '8px' }} />
-                    Copy
-                  </button>
-                  <button
-                    className="panel-button"
-                    onClick={() => xGhosted.panelManager.exportProcessedPostsCSV()}
-                    aria-label="Export Posts to CSV"
-                  >
-                    <i className="fas fa-file-export" style={{ marginRight: '8px' }} />
-                    Export CSV
-                  </button>
-                  <button
-                    className="panel-button"
-                    onClick={() => setIsModalOpen(true)}
-                    aria-label="Import Posts from CSV"
-                  >
-                    <i className="fas fa-file-import" style={{ marginRight: '8px' }} />
-                    Import CSV
-                  </button>
-                  <button
-                    className="panel-button"
-                    onClick={() => xGhosted.handleClear()}
-                    aria-label="Clear Processed Posts"
-                  >
-                    <i className="fas fa-trash" style={{ marginRight: '8px' }} />
-                    Clear
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="content-wrapper">
-              <div className="problem-posts-header">
-                Problem Posts ({flagged.length}):
-              </div>
-              <div className="problem-links-wrapper">
-                {flagged.map(([href, { analysis, checked }]) => (
-                  <div className="link-row" style={{ padding: '4px 0' }} key={href}>
-                    {analysis.quality.name === 'Problem' ? (
-                      <span className="status-dot status-problem" />
-                    ) : (
-                      <span
-                        className="status-eyeball"
-                        tabIndex={0}
-                        role="button"
-                        aria-label="Check post manually"
-                        onClick={() => !checked && onEyeballClick(href)}
-                        onKeyDown={(e) =>
-                          e.key === 'Enter' && !checked && onEyeballClick(href)
-                        }
-                      >
-                        👀
-                      </span>
-                    )}
-                    <div className="link-item">
-                      <a href={`https://x.com${href}`} target="_blank">{href}</a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        ) : (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0', margin: '0' }}>
-            <button
-              className="panel-button"
-              onClick={toggleVisibility}
-              aria-label="Show Panel"
-            >
-              <i className="fas fa-eye" style={{ marginRight: '6px' }} />
-              Show
-            </button>
-          </div>
-        )}
-      </div>
-      {isModalOpen &&
-        window.preact.h(window.Modal, {
-          isOpen: isModalOpen,
-          onClose: () => setIsModalOpen(false),
-          onSubmit: (csvText) => xGhosted.panelManager.importProcessedPostsCSV(csvText),
-          mode: currentMode,
-          config,
-        })}
-    </div>
+                  },
+                },
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => xGhosted.panelManager.copyLinks(),
+                    'aria-label': 'Copy Problem Links',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-copy',
+                    style: { marginRight: '8px' },
+                  }),
+                  'Copy'
+                ),
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => xGhosted.panelManager.exportProcessedPostsCSV(),
+                    'aria-label': 'Export Posts to CSV',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-file-export',
+                    style: { marginRight: '8px' },
+                  }),
+                  'Export CSV'
+                ),
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => setIsModalOpen(true),
+                    'aria-label': 'Import Posts from CSV',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-file-import',
+                    style: { marginRight: '8px' },
+                  }),
+                  'Import CSV'
+                ),
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => xGhosted.handleClear(),
+                    'aria-label': 'Clear Processed Posts',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-trash',
+                    style: { marginRight: '8px' },
+                  }),
+                  'Clear'
+                )
+              )
+            )
+          ),
+          window.preact.h(
+            'div',
+            { className: 'content-wrapper' },
+            window.preact.h(
+              'div',
+              { className: 'problem-posts-header' },
+              'Problem Posts (',
+              flagged.length,
+              '):'
+            ),
+            window.preact.h(
+              'div',
+              { className: 'problem-links-wrapper' },
+              flagged.map(([href, { analysis, checked }]) =>
+                window.preact.h(
+                  'div',
+                  {
+                    className: 'link-row',
+                    style: { padding: '4px 0' },
+                    key: href,
+                  },
+                  analysis.quality.name === 'Problem'
+                    ? window.preact.h('span', {
+                      className: 'status-dot status-problem',
+                    })
+                    : window.preact.h(
+                      'span',
+                      {
+                        className: 'status-eyeball',
+                        tabIndex: 0,
+                        role: 'button',
+                        'aria-label': 'Check post manually',
+                        onClick: () => !checked && onEyeballClick(href),
+                        onKeyDown: (e) => e.key === 'Enter' && !checked && onEyeballClick(href),
+                      },
+                      '\u{1F440}'
+                    ),
+                  window.preact.h(
+                    'div',
+                    { className: 'link-item' },
+                    window.preact.h(
+                      'a',
+                      {
+                        href: `${xGhosted.postsManager.linkPrefix}${href}`,
+                        target: '_blank',
+                      },
+                      href
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+        : window.preact.h(
+          'div',
+          {
+            style: {
+              display: 'flex',
+              justifyContent: 'flex-end',
+              padding: '0',
+              margin: '0',
+            },
+          },
+          window.preact.h(
+            'button',
+            {
+              className: 'panel-button',
+              onClick: toggleVisibility,
+              'aria-label': 'Show Panel',
+            },
+            window.preact.h('i', {
+              className: 'fas fa-eye',
+              style: { marginRight: '6px' },
+            }),
+            'Show'
+          )
+        )
+    ),
+    isModalOpen &&
+    window.preact.h(window.Modal, {
+      isOpen: isModalOpen,
+      onClose: () => setIsModalOpen(false),
+      onSubmit: (csvText) => xGhosted.panelManager.importProcessedPostsCSV(csvText, () => setIsModalOpen(false)),
+      mode: currentMode,
+      config,
+    })
   );
 }
+
 window.Panel = Panel;
