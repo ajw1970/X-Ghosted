@@ -953,6 +953,11 @@
           : !this.state.isPanelVisible;
       this.saveState();
       this.renderPanel();
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:toggle-panel-visibility', {
+          detail: { isPanelVisible: this.state.isPanelVisible },
+        })
+      );
     };
     window.PanelManager.prototype.setPanelPosition = function (position) {
       this.state.panelPosition = { ...position };
@@ -1020,6 +1025,15 @@
         });
       return [headers.join(','), ...rows].join('\n');
     };
+    window.PanelManager.prototype.copyLinks = function () {
+      this.postsManager
+        .copyProblemLinks()
+        .then(() => {
+          this.log('Problem links copied to clipboard');
+          alert('Problem links copied to clipboard!');
+        })
+        .catch((err) => this.log(`Failed to copy problem links: ${err}`));
+    };
     window.PanelManager.prototype.exportProcessedPostsCSV = function () {
       const csvData = this.generateCSVData();
       const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
@@ -1030,15 +1044,7 @@
       a.click();
       URL.revokeObjectURL(url);
       this.log(`Exported CSV: processed_posts.csv`);
-    };
-    window.PanelManager.prototype.copyLinks = function () {
-      this.postsManager
-        .copyProblemLinks()
-        .then(() => {
-          this.log('Problem links copied to clipboard');
-          alert('Problem links copied to clipboard!');
-        })
-        .catch((err) => this.log(`Failed to copy problem links: ${err}`));
+      this.document.dispatchEvent(new CustomEvent('xghosted:export-csv'));
     };
     window.PanelManager.prototype.importProcessedPostsCSV = function (
       csvText,
@@ -1055,6 +1061,13 @@
         );
         alert(`Successfully imported ${count} posts!`);
         onClose();
+      }
+    };
+    window.PanelManager.prototype.clearPosts = function () {
+      if (confirm('Clear all processed posts?')) {
+        this.postsManager.clearPosts();
+        this.renderPanel();
+        this.document.dispatchEvent(new CustomEvent('xghosted:posts-cleared'));
       }
     };
 
@@ -1082,6 +1095,17 @@
       const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
       const [isDropdownOpen, setIsDropdownOpen] =
         window.preactHooks.useState(false);
+      window.preactHooks.useEffect(() => {
+        const handleCsvImport = (e) => {
+          if (e.detail.importedCount > 0) {
+            setIsModalOpen(false);
+          }
+        };
+        document.addEventListener('xghosted:csv-import', handleCsvImport);
+        return () => {
+          document.removeEventListener('xghosted:csv-import', handleCsvImport);
+        };
+      }, []);
       const toggleVisibility = () => {
         const newVisibility = !isVisible;
         setIsVisible(newVisibility);
@@ -1321,7 +1345,11 @@
                         'button',
                         {
                           className: 'panel-button',
-                          onClick: () => xGhosted.panelManager.copyLinks(),
+                          onClick: () => {
+                            document.dispatchEvent(
+                              new CustomEvent('xghosted:copy-links')
+                            );
+                          },
                           'aria-label': 'Copy Problem Links',
                         },
                         window.preact.h('i', {
@@ -1334,8 +1362,11 @@
                         'button',
                         {
                           className: 'panel-button',
-                          onClick: () =>
-                            xGhosted.panelManager.exportProcessedPostsCSV(),
+                          onClick: () => {
+                            document.dispatchEvent(
+                              new CustomEvent('xghosted:export-csv')
+                            );
+                          },
                           'aria-label': 'Export Posts to CSV',
                         },
                         window.preact.h('i', {
@@ -1362,11 +1393,9 @@
                         {
                           className: 'panel-button',
                           onClick: () => {
-                            if (confirm('Clear all processed posts?')) {
-                              window.dispatchEvent(
-                                new CustomEvent('xghosted:posts-cleared')
-                              );
-                            }
+                            document.dispatchEvent(
+                              new CustomEvent('xghosted:clear-posts')
+                            );
                           },
                           'aria-label': 'Clear Processed Posts',
                         },
@@ -1465,10 +1494,13 @@
           window.preact.h(window.Modal, {
             isOpen: isModalOpen,
             onClose: () => setIsModalOpen(false),
-            onSubmit: (csvText) =>
-              xGhosted.panelManager.importProcessedPostsCSV(csvText, () =>
-                setIsModalOpen(false)
-              ),
+            onSubmit: (csvText) => {
+              document.dispatchEvent(
+                new CustomEvent('xghosted:csv-import', {
+                  detail: { csvText },
+                })
+              );
+            },
             mode: currentMode,
             config,
           })
@@ -2279,6 +2311,11 @@
           : !this.state.isPanelVisible;
       this.saveState();
       this.renderPanel();
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:toggle-panel-visibility', {
+          detail: { isPanelVisible: this.state.isPanelVisible },
+        })
+      );
     };
     window.PanelManager.prototype.setPanelPosition = function (position) {
       this.state.panelPosition = { ...position };
@@ -2346,6 +2383,15 @@
         });
       return [headers.join(','), ...rows].join('\n');
     };
+    window.PanelManager.prototype.copyLinks = function () {
+      this.postsManager
+        .copyProblemLinks()
+        .then(() => {
+          this.log('Problem links copied to clipboard');
+          alert('Problem links copied to clipboard!');
+        })
+        .catch((err) => this.log(`Failed to copy problem links: ${err}`));
+    };
     window.PanelManager.prototype.exportProcessedPostsCSV = function () {
       const csvData = this.generateCSVData();
       const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
@@ -2356,15 +2402,7 @@
       a.click();
       URL.revokeObjectURL(url);
       this.log(`Exported CSV: processed_posts.csv`);
-    };
-    window.PanelManager.prototype.copyLinks = function () {
-      this.postsManager
-        .copyProblemLinks()
-        .then(() => {
-          this.log('Problem links copied to clipboard');
-          alert('Problem links copied to clipboard!');
-        })
-        .catch((err) => this.log(`Failed to copy problem links: ${err}`));
+      this.document.dispatchEvent(new CustomEvent('xghosted:export-csv'));
     };
     window.PanelManager.prototype.importProcessedPostsCSV = function (
       csvText,
@@ -2381,6 +2419,13 @@
         );
         alert(`Successfully imported ${count} posts!`);
         onClose();
+      }
+    };
+    window.PanelManager.prototype.clearPosts = function () {
+      if (confirm('Clear all processed posts?')) {
+        this.postsManager.clearPosts();
+        this.renderPanel();
+        this.document.dispatchEvent(new CustomEvent('xghosted:posts-cleared'));
       }
     };
     return PanelManager;
@@ -2880,7 +2925,7 @@
     'xghosted:theme-detected',
     ({ detail: { themeMode } }) => {
       try {
-        xGhosted.panelManager = new window.PanelManager(
+        const panelManager = new window.PanelManager(
           document,
           xGhosted,
           themeMode || 'light',
@@ -2888,11 +2933,33 @@
           { get: GM_getValue, set: GM_setValue }
         );
         log('GUI Panel initialized successfully');
+
+        // Wire UI events to handlers
+        document.addEventListener(
+          'xghosted:toggle-panel-visibility',
+          ({ detail: { isPanelVisible } }) => {
+            panelManager.toggleVisibility(isPanelVisible);
+          }
+        );
+        document.addEventListener('xghosted:copy-links', () => {
+          panelManager.copyLinks();
+        });
+        document.addEventListener('xghosted:export-csv', () => {
+          panelManager.exportProcessedPostsCSV();
+        });
+        document.addEventListener('xghosted:clear-posts', () => {
+          panelManager.clearPosts();
+        });
+        document.addEventListener(
+          'xghosted:csv-import',
+          ({ detail: { csvText } }) => {
+            panelManager.importProcessedPostsCSV(csvText, () => {});
+          }
+        );
       } catch (error) {
         log(
           `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`
         );
-        xGhosted.panelManager = null;
       }
     },
     { once: true }

@@ -295,6 +295,9 @@ window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
   this.state.isPanelVisible = typeof newVisibility === 'boolean' ? newVisibility : !this.state.isPanelVisible;
   this.saveState();
   this.renderPanel();
+  this.document.dispatchEvent(new CustomEvent('xghosted:toggle-panel-visibility', {
+    detail: { isPanelVisible: this.state.isPanelVisible }
+  }));
 };
 
 window.PanelManager.prototype.setPanelPosition = function (position) {
@@ -364,18 +367,6 @@ window.PanelManager.prototype.generateCSVData = function () {
   return [headers.join(','), ...rows].join('\n');
 };
 
-window.PanelManager.prototype.exportProcessedPostsCSV = function () {
-  const csvData = this.generateCSVData();
-  const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = this.document.createElement('a');
-  a.href = url;
-  a.download = 'processed_posts.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-  this.log(`Exported CSV: processed_posts.csv`);
-};
-
 window.PanelManager.prototype.copyLinks = function () {
   this.postsManager
     .copyProblemLinks()
@@ -386,6 +377,19 @@ window.PanelManager.prototype.copyLinks = function () {
     .catch((err) => this.log(`Failed to copy problem links: ${err}`));
 };
 
+window.PanelManager.prototype.exportProcessedPostsCSV = function () {
+  const csvData = this.generateCSVData();
+  const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = this.document.createElement('a');
+  a.href = url;
+  a.download = 'processed_posts.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  this.log(`Exported CSV: processed_posts.csv`);
+  this.document.dispatchEvent(new CustomEvent('xghosted:export-csv'));
+};
+
 window.PanelManager.prototype.importProcessedPostsCSV = function (csvText, onClose) {
   this.log('Import CSV button clicked');
   const count = this.postsManager.importPosts(csvText);
@@ -393,10 +397,18 @@ window.PanelManager.prototype.importProcessedPostsCSV = function (csvText, onClo
     this.renderPanel();
     this.document.dispatchEvent(
       new CustomEvent('xghosted:csv-import', {
-        detail: { importedCount: count },
+        detail: { importedCount: count }
       })
     );
     alert(`Successfully imported ${count} posts!`);
-    onClose(); // Close the modal
+    onClose();
+  }
+};
+
+window.PanelManager.prototype.clearPosts = function () {
+  if (confirm('Clear all processed posts?')) {
+    this.postsManager.clearPosts();
+    this.renderPanel();
+    this.document.dispatchEvent(new CustomEvent('xghosted:posts-cleared'));
   }
 };

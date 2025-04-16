@@ -91,7 +91,7 @@
   // Wait for theme detection to initialize PanelManager
   document.addEventListener('xghosted:theme-detected', ({ detail: { themeMode } }) => {
     try {
-      xGhosted.panelManager = new window.PanelManager(
+      const panelManager = new window.PanelManager(
         document,
         xGhosted,
         themeMode || 'light',
@@ -99,9 +99,25 @@
         { get: GM_getValue, set: GM_setValue }
       );
       log('GUI Panel initialized successfully');
+
+      // Wire UI events to handlers
+      document.addEventListener('xghosted:toggle-panel-visibility', ({ detail: { isPanelVisible } }) => {
+        panelManager.toggleVisibility(isPanelVisible);
+      });
+      document.addEventListener('xghosted:copy-links', () => {
+        panelManager.copyLinks();
+      });
+      document.addEventListener('xghosted:export-csv', () => {
+        panelManager.exportProcessedPostsCSV();
+      });
+      document.addEventListener('xghosted:clear-posts', () => {
+        panelManager.clearPosts();
+      });
+      document.addEventListener('xghosted:csv-import', ({ detail: { csvText } }) => {
+        panelManager.importProcessedPostsCSV(csvText, () => { });
+      });
     } catch (error) {
       log(`Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`);
-      xGhosted.panelManager = null;
     }
   }, { once: true });
 
