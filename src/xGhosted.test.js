@@ -68,7 +68,7 @@ describe('xGhosted', () => {
       useTampermonkeyLog: false,
       persistProcessedPosts: true,
     });
-    xGhosted.updateState('https://x.com/user/with_replies');
+    xGhosted.checkForUrlChanges('https://x.com/user/with_replies');
     xGhosted.highlightPostsDebounced = xGhosted.highlightPosts; // Simplify for tests
     xGhosted.state.processedPosts.clear();
     xGhosted.state = {
@@ -84,21 +84,21 @@ describe('xGhosted', () => {
     vi.clearAllMocks();
   });
 
-  test('updateState sets with_replies flag, userProfileName, and resets on URL change', () => {
+  test('checkForUrlChanges sets with_replies flag, userProfileName, and resets on URL change', () => {
     expect(xGhosted.state.isWithReplies).toBe(true);
     expect(xGhosted.state.userProfileName).toBe('user');
-    xGhosted.updateState('https://x.com/otherUser');
+    xGhosted.checkForUrlChanges('https://x.com/otherUser');
     expect(xGhosted.state.isWithReplies).toBe(false);
     expect(xGhosted.state.userProfileName).toBe('otherUser');
     expect(xGhosted.state.processedPosts.size).toBe(0);
   });
 
-  test('updateState dispatches user-profile-updated event when userProfileName changes', () => {
+  test('checkForUrlChanges dispatches user-profile-updated event when userProfileName changes', () => {
     // Spy on document.dispatchEvent
     const spy = vi.spyOn(document, 'dispatchEvent');
 
     // Trigger the state update
-    xGhosted.updateState('https://x.com/newUser/with_replies');
+    xGhosted.checkForUrlChanges('https://x.com/newUser/with_replies');
 
     // Check that dispatchEvent was called with the correct CustomEvent
     expect(spy).toHaveBeenCalledWith(
@@ -113,7 +113,7 @@ describe('xGhosted', () => {
 
     // Reset the spy and test no dispatch on same user
     spy.mockClear();
-    xGhosted.updateState('https://x.com/newUser');
+    xGhosted.checkForUrlChanges('https://x.com/newUser');
     expect(spy).not.toHaveBeenCalled();
   });
 

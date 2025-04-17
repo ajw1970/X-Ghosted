@@ -40,9 +40,10 @@ function XGhosted(doc, config = {}) {
   }, this.timing.debounceDelay);
 }
 
-XGhosted.POST_SELECTOR = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
+XGhosted.POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
+XGhosted.POST_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
 
-XGhosted.prototype.updateState = function (url) {
+XGhosted.prototype.checkForUrlChanges = function (url) {
   const { isWithReplies, userProfileName } = parseUrl(url);
   this.state.isWithReplies = isWithReplies;
   if (this.state.lastUrl !== url) {
@@ -193,7 +194,7 @@ XGhosted.prototype.startPolling = function () {
     const postCount = posts.length;
     if (postCount > 0) {
       this.highlightPosts(posts);
-    } else if (!this.document.querySelector('div[data-xghosted="posts-container"]')) {
+    } else if (!this.document.querySelector(XGhosted.POST_CONTAINER_SELECTOR)) {
       this.log('No posts and no container found, ensuring and highlighting...');
       this.ensureAndHighlightPosts();
     }
@@ -241,6 +242,7 @@ XGhosted.prototype.expandArticle = function (article) {
 };
 
 XGhosted.prototype.ensureAndHighlightPosts = function () {
+  this.checkForUrlChanges(this.document.location.href);
   let results = this.highlightPosts();
   if (results.length === 0 && !this.state.postContainer) {
     this.state.postContainer = findPostContainer(this.document, this.log);
@@ -255,8 +257,7 @@ XGhosted.prototype.ensureAndHighlightPosts = function () {
 
 XGhosted.prototype.highlightPosts = function (posts) {
   this.state.isHighlighting = true;
-  this.updateState(this.document.location.href);
-
+  
   const processPostAnalysis = (post, analysis) => {
     if (!(post instanceof this.document.defaultView.Element)) {
       this.log('Skipping invalid DOM element:', post);
