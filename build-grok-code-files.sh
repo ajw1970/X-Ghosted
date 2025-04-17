@@ -16,7 +16,7 @@ node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs gro
 }
 
 show_progress "Running second grokify.js execution..."
-node grokify.js src/*.js src/*/*.js src/ui/*.css src/ui/*.js* !src/*/*.skip.js grok/3-xGhosted.code.txt || {
+node grokify.js build-xGhosted.js src/*.js src/*/*.js src/ui/*.css src/ui/*.js* !src/*/*.skip.js grok/3-xGhosted.code.txt || {
     show_progress "Error: Second grokify.js execution failed"; exit 1;
 }
 
