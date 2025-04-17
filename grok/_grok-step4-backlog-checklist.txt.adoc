@@ -50,7 +50,7 @@
 * [x] Theme Selection loses border when panel is active but regains it when clicking outside the browser.
 * [x] Update Modal to look and feel like Panel. Still needs contrast improvements in Dim and dark themes. The textbox hint is unreadable.
 * [x] Add gap between eyeballs and link in the panel list
-* [ ] Add Identified Posts (count) to header too.
+* [x] Add Identified Posts (count) to header too.
 * [ ] Need to be able to pin/unpin the panel or maybe dock it. Have this be a configurable option that defaults to pinned with a persisted state value. 
 * [ ] Add a copy icon near the url list to make it easy to copy the problems without going to the Tools menu.
 * [ ] Start/Stop icons are small and hard to identify.

@@ -1149,6 +1149,7 @@
         () => xGhosted.postsManager.getProblemPosts(),
         [xGhosted.postsManager.getAllPosts()]
       );
+      const totalPosts = xGhosted.postsManager.getAllPosts().length;
       const [isVisible, setIsVisible] = window.preactHooks.useState(
         state.isPanelVisible
       );
@@ -1250,9 +1251,7 @@
               borderRadius: '12px',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
               cursor: 'move',
-              // Move cursor to panel for consistency
               border: `2px solid ${state.isPollingEnabled ? config.THEMES[currentMode].border : '#FFA500'}`,
-              // Move border to panel
             },
             onMouseDown: handleDragStart,
           },
@@ -1497,7 +1496,9 @@
                   window.preact.h(
                     'div',
                     { className: 'problem-posts-header' },
-                    'Problem Posts (',
+                    'Processed Posts (',
+                    totalPosts,
+                    ') Concerns (',
                     flagged.length,
                     '):'
                   ),

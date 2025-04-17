@@ -13,6 +13,7 @@ function Panel({
     () => xGhosted.postsManager.getProblemPosts(),
     [xGhosted.postsManager.getAllPosts()]
   );
+  const totalPosts = xGhosted.postsManager.getAllPosts().length; // Total processed posts
   const [isVisible, setIsVisible] = window.preactHooks.useState(state.isPanelVisible);
   const [isToolsExpanded, setIsToolsExpanded] = window.preactHooks.useState(false);
   const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
@@ -111,8 +112,8 @@ function Panel({
           color: config.THEMES[currentMode].text,
           borderRadius: '12px',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          cursor: 'move', // Move cursor to panel for consistency
-          border: `2px solid ${state.isPollingEnabled ? config.THEMES[currentMode].border : '#FFA500'}`, // Move border to panel
+          cursor: 'move',
+          border: `2px solid ${state.isPollingEnabled ? config.THEMES[currentMode].border : '#FFA500'}`,
         },
         onMouseDown: handleDragStart,
       },
@@ -357,7 +358,9 @@ function Panel({
             window.preact.h(
               'div',
               { className: 'problem-posts-header' },
-              'Problem Posts (',
+              'Processed Posts (',
+              totalPosts,
+              ') Concerns (',
               flagged.length,
               '):'
             ),
