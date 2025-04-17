@@ -273,17 +273,35 @@ window.PanelManager.prototype.loadState = function () {
     const panelHeight = 48;
     const windowWidth = this.document.defaultView.innerWidth;
     const windowHeight = this.document.defaultView.innerHeight;
-    const right = parseFloat(panelState.panelPosition.right);
-    const top = parseFloat(panelState.panelPosition.top);
-    this.state.panelPosition.right = isNaN(right)
-      ? '10px'
-      : `${Math.max(0, Math.min(right, windowWidth - panelWidth))}px`;
-    this.state.panelPosition.top = isNaN(top)
-      ? '60px'
-      : `${Math.max(0, Math.min(top, windowHeight - panelHeight))}px`;
+    // Validate right position
+    let right = '10px';
+    if (typeof panelState.panelPosition.right === 'string' && panelState.panelPosition.right.endsWith('px')) {
+      const parsedRight = parseFloat(panelState.panelPosition.right);
+      if (!isNaN(parsedRight)) {
+        right = `${Math.max(0, Math.min(parsedRight, windowWidth - panelWidth))}px`;
+      } else {
+        this.log(`Invalid stored right position: ${panelState.panelPosition.right}, defaulting to 10px`);
+      }
+    } else {
+      this.log(`Invalid or missing stored right position: ${panelState.panelPosition.right}, defaulting to 10px`);
+    }
+    // Validate top position
+    let top = '60px';
+    if (typeof panelState.panelPosition.top === 'string' && panelState.panelPosition.top.endsWith('px')) {
+      const parsedTop = parseFloat(panelState.panelPosition.top);
+      if (!isNaN(parsedTop)) {
+        top = `${Math.max(0, Math.min(parsedTop, windowHeight - panelHeight))}px`;
+      } else {
+        this.log(`Invalid stored top position: ${panelState.panelPosition.top}, defaulting to 60px`);
+      }
+    } else {
+      this.log(`Invalid or missing stored top position: ${panelState.panelPosition.top}, defaulting to 60px`);
+    }
+    this.state.panelPosition.right = right;
+    this.state.panelPosition.top = top;
   }
   this.log(
-    `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}`
+    `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`
   );
 };
 
@@ -292,9 +310,6 @@ window.PanelManager.prototype.applyPanelStyles = function () {
     right: '10px',
     top: '60px',
   };
-  const borderColor = this.state.isPollingEnabled
-    ? this.uiElements.config.THEMES[this.state.themeMode].border
-    : '#FFA500';
   this.styleElement.textContent = `
     button:active { transform: scale(0.95); }
     #xghosted-panel-container {
@@ -303,7 +318,6 @@ window.PanelManager.prototype.applyPanelStyles = function () {
       top: ${position.top};
       z-index: ${this.uiElements.config.PANEL.Z_INDEX};
       cursor: move;
-      border: 2px solid ${borderColor};
       border-radius: 12px;
     }
   `;

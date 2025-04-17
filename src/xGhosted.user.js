@@ -1174,35 +1174,56 @@
         xGhosted.togglePanelVisibility(newVisibility);
       };
       const handleDragStart = (e) => {
-        let draggedPanel = e.target.closest('#xghosted-panel');
-        if (!draggedPanel) return;
-        draggedPanel.classList.add('dragging');
-        let initialX = e.clientX - parseFloat(draggedPanel.style.right || 0);
-        let initialY = e.clientY - parseFloat(draggedPanel.style.top || 0);
+        let draggedContainer = e.target.closest('#xghosted-panel-container');
+        if (!draggedContainer) return;
+        draggedContainer.classList.add('dragging');
+        const computedStyle = window.getComputedStyle(draggedContainer);
+        let currentRight =
+          parseFloat(computedStyle.right) ||
+          parseFloat(state.panelPosition.right) ||
+          10;
+        let currentTop =
+          parseFloat(computedStyle.top) ||
+          parseFloat(state.panelPosition.top) ||
+          60;
+        let initialX = e.clientX + currentRight;
+        let initialY = e.clientY - currentTop;
+        let right = currentRight;
+        let top = currentTop;
+        let lastUpdate = 0;
+        const throttleDelay = 16;
         const onMouseMove = (e2) => {
-          let right = initialX - e2.clientX;
-          let top = e2.clientY - initialY;
+          const now = Date.now();
+          if (now - lastUpdate < throttleDelay) return;
+          lastUpdate = now;
+          right = initialX - e2.clientX;
+          top = e2.clientY - initialY;
           right = Math.max(
             0,
-            Math.min(right, window.innerWidth - draggedPanel.offsetWidth)
+            Math.min(right, window.innerWidth - draggedContainer.offsetWidth)
           );
           top = Math.max(
             0,
-            Math.min(top, window.innerHeight - draggedPanel.offsetHeight)
+            Math.min(top, window.innerHeight - draggedContainer.offsetHeight)
           );
-          draggedPanel.style.right = `${right}px`;
-          draggedPanel.style.top = `${top}px`;
+          draggedContainer.style.right = `${right}px`;
+          draggedContainer.style.top = `${top}px`;
         };
         const onMouseUp = () => {
-          draggedPanel.classList.remove('dragging');
-          if (setPanelPosition) {
-            setPanelPosition({
-              right: draggedPanel.style.right,
-              top: draggedPanel.style.top,
-            });
+          try {
+            draggedContainer.classList.remove('dragging');
+            if (setPanelPosition) {
+              setPanelPosition({
+                right: `${right}px`,
+                top: `${top}px`,
+              });
+            }
+          } catch (error) {
+            console.error('Error in onMouseUp:', error);
+          } finally {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
           }
-          document.removeEventListener('mousemove', onMouseMove);
-          document.removeEventListener('mouseup', onMouseUp);
         };
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
@@ -1228,10 +1249,10 @@
               color: config.THEMES[currentMode].text,
               borderRadius: '12px',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-              position: 'fixed',
-              right: state.panelPosition.right,
-              top: state.panelPosition.top,
-              zIndex: 9999,
+              cursor: 'move',
+              // Move cursor to panel for consistency
+              border: `2px solid ${state.isPollingEnabled ? config.THEMES[currentMode].border : '#FFA500'}`,
+              // Move border to panel
             },
             onMouseDown: handleDragStart,
           },
@@ -1840,17 +1861,47 @@
         const panelHeight = 48;
         const windowWidth = this.document.defaultView.innerWidth;
         const windowHeight = this.document.defaultView.innerHeight;
-        const right = parseFloat(panelState.panelPosition.right);
-        const top = parseFloat(panelState.panelPosition.top);
-        this.state.panelPosition.right = isNaN(right)
-          ? '10px'
-          : `${Math.max(0, Math.min(right, windowWidth - panelWidth))}px`;
-        this.state.panelPosition.top = isNaN(top)
-          ? '60px'
-          : `${Math.max(0, Math.min(top, windowHeight - panelHeight))}px`;
+        let right = '10px';
+        if (
+          typeof panelState.panelPosition.right === 'string' &&
+          panelState.panelPosition.right.endsWith('px')
+        ) {
+          const parsedRight = parseFloat(panelState.panelPosition.right);
+          if (!isNaN(parsedRight)) {
+            right = `${Math.max(0, Math.min(parsedRight, windowWidth - panelWidth))}px`;
+          } else {
+            this.log(
+              `Invalid stored right position: ${panelState.panelPosition.right}, defaulting to 10px`
+            );
+          }
+        } else {
+          this.log(
+            `Invalid or missing stored right position: ${panelState.panelPosition.right}, defaulting to 10px`
+          );
+        }
+        let top = '60px';
+        if (
+          typeof panelState.panelPosition.top === 'string' &&
+          panelState.panelPosition.top.endsWith('px')
+        ) {
+          const parsedTop = parseFloat(panelState.panelPosition.top);
+          if (!isNaN(parsedTop)) {
+            top = `${Math.max(0, Math.min(parsedTop, windowHeight - panelHeight))}px`;
+          } else {
+            this.log(
+              `Invalid stored top position: ${panelState.panelPosition.top}, defaulting to 60px`
+            );
+          }
+        } else {
+          this.log(
+            `Invalid or missing stored top position: ${panelState.panelPosition.top}, defaulting to 60px`
+          );
+        }
+        this.state.panelPosition.right = right;
+        this.state.panelPosition.top = top;
       }
       this.log(
-        `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}`
+        `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`
       );
     };
     window.PanelManager.prototype.applyPanelStyles = function () {
@@ -1858,9 +1909,6 @@
         right: '10px',
         top: '60px',
       };
-      const borderColor = this.state.isPollingEnabled
-        ? this.uiElements.config.THEMES[this.state.themeMode].border
-        : '#FFA500';
       this.styleElement.textContent = `
     button:active { transform: scale(0.95); }
     #xghosted-panel-container {
@@ -1869,7 +1917,6 @@
       top: ${position.top};
       z-index: ${this.uiElements.config.PANEL.Z_INDEX};
       cursor: move;
-      border: 2px solid ${borderColor};
       border-radius: 12px;
     }
   `;
