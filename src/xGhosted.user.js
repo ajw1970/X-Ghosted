@@ -1144,7 +1144,6 @@
       onStopPolling,
       onEyeballClick,
       onCopyLinks,
-      // Add new prop
       setPanelPosition,
     }) {
       const flagged = window.preactHooks.useMemo(
@@ -1160,6 +1159,16 @@
       const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
       const [isDropdownOpen, setIsDropdownOpen] =
         window.preactHooks.useState(false);
+      const [isPolling, setIsPolling] = window.preactHooks.useState(
+        state.isPollingEnabled
+      );
+      const [isScrolling, setIsScrolling] = window.preactHooks.useState(
+        state.isAutoScrollingEnabled
+      );
+      window.preactHooks.useEffect(() => {
+        setIsPolling(state.isPollingEnabled);
+        setIsScrolling(state.isAutoScrollingEnabled);
+      }, [state.isPollingEnabled, state.isAutoScrollingEnabled]);
       window.preactHooks.useEffect(() => {
         const handleCsvImport = (e) => {
           if (e.detail.importedCount > 0) {
@@ -1167,9 +1176,8 @@
           }
         };
         document.addEventListener('xghosted:csv-import', handleCsvImport);
-        return () => {
+        return () =>
           document.removeEventListener('xghosted:csv-import', handleCsvImport);
-        };
       }, []);
       const toggleVisibility = () => {
         const newVisibility = !isVisible;
@@ -1177,7 +1185,7 @@
         xGhosted.togglePanelVisibility(newVisibility);
       };
       const handleDragStart = (e) => {
-        let draggedContainer = e.target.closest('#xghosted-panel-container');
+        const draggedContainer = e.target.closest('#xghosted-panel-container');
         if (!draggedContainer) return;
         draggedContainer.classList.add('dragging');
         const computedStyle = window.getComputedStyle(draggedContainer);
@@ -1242,18 +1250,18 @@
           {
             id: 'xghosted-panel',
             style: {
-              width: isVisible ? config.PANEL.WIDTH : 'auto',
+              background: config.THEMES[currentMode].bg,
+              border: `2px solid ${isPolling ? config.THEMES[currentMode].border : '#FFA500'}`,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              color: config.THEMES[currentMode].text,
+              cursor: 'move',
+              fontFamily: config.PANEL.FONT,
               maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
               minWidth: isVisible ? '250px' : '60px',
               padding: isVisible ? '8px 8px 12px 8px' : '4px',
               transition: 'width 0.2s ease, max-height 0.2s ease',
-              fontFamily: config.PANEL.FONT,
-              background: config.THEMES[currentMode].bg,
-              color: config.THEMES[currentMode].text,
-              borderRadius: '12px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-              cursor: 'move',
-              border: `2px solid ${state.isPollingEnabled ? config.THEMES[currentMode].border : '#FFA500'}`,
+              width: isVisible ? config.PANEL.WIDTH : 'auto',
             },
             onMouseDown: handleDragStart,
           },
@@ -1267,6 +1275,9 @@
                   window.preact.h(
                     'button',
                     {
+                      key: isToolsExpanded
+                        ? 'tools-expanded'
+                        : 'tools-collapsed',
                       className: 'panel-button',
                       onClick: () => setIsToolsExpanded(!isToolsExpanded),
                       'aria-label': 'Toggle Tools Section',
@@ -1283,27 +1294,26 @@
                     'div',
                     {
                       style: {
-                        display: 'flex',
-                        justifyContent: 'space-between',
                         alignItems: 'center',
+                        display: 'flex',
                         flex: 1,
+                        justifyContent: 'space-between',
                       },
                     },
                     window.preact.h(
                       'button',
                       {
-                        className: `panel-button ${state.isPollingEnabled ? '' : 'polling-stopped'}`,
-                        onClick: state.isPollingEnabled
-                          ? onStopPolling
-                          : onStartPolling,
-                        'aria-label': state.isPollingEnabled
+                        key: isPolling ? 'polling-stop' : 'polling-start',
+                        className: `panel-button ${isPolling ? '' : 'polling-stopped'}`,
+                        onClick: isPolling ? onStopPolling : onStartPolling,
+                        'aria-label': isPolling
                           ? 'Stop Polling'
                           : 'Start Polling',
                       },
                       window.preact.h('i', {
-                        className: state.isPollingEnabled
-                          ? 'fa-solid fa-circle-stop'
-                          : 'fa-solid fa-circle-play',
+                        className: isPolling
+                          ? 'fa-solid fa-stop'
+                          : 'fa-solid fa-play',
                         style: { marginRight: '12px' },
                       }),
                       'Polling'
@@ -1311,16 +1321,17 @@
                     window.preact.h(
                       'button',
                       {
+                        key: isScrolling ? 'scroll-stop' : 'scroll-start',
                         className: 'panel-button',
                         onClick: () => xGhosted.toggleAutoScrolling(),
-                        'aria-label': state.isAutoScrollingEnabled
+                        'aria-label': isScrolling
                           ? 'Stop Auto-Scroll'
                           : 'Start Auto-Scroll',
                       },
                       window.preact.h('i', {
-                        className: state.isAutoScrollingEnabled
-                          ? 'fa-solid fa-circle-stop'
-                          : 'fa-solid fa-circle-play',
+                        className: isScrolling
+                          ? 'fa-solid fa-stop'
+                          : 'fa-solid fa-play',
                         style: { marginRight: '12px' },
                       }),
                       'Scroll'
@@ -1345,13 +1356,13 @@
                   {
                     className: 'tools-section',
                     style: {
-                      display: isToolsExpanded ? 'block' : 'none',
-                      padding: '12px',
-                      borderRadius: '8px',
                       background: config.THEMES[currentMode].bg,
-                      boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
-                      marginBottom: '8px',
                       borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
+                      borderRadius: '8px',
+                      boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
+                      display: isToolsExpanded ? 'block' : 'none',
+                      marginBottom: '8px',
+                      padding: '12px',
                     },
                   },
                   window.preact.h(
@@ -1368,8 +1379,8 @@
                       'div',
                       {
                         style: {
-                          paddingBottom: '12px',
                           borderBottom: '1px solid var(--border-color)',
+                          paddingBottom: '12px',
                         },
                       },
                       window.preact.h(
@@ -1507,9 +1518,9 @@
                       'span',
                       {
                         style: {
-                          marginLeft: '8px',
                           cursor: 'pointer',
                           fontSize: '14px',
+                          marginLeft: '8px',
                           verticalAlign: 'middle',
                         },
                         onClick: onCopyLinks,
@@ -2517,7 +2528,7 @@
 }
 
 .panel-button i {
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1;
 }`;
 

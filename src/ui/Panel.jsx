@@ -7,7 +7,7 @@ function Panel({
   onStartPolling,
   onStopPolling,
   onEyeballClick,
-  onCopyLinks, // Add new prop
+  onCopyLinks,
   setPanelPosition,
 }) {
   const flagged = window.preactHooks.useMemo(
@@ -19,6 +19,14 @@ function Panel({
   const [isToolsExpanded, setIsToolsExpanded] = window.preactHooks.useState(false);
   const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = window.preactHooks.useState(false);
+  const [isPolling, setIsPolling] = window.preactHooks.useState(state.isPollingEnabled);
+  const [isScrolling, setIsScrolling] = window.preactHooks.useState(state.isAutoScrollingEnabled);
+
+  // Sync local state with prop changes
+  window.preactHooks.useEffect(() => {
+    setIsPolling(state.isPollingEnabled);
+    setIsScrolling(state.isAutoScrollingEnabled);
+  }, [state.isPollingEnabled, state.isAutoScrollingEnabled]);
 
   window.preactHooks.useEffect(() => {
     const handleCsvImport = (e) => {
@@ -27,9 +35,7 @@ function Panel({
       }
     };
     document.addEventListener('xghosted:csv-import', handleCsvImport);
-    return () => {
-      document.removeEventListener('xghosted:csv-import', handleCsvImport);
-    };
+    return () => document.removeEventListener('xghosted:csv-import', handleCsvImport);
   }, []);
 
   const toggleVisibility = () => {
@@ -39,7 +45,7 @@ function Panel({
   };
 
   const handleDragStart = (e) => {
-    let draggedContainer = e.target.closest('#xghosted-panel-container');
+    const draggedContainer = e.target.closest('#xghosted-panel-container');
     if (!draggedContainer) return;
     draggedContainer.classList.add('dragging');
     const computedStyle = window.getComputedStyle(draggedContainer);
@@ -58,14 +64,8 @@ function Panel({
       lastUpdate = now;
       right = initialX - e2.clientX;
       top = e2.clientY - initialY;
-      right = Math.max(
-        0,
-        Math.min(right, window.innerWidth - draggedContainer.offsetWidth)
-      );
-      top = Math.max(
-        0,
-        Math.min(top, window.innerHeight - draggedContainer.offsetHeight)
-      );
+      right = Math.max(0, Math.min(right, window.innerWidth - draggedContainer.offsetWidth));
+      top = Math.max(0, Math.min(top, window.innerHeight - draggedContainer.offsetHeight));
       draggedContainer.style.right = `${right}px`;
       draggedContainer.style.top = `${top}px`;
     };
@@ -91,9 +91,7 @@ function Panel({
     document.addEventListener('mouseup', onMouseUp);
   };
 
-  const themeOptions = ['dark', 'dim', 'light'].filter(
-    (option) => option !== currentMode
-  );
+  const themeOptions = ['dark', 'dim', 'light'].filter((option) => option !== currentMode);
 
   return window.preact.h(
     'div',
@@ -103,18 +101,18 @@ function Panel({
       {
         id: 'xghosted-panel',
         style: {
-          width: isVisible ? config.PANEL.WIDTH : 'auto',
+          background: config.THEMES[currentMode].bg,
+          border: `2px solid ${isPolling ? config.THEMES[currentMode].border : '#FFA500'}`,
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          color: config.THEMES[currentMode].text,
+          cursor: 'move',
+          fontFamily: config.PANEL.FONT,
           maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
           minWidth: isVisible ? '250px' : '60px',
           padding: isVisible ? '8px 8px 12px 8px' : '4px',
           transition: 'width 0.2s ease, max-height 0.2s ease',
-          fontFamily: config.PANEL.FONT,
-          background: config.THEMES[currentMode].bg,
-          color: config.THEMES[currentMode].text,
-          borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          cursor: 'move',
-          border: `2px solid ${state.isPollingEnabled ? config.THEMES[currentMode].border : '#FFA500'}`,
+          width: isVisible ? config.PANEL.WIDTH : 'auto',
         },
         onMouseDown: handleDragStart,
       },
@@ -128,14 +126,13 @@ function Panel({
             window.preact.h(
               'button',
               {
+                key: isToolsExpanded ? 'tools-expanded' : 'tools-collapsed',
                 className: 'panel-button',
                 onClick: () => setIsToolsExpanded(!isToolsExpanded),
                 'aria-label': 'Toggle Tools Section',
               },
               window.preact.h('i', {
-                className: isToolsExpanded
-                  ? 'fas fa-chevron-up'
-                  : 'fas fa-chevron-down',
+                className: isToolsExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down',
                 style: { marginRight: '12px' },
               }),
               'Tools'
@@ -144,27 +141,22 @@ function Panel({
               'div',
               {
                 style: {
-                  display: 'flex',
-                  justifyContent: 'space-between',
                   alignItems: 'center',
+                  display: 'flex',
                   flex: 1,
+                  justifyContent: 'space-between',
                 },
               },
               window.preact.h(
                 'button',
                 {
-                  className: `panel-button ${state.isPollingEnabled ? '' : 'polling-stopped'}`,
-                  onClick: state.isPollingEnabled
-                    ? onStopPolling
-                    : onStartPolling,
-                  'aria-label': state.isPollingEnabled
-                    ? 'Stop Polling'
-                    : 'Start Polling',
+                  key: isPolling ? 'polling-stop' : 'polling-start',
+                  className: `panel-button ${isPolling ? '' : 'polling-stopped'}`,
+                  onClick: isPolling ? onStopPolling : onStartPolling,
+                  'aria-label': isPolling ? 'Stop Polling' : 'Start Polling',
                 },
                 window.preact.h('i', {
-                  className: state.isPollingEnabled
-                    ? 'fa-solid fa-circle-stop'
-                    : 'fa-solid fa-circle-play',
+                  className: isPolling ? 'fa-solid fa-stop' : 'fa-solid fa-play',
                   style: { marginRight: '12px' },
                 }),
                 'Polling'
@@ -172,16 +164,13 @@ function Panel({
               window.preact.h(
                 'button',
                 {
+                  key: isScrolling ? 'scroll-stop' : 'scroll-start',
                   className: 'panel-button',
                   onClick: () => xGhosted.toggleAutoScrolling(),
-                  'aria-label': state.isAutoScrollingEnabled
-                    ? 'Stop Auto-Scroll'
-                    : 'Start Auto-Scroll',
+                  'aria-label': isScrolling ? 'Stop Auto-Scroll' : 'Start Auto-Scroll',
                 },
                 window.preact.h('i', {
-                  className: state.isAutoScrollingEnabled
-                    ? 'fa-solid fa-circle-stop'
-                    : 'fa-solid fa-circle-play',
+                  className: isScrolling ? 'fa-solid fa-stop' : 'fa-solid fa-play',
                   style: { marginRight: '12px' },
                 }),
                 'Scroll'
@@ -206,13 +195,13 @@ function Panel({
             {
               className: 'tools-section',
               style: {
-                display: isToolsExpanded ? 'block' : 'none',
-                padding: '12px',
-                borderRadius: '8px',
                 background: config.THEMES[currentMode].bg,
-                boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
-                marginBottom: '8px',
                 borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
+                borderRadius: '8px',
+                boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
+                display: isToolsExpanded ? 'block' : 'none',
+                marginBottom: '8px',
+                padding: '12px',
               },
             },
             window.preact.h(
@@ -229,8 +218,8 @@ function Panel({
                 'div',
                 {
                   style: {
-                    paddingBottom: '12px',
                     borderBottom: '1px solid var(--border-color)',
+                    paddingBottom: '12px',
                   },
                 },
                 window.preact.h(
@@ -244,12 +233,9 @@ function Panel({
                       'aria-expanded': isDropdownOpen,
                       'aria-label': 'Select Theme',
                     },
-                    currentMode.charAt(0).toUpperCase() +
-                    currentMode.slice(1),
+                    currentMode.charAt(0).toUpperCase() + currentMode.slice(1),
                     window.preact.h('i', {
-                      className: isDropdownOpen
-                        ? 'fas fa-chevron-up'
-                        : 'fas fa-chevron-down',
+                      className: isDropdownOpen ? 'fas fa-chevron-up' : 'fas fa-chevron-down',
                       style: { marginLeft: '8px' },
                     })
                   ),
@@ -291,9 +277,7 @@ function Panel({
                   {
                     className: 'panel-button',
                     onClick: () => {
-                      document.dispatchEvent(
-                        new CustomEvent('xghosted:copy-links')
-                      );
+                      document.dispatchEvent(new CustomEvent('xghosted:copy-links'));
                     },
                     'aria-label': 'Copy Problem Links',
                   },
@@ -308,9 +292,7 @@ function Panel({
                   {
                     className: 'panel-button',
                     onClick: () => {
-                      document.dispatchEvent(
-                        new CustomEvent('xghosted:export-csv')
-                      );
+                      document.dispatchEvent(new CustomEvent('xghosted:export-csv'));
                     },
                     'aria-label': 'Export Posts to CSV',
                   },
@@ -338,9 +320,7 @@ function Panel({
                   {
                     className: 'panel-button',
                     onClick: () => {
-                      document.dispatchEvent(
-                        new CustomEvent('xghosted:clear-posts')
-                      );
+                      document.dispatchEvent(new CustomEvent('xghosted:clear-posts'));
                     },
                     'aria-label': 'Clear Processed Posts',
                   },
@@ -368,9 +348,9 @@ function Panel({
                 'span',
                 {
                   style: {
-                    marginLeft: '8px',
                     cursor: 'pointer',
                     fontSize: '14px',
+                    marginLeft: '8px',
                     verticalAlign: 'middle',
                   },
                   onClick: onCopyLinks,
@@ -403,10 +383,7 @@ function Panel({
                         role: 'button',
                         'aria-label': 'Check post manually',
                         onClick: () => !checked && onEyeballClick(href),
-                        onKeyDown: (e) =>
-                          e.key === 'Enter' &&
-                          !checked &&
-                          onEyeballClick(href),
+                        onKeyDown: (e) => e.key === 'Enter' && !checked && onEyeballClick(href),
                       },
                       '\u{1F440}'
                     ),

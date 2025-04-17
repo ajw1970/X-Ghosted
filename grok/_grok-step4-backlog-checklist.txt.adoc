@@ -53,7 +53,7 @@
 * [x] Add Identified Posts (count) to header too.
 * [ ] Need to be able to pin/unpin the panel or maybe dock it. Have this be a configurable option that defaults to pinned with a persisted state value. 
 * [x] Add a copy icon near the url list to make it easy to copy the problems without going to the Tools menu.
-* [ ] Start/Stop icons are small and hard to identify.
+* [x] Start/Stop icons are small and hard to identify.
 * [x] Stop polling when a first order problem is identified.
 * [x] Update xGhosted.template.js with a userscript name suffix that is set to "-{{BranchName}}" when not on main git branch.
 * [x] Use build-xGhosted to replace placeholder in xGhosted.template.js with package.json version. Have this included in the Splash Screen.
