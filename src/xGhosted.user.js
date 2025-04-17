@@ -2059,13 +2059,20 @@
       return [headers.join(','), ...rows].join('\n');
     };
     window.PanelManager.prototype.copyLinks = function () {
-      this.postsManager
-        .copyProblemLinks()
+      const linksText = this.postsManager
+        .getProblemPosts()
+        .map(([link]) => `${this.postsManager.linkPrefix}${link}`)
+        .join('\n');
+      return navigator.clipboard
+        .writeText(linksText)
         .then(() => {
           this.log('Problem links copied to clipboard');
           alert('Problem links copied to clipboard!');
         })
-        .catch((err) => this.log(`Failed to copy problem links: ${err}`));
+        .catch((err) => {
+          this.log(`Failed to copy problem links: ${err}`);
+          alert('Failed to copy problem links.');
+        });
     };
     window.PanelManager.prototype.exportProcessedPostsCSV = function () {
       const csvData = this.generateCSVData();
@@ -2112,14 +2119,6 @@
       POTENTIAL_PROBLEM: Object.freeze({ name: 'Potential Problem', value: 2 }),
       GOOD: Object.freeze({ name: 'Good', value: 3 }),
     });
-
-    // src/utils/clipboardUtils.js
-    function copyTextToClipboard(text, log) {
-      return navigator.clipboard
-        .writeText(text)
-        .then(() => log('Text copied to clipboard'))
-        .catch((err) => log(`Clipboard copy failed: ${err}`));
-    }
 
     // src/utils/ProcessedPostsManager.js
     var ProcessedPostsManager = class {
@@ -2257,12 +2256,6 @@
           }
         );
         return [headers.join(','), ...rows].join('\n');
-      }
-      copyProblemLinks() {
-        const linksText = this.getProblemPosts()
-          .map(([link]) => `${this.linkPrefix}${link}`)
-          .join('\n');
-        return copyTextToClipboard(linksText, this.log);
       }
     };
     return ProcessedPostsManager;

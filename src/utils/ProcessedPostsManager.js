@@ -1,5 +1,4 @@
 import { postQuality } from './postQuality.js';
-import { copyTextToClipboard } from './clipboardUtils.js';
 
 class ProcessedPostsManager {
   constructor({ storage, log, linkPrefix }) {
@@ -134,13 +133,6 @@ class ProcessedPostsManager {
       ].join(',');
     });
     return [headers.join(','), ...rows].join('\n');
-  }
-
-  copyProblemLinks() {
-    const linksText = this.getProblemPosts()
-      .map(([link]) => `${this.linkPrefix}${link}`)
-      .join('\n');
-    return copyTextToClipboard(linksText, this.log);
   }
 }
 

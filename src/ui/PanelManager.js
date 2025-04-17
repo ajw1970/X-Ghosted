@@ -432,13 +432,20 @@ window.PanelManager.prototype.generateCSVData = function () {
 };
 
 window.PanelManager.prototype.copyLinks = function () {
-  this.postsManager
-    .copyProblemLinks()
+  const linksText = this.postsManager
+    .getProblemPosts()
+    .map(([link]) => `${this.postsManager.linkPrefix}${link}`)
+    .join('\n');
+  return navigator.clipboard
+    .writeText(linksText)
     .then(() => {
       this.log('Problem links copied to clipboard');
       alert('Problem links copied to clipboard!');
     })
-    .catch((err) => this.log(`Failed to copy problem links: ${err}`));
+    .catch((err) => {
+      this.log(`Failed to copy problem links: ${err}`);
+      alert('Failed to copy problem links.');
+    });
 };
 
 window.PanelManager.prototype.exportProcessedPostsCSV = function () {
