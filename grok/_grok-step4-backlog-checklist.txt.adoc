@@ -52,7 +52,7 @@
 * [x] Add gap between eyeballs and link in the panel list
 * [x] Add Identified Posts (count) to header too.
 * [ ] Need to be able to pin/unpin the panel or maybe dock it. Have this be a configurable option that defaults to pinned with a persisted state value. 
-* [ ] Add a copy icon near the url list to make it easy to copy the problems without going to the Tools menu.
+* [x] Add a copy icon near the url list to make it easy to copy the problems without going to the Tools menu.
 * [ ] Start/Stop icons are small and hard to identify.
 * [x] Stop polling when a first order problem is identified.
 * [x] Update xGhosted.template.js with a userscript name suffix that is set to "-{{BranchName}}" when not on main git branch.

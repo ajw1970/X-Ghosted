@@ -7,13 +7,14 @@ function Panel({
   onStartPolling,
   onStopPolling,
   onEyeballClick,
+  onCopyLinks, // Add new prop
   setPanelPosition,
 }) {
   const flagged = window.preactHooks.useMemo(
     () => xGhosted.postsManager.getProblemPosts(),
     [xGhosted.postsManager.getAllPosts()]
   );
-  const totalPosts = xGhosted.postsManager.getAllPosts().length; // Total processed posts
+  const totalPosts = xGhosted.postsManager.getAllPosts().length;
   const [isVisible, setIsVisible] = window.preactHooks.useState(state.isPanelVisible);
   const [isToolsExpanded, setIsToolsExpanded] = window.preactHooks.useState(false);
   const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
@@ -362,7 +363,22 @@ function Panel({
               totalPosts,
               ') Concerns (',
               flagged.length,
-              '):'
+              '):',
+              window.preact.h(
+                'span',
+                {
+                  style: {
+                    marginLeft: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    verticalAlign: 'middle',
+                  },
+                  onClick: onCopyLinks,
+                  'aria-label': 'Copy Concerns to Clipboard',
+                  title: 'Copy Concerns to Clipboard',
+                },
+                window.preact.h('i', { className: 'fas fa-copy' })
+              )
             ),
             window.preact.h(
               'div',

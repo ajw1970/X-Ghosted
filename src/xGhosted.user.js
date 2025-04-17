@@ -1143,6 +1143,8 @@
       onStartPolling,
       onStopPolling,
       onEyeballClick,
+      onCopyLinks,
+      // Add new prop
       setPanelPosition,
     }) {
       const flagged = window.preactHooks.useMemo(
@@ -1500,7 +1502,22 @@
                     totalPosts,
                     ') Concerns (',
                     flagged.length,
-                    '):'
+                    '):',
+                    window.preact.h(
+                      'span',
+                      {
+                        style: {
+                          marginLeft: '8px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          verticalAlign: 'middle',
+                        },
+                        onClick: onCopyLinks,
+                        'aria-label': 'Copy Concerns to Clipboard',
+                        title: 'Copy Concerns to Clipboard',
+                      },
+                      window.preact.h('i', { className: 'fas fa-copy' })
+                    )
                   ),
                   window.preact.h(
                     'div',
@@ -1966,6 +1983,7 @@
             );
             this.xGhosted.userRequestedPostCheck(href, post);
           },
+          onCopyLinks: () => this.copyLinks(),
           setPanelPosition: (position) => this.setPanelPosition(position),
         }),
         this.uiElements.panel

@@ -369,6 +369,7 @@ window.PanelManager.prototype.renderPanel = function () {
         );
         this.xGhosted.userRequestedPostCheck(href, post);
       },
+      onCopyLinks: () => this.copyLinks(),
       setPanelPosition: (position) => this.setPanelPosition(position),
     }),
     this.uiElements.panel
