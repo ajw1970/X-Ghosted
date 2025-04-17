@@ -1,3 +1,5 @@
+import './Panel.jsx';
+
 function Modal({ isOpen, onClose, onSubmit, mode, config }) {
   const [csvText, setCsvText] = window.preactHooks.useState('');
   const handleFileChange = (e) => {

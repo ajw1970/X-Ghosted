@@ -5,8 +5,6 @@ import { debounce } from './utils/debounce';
 import { findPostContainer } from './dom/findPostContainer.js';
 import { getRelativeLinkToPost } from './utils/getRelativeLinkToPost.js';
 import { parseUrl } from './dom/parseUrl.js';
-import './ui/PanelManager.js';
-import './ui/Panel.jsx';
 
 function XGhosted(doc, config = {}) {
   const defaultTiming = {
@@ -38,7 +36,6 @@ function XGhosted(doc, config = {}) {
     userProfileName: null,
   };
   this.events = {};
-  this.panelManager = null;
   this.checkPostInNewTabThrottled = debounce((href) => {
     return this.checkPostInNewTab(href);
   }, this.timing.tabCheckThrottle);
