@@ -1,21 +1,24 @@
 = Grok Step 3: xGhosted Decoupling Roadmap
 :toc:
-:revnumber: 0.3
-:revdate: 2025-04-16
+:revnumber: 0.4
+:revdate: 2025-04-17
 :author: Grok 3 (assisting user)
 
 == Overview
 
 Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGhosted.js` handles only DOM-related logic (post highlighting, thread checks) and emits events for state changes, while `xGhosted.template.js` orchestrates instantiation and wiring. The goal is a clean pub/sub interface, with `PanelManager.js` operating independently (like `SplashPanel.js`) and a new `ProcessedPostsManager` service managing shared `processedPosts` state. This step aligns with the initial decoupling phase, minimizing direct dependencies and enabling modular testing.
 
+Step 3 extends this by addressing UI enhancements, ensuring all UI logic resides in `PanelManager.js`, and maintaining `XGhosted.js` as UI-agnostic. Recent work fixed icon toggling issues, and new UI features (splash page control, drag toggle, Tools panel improvements) are planned.
+
 == Objectives
 
-- Define a pub/sub interface using `CustomEvent` for communication between `XGhosted.js`, `PanelManager.js`, and a new `ProcessedPostsManager`.
-- Move UI-specific logic (e.g., CSV handling, panel visibility, position) to `PanelManager.js`.
+- Define a pub/sub interface using `CustomEvent` for communication between `XGhosted.js`, `PanelManager.js`, and `ProcessedPostsManager`.
+- Move UI-specific logic (e.g., CSV handling, panel visibility, position, drag toggle, splash page) to `PanelManager.js`.
 - Ensure `XGhosted.js` does not import or initialize `PanelManager.js`, relying on `xGhosted.template.js` for setup.
 - Detect theme early in `XGhosted.js` and emit `xghosted:theme-detected` for `PanelManager.js` instantiation.
 - Introduce `ProcessedPostsManager` to encapsulate `processedPosts`, providing caching and coordination for `XGhosted.js` and `PanelManager.js`.
 - Update `xGhosted.template.js` to pass logger, storage callbacks, and `ProcessedPostsManager` to components.
+- Enhance the UI with splash page control, optional dragging, and improved Tools panel organization.
 
 == Current State
 
@@ -24,7 +27,8 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
 - `SplashPanel.js` is decoupled, listening for `xghosted:init` and `xghosted:user-profile-updated` without `XGhosted.js` awareness.
 - `processedPosts` is fully managed by `ProcessedPostsManager`, used for caching and CSV operations.
 - Theme detection (`detectTheme`) runs early in `XGhosted.js`’s `init`, emitting `xghosted:theme-detected` for `PanelManager.js`.
-- `Panel.jsx` dispatches UI events and includes a `useEffect` listener for `xghosted:csv-import` to manage modal state, plus temporary drag listeners (`mousemove`, `mouseup`) in `handleDragStart`.
+- `Panel.jsx` dispatches UI events and includes a `useEffect` listener for `xghosted:csv-import` to manage modal state. Drag listeners (`mousemove`, `mouseup`) are now in `PanelManager.js`.
+- Icon toggling for "Polling" and "Scroll" buttons was fixed by restoring the `key` prop on the `<button>` elements, ensuring Preact re-mounts the buttons and Font Awesome updates the icons.
 - Files are stable, with `build-xGhosted.js` producing readable output, no duplicates, and proper injections (`xGhosted.template.js` placeholders).
 
 == Tasks
@@ -37,8 +41,6 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
   - Use `CustomEvent` for external events: `xghosted:init`, `xghosted:state-updated`, `xghosted:polling-state-updated`, `xghosted:manual-check-toggled`, `xghosted:auto-scrolling-toggled`, `xghosted:user-profile-updated`.
   - Add new events:
     - `xghosted:theme-detected` for theme detection (emitted early in `init`).
-    - `xghosted:posts-updated` for `ProcessedPostsManager` changes (if event-based).
-    - `xghosted:request-csv-export` and `xghosted:csv-import` for CSV coordination (to be moved to `PanelManager.js`).
   - Remove UI-specific events: `panel-visibility-toggled`, `panel-position-changed`, `theme-mode-changed`.
   - Remove `PanelManager.js` initialization from `init`.
 - **Status**: Complete
@@ -47,7 +49,6 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
   - Removed redundant events `xghosted:posts-updated`, `xghosted:request-csv-export`, and `xghosted:csv-import` as they are handled by `PanelManager.js`.
   - Replaced `togglePanelVisibility` with `xghosted:toggle-panel-visibility` event, eliminating direct UI method calls.
   - Fixed an event loop in `xghosted:copy-links` by removing redundant dispatch from `PanelManager.js.copyLinks`.
-- **Open Questions**: None
 
 === Task 2: Move Theme Detection to Early Event
 
@@ -62,11 +63,11 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
     - Instantiate `XGhosted.js` and call `init`.
     - Listen for `xghosted:theme-detected` to instantiate `PanelManager.js` with `themeMode`, `logger`, and storage callbacks.
     - Use `{ once: true }` for `xghosted:theme-detected` (single emission).
-  - Ensure `detectTheme` runs when `document.readyState !== 'loading'` (likely guaranteed by `document-idle`).
+  - Ensure `detectTheme` runs when `document.readyState !== 'loading'` (guaranteed by `document-idle`).
   - Fixed theme selector dropdown in `Panel.jsx` (corrected `_option` typo).
-- **Open Questions**:
-  - Should `xghosted:theme-detected` re-emit on dynamic theme changes (e.g., x.com theme toggle)? **Resolved: No, deemed unnecessary.**
 - **Status**: Complete
+- **Notes**:
+  - `themeMode` is now persisted by `PanelManager.js` in `xGhostedState.themeMode`.
 
 === Task 3: Create `ProcessedPostsManager` Service
 
@@ -75,9 +76,9 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
   - Create `ProcessedPostsManager.js` with interface:
     - `hasPost(id)`: Check if post exists.
     - `getPost(id)`: Retrieve post data (`{ analysis, checked }` or null).
-    - `registerPost(id, data)`: Add/update post, optionally emit `xghosted:posts-updated`.
+    - `registerPost(id, data)`: Add/update post.
     - `getPosts()`: Return all posts (Map or array).
-    - `clearPosts()`: Clear posts, emit `xghosted:posts-cleared`.
+    - `clearPosts()`: Clear posts.
     - `importPosts(posts)`: Load posts from CSV data (for `PanelManager.js`).
     - `exportPosts()`: Return posts for CSV export.
   - Update `XGhosted.js`:
@@ -85,17 +86,15 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
     - In `highlightPosts`, use `manager.hasPost`/`getPost` for caching, `registerPost` for updates.
     - Update `userRequestedPostCheck` to use `manager.registerPost` for post updates.
   - Update `PanelManager.js`:
-    - Listen for `xghosted:posts-updated` to refresh UI.
     - Use `manager.getPosts` for CSV export, `manager.importPosts` for imports.
   - Update `xGhosted.template.js`:
     - Instantiate `ProcessedPostsManager`.
     - Pass manager instance to `XGhosted.js` and `PanelManager.js`.
   - Fixed `copyTextToClipboard` access for `copyProblemLinks`.
-- **Open Questions**:
-  - Should manager handle `GM_setValue`/`GM_getValue`, or should `xGhosted.template.js` pass storage callbacks? **Resolved: Template passes callbacks.**
-  - Should CSV parsing/formatting stay in `PanelManager.js` or move to manager? **Resolved: Stays in `PanelManager.js`.**
-  - Should `registerPost` emit per-post events or batch updates (e.g., after `highlightPosts`)? **Resolved: Batch updates.**
 - **Status**: Complete
+- **Notes**:
+  - `ProcessedPostsManager` acts as a service with methods for caching and updates.
+  - CSV logic remains in `PanelManager.js`, using the manager for data access.
 
 === Task 4: Move UI Logic to `PanelManager.js`
 
@@ -104,13 +103,11 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
   - Move CSV logic from `XGhosted.js`:
     - Relocate `generateCSVData`, `exportProcessedPostsCSV`, `importProcessedPostsCSV` to `PanelManager.js`.
     - Use `ProcessedPostsManager`’s `getPosts`/`importPosts` for data access.
-    - Emit `xghosted:request-csv-export` to request data, handle `xghosted:csv-data` for export.
-    - Emit `xghosted:csv-import` with parsed posts.
   - Manage UI state in `PanelManager.js`:
     - Store `isPanelVisible`, `panelPosition`, `themeMode` locally.
     - Add `saveState`/`loadState` using `GM_getValue`/`GM_setValue` (passed from `xGhosted.template.js`).
   - Update event listeners:
-    - Listen for `xghosted:init`, `xghosted:state-updated`, `xghosted:polling-state-updated`, `xghosted:manual-check-toggled`, `xghosted:auto-scrolling-toggled`, `xghosted:theme-detected`, `xghosted:posts-updated`.
+    - Listen for `xghosted:init`, `xghosted:state-updated`, `xghosted:polling-state-updated`, `xghosted:manual-check-toggled`, `xghosted:auto-scrolling-toggled`, `xghosted:theme-detected`.
     - Emit UI actions: `xghosted:start-polling`, `xghosted:stop-polling`, `xghosted:toggle-auto-scrolling`, `xghosted:copy-links`, `xghosted:clear-posts`, `xghosted:toggle-manual-check`, `xghosted:user-post-check`.
   - Add modal closing and alerts for `importProcessedPostsCSV` and `copyProblemLinks`.
 - **Status**: Complete
@@ -118,7 +115,6 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
   - CSV methods and UI state fully moved to `PanelManager.js`.
   - Replaced direct `xGhosted` calls (e.g., `togglePanelVisibility`, `copyLinks`) with events.
   - Implemented modal closing and alerts for CSV import and link copying.
-- **Open Questions**: None
 
 === Task 5: Update `xGhosted.template.js`
 
@@ -130,16 +126,74 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
   - Wait for `xghosted:theme-detected` to instantiate `PanelManager.js` with `themeMode`, `logger`, `GM_getValue`, `GM_setValue`, and `ProcessedPostsManager`.
   - Wire events:
     - Connect `PanelManager.js` actions (`xghosted:start-polling`, etc.) to `XGhosted.js` methods.
-    - Handle `xghosted:csv-import`/`xghosted:request-csv-export` via `ProcessedPostsManager`.
   - Keep `SplashPanel.js` instantiation (optional, based on `showSplash`).
   - Use try-catch for `PanelManager.js` to ensure `XGhosted.js` continues on failure.
-  - Ensure no duplicate modules (e.g., single `Panel`) and readable output.
+  - Ensure no duplicate modules and readable output.
 - **Status**: Complete
 - **Notes**:
   - Successfully orchestrates `ProcessedPostsManager`, `XGhosted.js`, and `PanelManager.js`.
   - Wires events (`xghosted:toggle-panel-visibility`, `xghosted:copy-links`, `xghosted:export-csv`, `xghosted:clear-posts`, `xghosted:csv-import`) using a local `panelManager`.
   - Handles `SplashPanel.js` with `showSplash` config and ensures no duplicates.
-- **Open Questions**: None
+
+=== Task 6: Fix Icon Toggling for "Polling" and "Scroll" Buttons
+
+- **Objective**: Ensure "Polling" and "Scroll" button icons (`fa-play`/`fa-stop`) update immediately when their states change.
+- **Actions**:
+  - Identified regression in `Panel.jsx` where icons weren’t updating due to Preact reusing DOM elements.
+  - Restored `key` prop on `<button>` elements (`key: isPolling ? 'polling-stop' : 'polling-start'` for "Polling", `key: isScrolling ? 'scroll-stop' : 'scroll-start'` for "Scroll") to force Preact to re-mount the buttons.
+  - Removed `useEffect` DOM manipulation, as the `key` prop ensures Font Awesome applies the correct icon.
+  - Kept current icons (`fa-play`/`fa-stop`) for better visibility, as requested on April 17, 2025.
+- **Status**: Complete
+- **Notes**:
+  - Icons now update immediately without requiring a hide/show of the panel, matching behavior from the older commit (version 0.6.1).
+  - No changes to `XGhosted.js` were needed, maintaining decoupling.
+
+=== Task 7: Make Splash Page a One-Time Display with "Show About" Option
+
+- **Objective**: Display the splash page only on first load (or on demand), with a "Show About" button in the Tools panel.
+- **Actions**:
+  - Add `hasSeenSplash` state to `PanelManager.js`, persisted using `GM_setValue`/`GM_getValue`.
+  - In `PanelManager.js`:
+    - Check `hasSeenSplash` during `init` to show the splash page if `false`.
+    - Add a `showSplashPage` method to display the splash page and update the flag.
+  - In `Panel.jsx`:
+    - Add a "Show About" button in the Tools section that calls `showSplashPage` via a prop.
+  - Ensure `XGhosted.js` remains unaware of the splash page.
+- **Status**: Planned
+- **Notes**:
+  - Keeps UI logic in `PanelManager.js`, ensuring `XGhosted.js` is not involved.
+  - Will reuse existing splash page DOM logic, moving it from `XGhosted.js` if present.
+
+=== Task 8: Add Optional Drag Functionality with Toggle
+
+- **Objective**: Allow users to enable/disable panel dragging via a toggle in the Tools panel, persisting the panel’s location when disabled.
+- **Actions**:
+  - Add `isDraggingEnabled` state to `PanelManager.js`, persisted using `GM_setValue`/`GM_getValue`.
+  - In `PanelManager.js`:
+    - Update `startDrag` to check `isDraggingEnabled` before initiating a drag.
+    - Add a `toggleDragging` method to toggle the state and save it.
+  - In `Panel.jsx`:
+    - Add a toggle button in the Tools section that calls `toggleDragging` via a prop.
+  - Ensure `XGhosted.js` remains unaware of drag functionality.
+- **Status**: Planned
+- **Notes**:
+  - Keeps drag logic in `PanelManager.js`, maintaining `XGhosted.js`’s UI-agnostic state.
+  - Will ensure panel position persists when dragging is disabled.
+
+=== Task 9: Improve Tools Panel with Labels and Grouping
+
+- **Objective**: Add labels and improve visual grouping in the Tools panel for better clarity.
+- **Actions**:
+  - In `Panel.jsx`:
+    - Add section labels (e.g., "Theme Selection", "CSV Tools", "Panel Actions") using `<div>` elements with headings.
+    - Group related controls (e.g., wrap CSV buttons in a container).
+  - In `Panel.css`:
+    - Style section headings (e.g., bold, 14px font, margin-bottom).
+    - Add visual separation for groups (e.g., borders, background color).
+- **Status**: Planned
+- **Notes**:
+  - Purely a UI change, confined to `Panel.jsx` and `Panel.css`.
+  - Will enhance usability without affecting `XGhosted.js`.
 
 == Decisions
 
@@ -151,12 +205,12 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
 - **ProcessedPostsManager**:
   - Acts as a service with `hasPost`, `getPost`, `registerPost` for caching and updates.
   - Injected into `XGhosted.js` and `PanelManager.js` for testability.
-  - Supports events (`xghosted:posts-updated`) for UI updates.
   - CSV logic stays in `PanelManager.js`, using manager for data access.
 - **Decoupling**:
   - `XGhosted.js` focuses on DOM logic (highlighting, thread checks).
   - `PanelManager.js` handles UI rendering, state, and CSV operations.
   - `xGhosted.template.js` manages instantiation and event wiring, like `SplashPanel.js`.
+  - UI-specific states (`hasSeenSplash`, `isDraggingEnabled`) are managed by `PanelManager.js`, keeping `XGhosted.js` unaware.
 
 == Open Questions
 
@@ -164,12 +218,18 @@ Step 1 focuses on decoupling `XGhosted.js` from `PanelManager.js` to ensure `XGh
 
 == Next Steps
 
-- **Priority**: Address open question on test updates for `xGhosted.test.js` if confirmed necessary.
-- **Follow-Up**: Review and optimize event listener pattern if centralization is preferred (currently split between module self-wiring and `xGhosted.template.js`).
+- **Priority**:
+  - Address open question on test updates for `xGhosted.test.js` if confirmed necessary.
+  - Implement Task 7: Make the splash page a one-time display with a "Show About" option.
+  - Implement Task 8: Add optional drag functionality with a toggle.
+  - Implement Task 9: Improve the Tools panel with labels and grouping.
+- **Follow-Up**:
+  - Review and optimize event listener pattern if centralization is preferred (currently split between module self-wiring and `xGhosted.template.js`).
 
 == Revision History
 
 - April 15, 2025: Completed `themeMode` persistence in `PanelManager.js`, restored `SplashPanel` functionality, updated `xGhosted.template.js` to pass `storage`.
-- April 15, 2025: Moved from _grok-step-1-master-prompt.txt.adoc
+- April 15, 2025: Moved from _grok-step-1-master-prompt.txt.adoc.
 - April 16, 2025: Fixed theme selector (`_option` typo in `Panel.jsx`), added modal closing and alerts for `importProcessedPostsCSV` and `copyProblemLinks`, stabilized build with `ProcessedPostsManager` integration and no duplicates.
 - April 16, 2025: Completed decoupling with `this.panelManager` removal from `XGhosted.js`, fixed `xghosted:copy-links` event loop, added `xghosted:csv-import` listener in `Panel.jsx`.
+- April 17, 2025: Fixed icon toggling for "Polling" and "Scroll" buttons by restoring `key` prop on `<button>` elements in `Panel.jsx`, added new tasks for splash page control, drag toggle, and Tools panel enhancements.

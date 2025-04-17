@@ -1,0 +1,183 @@
+21:03:53.864 VM5292:10 injected: xGhosted v0.6.1 starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds
+21:03:53.864 VM5292:10 injected: Loaded 6 posts from storage
+21:03:53.865 VM5292:10 injected: Initializing SplashPanel...
+21:03:53.865 VM5292:10 injected: Initializing XGhosted...
+21:03:53.865 VM5292:10 injected: PanelManager initialized with themeMode: dark
+21:03:53.866 VM5292:10 injected: Loaded panel state: isPanelVisible=true, themeMode=dark, right=61px, top=91px
+21:03:53.866 VM5292:10 injected: renderPanel: themeMode=dark, config.THEMES= {light: {…}, dim: {…}, dark: {…}}
+21:03:53.867 VM5292:10 injected: getProblemPosts: Found 0 posts [] All posts: (6) [{…}, {…}, {…}, {…}, {…}, {…}]
+21:03:53.869 VM5292:10 injected: GUI Panel initialized successfully
+21:03:53.869 VM5292:10 injected: Received xghosted:init with config: {pollInterval: 1000, scrollInterval: 1500}
+21:03:53.869 VM5292:10 injected: Starting polling for post changes...
+21:03:53.870 VM5292:10 injected: Starting auto-scrolling timer...
+21:03:54.057 
+                
+          
+          
+          
+         Microsoft Edge is moving towards a new experience that allows users to choose to browse without third-party cookies.
+21:03:54.058 [NEW] Explain Console errors by using Copilot in Edge: click
+         
+         to explain an error. 
+        Learn more
+        Don't show again
+21:03:54.795 main.668221ba.js:1 
+            
+            
+            POST https://x.com/i/api/1.1/keyregistry/register 403 (Forbidden)
+(anonymous) @ main.668221ba.js:1
+c @ main.668221ba.js:1
+errorFilter @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+ka @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+fa @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+await in (anonymous)
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+Ta @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+o @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+b @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+Ha @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+_dispatch @ main.668221ba.js:1
+dispatch @ main.668221ba.js:1
+dispatch @ main.668221ba.js:1
+post @ main.668221ba.js:1
+register @ ondemand.DirectMessagesCrypto.6827ddfa.js:1
+r.minTimeout @ ondemand.DirectMessagesCrypto.6827ddfa.js:1
+await in r.minTimeout
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:17
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+p @ ondemand.DirectMessagesCrypto.6827ddfa.js:1
+await in p
+u @ ondemand.DirectMessagesCrypto.6827ddfa.js:1
+await in u
+(anonymous) @ vendor-f501a089.1852e6aa.js:1
+dispatch @ vendor-f501a089.1852e6aa.js:1
+(anonymous) @ ondemand.DirectMessagesCrypto.6827ddfa.js:1
+(anonymous) @ vendor-f501a089.1852e6aa.js:1
+E @ ondemand.DirectMessagesCrypto.6827ddfa.js:1
+(anonymous) @ main.668221ba.js:1
+Promise.then
+(anonymous) @ main.668221ba.js:1
+Promise.then
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ vendor-f501a089.1852e6aa.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ vendor-38c57b44.7266e9ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+Ha @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+_dispatch @ main.668221ba.js:1
+dispatch @ main.668221ba.js:1
+dispatch @ main.668221ba.js:1
+post @ main.668221ba.js:1
+clientEvent @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+(anonymous) @ main.668221ba.js:1
+Promise.then
+(anonymous) @ main.668221ba.js:1
+Promise.then
+197558 @ main.668221ba.js:1
+b @ ApostleJohnW:334
+Promise.then
+(anonymous) @ main.668221ba.js:1
+Promise.then
+503287 @ main.668221ba.js:1
+b @ ApostleJohnW:334
+(anonymous) @ main.668221ba.js:40
+b.O @ ApostleJohnW:334
+(anonymous) @ main.668221ba.js:40
+a @ ApostleJohnW:334
+(anonymous) @ main.668221ba.js:1
+21:03:54.871 VM5292:10 injected: No posts and no container found, ensuring and highlighting...
+21:03:54.872 VM5292:10 injected: Saved processed posts to storage
+21:03:54.872 VM5292:10 injected: Cleared all processed posts
+21:03:54.872 VM5292:10 injected: Received xghosted:user-profile-updated with userProfileName: ApostleJohnW
+21:03:54.873 VM5292:10 injected: Container still not found, skipping highlighting
+21:03:55.666 VM5292:10 injected: SplashPanel closed
+21:03:55.879 VM5292:10 injected: No posts and no container found, ensuring and highlighting...
+21:03:55.880 VM5292:10 injected: Container still not found, skipping highlighting
+21:03:56.970 frame-modern.e9190fdf.js:1 [Intercom] Launcher is disabled in settings or current page does not match display conditions
+21:03:56.979 VM5292:10 injected: No posts and no container found, ensuring and highlighting...
+21:03:56.980 VM5292:10 injected: Posts container identified with aria-label: "Timeline: John Welty’s posts"
+21:03:56.980 VM5292:10 injected: Registered post: /ApostleJohnW/status/1905039750655799338 with quality: Good {quality: {…}, reason: 'Looks good', link: '/ApostleJohnW/status/1905039750655799338'}
+21:03:56.981 VM5292:10 injected: Saved processed posts to storage
+21:03:56.981 VM5292:10 injected: Registered post: /ApostleJohnW/status/1912680157619368063 with quality: Good {quality: {…}, reason: 'Looks good', link: '/ApostleJohnW/status/1912680157619368063'}
+21:03:56.981 VM5292:10 injected: Saved processed posts to storage
+21:03:56.982 VM5292:10 injected: Registered post: /ApostleJohnW/status/1912635647292256703 with quality: Good {quality: {…}, reason: 'Looks good', link: '/ApostleJohnW/status/1912635647292256703'}
+21:03:56.982 VM5292:10 injected: Saved processed posts to storage
+21:03:56.982 VM5292:10 injected: Registered post: /ApostleJohnW/status/1912635649083011087 with quality: Good {quality: {…}, reason: 'Looks good', link: '/ApostleJohnW/status/1912635649083011087'}
+21:03:56.983 VM5292:10 injected: Saved processed posts to storage
+21:03:56.983 VM5292:10 injected: Registered post: /ApostleJohnW/status/1912608595717562534 with quality: Good {quality: {…}, reason: 'Looks good', link: '/ApostleJohnW/status/1912608595717562534'}
+21:03:56.983 VM5292:10 injected: Saved processed posts to storage
+21:03:56.984 VM5292:10 injected: Registered post: /ApostleJohnW/status/1912602446058168643 with quality: Good {quality: {…}, reason: 'Looks good', link: '/ApostleJohnW/status/1912602446058168643'}
+21:03:56.984 VM5292:10 injected: Saved processed posts to storage
+21:03:56.984 VM5292:10 injected: renderPanel: themeMode=dark, config.THEMES= {light: {…}, dim: {…}, dark: {…}}
+21:03:56.985 VM5292:10 injected: getProblemPosts: Found 0 posts [] All posts: (6) [{…}, {…}, {…}, {…}, {…}, {…}]
+21:03:56.985 VM5292:10 injected: Highlighted 10 new posts, state-updated emitted
+21:03:58.345 VM5292:10 injected: Saved panel state
+21:03:58.346 VM5292:10 injected: Updated panel position: right=109px, top=96px
+21:03:59.889 VM5292:10 injected: Saved panel state
+21:03:59.890 VM5292:10 injected: Updated panel position: right=121px, top=94px

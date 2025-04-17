@@ -1,0 +1,1500 @@
+// Combined dependencies from 37 starting files
+// Starting files: src/xGhosted.js, src/xGhosted.template.js, src/xGhosted.test.js, src/xGhosted.user.js, src/dom/detectTheme.js, src/dom/detectTheme.test.js, src/dom/findPostContainer.js, src/dom/parseUrl.js, src/dom/parseUrl.test.js, src/ui/PanelManager.js, src/ui/SplashPanel.js, src/ui/SplashPanel.test.js, src/utils/ProcessedPostsManager.js, src/utils/clipboardUtils.js, src/utils/debounce.js, src/utils/debounce.test.js, src/utils/describeSampleAnalyses.js, src/utils/findReplyingToWithDepth.js, src/utils/findReplyingToWithDepth.test.js, src/utils/getRelativeLinkToPost.js, src/utils/getRelativeLinkToPost.test.js, src/utils/identifyPost.js, src/utils/identifyPosts.js, src/utils/identifyPosts.sample.test.js, src/utils/identifyPosts.samples.test.skip.js, src/utils/postHasProblemCommunity.js, src/utils/postHasProblemCommunity.test.js, src/utils/postHasProblemSystemNotice.js, src/utils/postHasProblemSystemNotice.test.js, src/utils/postQuality.js, src/utils/summarizeRatedPosts.js, src/ui/Modal.css, src/ui/Panel.css, src/ui/Panel.jsx, src/ui/PanelManager.js, src/ui/SplashPanel.js, src/ui/SplashPanel.test.js
+
+// File: src/dom/detectTheme.js
+// --------------------------------
+function detectTheme(doc) {
+    // First, check for data-theme attribute
+    const dataTheme = doc.body.getAttribute('data-theme');
+    // console.log(`Detected data-theme: ${dataTheme}`);
+    if (dataTheme) {
+        if (dataTheme.includes('lights-out') || dataTheme.includes('dark')) {
+            return 'dark';
+        } else if (dataTheme.includes('dim')) {
+            return 'dim';
+        } else if (dataTheme.includes('light') || dataTheme.includes('default')) {
+            return 'light';
+        }
+    }
+
+    // Fallback: Check body class
+    const bodyClasses = doc.body.classList;
+    // console.log(`Body classes: ${Array.from(bodyClasses).join(', ')}`);
+    if (
+        bodyClasses.contains('dark') ||
+        bodyClasses.contains('theme-dark') ||
+        bodyClasses.contains('theme-lights-out')
+    ) {
+        return 'dark';
+    } else if (
+        bodyClasses.contains('dim') ||
+        bodyClasses.contains('theme-dim')
+    ) {
+        return 'dim';
+    } else if (
+        bodyClasses.contains('light') ||
+        bodyClasses.contains('theme-light')
+    ) {
+        return 'light';
+    }
+
+    // Fallback: Check background color of the body
+    // --- Changed line: Use doc.defaultView.getComputedStyle for jsdom compatibility ---
+    const bodyBgColor = doc.defaultView.getComputedStyle(doc.body).backgroundColor;
+    // console.log(`Body background color: ${bodyBgColor}`);
+    if (bodyBgColor === 'rgb(0, 0, 0)') {
+        // Lights Out / Dark
+        return 'dark';
+    } else if (bodyBgColor === 'rgb(21, 32, 43)') {
+        // Dim (#15202B)
+        return 'dim';
+    } else if (bodyBgColor === 'rgb(255, 255, 255)') {
+        // Light
+        return 'light';
+    }
+
+    // Default to Light if all detection fails
+    return 'light';
+}
+
+export { detectTheme };
+
+// File: src/dom/detectTheme.test.js
+// --------------------------------
+import { JSDOM } from 'jsdom';
+import { detectTheme } from './detectTheme';
+
+describe('getThemeMode', () => {
+    let dom;
+
+    beforeEach(() => {
+        dom = new JSDOM('<!DOCTYPE html><body></body>', { 
+            url: 'https://x.com/user/with_replies',
+            resources: 'usable', // Ensures styles are processed
+            runScripts: 'dangerously' // Allows scripts to manipulate DOM
+        });
+    });
+
+    afterEach(() => {
+        // Fully reset the body
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.className = '';
+        dom.window.document.body.style.backgroundColor = '';
+        dom.window.document.body.innerHTML = '';
+    });
+
+    test('returns "dark" when data-theme includes "lights-out" or "dark"', () => {
+        dom.window.document.body.setAttribute('data-theme', 'lights-out');
+        expect(detectTheme(dom.window.document)).toBe('dark');
+        dom.window.document.body.setAttribute('data-theme', 'dark');
+        expect(detectTheme(dom.window.document)).toBe('dark');
+    });
+
+    test('returns "dim" when data-theme includes "dim"', () => {
+        dom.window.document.body.setAttribute('data-theme', 'dim');
+        expect(detectTheme(dom.window.document)).toBe('dim');
+    });
+
+    test('returns "light" when data-theme includes "light" or "default"', () => {
+        dom.window.document.body.setAttribute('data-theme', 'light');
+        expect(detectTheme(dom.window.document)).toBe('light');
+        dom.window.document.body.setAttribute('data-theme', 'default');
+        expect(detectTheme(dom.window.document)).toBe('light');
+    });
+
+    test('returns "dark" when body has dark classes', () => {
+        dom.window.document.body.removeAttribute('data-theme'); // Ensure data-theme doesn’t interfere
+        dom.window.document.body.classList.add('dark');
+        expect(detectTheme(dom.window.document)).toBe('dark');
+    });
+
+    test('returns "dim" when body has dim classes', () => {
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.classList.add('dim');
+        expect(detectTheme(dom.window.document)).toBe('dim');
+    });
+
+    test('returns "light" when body has light classes', () => {
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.classList.add('light');
+        expect(detectTheme(dom.window.document)).toBe('light');
+    });
+
+    test('returns "dark" when background is rgb(0, 0, 0)', () => {
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.className = '';
+        dom.window.document.body.style.backgroundColor = 'rgb(0, 0, 0)';
+        expect(detectTheme(dom.window.document)).toBe('dark');
+    });
+
+    test('returns "dim" when background is rgb(21, 32, 43)', () => {
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.className = '';
+        dom.window.document.body.style.backgroundColor = 'rgb(21, 32, 43)';
+        expect(detectTheme(dom.window.document)).toBe('dim');
+    });
+
+    test('returns "light" when background is rgb(255, 255, 255)', () => {
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.className = '';
+        dom.window.document.body.style.backgroundColor = 'rgb(255, 255, 255)';
+        expect(detectTheme(dom.window.document)).toBe('light');
+    });
+
+    test('returns "light" as default', () => {
+        dom.window.document.body.removeAttribute('data-theme');
+        dom.window.document.body.className = '';
+        dom.window.document.body.style.backgroundColor = '';
+        expect(detectTheme(dom.window.document)).toBe('light');
+    });
+});
+
+// File: src/dom/findPostContainer.js
+// --------------------------------
+function findPostContainer(doc, log = () => { }) {
+  const potentialPosts = doc.querySelectorAll('div[data-testid="cellInnerDiv"]');
+  if (!potentialPosts.length) {
+    // log('No posts found with data-testid="cellInnerDiv"');
+    return null;
+  }
+
+  let firstPost = null;
+  for (const post of potentialPosts) {
+    const closestAriaLabel = post.closest('div[aria-label]');
+    if (closestAriaLabel && closestAriaLabel.getAttribute('aria-label') === 'Timeline: Messages') {
+      log('Skipping post in Messages timeline');
+      continue;
+    }
+    firstPost = post;
+    break;
+  }
+
+  if (!firstPost) {
+    log('No valid posts found outside Messages timeline');
+    return null;
+  }
+
+  let currentElement = firstPost.parentElement;
+  while (currentElement) {
+    if (currentElement.hasAttribute('aria-label')) {
+      currentElement.setAttribute('data-xghosted', 'posts-container');
+      const ariaLabel = currentElement.getAttribute('aria-label');
+      log(`Posts container identified with aria-label: "${ariaLabel}"`);
+      return currentElement;
+    }
+    currentElement = currentElement.parentElement;
+  }
+
+  log('No parent container found with aria-label');
+  return null;
+}
+
+export { findPostContainer };
+
+// File: src/dom/parseUrl.js
+// --------------------------------
+function parseUrl(url) {
+  const reservedPaths = [
+    'i',
+    'notifications',
+    'home',
+    'explore',
+    'messages',
+    'compose',
+    'settings'
+  ];
+  const regex = /^https:\/\/x\.com\/([^/]+)(?:\/(with_replies))?/;
+  const match = url.match(regex);
+  if (match && !reservedPaths.includes(match[1])) {
+    return {
+      isWithReplies: !!match[2],
+      userProfileName: match[1]
+    };
+  }
+  return {
+    isWithReplies: false,
+    userProfileName: null
+  };
+}
+
+export { parseUrl };
+
+// File: src/dom/parseUrl.test.js
+// --------------------------------
+import { describe, it, expect } from 'vitest';
+import { parseUrl } from './parseUrl';
+
+describe('parseUrl', () => {
+  it('extracts username and with_replies from profile URL', () => {
+    const result = parseUrl('https://x.com/ApostleJohnW/with_replies');
+    expect(result).toEqual({
+      isWithReplies: true,
+      userProfileName: 'ApostleJohnW'
+    });
+  });
+
+  it('extracts username from profile URL without with_replies', () => {
+    const result = parseUrl('https://x.com/ApostleJohnW');
+    expect(result).toEqual({
+      isWithReplies: false,
+      userProfileName: 'ApostleJohnW'
+    });
+  });
+
+  it('returns null username for reserved path /i', () => {
+    const result = parseUrl('https://x.com/i');
+    expect(result).toEqual({
+      isWithReplies: false,
+      userProfileName: null
+    });
+  });
+
+  it('returns null username for reserved path /notifications', () => {
+    const result = parseUrl('https://x.com/notifications');
+    expect(result).toEqual({
+      isWithReplies: false,
+      userProfileName: null
+    });
+  });
+
+  it('returns null username for reserved path /home', () => {
+    const result = parseUrl('https://x.com/home');
+    expect(result).toEqual({
+      isWithReplies: false,
+      userProfileName: null
+    });
+  });
+
+  it('returns null username for reserved path /explore', () => {
+    const result = parseUrl('https://x.com/explore');
+    expect(result).toEqual({
+      isWithReplies: false,
+      userProfileName: null
+    });
+  });
+
+  it('returns null username for reserved path /messages', () => {
+    const result = parseUrl('https://x.com/messages');
+    expect(result).toEqual({
+      isWithReplies: false,
+      userProfileName: null
+    });
+  });
+
+  it('returns null username for reserved path /compose', () => {
+    const result = parseUrl('https://x.com/compose');
+    expect(result).toEqual({
+      isWithReplies: false,
+      userProfileName: null
+    });
+  });
+
+  it('returns null username for reserved path /settings', () => {
+    const result = parseUrl('https://x.com/settings');
+    expect(result).toEqual({
+      isWithReplies: false,
+      userProfileName: null
+    });
+  });
+
+  it('returns null username for invalid URLs', () => {
+    const result = parseUrl('https://example.com/ApostleJohnW');
+    expect(result).toEqual({
+      isWithReplies: false,
+      userProfileName: null
+    });
+  });
+
+  it('handles URLs with trailing slash', () => {
+    const result = parseUrl('https://x.com/ApostleJohnW/');
+    expect(result).toEqual({
+      isWithReplies: false,
+      userProfileName: 'ApostleJohnW'
+    });
+  });
+});
+
+// File: src/ui/Modal.css
+// --------------------------------
+.modal * {
+  box-sizing: border-box;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 450px;
+  max-height: calc(100vh - 100px);
+  background: var(--modal-bg);
+  color: var(--modal-text);
+  border: 2px solid var(--modal-border);
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+  padding: 12px;
+  z-index: 10000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+}
+
+.modal-file-input-container {
+  width: 100%;
+  max-width: 426px;
+}
+
+.modal-file-input {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: var(--modal-button-bg);
+  color: var(--modal-button-text);
+  border: 2px solid var(--modal-border);
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.modal-textarea {
+  width: 100%;
+  max-width: 426px;
+  height: 150px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: var(--modal-button-bg);
+  color: var(--modal-button-text);
+  border: 2px solid var(--modal-border);
+  border-radius: 8px;
+  font-size: 14px;
+  resize: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.modal-textarea::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
+}
+
+.modal-button-container {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.modal-button-container > button:not(:last-child) {
+  margin-right: 10px;
+}
+
+.modal-button {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--modal-button-bg);
+  color: var(--modal-button-text);
+  border: 2px solid var(--modal-border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+  transition: background 0.2s ease;
+}
+
+.modal-button:hover {
+  background: var(--modal-hover-bg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.3);
+}
+
+.modal-button:active {
+  transform: scale(0.95);
+}
+
+// File: src/ui/Panel.css
+// --------------------------------
+.toolbar {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 8px;
+}
+
+.toolbar > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  margin-left: 12px;
+}
+
+.toolbar > div > button:not(:last-child) {
+  margin-right: 12px;
+}
+
+.tools-section {
+  /* No opacity to prevent affecting children */
+}
+
+.tools-section > div > div:first-child {
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.manual-check-separator {
+  border-bottom: 2px solid var(--border-color);
+  margin: 8px 0;
+}
+
+.manual-check-section {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0px;
+}
+
+.content-wrapper {
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  padding-right: 4px;
+  padding-left: 8px;
+  padding-top: 0;
+}
+
+.panel-button {
+  background: linear-gradient(to bottom, var(--button-bg), color-mix(in srgb, var(--button-bg) 70%, #000000));
+  color: var(--button-text);
+  border: 2px solid var(--border-color);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.2s ease, transform 0.1s ease;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+  max-width: 160px;
+  text-align: center;
+}
+
+.panel-button:hover {
+  background: var(--hover-bg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.3);
+}
+
+.panel-button:active {
+  transform: scale(0.95);
+}
+
+.polling-stopped {
+  border: 2px solid #FFA500;
+}
+
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.dropdown-button {
+  width: 100%;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 8px 12px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--button-bg, #3A4A5B);
+  color: var(--button-text);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.dropdown-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600; /* Bolder text for better readability */
+  background-color: var(--button-bg, #3A4A5B);
+  color: var(--button-text);
+}
+
+.dropdown-item:hover {
+  background-color: var(--hover-bg);
+  color: var(--button-text);
+}
+
+.status-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  justify-self: center;
+}
+
+.status-problem {
+  background-color: red;
+}
+
+.status-eyeball {
+  font-size: 16px;
+  color: rgb(29, 155, 240);
+  cursor: pointer;
+  text-align: center;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+}
+
+.link-row {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: center;
+}
+
+.problem-links-wrapper {
+  padding: 0 8px;
+}
+
+.problem-links-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.problem-links-wrapper::-webkit-scrollbar-thumb {
+  background: var(--scroll-color);
+  border-radius: 3px;
+}
+
+.problem-links-wrapper::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+.link-item {
+  padding: 2px 0;
+  overflow-wrap: break-word;
+  word-break: break-all;
+}
+
+.link-item a {
+  color: var(--text-color);
+  text-decoration: none;
+}
+
+.link-item a:hover {
+  text-decoration: underline;
+  color: var(--hover-bg);
+}
+
+.problem-posts-header {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 8px;
+}
+
+.panel-button i {
+  font-size: 14px;
+  line-height: 1;
+}
+
+// File: src/ui/Panel.jsx
+// --------------------------------
+function Panel({
+  state,
+  config,
+  currentMode,
+  xGhosted,
+  toggleThemeMode,
+  onStartPolling,
+  onStopPolling,
+  onEyeballClick,
+  setPanelPosition,
+}) {
+  const flagged = window.preactHooks.useMemo(
+    () => xGhosted.postsManager.getProblemPosts(),
+    [xGhosted.postsManager.getAllPosts()]
+  );
+  const [isVisible, setIsVisible] = window.preactHooks.useState(state.isPanelVisible);
+  const [isToolsExpanded, setIsToolsExpanded] = window.preactHooks.useState(false);
+  const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = window.preactHooks.useState(false);
+
+  window.preactHooks.useEffect(() => {
+    const handleCsvImport = (e) => {
+      if (e.detail.importedCount > 0) {
+        setIsModalOpen(false);
+      }
+    };
+    document.addEventListener('xghosted:csv-import', handleCsvImport);
+    return () => {
+      document.removeEventListener('xghosted:csv-import', handleCsvImport);
+    };
+  }, []);
+
+  const toggleVisibility = () => {
+    const newVisibility = !isVisible;
+    setIsVisible(newVisibility);
+    xGhosted.togglePanelVisibility(newVisibility);
+  };
+
+  const handleDragStart = (e) => {
+    let draggedPanel = e.target.closest('#xghosted-panel');
+    if (!draggedPanel) return;
+    draggedPanel.classList.add('dragging');
+    // Validate and parse state.panelPosition.right
+    let currentRight = 0;
+    if (typeof state.panelPosition.right === 'string' && state.panelPosition.right.endsWith('px')) {
+      const parsedRight = parseFloat(state.panelPosition.right);
+      if (!isNaN(parsedRight)) {
+        currentRight = parsedRight;
+      } else {
+        console.warn(`Invalid state.panelPosition.right: ${state.panelPosition.right}, defaulting to 10px`);
+        currentRight = 10;
+      }
+    } else {
+      console.warn(`Invalid or missing state.panelPosition.right: ${state.panelPosition.right}, defaulting to 10px`);
+      currentRight = 10;
+    }
+    // Validate and parse state.panelPosition.top
+    let currentTop = 0;
+    if (typeof state.panelPosition.top === 'string' && state.panelPosition.top.endsWith('px')) {
+      const parsedTop = parseFloat(state.panelPosition.top);
+      if (!isNaN(parsedTop)) {
+        currentTop = parsedTop;
+      } else {
+        console.warn(`Invalid state.panelPosition.top: ${state.panelPosition.top}, defaulting to 60px`);
+        currentTop = 60;
+      }
+    } else {
+      console.warn(`Invalid or missing state.panelPosition.top: ${state.panelPosition.top}, defaulting to 60px`);
+      currentTop = 60;
+    }
+    let initialX = e.clientX - currentRight;
+    let initialY = e.clientY - currentTop;
+    let right = currentRight;
+    let top = currentTop;
+    const onMouseMove = (e2) => {
+      right = initialX - e2.clientX;
+      top = e2.clientY - initialY;
+      right = Math.max(
+        0,
+        Math.min(right, window.innerWidth - draggedPanel.offsetWidth)
+      );
+      top = Math.max(
+        0,
+        Math.min(top, window.innerHeight - draggedPanel.offsetHeight)
+      );
+      draggedPanel.style.right = `${right}px`;
+      draggedPanel.style.top = `${top}px`;
+    };
+    const onMouseUp = () => {
+      try {
+        draggedPanel.classList.remove('dragging');
+        if (setPanelPosition) {
+          setPanelPosition({
+            right: `${right}px`,
+            top: `${top}px`,
+          });
+        }
+      } catch (error) {
+        console.error('Error in onMouseUp:', error);
+      } finally {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      }
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
+  const themeOptions = ['dark', 'dim', 'light'].filter(
+    (option) => option !== currentMode
+  );
+
+  return window.preact.h(
+    'div',
+    null,
+    window.preact.h(
+      'div',
+      {
+        id: 'xghosted-panel',
+        style: {
+          width: isVisible ? config.PANEL.WIDTH : 'auto',
+          maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
+          minWidth: isVisible ? '250px' : '60px',
+          padding: isVisible ? '8px 8px 12px 8px' : '4px',
+          transition: 'width 0.2s ease, max-height 0.2s ease',
+          fontFamily: config.PANEL.FONT,
+          background: config.THEMES[currentMode].bg,
+          color: config.THEMES[currentMode].text,
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          position: 'fixed',
+          right: state.panelPosition.right,
+          top: state.panelPosition.top,
+          zIndex: 9999,
+        },
+        onMouseDown: handleDragStart,
+      },
+      isVisible
+        ? window.preact.h(
+          window.preact.Fragment,
+          null,
+          window.preact.h(
+            'div',
+            { className: 'toolbar' },
+            window.preact.h(
+              'button',
+              {
+                className: 'panel-button',
+                onClick: () => setIsToolsExpanded(!isToolsExpanded),
+                'aria-label': 'Toggle Tools Section',
+              },
+              window.preact.h('i', {
+                className: isToolsExpanded
+                  ? 'fas fa-chevron-up'
+                  : 'fas fa-chevron-down',
+                style: { marginRight: '12px' },
+              }),
+              'Tools'
+            ),
+            window.preact.h(
+              'div',
+              {
+                style: {
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flex: 1,
+                },
+              },
+              window.preact.h(
+                'button',
+                {
+                  className: `panel-button ${state.isPollingEnabled ? '' : 'polling-stopped'}`,
+                  onClick: state.isPollingEnabled
+                    ? onStopPolling
+                    : onStartPolling,
+                  'aria-label': state.isPollingEnabled
+                    ? 'Stop Polling'
+                    : 'Start Polling',
+                },
+                window.preact.h('i', {
+                  className: state.isPollingEnabled
+                    ? 'fa-solid fa-circle-stop'
+                    : 'fa-solid fa-circle-play',
+                  style: { marginRight: '12px' },
+                }),
+                'Polling'
+              ),
+              window.preact.h(
+                'button',
+                {
+                  className: 'panel-button',
+                  onClick: () => xGhosted.toggleAutoScrolling(),
+                  'aria-label': state.isAutoScrollingEnabled
+                    ? 'Stop Auto-Scroll'
+                    : 'Start Auto-Scroll',
+                },
+                window.preact.h('i', {
+                  className: state.isAutoScrollingEnabled
+                    ? 'fa-solid fa-circle-stop'
+                    : 'fa-solid fa-circle-play',
+                  style: { marginRight: '12px' },
+                }),
+                'Scroll'
+              ),
+              window.preact.h(
+                'button',
+                {
+                  className: 'panel-button',
+                  onClick: toggleVisibility,
+                  'aria-label': 'Hide Panel',
+                },
+                window.preact.h('i', {
+                  className: 'fas fa-eye-slash',
+                  style: { marginRight: '12px' },
+                }),
+                'Hide'
+              )
+            )
+          ),
+          window.preact.h(
+            'div',
+            {
+              className: 'tools-section',
+              style: {
+                display: isToolsExpanded ? 'block' : 'none',
+                padding: '12px',
+                borderRadius: '8px',
+                background: config.THEMES[currentMode].bg,
+                boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
+                marginBottom: '8px',
+                borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
+              },
+            },
+            window.preact.h(
+              'div',
+              {
+                style: {
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  padding: '15px',
+                },
+              },
+              window.preact.h(
+                'div',
+                {
+                  style: {
+                    paddingBottom: '12px',
+                    borderBottom: '1px solid var(--border-color)',
+                  },
+                },
+                window.preact.h(
+                  'div',
+                  { className: 'custom-dropdown' },
+                  window.preact.h(
+                    'button',
+                    {
+                      className: 'panel-button dropdown-button',
+                      onClick: () => setIsDropdownOpen(!isDropdownOpen),
+                      'aria-expanded': isDropdownOpen,
+                      'aria-label': 'Select Theme',
+                    },
+                    currentMode.charAt(0).toUpperCase() +
+                    currentMode.slice(1),
+                    window.preact.h('i', {
+                      className: isDropdownOpen
+                        ? 'fas fa-chevron-up'
+                        : 'fas fa-chevron-down',
+                      style: { marginLeft: '8px' },
+                    })
+                  ),
+                  isDropdownOpen &&
+                  window.preact.h(
+                    'div',
+                    { className: 'dropdown-menu' },
+                    themeOptions.map((option) =>
+                      window.preact.h(
+                        'div',
+                        {
+                          key: option,
+                          className: 'dropdown-item',
+                          onClick: () => {
+                            toggleThemeMode(option);
+                            setIsDropdownOpen(false);
+                          },
+                          role: 'option',
+                          'aria-selected': currentMode === option,
+                        },
+                        option.charAt(0).toUpperCase() + option.slice(1)
+                      )
+                    )
+                  )
+                )
+              ),
+              window.preact.h(
+                'div',
+                {
+                  style: {
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    marginBottom: '8px',
+                  },
+                },
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => {
+                      document.dispatchEvent(
+                        new CustomEvent('xghosted:copy-links')
+                      );
+                    },
+                    'aria-label': 'Copy Problem Links',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-copy',
+                    style: { marginRight: '8px' },
+                  }),
+                  'Copy'
+                ),
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => {
+                      document.dispatchEvent(
+                        new CustomEvent('xghosted:export-csv')
+                      );
+                    },
+                    'aria-label': 'Export Posts to CSV',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-file-export',
+                    style: { marginRight: '8px' },
+                  }),
+                  'Export CSV'
+                ),
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => setIsModalOpen(true),
+                    'aria-label': 'Import Posts from CSV',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-file-import',
+                    style: { marginRight: '8px' },
+                  }),
+                  'Import CSV'
+                ),
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => {
+                      document.dispatchEvent(
+                        new CustomEvent('xghosted:clear-posts')
+                      );
+                    },
+                    'aria-label': 'Clear Processed Posts',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-trash',
+                    style: { marginRight: '8px' },
+                  }),
+                  'Clear'
+                )
+              )
+            )
+          ),
+          window.preact.h(
+            'div',
+            { className: 'content-wrapper' },
+            window.preact.h(
+              'div',
+              { className: 'problem-posts-header' },
+              'Problem Posts (',
+              flagged.length,
+              '):'
+            ),
+            window.preact.h(
+              'div',
+              { className: 'problem-links-wrapper' },
+              flagged.map(([href, { analysis, checked }]) =>
+                window.preact.h(
+                  'div',
+                  {
+                    className: 'link-row',
+                    style: { padding: '4px 0' },
+                    key: href,
+                  },
+                  analysis.quality.name === 'Problem'
+                    ? window.preact.h('span', {
+                      className: 'status-dot status-problem',
+                    })
+                    : window.preact.h(
+                      'span',
+                      {
+                        className: 'status-eyeball',
+                        tabIndex: 0,
+                        role: 'button',
+                        'aria-label': 'Check post manually',
+                        onClick: () => !checked && onEyeballClick(href),
+                        onKeyDown: (e) =>
+                          e.key === 'Enter' &&
+                          !checked &&
+                          onEyeballClick(href),
+                      },
+                      '\u{1F440}'
+                    ),
+                  window.preact.h(
+                    'div',
+                    { className: 'link-item' },
+                    window.preact.h(
+                      'a',
+                      {
+                        href: `${xGhosted.postsManager.linkPrefix}${href}`,
+                        target: '_blank',
+                      },
+                      href
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+        : window.preact.h(
+          'div',
+          {
+            style: {
+              display: 'flex',
+              justifyContent: 'flex-end',
+              padding: '0',
+              margin: '0',
+            },
+          },
+          window.preact.h(
+            'button',
+            {
+              className: 'panel-button',
+              onClick: toggleVisibility,
+              'aria-label': 'Show Panel',
+            },
+            window.preact.h('i', {
+              className: 'fas fa-eye',
+              style: { marginRight: '6px' },
+            }),
+            'Show'
+          )
+        )
+    ),
+    isModalOpen &&
+    window.preact.h(window.Modal, {
+      isOpen: isModalOpen,
+      onClose: () => setIsModalOpen(false),
+      onSubmit: (csvText) => {
+        document.dispatchEvent(
+          new CustomEvent('xghosted:csv-import', {
+            detail: { csvText },
+          })
+        );
+      },
+      mode: currentMode,
+      config,
+    })
+  );
+}
+
+window.Panel = Panel;
+
+// File: src/ui/PanelManager.js
+// --------------------------------
+import './Panel.jsx';
+
+function Modal({ isOpen, onClose, onSubmit, mode, config }) {
+  const [csvText, setCsvText] = window.preactHooks.useState('');
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.name.endsWith('.csv')) {
+      alert('Please select a CSV file.');
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      setCsvText(text);
+    };
+    reader.onerror = () => {
+      alert('Error reading the file.');
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  };
+  return window.preact.h(
+    'div',
+    null,
+    window.preact.h(
+      'div',
+      {
+        className: 'modal',
+        style: {
+          display: isOpen ? 'block' : 'none',
+          '--modal-bg': config.THEMES[mode].bg,
+          '--modal-text': config.THEMES[mode].text,
+          '--modal-button-bg': config.THEMES[mode].button,
+          '--modal-button-text': config.THEMES[mode].buttonText,
+          '--modal-hover-bg': config.THEMES[mode].hover,
+          '--modal-border': config.THEMES[mode].border,
+        },
+      },
+      window.preact.h(
+        'div',
+        { className: 'modal-file-input-container' },
+        window.preact.h('input', {
+          type: 'file',
+          className: 'modal-file-input',
+          accept: '.csv',
+          onChange: handleFileChange,
+          'aria-label': 'Select CSV file to import',
+        })
+      ),
+      window.preact.h('textarea', {
+        className: 'modal-textarea',
+        value: csvText,
+        onInput: (e) => setCsvText(e.target.value),
+        placeholder:
+          'Paste CSV content (e.g. Link Quality Reason Checked) or select a file above',
+        'aria-label': 'CSV content input',
+      }),
+      window.preact.h(
+        'div',
+        { className: 'modal-button-container' },
+        window.preact.h(
+          'button',
+          {
+            className: 'modal-button',
+            onClick: () => onSubmit(csvText),
+            'aria-label': 'Submit CSV content',
+          },
+          window.preact.h('i', {
+            className: 'fas fa-check',
+            style: { marginRight: '6px' },
+          }),
+          'Submit'
+        ),
+        window.preact.h(
+          'button',
+          {
+            className: 'modal-button',
+            onClick: () => {
+              setCsvText('');
+              onClose();
+            },
+            'aria-label': 'Close modal and clear input',
+          },
+          window.preact.h('i', {
+            className: 'fas fa-times',
+            style: { marginRight: '6px' },
+          }),
+          'Close'
+        )
+      )
+    )
+  );
+}
+window.Modal = Modal;
+
+window.PanelManager = function (
+  doc,
+  xGhostedInstance,
+  themeMode = 'light',
+  postsManager,
+  storage
+) {
+  this.document = doc;
+  this.xGhosted = xGhostedInstance;
+  this.log = xGhostedInstance.log;
+  this.postsManager = postsManager;
+  this.storage = storage || { get: () => { }, set: () => { } };
+  const validThemes = ['light', 'dim', 'dark'];
+  this.state = {
+    panelPosition: { right: '10px', top: '60px' },
+    instance: xGhostedInstance,
+    isPanelVisible: true,
+    isRateLimited: false,
+    isManualCheckEnabled: false,
+    isPollingEnabled: true,
+    isAutoScrollingEnabled: false,
+    themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
+  };
+  this.log(
+    `PanelManager initialized with themeMode: ${this.state.themeMode}`
+  );
+  this.uiElements = {
+    config: {
+      PANEL: {
+        WIDTH: '400px',
+        MAX_HEIGHT: 'calc(100vh - 70px)',
+        TOP: '60px',
+        RIGHT: '10px',
+        Z_INDEX: '9999',
+        FONT: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+      },
+      THEMES: {
+        light: {
+          bg: '#FFFFFF',
+          text: '#292F33',
+          buttonText: '#000000',
+          border: '#B0BEC5',
+          button: '#3A4A5B',
+          hover: '#90A4AE',
+          scroll: '#CCD6DD',
+          placeholder: '#666666',
+          problem: 'red',
+          potentialProblem: 'yellow',
+          eyeballColor: 'rgb(29, 155, 240)',
+        },
+        dim: {
+          bg: '#15202B',
+          text: '#D9D9D9',
+          buttonText: '#FFFFFF',
+          border: '#8292A2',
+          button: '#3A4A5B',
+          hover: '#8292A2',
+          scroll: '#4A5C6D',
+          placeholder: '#A0A0A0',
+          problem: 'red',
+          potentialProblem: 'yellow',
+          eyeballColor: 'rgb(29, 155, 240)',
+        },
+        dark: {
+          bg: '#000000',
+          text: '#D9D9D9',
+          buttonText: '#FFFFFF',
+          border: '#888888',
+          button: '#3A4A5B',
+          hover: '#888888',
+          scroll: '#666666',
+          placeholder: '#A0A0A0',
+          problem: 'red',
+          potentialProblem: 'yellow',
+          eyeballColor: 'rgb(29, 155, 240)',
+        },
+      },
+    },
+    panel: null,
+    panelContainer: null,
+  };
+  this.styleElement = null;
+  this.dragState = {
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    initialRight: 0,
+    initialTop: 0,
+  };
+  this.init();
+};
+
+window.PanelManager.prototype.init = function () {
+  this.loadState();
+  this.uiElements.panelContainer = this.document.createElement('div');
+  this.uiElements.panelContainer.id = 'xghosted-panel-container';
+  this.uiElements.panel = this.document.createElement('div');
+  this.uiElements.panel.id = 'xghosted-panel';
+  this.uiElements.panelContainer.appendChild(this.uiElements.panel);
+  this.document.body.appendChild(this.uiElements.panelContainer);
+  if (window.xGhostedStyles) {
+    if (window.xGhostedStyles.modal) {
+      const modalStyleSheet = this.document.createElement('style');
+      modalStyleSheet.textContent = window.xGhostedStyles.modal;
+      this.document.head.appendChild(modalStyleSheet);
+    }
+    if (window.xGhostedStyles.panel) {
+      const panelStyleSheet = this.document.createElement('style');
+      panelStyleSheet.textContent = window.xGhostedStyles.panel;
+      this.document.head.appendChild(panelStyleSheet);
+    }
+  }
+  this.state.isRateLimited = this.xGhosted.state.isRateLimited;
+  this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
+  this.state.isAutoScrollingEnabled =
+    this.xGhosted.state.isAutoScrollingEnabled;
+  this.uiElements.panelContainer.style.right =
+    this.state.panelPosition.right;
+  this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+  this.uiElements.panelContainer.style.left = 'auto';
+  this.styleElement = this.document.createElement('style');
+  this.document.head.appendChild(this.styleElement);
+  this.applyPanelStyles();
+  this.xGhosted.on('state-updated', (newState) => {
+    this.state.isRateLimited = newState.isRateLimited;
+    this.renderPanel();
+  });
+  this.xGhosted.on('polling-state-updated', ({ isPollingEnabled }) => {
+    this.state.isPollingEnabled = isPollingEnabled;
+    this.renderPanel();
+    this.applyPanelStyles();
+  });
+  this.xGhosted.on(
+    'auto-scrolling-toggled',
+    ({ isAutoScrollingEnabled }) => {
+      this.state.isAutoScrollingEnabled = isAutoScrollingEnabled;
+      this.renderPanel();
+    }
+  );
+  if (window.preact && window.preact.h) {
+    this.renderPanel();
+  } else {
+    this.log('Preact h not available, skipping panel render');
+  }
+};
+
+window.PanelManager.prototype.saveState = function () {
+  const currentState = this.storage.get('xGhostedState', {});
+  const updatedState = {
+    ...currentState,
+    panel: {
+      isPanelVisible: this.state.isPanelVisible,
+      panelPosition: { ...this.state.panelPosition },
+      themeMode: this.state.themeMode,
+    },
+  };
+  this.storage.set('xGhostedState', updatedState);
+  this.log('Saved panel state');
+};
+
+window.PanelManager.prototype.loadState = function () {
+  const savedState = this.storage.get('xGhostedState', {});
+  const panelState = savedState.panel || {};
+  this.state.isPanelVisible = panelState.isPanelVisible ?? true;
+  this.state.themeMode = ['light', 'dim', 'dark'].includes(
+    panelState.themeMode
+  )
+    ? panelState.themeMode
+    : this.state.themeMode;
+  if (
+    panelState.panelPosition &&
+    panelState.panelPosition.right &&
+    panelState.panelPosition.top
+  ) {
+    const panelWidth = 350;
+    const panelHeight = 48;
+    const windowWidth = this.document.defaultView.innerWidth;
+    const windowHeight = this.document.defaultView.innerHeight;
+    // Validate right position
+    let right = '10px';
+    if (typeof panelState.panelPosition.right === 'string' && panelState.panelPosition.right.endsWith('px')) {
+      const parsedRight = parseFloat(panelState.panelPosition.right);
+      if (!isNaN(parsedRight)) {
+        right = `${Math.max(0, Math.min(parsedRight, windowWidth - panelWidth))}px`;
+      } else {
+        this.log(`Invalid stored right position: ${panelState.panelPosition.right}, defaulting to 10px`);
+      }
+    } else {
+      this.log(`Invalid or missing stored right position: ${panelState.panelPosition.right}, defaulting to 10px`);
+    }
+    // Validate top position
+    let top = '60px';
+    if (typeof panelState.panelPosition.top === 'string' && panelState.panelPosition.top.endsWith('px')) {
+      const parsedTop = parseFloat(panelState.panelPosition.top);
+      if (!isNaN(parsedTop)) {
+        top = `${Math.max(0, Math.min(parsedTop, windowHeight - panelHeight))}px`;
+      } else {
+        this.log(`Invalid stored top position: ${panelState.panelPosition.top}, defaulting to 60px`);
+      }
+    } else {
+      this.log(`Invalid or missing stored top position: ${panelState.panelPosition.top}, defaulting to 60px`);
+    }
+    this.state.panelPosition.right = right;
+    this.state.panelPosition.top = top;
+  }
+  this.log(
+    `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`
+  );
+};
+
+window.PanelManager.prototype.applyPanelStyles = function () {
+  const position = this.state.panelPosition || {
+    right: '10px',
+    top: '60px',
+  };
+  const borderColor = this.state.isPollingEnabled
+    ? this.uiElements.config.THEMES[this.state.themeMode].border
+    : '#FFA500';
+  this.styleElement.textContent = `
+    button:active { transform: scale(0.95); }
+    #xghosted-panel-container {
+      position: fixed;
+      right: ${position.right};
+      top: ${position.top};
+      z-index: ${this.uiElements.config.PANEL.Z_INDEX};
+      cursor: move;
+      border: 2px solid ${borderColor};
+      border-radius: 12px;
+    }
+  `;
+};
+
+window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
+  this.state.isPanelVisible =
+    typeof newVisibility === 'boolean'
+      ? newVisibility
+      : !this.state.isPanelVisible;
+  this.saveState();
+  this.renderPanel();
+  this.document.dispatchEvent(
+    new CustomEvent('xghosted:toggle-panel-visibility', {
+      detail: { isPanelVisible: this.state.isPanelVisible },
+    })
+  );
+};
+
+window.PanelManager.prototype.setPanelPosition = function (position) {
+  this.state.panelPosition = { ...position };
+  this.saveState();
+  this.log(
+    `Updated panel position: right=${position.right}, top=${position.top}`
+  );
+};
+
+window.PanelManager.prototype.renderPanel = function () {
+  if (!this.uiElements.panel) {
+    this.log('renderPanel: panel element not initialized, skipping render');
+    return;
+  }
+  this.log(
+    `renderPanel: themeMode=${this.state.themeMode}, config.THEMES=`,
+    this.uiElements.config.THEMES
+  );
+  window.preact.render(
+    window.preact.h(window.Panel, {
+      state: this.state,
+      config: this.uiElements.config,
+      xGhosted: this.xGhosted,
+      currentMode: this.state.themeMode,
+      toggleThemeMode: (newMode) => this.handleModeChange(newMode),
+      onStartPolling: () => this.xGhosted.handleStartPolling(),
+      onStopPolling: () => this.xGhosted.handleStopPolling(),
+      onEyeballClick: (href) => {
+        const post = this.document.querySelector(
+          `[data-xghosted-id="${href}"]`
+        );
+        this.xGhosted.userRequestedPostCheck(href, post);
+      },
+      setPanelPosition: (position) => this.setPanelPosition(position),
+    }),
+    this.uiElements.panel
+  );
+};
+
+window.PanelManager.prototype.updateTheme = function (newMode) {
+  this.state.themeMode = newMode;
+  this.renderPanel();
+};
+
+window.PanelManager.prototype.handleModeChange = function (newMode) {
+  this.state.themeMode = newMode;
+  const currentState = this.storage.get('xGhostedState', {});
+  const updatedState = {
+    ...currentState,
+    themeMode: newMode,
+  };
+  this.storage.set('xGhostedState', updatedState);
+  this.log(`Saved themeMode: ${newMode}`);
+  this.xGhosted.emit('theme-mode-changed', { themeMode: newMode });
+  this.renderPanel();
+};
+
+window.PanelManager.prototype.generateCSVData = function () {
+  const headers = ['Link', 'Quality', 'Reason', 'Checked'];
+  const rows = this.postsManager
+    .getAllPosts()
+    .map(([id, { analysis, checked }]) => {
+      return [
+        `${this.postsManager.linkPrefix}${id}`,
+        analysis.quality.name,
+        analysis.reason,
+        checked ? 'true' : 'false',
+      ].join(',');
+    });

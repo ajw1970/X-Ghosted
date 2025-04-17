@@ -1,0 +1,92 @@
+// Combined dependencies from 4 starting files
+// Starting files: package.json, jest.config.mjs, jest.setup.mjs, babel.config.mjs
+
+// File: babel.config.mjs
+// --------------------------------
+export default {
+  presets: [
+    [
+      "@babel/preset-env",
+      {
+        targets: {
+          node: "current",
+        },
+      },
+    ],
+  ],
+};
+
+// File: jest.config.mjs
+// --------------------------------
+export default {
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.mjs'],
+  globals: true, // Enable Vitest globals (vi, expect, etc.)
+};
+
+// File: jest.setup.mjs
+// --------------------------------
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { TextEncoder, TextDecoder } from 'util';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { h, render } from 'preact';
+import { useState, useEffect } from 'preact/hooks';
+import htm from 'htm';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+global.loadHTML = (filePath) => {
+  const absolutePath = resolve(__dirname, filePath);
+  const html = readFileSync(absolutePath, 'utf8');
+  document.documentElement.innerHTML = html;
+};
+
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+global.__dirname = __dirname;
+
+// Set Preact, Preact Hooks, and HTM globals for production code compatibility in tests
+global.window = global.window || {};
+window.preact = { h, render };
+window.preactHooks = { useState, useEffect };
+window.htm = htm.bind(h);
+
+// File: package.json
+// --------------------------------
+{
+  "name": "x-ghosted",
+  "version": "0.6.1",
+  "description": "= 𝕏 Ghostban Prevention or Cleanup",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --coverage",
+    "build": "node build-xGhosted.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ajw1970/X-Ghosted.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ajw1970/X-Ghosted/issues"
+  },
+  "homepage": "https://github.com/ajw1970/X-Ghosted#readme",
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.0.9",
+    "esbuild": "^0.25.1",
+    "glob": "^11.0.1",
+    "htm": "^3.1.1",
+    "jsdom": "^26.0.0",
+    "preact": "^10.26.4",
+    "prettier": "^3.5.3",
+    "vitest": "^3.0.9"
+  }
+}
+
+
