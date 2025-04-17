@@ -122,33 +122,31 @@
   color: var(--text-color);
 }
 
+.link-row {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: center;
+  column-gap: 8px; /* Adds a consistent gap between columns */
+}
+
 .status-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  margin-right: 6px;
   justify-self: center;
-}
-
-.status-problem {
-  background-color: red;
 }
 
 .status-eyeball {
   font-size: 16px;
   color: rgb(29, 155, 240);
   cursor: pointer;
-  text-align: center;
-  width: 20px;
-  height: 20px;
   line-height: 20px;
+  justify-self: center; /* Centers the eyeball in the column */
 }
 
-.link-row {
-  display: grid;
-  grid-template-columns: 20px 1fr;
-  align-items: center;
+.status-problem {
+  background-color: red;
 }
 
 .problem-links-wrapper {
