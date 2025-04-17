@@ -17,10 +17,7 @@ function XGhosted(doc, config = {}) {
   };
   this.timing = { ...defaultTiming, ...config.timing };
   this.document = doc;
-  this.log =
-    config.useTampermonkeyLog && typeof GM_log !== 'undefined'
-      ? GM_log.bind(null)
-      : console.log.bind(console);
+  this.log = config.log || console.log.bind(console); // Inject logger
   if (!config.postsManager) {
     throw new Error('XGhosted requires a postsManager instance');
   }

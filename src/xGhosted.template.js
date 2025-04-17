@@ -76,7 +76,7 @@
       pollInterval: 1000
     },
     showSplash: true,
-    useTampermonkeyLog: true,
+    log, // Pass logger
     postsManager
   };
   const xGhosted = new window.XGhosted(document, config);
