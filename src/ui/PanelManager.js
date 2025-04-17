@@ -1,6 +1,5 @@
 function Modal({ isOpen, onClose, onSubmit, mode, config }) {
   const [csvText, setCsvText] = window.preactHooks.useState('');
-
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -20,7 +19,6 @@ function Modal({ isOpen, onClose, onSubmit, mode, config }) {
     };
     reader.readAsText(file);
   };
-
   return window.preact.h(
     'div',
     null,
@@ -118,7 +116,9 @@ window.PanelManager = function (
     isAutoScrollingEnabled: false,
     themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
   };
-  this.log(`PanelManager initialized with themeMode: ${this.state.themeMode}`);
+  this.log(
+    `PanelManager initialized with themeMode: ${this.state.themeMode}`
+  );
   this.uiElements = {
     config: {
       PANEL: {
@@ -207,8 +207,10 @@ window.PanelManager.prototype.init = function () {
   }
   this.state.isRateLimited = this.xGhosted.state.isRateLimited;
   this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
-  this.state.isAutoScrollingEnabled = this.xGhosted.state.isAutoScrollingEnabled;
-  this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
+  this.state.isAutoScrollingEnabled =
+    this.xGhosted.state.isAutoScrollingEnabled;
+  this.uiElements.panelContainer.style.right =
+    this.state.panelPosition.right;
   this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
   this.uiElements.panelContainer.style.left = 'auto';
   this.styleElement = this.document.createElement('style');
@@ -223,10 +225,13 @@ window.PanelManager.prototype.init = function () {
     this.renderPanel();
     this.applyPanelStyles();
   });
-  this.xGhosted.on('auto-scrolling-toggled', ({ isAutoScrollingEnabled }) => {
-    this.state.isAutoScrollingEnabled = isAutoScrollingEnabled;
-    this.renderPanel();
-  });
+  this.xGhosted.on(
+    'auto-scrolling-toggled',
+    ({ isAutoScrollingEnabled }) => {
+      this.state.isAutoScrollingEnabled = isAutoScrollingEnabled;
+      this.renderPanel();
+    }
+  );
   if (window.preact && window.preact.h) {
     this.renderPanel();
   } else {
@@ -241,8 +246,8 @@ window.PanelManager.prototype.saveState = function () {
     panel: {
       isPanelVisible: this.state.isPanelVisible,
       panelPosition: { ...this.state.panelPosition },
-      themeMode: this.state.themeMode
-    }
+      themeMode: this.state.themeMode,
+    },
   };
   this.storage.set('xGhostedState', updatedState);
   this.log('Saved panel state');
@@ -252,7 +257,9 @@ window.PanelManager.prototype.loadState = function () {
   const savedState = this.storage.get('xGhostedState', {});
   const panelState = savedState.panel || {};
   this.state.isPanelVisible = panelState.isPanelVisible ?? true;
-  this.state.themeMode = ['light', 'dim', 'dark'].includes(panelState.themeMode)
+  this.state.themeMode = ['light', 'dim', 'dark'].includes(
+    panelState.themeMode
+  )
     ? panelState.themeMode
     : this.state.themeMode;
   if (
@@ -266,14 +273,23 @@ window.PanelManager.prototype.loadState = function () {
     const windowHeight = this.document.defaultView.innerHeight;
     const right = parseFloat(panelState.panelPosition.right);
     const top = parseFloat(panelState.panelPosition.top);
-    this.state.panelPosition.right = isNaN(right) ? '10px' : `${Math.max(0, Math.min(right, windowWidth - panelWidth))}px`;
-    this.state.panelPosition.top = isNaN(top) ? '60px' : `${Math.max(0, Math.min(top, windowHeight - panelHeight))}px`;
+    this.state.panelPosition.right = isNaN(right)
+      ? '10px'
+      : `${Math.max(0, Math.min(right, windowWidth - panelWidth))}px`;
+    this.state.panelPosition.top = isNaN(top)
+      ? '60px'
+      : `${Math.max(0, Math.min(top, windowHeight - panelHeight))}px`;
   }
-  this.log(`Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}`);
+  this.log(
+    `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}`
+  );
 };
 
 window.PanelManager.prototype.applyPanelStyles = function () {
-  const position = this.state.panelPosition || { right: '10px', top: '60px' };
+  const position = this.state.panelPosition || {
+    right: '10px',
+    top: '60px',
+  };
   const borderColor = this.state.isPollingEnabled
     ? this.uiElements.config.THEMES[this.state.themeMode].border
     : '#FFA500';
@@ -292,18 +308,25 @@ window.PanelManager.prototype.applyPanelStyles = function () {
 };
 
 window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
-  this.state.isPanelVisible = typeof newVisibility === 'boolean' ? newVisibility : !this.state.isPanelVisible;
+  this.state.isPanelVisible =
+    typeof newVisibility === 'boolean'
+      ? newVisibility
+      : !this.state.isPanelVisible;
   this.saveState();
   this.renderPanel();
-  this.document.dispatchEvent(new CustomEvent('xghosted:toggle-panel-visibility', {
-    detail: { isPanelVisible: this.state.isPanelVisible }
-  }));
+  this.document.dispatchEvent(
+    new CustomEvent('xghosted:toggle-panel-visibility', {
+      detail: { isPanelVisible: this.state.isPanelVisible },
+    })
+  );
 };
 
 window.PanelManager.prototype.setPanelPosition = function (position) {
   this.state.panelPosition = { ...position };
   this.saveState();
-  this.log(`Updated panel position: right=${position.right}, top=${position.top}`);
+  this.log(
+    `Updated panel position: right=${position.right}, top=${position.top}`
+  );
 };
 
 window.PanelManager.prototype.renderPanel = function () {
@@ -325,7 +348,9 @@ window.PanelManager.prototype.renderPanel = function () {
       onStartPolling: () => this.xGhosted.handleStartPolling(),
       onStopPolling: () => this.xGhosted.handleStopPolling(),
       onEyeballClick: (href) => {
-        const post = this.document.querySelector(`[data-xghosted-id="${href}"]`);
+        const post = this.document.querySelector(
+          `[data-xghosted-id="${href}"]`
+        );
         this.xGhosted.userRequestedPostCheck(href, post);
       },
       setPanelPosition: (position) => this.setPanelPosition(position),
@@ -387,17 +412,19 @@ window.PanelManager.prototype.exportProcessedPostsCSV = function () {
   a.click();
   URL.revokeObjectURL(url);
   this.log(`Exported CSV: processed_posts.csv`);
-  this.document.dispatchEvent(new CustomEvent('xghosted:export-csv'));
 };
 
-window.PanelManager.prototype.importProcessedPostsCSV = function (csvText, onClose) {
+window.PanelManager.prototype.importProcessedPostsCSV = function (
+  csvText,
+  onClose
+) {
   this.log('Import CSV button clicked');
   const count = this.postsManager.importPosts(csvText);
   if (count > 0) {
     this.renderPanel();
     this.document.dispatchEvent(
       new CustomEvent('xghosted:csv-import', {
-        detail: { importedCount: count }
+        detail: { importedCount: count },
       })
     );
     alert(`Successfully imported ${count} posts!`);

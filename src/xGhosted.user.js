@@ -1044,7 +1044,6 @@
       a.click();
       URL.revokeObjectURL(url);
       this.log(`Exported CSV: processed_posts.csv`);
-      this.document.dispatchEvent(new CustomEvent('xghosted:export-csv'));
     };
     window.PanelManager.prototype.importProcessedPostsCSV = function (
       csvText,
@@ -2402,7 +2401,6 @@
       a.click();
       URL.revokeObjectURL(url);
       this.log(`Exported CSV: processed_posts.csv`);
-      this.document.dispatchEvent(new CustomEvent('xghosted:export-csv'));
     };
     window.PanelManager.prototype.importProcessedPostsCSV = function (
       csvText,
