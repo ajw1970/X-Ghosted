@@ -669,25 +669,12 @@
         isPollingEnabled: true,
         userProfileName: null,
       };
-      this.events = {};
       this.checkPostInNewTabThrottled = debounce((href) => {
         return this.checkPostInNewTab(href);
       }, this.timing.tabCheckThrottle);
       this.ensureAndHighlightPostsDebounced = debounce(() => {
         this.ensureAndHighlightPosts();
       }, this.timing.debounceDelay);
-      this.on = (event, callback) => {
-        if (!this.events[event]) this.events[event] = [];
-        this.events[event].push(callback);
-      };
-      this.off = (event, callback) => {
-        if (!this.events[event]) return;
-        this.events[event] = this.events[event].filter((cb) => cb !== callback);
-      };
-      this.emit = (event, data) => {
-        if (!this.events[event]) return;
-        this.events[event].forEach((cb) => cb(data));
-      };
     }
     XGhosted.POST_SELECTOR =
       'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
@@ -815,7 +802,11 @@
             : postQuality.GOOD;
           cached.checked = true;
           this.postsManager.registerPost(href, cached);
-          this.emit('state-updated', { ...this.state });
+          this.document.dispatchEvent(
+            new CustomEvent('xghosted:state-updated', {
+              detail: { ...this.state },
+            })
+          );
           this.log(`User requested post check completed for ${href}`);
         });
       } else {
@@ -826,9 +817,11 @@
       this.state.isPollingEnabled = true;
       this.startPolling();
       this.startAutoScrolling();
-      this.emit('polling-state-updated', {
-        isPollingEnabled: this.state.isPollingEnabled,
-      });
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:polling-state-updated', {
+          detail: { isPollingEnabled: this.state.isPollingEnabled },
+        })
+      );
     };
     XGhosted.prototype.handleStopPolling = function () {
       this.state.isPollingEnabled = false;
@@ -840,9 +833,11 @@
         clearInterval(this.scrollTimer);
         this.scrollTimer = null;
       }
-      this.emit('polling-state-updated', {
-        isPollingEnabled: this.state.isPollingEnabled,
-      });
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:polling-state-updated', {
+          detail: { isPollingEnabled: this.state.isPollingEnabled },
+        })
+      );
     };
     XGhosted.prototype.startPolling = function () {
       if (!this.state.isPollingEnabled) {
@@ -893,9 +888,11 @@
     };
     XGhosted.prototype.toggleAutoScrolling = function () {
       this.state.isAutoScrollingEnabled = !this.state.isAutoScrollingEnabled;
-      this.emit('auto-scrolling-toggled', {
-        isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
-      });
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:auto-scrolling-toggled', {
+          detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled },
+        })
+      );
     };
     XGhosted.prototype.expandArticle = function (article) {
       if (article) {
@@ -973,7 +970,11 @@
       });
       if (postsProcessed > 0) {
         this.state = { ...this.state };
-        this.emit('state-updated', { ...this.state });
+        this.document.dispatchEvent(
+          new CustomEvent('xghosted:state-updated', {
+            detail: { ...this.state },
+          })
+        );
         this.log(
           `Highlighted ${postsProcessed} new posts, state-updated emitted`
         );
@@ -1834,22 +1835,45 @@
       this.styleElement = this.document.createElement('style');
       this.document.head.appendChild(this.styleElement);
       this.applyPanelStyles();
-      this.xGhosted.on('state-updated', (newState) => {
-        this.state.isRateLimited = newState.isRateLimited;
+      const handleStateUpdated = (e) => {
+        this.state.isRateLimited = e.detail.isRateLimited;
         this.renderPanel();
-      });
-      this.xGhosted.on('polling-state-updated', ({ isPollingEnabled }) => {
-        this.state.isPollingEnabled = isPollingEnabled;
+      };
+      const handlePollingStateUpdated = (e) => {
+        this.state.isPollingEnabled = e.detail.isPollingEnabled;
         this.renderPanel();
         this.applyPanelStyles();
-      });
-      this.xGhosted.on(
-        'auto-scrolling-toggled',
-        ({ isAutoScrollingEnabled }) => {
-          this.state.isAutoScrollingEnabled = isAutoScrollingEnabled;
-          this.renderPanel();
-        }
+      };
+      const handleAutoScrollingToggled = (e) => {
+        this.state.isAutoScrollingEnabled = e.detail.isAutoScrollingEnabled;
+        this.renderPanel();
+      };
+      this.document.addEventListener(
+        'xghosted:state-updated',
+        handleStateUpdated
       );
+      this.document.addEventListener(
+        'xghosted:polling-state-updated',
+        handlePollingStateUpdated
+      );
+      this.document.addEventListener(
+        'xghosted:auto-scrolling-toggled',
+        handleAutoScrollingToggled
+      );
+      this.cleanup = () => {
+        this.document.removeEventListener(
+          'xghosted:state-updated',
+          handleStateUpdated
+        );
+        this.document.removeEventListener(
+          'xghosted:polling-state-updated',
+          handlePollingStateUpdated
+        );
+        this.document.removeEventListener(
+          'xghosted:auto-scrolling-toggled',
+          handleAutoScrollingToggled
+        );
+      };
       if (window.preact && window.preact.h) {
         this.renderPanel();
       } else {
@@ -1867,7 +1891,7 @@
         },
       };
       this.storage.set('xGhostedState', updatedState);
-      this.log('Saved panel state');
+      this.log('Saved panel state:', updatedState);
     };
     window.PanelManager.prototype.loadState = function () {
       const savedState = this.storage.get('xGhostedState', {});
@@ -2006,11 +2030,18 @@
       const currentState = this.storage.get('xGhostedState', {});
       const updatedState = {
         ...currentState,
-        themeMode: newMode,
+        panel: {
+          ...currentState.panel,
+          themeMode: newMode,
+        },
       };
       this.storage.set('xGhostedState', updatedState);
       this.log(`Saved themeMode: ${newMode}`);
-      this.xGhosted.emit('theme-mode-changed', { themeMode: newMode });
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:theme-mode-changed', {
+          detail: { themeMode: newMode },
+        })
+      );
       this.renderPanel();
     };
     window.PanelManager.prototype.generateCSVData = function () {

@@ -17,7 +17,7 @@ function XGhosted(doc, config = {}) {
   };
   this.timing = { ...defaultTiming, ...config.timing };
   this.document = doc;
-  this.log = config.log || console.log.bind(console); // Inject logger
+  this.log = config.log || console.log.bind(console);
   if (!config.postsManager) {
     throw new Error('XGhosted requires a postsManager instance');
   }
@@ -32,25 +32,12 @@ function XGhosted(doc, config = {}) {
     isPollingEnabled: true,
     userProfileName: null,
   };
-  this.events = {};
   this.checkPostInNewTabThrottled = debounce((href) => {
     return this.checkPostInNewTab(href);
   }, this.timing.tabCheckThrottle);
   this.ensureAndHighlightPostsDebounced = debounce(() => {
     this.ensureAndHighlightPosts();
   }, this.timing.debounceDelay);
-  this.on = (event, callback) => {
-    if (!this.events[event]) this.events[event] = [];
-    this.events[event].push(callback);
-  };
-  this.off = (event, callback) => {
-    if (!this.events[event]) return;
-    this.events[event] = this.events[event].filter((cb) => cb !== callback);
-  };
-  this.emit = (event, data) => {
-    if (!this.events[event]) return;
-    this.events[event].forEach((cb) => cb(data));
-  };
 }
 
 XGhosted.POST_SELECTOR = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
@@ -150,7 +137,11 @@ XGhosted.prototype.userRequestedPostCheck = function (href, post) {
       cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
       cached.checked = true;
       this.postsManager.registerPost(href, cached);
-      this.emit('state-updated', { ...this.state });
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:state-updated', {
+          detail: { ...this.state }
+        })
+      );
       this.log(`User requested post check completed for ${href}`);
     });
   } else {
@@ -162,7 +153,11 @@ XGhosted.prototype.handleStartPolling = function () {
   this.state.isPollingEnabled = true;
   this.startPolling();
   this.startAutoScrolling();
-  this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
+  this.document.dispatchEvent(
+    new CustomEvent('xghosted:polling-state-updated', {
+      detail: { isPollingEnabled: this.state.isPollingEnabled }
+    })
+  );
 };
 
 XGhosted.prototype.handleStopPolling = function () {
@@ -175,7 +170,11 @@ XGhosted.prototype.handleStopPolling = function () {
     clearInterval(this.scrollTimer);
     this.scrollTimer = null;
   }
-  this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
+  this.document.dispatchEvent(
+    new CustomEvent('xghosted:polling-state-updated', {
+      detail: { isPollingEnabled: this.state.isPollingEnabled }
+    })
+  );
 };
 
 XGhosted.prototype.startPolling = function () {
@@ -190,7 +189,6 @@ XGhosted.prototype.startPolling = function () {
       this.log('Polling skipped—highlighting in progress');
       return;
     }
-
     const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
     const postCount = posts.length;
     if (postCount > 0) {
@@ -226,7 +224,11 @@ XGhosted.prototype.startAutoScrolling = function () {
 
 XGhosted.prototype.toggleAutoScrolling = function () {
   this.state.isAutoScrollingEnabled = !this.state.isAutoScrollingEnabled;
-  this.emit('auto-scrolling-toggled', { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled });
+  this.document.dispatchEvent(
+    new CustomEvent('xghosted:auto-scrolling-toggled', {
+      detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled }
+    })
+  );
 };
 
 XGhosted.prototype.expandArticle = function (article) {
@@ -279,11 +281,9 @@ XGhosted.prototype.highlightPosts = function (posts) {
   };
 
   const checkReplies = this.state.isWithReplies;
-  const userProfileName = this.state.userProfileName; // TODO: Upcoming feature will need this
-
+  const userProfileName = this.state.userProfileName;
   const results = [];
   const postsToProcess = posts || this.document.querySelectorAll(XGhosted.POST_SELECTOR);
-
   let postsProcessed = 0;
   let cachedAnalysis = false;
   postsToProcess.forEach((post) => {
@@ -296,15 +296,17 @@ XGhosted.prototype.highlightPosts = function (posts) {
     if (analysis?.quality === postQuality.PROBLEM) {
       this.handleStopPolling();
     }
-
     if (!cachedAnalysis) postsProcessed++;
     processPostAnalysis(post, analysis);
     results.push(analysis);
   });
-
   if (postsProcessed > 0) {
     this.state = { ...this.state };
-    this.emit('state-updated', { ...this.state });
+    this.document.dispatchEvent(
+      new CustomEvent('xghosted:state-updated', {
+        detail: { ...this.state }
+      })
+    );
     this.log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
   }
   this.state.isHighlighting = false;
@@ -317,8 +319,6 @@ XGhosted.prototype.getThemeMode = function () {
 
 XGhosted.prototype.init = function () {
   this.log('Initializing XGhosted...');
-
-  // Detect theme early and emit event
   if (this.document.body) {
     const themeMode = this.getThemeMode();
     this.document.dispatchEvent(new CustomEvent('xghosted:theme-detected', {
@@ -327,8 +327,6 @@ XGhosted.prototype.init = function () {
   } else {
     this.log('Document body not available for theme detection');
   }
-
-  // Emit xghosted:init event with config data
   this.document.dispatchEvent(new CustomEvent('xghosted:init', {
     detail: {
       config: {
@@ -337,8 +335,6 @@ XGhosted.prototype.init = function () {
       }
     }
   }));
-
-  // Listen for CSV import and posts cleared to highlight posts
   this.document.addEventListener('xghosted:csv-import', () => {
     this.highlightPosts();
   });
@@ -346,7 +342,6 @@ XGhosted.prototype.init = function () {
     this.postsManager.clearPosts();
     this.ensureAndHighlightPosts();
   });
-
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
     .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
@@ -363,7 +358,6 @@ XGhosted.prototype.init = function () {
     }
   `;
   this.document.head.appendChild(styleSheet);
-
   this.document.addEventListener('click', (e) => {
     const eyeball = e.target.closest('.xghosted-eyeball') ||
       (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
@@ -386,7 +380,6 @@ XGhosted.prototype.init = function () {
       this.userRequestedPostCheck(href, clickedPost);
     }
   }, { capture: true });
-
   this.startPolling();
   this.startAutoScrolling();
 };

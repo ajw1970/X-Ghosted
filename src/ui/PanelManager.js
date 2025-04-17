@@ -209,31 +209,34 @@ window.PanelManager.prototype.init = function () {
   }
   this.state.isRateLimited = this.xGhosted.state.isRateLimited;
   this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
-  this.state.isAutoScrollingEnabled =
-    this.xGhosted.state.isAutoScrollingEnabled;
-  this.uiElements.panelContainer.style.right =
-    this.state.panelPosition.right;
+  this.state.isAutoScrollingEnabled = this.xGhosted.state.isAutoScrollingEnabled;
+  this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
   this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
   this.uiElements.panelContainer.style.left = 'auto';
   this.styleElement = this.document.createElement('style');
   this.document.head.appendChild(this.styleElement);
   this.applyPanelStyles();
-  this.xGhosted.on('state-updated', (newState) => {
-    this.state.isRateLimited = newState.isRateLimited;
+  const handleStateUpdated = (e) => {
+    this.state.isRateLimited = e.detail.isRateLimited;
     this.renderPanel();
-  });
-  this.xGhosted.on('polling-state-updated', ({ isPollingEnabled }) => {
-    this.state.isPollingEnabled = isPollingEnabled;
+  };
+  const handlePollingStateUpdated = (e) => {
+    this.state.isPollingEnabled = e.detail.isPollingEnabled;
     this.renderPanel();
     this.applyPanelStyles();
-  });
-  this.xGhosted.on(
-    'auto-scrolling-toggled',
-    ({ isAutoScrollingEnabled }) => {
-      this.state.isAutoScrollingEnabled = isAutoScrollingEnabled;
-      this.renderPanel();
-    }
-  );
+  };
+  const handleAutoScrollingToggled = (e) => {
+    this.state.isAutoScrollingEnabled = e.detail.isAutoScrollingEnabled;
+    this.renderPanel();
+  };
+  this.document.addEventListener('xghosted:state-updated', handleStateUpdated);
+  this.document.addEventListener('xghosted:polling-state-updated', handlePollingStateUpdated);
+  this.document.addEventListener('xghosted:auto-scrolling-toggled', handleAutoScrollingToggled);
+  this.cleanup = () => {
+    this.document.removeEventListener('xghosted:state-updated', handleStateUpdated);
+    this.document.removeEventListener('xghosted:polling-state-updated', handlePollingStateUpdated);
+    this.document.removeEventListener('xghosted:auto-scrolling-toggled', handleAutoScrollingToggled);
+  };
   if (window.preact && window.preact.h) {
     this.renderPanel();
   } else {
@@ -252,7 +255,7 @@ window.PanelManager.prototype.saveState = function () {
     },
   };
   this.storage.set('xGhostedState', updatedState);
-  this.log('Saved panel state');
+  this.log('Saved panel state:', updatedState);
 };
 
 window.PanelManager.prototype.loadState = function () {
@@ -273,29 +276,41 @@ window.PanelManager.prototype.loadState = function () {
     const panelHeight = 48;
     const windowWidth = this.document.defaultView.innerWidth;
     const windowHeight = this.document.defaultView.innerHeight;
-    // Validate right position
     let right = '10px';
-    if (typeof panelState.panelPosition.right === 'string' && panelState.panelPosition.right.endsWith('px')) {
+    if (
+      typeof panelState.panelPosition.right === 'string' &&
+      panelState.panelPosition.right.endsWith('px')
+    ) {
       const parsedRight = parseFloat(panelState.panelPosition.right);
       if (!isNaN(parsedRight)) {
         right = `${Math.max(0, Math.min(parsedRight, windowWidth - panelWidth))}px`;
       } else {
-        this.log(`Invalid stored right position: ${panelState.panelPosition.right}, defaulting to 10px`);
+        this.log(
+          `Invalid stored right position: ${panelState.panelPosition.right}, defaulting to 10px`
+        );
       }
     } else {
-      this.log(`Invalid or missing stored right position: ${panelState.panelPosition.right}, defaulting to 10px`);
+      this.log(
+        `Invalid or missing stored right position: ${panelState.panelPosition.right}, defaulting to 10px`
+      );
     }
-    // Validate top position
     let top = '60px';
-    if (typeof panelState.panelPosition.top === 'string' && panelState.panelPosition.top.endsWith('px')) {
+    if (
+      typeof panelState.panelPosition.top === 'string' &&
+      panelState.panelPosition.top.endsWith('px')
+    ) {
       const parsedTop = parseFloat(panelState.panelPosition.top);
       if (!isNaN(parsedTop)) {
         top = `${Math.max(0, Math.min(parsedTop, windowHeight - panelHeight))}px`;
       } else {
-        this.log(`Invalid stored top position: ${panelState.panelPosition.top}, defaulting to 60px`);
+        this.log(
+          `Invalid stored top position: ${panelState.panelPosition.top}, defaulting to 60px`
+        );
       }
     } else {
-      this.log(`Invalid or missing stored top position: ${panelState.panelPosition.top}, defaulting to 60px`);
+      this.log(
+        `Invalid or missing stored top position: ${panelState.panelPosition.top}, defaulting to 60px`
+      );
     }
     this.state.panelPosition.right = right;
     this.state.panelPosition.top = top;
@@ -386,11 +401,18 @@ window.PanelManager.prototype.handleModeChange = function (newMode) {
   const currentState = this.storage.get('xGhostedState', {});
   const updatedState = {
     ...currentState,
-    themeMode: newMode,
+    panel: {
+      ...currentState.panel,
+      themeMode: newMode,
+    },
   };
   this.storage.set('xGhostedState', updatedState);
   this.log(`Saved themeMode: ${newMode}`);
-  this.xGhosted.emit('theme-mode-changed', { themeMode: newMode });
+  this.document.dispatchEvent(
+    new CustomEvent('xghosted:theme-mode-changed', {
+      detail: { themeMode: newMode }
+    })
+  );
   this.renderPanel();
 };
 
