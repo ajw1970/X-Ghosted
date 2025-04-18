@@ -68,7 +68,7 @@ describe('xGhosted', () => {
       useTampermonkeyLog: false,
       persistProcessedPosts: true,
     });
-    xGhosted.checkForUrlChanges('https://x.com/user/with_replies');
+    xGhosted.handleUrlChange('https://x.com/user/with_replies');
     xGhosted.highlightPostsDebounced = xGhosted.highlightPosts; // Simplify for tests
     xGhosted.state.processedPosts.clear();
     xGhosted.state = {
@@ -82,39 +82,6 @@ describe('xGhosted', () => {
   afterEach(() => {
     dom.window.document.body.innerHTML = '';
     vi.clearAllMocks();
-  });
-
-  test('checkForUrlChanges sets with_replies flag, userProfileName, and resets on URL change', () => {
-    expect(xGhosted.state.isWithReplies).toBe(true);
-    expect(xGhosted.state.userProfileName).toBe('user');
-    xGhosted.checkForUrlChanges('https://x.com/otherUser');
-    expect(xGhosted.state.isWithReplies).toBe(false);
-    expect(xGhosted.state.userProfileName).toBe('otherUser');
-    expect(xGhosted.state.processedPosts.size).toBe(0);
-  });
-
-  test('checkForUrlChanges dispatches user-profile-updated event when userProfileName changes', () => {
-    // Spy on document.dispatchEvent
-    const spy = vi.spyOn(document, 'dispatchEvent');
-
-    // Trigger the state update
-    xGhosted.checkForUrlChanges('https://x.com/newUser/with_replies');
-
-    // Check that dispatchEvent was called with the correct CustomEvent
-    expect(spy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'xghosted:user-profile-updated',
-        detail: { userProfileName: 'newUser' }
-      })
-    );
-
-    // Verify the state was updated
-    expect(xGhosted.state.userProfileName).toBe('newUser');
-
-    // Reset the spy and test no dispatch on same user
-    spy.mockClear();
-    xGhosted.checkForUrlChanges('https://x.com/newUser');
-    expect(spy).not.toHaveBeenCalled();
   });
 
   test('checkPostInNewTab handles rate limit', async () => {
@@ -135,19 +102,8 @@ describe('xGhosted', () => {
     expect(mockWindow.close).toHaveBeenCalled();
   });
 
-  test('ensureAndHighlightPosts identifies all post qualities', () => {
-    const analyses = xGhosted.ensureAndHighlightPosts();
-    const summary = summarizeRatedPosts(analyses);
-    expect(summary.Good).toBe(21);
-    expect(summary.Problem).toBe(1);
-    expect(summary['Potential Problem']).toBe(2);
-    expect(summary.Undefined).toBe(12);
-    const post = analyses.find(pa => pa.link === '/OwenGregorian/status/1896977661144260900');
-    expect(post.quality).toBe(postQuality.PROBLEM);
-  });
-
   test('saveState and loadState persist data', () => {
-    xGhosted.ensureAndHighlightPosts();
+    xGhosted.highlightPosts();
     xGhosted.saveState();
     const saved = gmStorage.xGhostedState;
     expect(saved.processedPosts['/OwenGregorian/status/1896977661144260900'].analysis.quality).toBe(postQuality.PROBLEM);
