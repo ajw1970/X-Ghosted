@@ -73,11 +73,20 @@
       tabCheckThrottle: 5000,
       exportThrottle: 5000,
       rateLimitPause: RATE_LIMIT_PAUSE,
-      pollInterval: 1000
+      pollInterval: 1000,
+      scrollInterval: 1500
     },
     showSplash: true,
-    log, // Pass logger
-    postsManager
+    log,
+    postsManager,
+    timingManager: new window.XGhostedUtils.TimingManager({
+      timing: {
+        pollInterval: 1000,
+        scrollInterval: 1500
+      },
+      log,
+      storage: { get: GM_getValue, set: GM_setValue }
+    })
   };
   const xGhosted = new window.XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
