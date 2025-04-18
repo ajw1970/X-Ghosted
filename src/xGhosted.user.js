@@ -900,7 +900,13 @@
           return;
         }
         if (this.state.isAutoScrollingEnabled) {
-          this.log('Performing smooth scroll down...');
+          const scrollHeight = this.document.documentElement.scrollHeight;
+          const scrollTop = window.scrollY + window.innerHeight;
+          if (scrollTop >= scrollHeight - 10) {
+            this.log('Reached page bottom, stopping auto-scrolling');
+            this.toggleAutoScrolling();
+            return;
+          }
           window.scrollBy({
             top: window.innerHeight * 0.8,
             behavior: 'smooth',
@@ -979,7 +985,6 @@
         results.push(analysis);
       });
       if (postsProcessed > 0) {
-        this.state = { ...this.state };
         this.document.dispatchEvent(
           new CustomEvent('xghosted:state-updated', {
             detail: { ...this.state },
