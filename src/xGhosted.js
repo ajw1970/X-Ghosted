@@ -260,18 +260,9 @@ XGhosted.prototype.startPolling = function () {
 };
 
 XGhosted.prototype.startAutoScrolling = function () {
-  if (!this.state.isPollingEnabled) {
-    this.log('Auto-scrolling not started: polling is disabled');
-    return;
-  }
   const scrollInterval = this.timing.scrollInterval || 1500;
-  this.log('Starting auto-scrolling timer...');
   this.scrollTimer = setInterval(() => {
-    if (!this.state.isPollingEnabled) {
-      this.log('Auto-scrolling skipped—polling is disabled');
-      return;
-    }
-    if (this.state.isAutoScrollingEnabled) {
+    if (this.state.isPollingEnabled && this.state.isAutoScrollingEnabled) {
       const scrollHeight = this.document.documentElement.scrollHeight;
       const scrollTop = window.scrollY + window.innerHeight;
       const bottomReached = scrollTop >= scrollHeight - 10;
@@ -279,6 +270,7 @@ XGhosted.prototype.startAutoScrolling = function () {
         this.log('Reached page bottom, stopping auto-scrolling');
         this.toggleAutoScrolling();
       } else {
+        this.log('Scrolling...');
         window.scrollBy({
           top: window.innerHeight * 0.8,
           behavior: 'smooth'
@@ -444,11 +436,13 @@ XGhosted.prototype.init = function () {
   setTimeout(() => {
     if (checkDomInterval) {
       clearInterval(checkDomInterval);
-      const waitTime = performance.now() - startTime;
-      this.timingManager?.setInitialWaitTime(waitTime);
-      this.log('DOM readiness timeout reached, starting polling');
-      this.startPolling();
-      this.startAutoScrolling();
+      if (!this.pollTimer) {
+        const waitTime = performance.now() - startTime;
+        this.timingManager?.setInitialWaitTime(waitTime);
+        this.log('DOM readiness timeout reached, starting polling');
+        this.startPolling();
+        this.startAutoScrolling();
+      }
     }
   }, 5000);
 };
