@@ -166,7 +166,13 @@ function Panel({
                 {
                   key: isScrolling ? 'scroll-stop' : 'scroll-start',
                   className: 'panel-button',
-                  onClick: () => xGhosted.toggleAutoScrolling(),
+                  onClick: () => {
+                    document.dispatchEvent(
+                      new CustomEvent('xghosted:set-auto-scrolling', {
+                        detail: { enabled: !isScrolling }
+                      })
+                    );
+                  },
                   'aria-label': isScrolling ? 'Stop Auto-Scroll' : 'Start Auto-Scroll',
                 },
                 window.preact.h('i', {

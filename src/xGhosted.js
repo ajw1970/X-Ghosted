@@ -281,11 +281,17 @@ XGhosted.prototype.startAutoScrolling = function () {
   }, scrollInterval);
 };
 
-XGhosted.prototype.toggleAutoScrolling = function () {
-  this.state.isAutoScrollingEnabled = !this.state.isAutoScrollingEnabled;
+XGhosted.prototype.setAutoScrolling = function (enabled) {
+  this.state.isAutoScrollingEnabled = enabled;
+  if (this.scrollTimer && !enabled) {
+    clearInterval(this.scrollTimer);
+    this.scrollTimer = null;
+  } else if (!this.scrollTimer && enabled) {
+    this.startAutoScrolling();
+  }
   this.document.dispatchEvent(
     new CustomEvent('xghosted:auto-scrolling-toggled', {
-      detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled }
+      detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled },
     })
   );
 };

@@ -125,6 +125,9 @@
       document.addEventListener('xghosted:csv-import', ({ detail: { csvText } }) => {
         panelManager.importProcessedPostsCSV(csvText, () => { });
       });
+      document.addEventListener('xghosted:set-auto-scrolling', ({ detail: { enabled } }) => {
+        xGhosted.setAutoScrolling(enabled);
+      });
     } catch (error) {
       log(`Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`);
     }

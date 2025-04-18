@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         xGhosted-timing
+// @name         xGhosted-decoupling
 // @namespace    http://tampermonkey.net/
 // @version      0.6.1
 // @description  Highlight and manage problem posts on X.com with a resizable, draggable panel
@@ -1124,6 +1124,7 @@
             this.log('Reached page bottom, stopping auto-scrolling');
             this.toggleAutoScrolling();
           } else {
+            this.log('Scrolling...');
             window.scrollBy({
               top: window.innerHeight * 0.8,
               behavior: 'smooth',
@@ -1133,8 +1134,14 @@
         }
       }, scrollInterval);
     };
-    XGhosted.prototype.toggleAutoScrolling = function () {
-      this.state.isAutoScrollingEnabled = !this.state.isAutoScrollingEnabled;
+    XGhosted.prototype.setAutoScrolling = function (enabled) {
+      this.state.isAutoScrollingEnabled = enabled;
+      if (this.scrollTimer && !enabled) {
+        clearInterval(this.scrollTimer);
+        this.scrollTimer = null;
+      } else if (!this.scrollTimer && enabled) {
+        this.startAutoScrolling();
+      }
       this.document.dispatchEvent(
         new CustomEvent('xghosted:auto-scrolling-toggled', {
           detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled },
@@ -1583,7 +1590,13 @@
                       {
                         key: isScrolling ? 'scroll-stop' : 'scroll-start',
                         className: 'panel-button',
-                        onClick: () => xGhosted.toggleAutoScrolling(),
+                        onClick: () => {
+                          document.dispatchEvent(
+                            new CustomEvent('xghosted:set-auto-scrolling', {
+                              detail: { enabled: !isScrolling },
+                            })
+                          );
+                        },
                         'aria-label': isScrolling
                           ? 'Stop Auto-Scroll'
                           : 'Start Auto-Scroll',
@@ -2890,6 +2903,12 @@
           'xghosted:csv-import',
           ({ detail: { csvText } }) => {
             panelManager.importProcessedPostsCSV(csvText, () => {});
+          }
+        );
+        document.addEventListener(
+          'xghosted:set-auto-scrolling',
+          ({ detail: { enabled } }) => {
+            xGhosted.setAutoScrolling(enabled);
           }
         );
       } catch (error) {
