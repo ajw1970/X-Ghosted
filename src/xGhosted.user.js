@@ -786,15 +786,17 @@
         throw new Error('XGhosted requires a postsManager instance');
       }
       this.postsManager = config.postsManager;
+      const urlFullPath = doc.location.origin + doc.location.pathname;
+      const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
       this.state = {
         postContainer: null,
-        lastUrlFullPath: '',
-        isWithReplies: false,
+        lastUrlFullPath: urlFullPath,
+        isWithReplies,
         isRateLimited: false,
         isAutoScrollingEnabled: false,
         isHighlighting: false,
         isPollingEnabled: true,
-        userProfileName: null,
+        userProfileName,
         firstContainerFound: true,
       };
       this.checkPostInNewTabThrottled = debounce((href) => {

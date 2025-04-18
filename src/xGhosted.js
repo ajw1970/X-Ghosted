@@ -23,15 +23,19 @@ function XGhosted(doc, config = {}) {
     throw new Error('XGhosted requires a postsManager instance');
   }
   this.postsManager = config.postsManager;
+  // Prepare state values from page url
+  const urlFullPath = doc.location.origin + doc.location.pathname;
+  const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
+  
   this.state = {
     postContainer: null,
-    lastUrlFullPath: '',
-    isWithReplies: false,
+    lastUrlFullPath: urlFullPath,
+    isWithReplies: isWithReplies,
     isRateLimited: false,
     isAutoScrollingEnabled: false,
     isHighlighting: false,
     isPollingEnabled: true,
-    userProfileName: null,
+    userProfileName: userProfileName,
     firstContainerFound: true,
   };
   this.checkPostInNewTabThrottled = debounce((href) => {
