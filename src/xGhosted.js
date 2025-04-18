@@ -24,7 +24,7 @@ function XGhosted(doc, config = {}) {
   this.postsManager = config.postsManager;
   this.state = {
     postContainer: null,
-    lastUrl: '',
+    lastUrlFullPath: '',
     isWithReplies: false,
     isRateLimited: false,
     isAutoScrollingEnabled: false,
@@ -35,22 +35,29 @@ function XGhosted(doc, config = {}) {
   this.checkPostInNewTabThrottled = debounce((href) => {
     return this.checkPostInNewTab(href);
   }, this.timing.tabCheckThrottle);
-  this.ensureAndHighlightPostsDebounced = debounce(() => {
-    this.ensureAndHighlightPosts();
+  this.highlightPostsDebounced = debounce(() => {
+    this.highlightPosts();
   }, this.timing.debounceDelay);
 }
 
 XGhosted.POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
-XGhosted.POST_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
+XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
 
-XGhosted.prototype.checkForUrlChanges = function (url) {
-  const { isWithReplies, userProfileName } = parseUrl(url);
-  this.state.isWithReplies = isWithReplies;
-  if (this.state.lastUrl !== url) {
-    this.state.postContainer = null;
-    this.postsManager.clearPosts();
-    this.state.lastUrl = url;
+XGhosted.prototype.getUrlFullPathIfChanged = function (url) {
+  const urlParts = new URL(url);
+  const urlFullPath = urlParts.origin + urlParts.pathname;
+  if (this.state.lastUrlFullPath === urlFullPath) {
+    return false;
   }
+
+  this.log(`URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath})`);
+  this.state.lastUrlFullPath = urlFullPath;
+  return urlFullPath;
+};
+
+XGhosted.prototype.handleUrlChange = function (urlFullPath) {
+  const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
+  this.state.isWithReplies = isWithReplies;
   if (this.state.userProfileName !== userProfileName) {
     this.state.userProfileName = userProfileName;
     this.document.dispatchEvent(new CustomEvent('xghosted:user-profile-updated', {
@@ -59,7 +66,9 @@ XGhosted.prototype.checkForUrlChanges = function (url) {
       }
     }));
   }
-};
+
+  this.postsManager.clearPosts();
+}
 
 XGhosted.prototype.checkPostInNewTab = function (href) {
   this.log(`Checking post in new tab: ${href}`);
@@ -186,17 +195,33 @@ XGhosted.prototype.startPolling = function () {
   const pollInterval = this.timing.pollInterval || 1000;
   this.log('Starting polling for post changes...');
   this.pollTimer = setInterval(() => {
+
     if (this.state.isHighlighting) {
       this.log('Polling skipped—highlighting in progress');
       return;
     }
-    const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
-    const postCount = posts.length;
-    if (postCount > 0) {
-      this.highlightPosts(posts);
+
+    // Check for URL changes
+    const urlFullPath = this.getUrlFullPathIfChanged(this.document.location.href);
+    if (urlFullPath) {
+      this.log(`URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath})`);
+      this.handleUrlChange(urlFullPath);
+    }
+
+    // Assuming we've handled any change to the URL origin, we can check for posts
+    const unprocessedPosts = this.document.querySelectorAll(XGhosted.UNPROCESSED_POSTS_SELECTOR);
+    if (unprocessedPosts.length > 0) {
+      this.highlightPosts(unprocessedPosts);
     } else if (!this.document.querySelector(XGhosted.POST_CONTAINER_SELECTOR)) {
-      this.log('No posts and no container found, ensuring and highlighting...');
-      this.ensureAndHighlightPosts();
+      this.log('No post container found, trying to find it...');
+      const foundContainer = findPostContainer(this.document, this.log);
+      if (foundContainer) {
+        this.highlightPosts();
+      } else {
+        this.log('Container still not found, skipping highlighting');
+      }
+    } else {
+      // this.log('No unprocessed posts found, skipping highlighting');
     }
   }, pollInterval);
 };
@@ -241,23 +266,9 @@ XGhosted.prototype.expandArticle = function (article) {
   }
 };
 
-XGhosted.prototype.ensureAndHighlightPosts = function () {
-  this.checkForUrlChanges(this.document.location.href);
-  let results = this.highlightPosts();
-  if (results.length === 0 && !this.state.postContainer) {
-    this.state.postContainer = findPostContainer(this.document, this.log);
-    if (this.state.postContainer) {
-      results = this.highlightPosts();
-    } else {
-      this.log('Container still not found, skipping highlighting');
-    }
-  }
-  return results;
-};
-
 XGhosted.prototype.highlightPosts = function (posts) {
   this.state.isHighlighting = true;
-  
+
   const processPostAnalysis = (post, analysis) => {
     if (!(post instanceof this.document.defaultView.Element)) {
       this.log('Skipping invalid DOM element:', post);
@@ -284,7 +295,7 @@ XGhosted.prototype.highlightPosts = function (posts) {
   const checkReplies = this.state.isWithReplies;
   const userProfileName = this.state.userProfileName;
   const results = [];
-  const postsToProcess = posts || this.document.querySelectorAll(XGhosted.POST_SELECTOR);
+  const postsToProcess = posts || this.document.querySelectorAll(XGhosted.UNPROCESSED_POSTS_SELECTOR);
   let postsProcessed = 0;
   let cachedAnalysis = false;
   postsToProcess.forEach((post) => {
@@ -336,13 +347,7 @@ XGhosted.prototype.init = function () {
       }
     }
   }));
-  this.document.addEventListener('xghosted:csv-import', () => {
-    this.highlightPosts();
-  });
-  this.document.addEventListener('xghosted:posts-cleared', () => {
-    this.postsManager.clearPosts();
-    this.ensureAndHighlightPosts();
-  });
+
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
     .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
