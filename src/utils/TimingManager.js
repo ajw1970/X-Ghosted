@@ -11,17 +11,22 @@ class TimingManager {
             containerFinds: 0,
             containerDetectionAttempts: 0,
             containerFoundTimestamp: null,
-            initialWaitTime: null, // Time until polling starts
+            initialWaitTime: null,
             scrolls: 0,
             bottomReached: 0,
             highlightingDurations: [],
             postDensity: 0,
             pageType: 'unknown',
+            sessionStarts: 0, // Count of polling session starts
+            sessionStops: 0,  // Count of polling session stops
+            sessionDurations: [], // Durations of polling sessions in ms
+            currentSessionStart: null // Timestamp of current session start
         };
+        this.initialWaitTimeSet = false; // Flag to prevent redundant initialWaitTime
         this.log('TimingManager initialized');
     }
 
-    recordPoll({ postsProcessed, wasSkipped, containerFound, containerAttempted, pageType }) {
+    recordPoll({ postsProcessed, wasSkipped, containerFound, containerAttempted, pageType, isPollingStarted, isPollingStopped }) {
         this.metrics.polls++;
         if (wasSkipped) this.metrics.pollSkips++;
         if (containerFound) {
@@ -33,6 +38,23 @@ class TimingManager {
         if (containerAttempted) this.metrics.containerDetectionAttempts++;
         if (postsProcessed !== undefined) this.metrics.postsProcessed.push(postsProcessed);
         this.metrics.pageType = pageType;
+
+        // Track polling session start/stop
+        if (isPollingStarted) {
+            this.metrics.sessionStarts++;
+            this.metrics.currentSessionStart = performance.now();
+            this.log(`Polling session started (count: ${this.metrics.sessionStarts})`);
+        }
+        if (isPollingStopped) {
+            this.metrics.sessionStops++;
+            if (this.metrics.currentSessionStart) {
+                const duration = performance.now() - this.metrics.currentSessionStart;
+                this.metrics.sessionDurations.push(duration);
+                this.log(`Polling session stopped (duration: ${duration.toFixed(2)}ms)`);
+                this.metrics.currentSessionStart = null;
+            }
+        }
+
         this.logMetrics();
     }
 
@@ -51,8 +73,11 @@ class TimingManager {
     }
 
     setInitialWaitTime(time) {
-        this.metrics.initialWaitTime = time;
-        this.log(`Initial wait time set: ${time}ms`);
+        if (!this.initialWaitTimeSet) {
+            this.metrics.initialWaitTime = time;
+            this.initialWaitTimeSet = true;
+            this.log(`Initial wait time set: ${time}ms`);
+        }
     }
 
     logMetrics() {
@@ -85,6 +110,13 @@ class TimingManager {
                         : 0,
                 postDensity: this.metrics.postDensity,
                 pageType: this.metrics.pageType,
+                sessionStarts: this.metrics.sessionStarts,
+                sessionStops: this.metrics.sessionStops,
+                avgSessionDuration:
+                    this.metrics.sessionDurations.length > 0
+                        ? (this.metrics.sessionDurations.reduce((sum, n) => sum + n, 0) /
+                            this.metrics.sessionDurations.length).toFixed(2)
+                        : 0
             });
         }
     }
@@ -101,7 +133,8 @@ class TimingManager {
     loadMetrics() {
         const state = this.storage.get('xGhostedState', {});
         if (state.timingMetrics) {
-            this.metrics = { ...state.timingMetrics };
+            this.metrics = { ...state.timingMetrics, currentSessionStart: null };
+            this.initialWaitTimeSet = !!this.metrics.initialWaitTime;
             this.log('Loaded timing metrics from storage');
         }
     }

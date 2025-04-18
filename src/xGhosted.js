@@ -26,7 +26,7 @@ function XGhosted(doc, config = {}) {
   // Prepare state values from page url
   const urlFullPath = doc.location.origin + doc.location.pathname;
   const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
-  
+
   this.state = {
     postContainer: null,
     lastUrlFullPath: urlFullPath,
@@ -179,6 +179,15 @@ XGhosted.prototype.handleStopPolling = function () {
   if (this.pollTimer) {
     clearInterval(this.pollTimer);
     this.pollTimer = null;
+    this.timingManager?.recordPoll({
+      postsProcessed: 0,
+      wasSkipped: false,
+      containerFound: false,
+      containerAttempted: false,
+      pageType: this.state.isWithReplies ? 'with_replies' : this.state.userProfileName ? 'profile' : 'timeline',
+      isPollingStarted: false,
+      isPollingStopped: true
+    });
   }
   if (this.scrollTimer) {
     clearInterval(this.scrollTimer);
@@ -206,7 +215,9 @@ XGhosted.prototype.startPolling = function () {
         wasSkipped: true,
         containerFound: false,
         containerAttempted: false,
-        pageType: this.state.isWithReplies ? 'with_replies' : this.state.userProfileName ? 'profile' : 'timeline'
+        pageType: this.state.isWithReplies ? 'with_replies' : this.state.userProfileName ? 'profile' : 'timeline',
+        isPollingStarted: false,
+        isPollingStopped: false
       });
       return;
     }
@@ -241,7 +252,9 @@ XGhosted.prototype.startPolling = function () {
       wasSkipped: false,
       containerFound,
       containerAttempted,
-      pageType: this.state.isWithReplies ? 'with_replies' : this.state.userProfileName ? 'profile' : 'timeline'
+      pageType: this.state.isWithReplies ? 'with_replies' : this.state.userProfileName ? 'profile' : 'timeline',
+      isPollingStarted: !this.pollTimer, // First poll after start
+      isPollingStopped: false
     });
   }, pollInterval);
 };
