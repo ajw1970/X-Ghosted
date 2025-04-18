@@ -1772,6 +1772,23 @@
                           style: { marginRight: '8px' },
                         }),
                         'Clear'
+                      ),
+                      window.preact.h(
+                        'button',
+                        {
+                          className: 'panel-button',
+                          onClick: () => {
+                            document.dispatchEvent(
+                              new CustomEvent('xghosted:open-about')
+                            );
+                          },
+                          'aria-label': 'Show About Screen',
+                        },
+                        window.preact.h('i', {
+                          className: 'fas fa-info-circle',
+                          style: { marginRight: '8px' },
+                        }),
+                        'About'
                       )
                     )
                   )
@@ -2010,6 +2027,7 @@
         isPollingEnabled: true,
         isAutoScrollingEnabled: false,
         themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
+        hasSeenSplash: false,
       };
       this.log(
         `PanelManager initialized with themeMode: ${this.state.themeMode}`
@@ -2099,6 +2117,11 @@
           this.document.head.appendChild(panelStyleSheet);
         }
       }
+      if (!this.state.hasSeenSplash) {
+        this.showSplashPage();
+        this.state.hasSeenSplash = true;
+        this.saveState();
+      }
       this.state.isRateLimited = this.xGhosted.state.isRateLimited;
       this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
       this.state.isAutoScrollingEnabled =
@@ -2123,6 +2146,9 @@
         this.state.isAutoScrollingEnabled = e.detail.isAutoScrollingEnabled;
         this.renderPanel();
       };
+      const handleOpenAbout = () => {
+        this.showSplashPage();
+      };
       this.document.addEventListener(
         'xghosted:state-updated',
         handleStateUpdated
@@ -2135,6 +2161,7 @@
         'xghosted:auto-scrolling-toggled',
         handleAutoScrollingToggled
       );
+      this.document.addEventListener('xghosted:open-about', handleOpenAbout);
       this.cleanup = () => {
         this.document.removeEventListener(
           'xghosted:state-updated',
@@ -2147,6 +2174,10 @@
         this.document.removeEventListener(
           'xghosted:auto-scrolling-toggled',
           handleAutoScrollingToggled
+        );
+        this.document.removeEventListener(
+          'xghosted:open-about',
+          handleOpenAbout
         );
       };
       if (window.preact && window.preact.h) {
@@ -2163,6 +2194,7 @@
           isPanelVisible: this.state.isPanelVisible,
           panelPosition: { ...this.state.panelPosition },
           themeMode: this.state.themeMode,
+          hasSeenSplash: this.state.hasSeenSplash,
         },
       };
       this.storage.set('xGhostedState', updatedState);
@@ -2177,6 +2209,7 @@
       )
         ? panelState.themeMode
         : this.state.themeMode;
+      this.state.hasSeenSplash = panelState.hasSeenSplash ?? false;
       if (
         panelState.panelPosition &&
         panelState.panelPosition.right &&
@@ -2226,7 +2259,7 @@
         this.state.panelPosition.top = top;
       }
       this.log(
-        `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`
+        `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, hasSeenSplash=${this.state.hasSeenSplash}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`
       );
     };
     window.PanelManager.prototype.applyPanelStyles = function () {
@@ -2382,6 +2415,14 @@
         this.postsManager.clearPosts();
         this.renderPanel();
         this.document.dispatchEvent(new CustomEvent('xghosted:posts-cleared'));
+      }
+    };
+    window.PanelManager.prototype.showSplashPage = function () {
+      try {
+        new window.SplashPanel(this.document, this.log, '0.6.1');
+        this.log('SplashPanel displayed');
+      } catch (error) {
+        this.log(`Failed to display SplashPanel: ${error.message}`);
       }
     };
     return PanelManager;
@@ -2863,11 +2904,8 @@
   const xGhosted = new window.XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
 
-  // Initialize SplashPanel with version only if showSplash is true
   let splashPanel = null;
-  if (config.showSplash) {
-    splashPanel = new window.SplashPanel(document, log, '0.6.1');
-  }
+  // SplashPanel instantiation handled by PanelManager.js based on hasSeenSplash
 
   // Wait for theme detection to initialize PanelManager
   document.addEventListener(

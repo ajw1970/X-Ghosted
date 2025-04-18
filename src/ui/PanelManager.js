@@ -117,6 +117,7 @@ window.PanelManager = function (
     isPollingEnabled: true,
     isAutoScrollingEnabled: false,
     themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
+    hasSeenSplash: false,
   };
   this.log(
     `PanelManager initialized with themeMode: ${this.state.themeMode}`
@@ -207,6 +208,11 @@ window.PanelManager.prototype.init = function () {
       this.document.head.appendChild(panelStyleSheet);
     }
   }
+  if (!this.state.hasSeenSplash) {
+    this.showSplashPage();
+    this.state.hasSeenSplash = true;
+    this.saveState();
+  }
   this.state.isRateLimited = this.xGhosted.state.isRateLimited;
   this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
   this.state.isAutoScrollingEnabled = this.xGhosted.state.isAutoScrollingEnabled;
@@ -229,13 +235,18 @@ window.PanelManager.prototype.init = function () {
     this.state.isAutoScrollingEnabled = e.detail.isAutoScrollingEnabled;
     this.renderPanel();
   };
+  const handleOpenAbout = () => {
+    this.showSplashPage();
+  };
   this.document.addEventListener('xghosted:state-updated', handleStateUpdated);
   this.document.addEventListener('xghosted:polling-state-updated', handlePollingStateUpdated);
   this.document.addEventListener('xghosted:auto-scrolling-toggled', handleAutoScrollingToggled);
+  this.document.addEventListener('xghosted:open-about', handleOpenAbout);
   this.cleanup = () => {
     this.document.removeEventListener('xghosted:state-updated', handleStateUpdated);
     this.document.removeEventListener('xghosted:polling-state-updated', handlePollingStateUpdated);
     this.document.removeEventListener('xghosted:auto-scrolling-toggled', handleAutoScrollingToggled);
+    this.document.removeEventListener('xghosted:open-about', handleOpenAbout);
   };
   if (window.preact && window.preact.h) {
     this.renderPanel();
@@ -252,6 +263,7 @@ window.PanelManager.prototype.saveState = function () {
       isPanelVisible: this.state.isPanelVisible,
       panelPosition: { ...this.state.panelPosition },
       themeMode: this.state.themeMode,
+      hasSeenSplash: this.state.hasSeenSplash,
     },
   };
   this.storage.set('xGhostedState', updatedState);
@@ -267,6 +279,7 @@ window.PanelManager.prototype.loadState = function () {
   )
     ? panelState.themeMode
     : this.state.themeMode;
+  this.state.hasSeenSplash = panelState.hasSeenSplash ?? false;
   if (
     panelState.panelPosition &&
     panelState.panelPosition.right &&
@@ -316,7 +329,7 @@ window.PanelManager.prototype.loadState = function () {
     this.state.panelPosition.top = top;
   }
   this.log(
-    `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`
+    `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, hasSeenSplash=${this.state.hasSeenSplash}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`
   );
 };
 
@@ -483,5 +496,14 @@ window.PanelManager.prototype.clearPosts = function () {
     this.postsManager.clearPosts();
     this.renderPanel();
     this.document.dispatchEvent(new CustomEvent('xghosted:posts-cleared'));
+  }
+};
+
+window.PanelManager.prototype.showSplashPage = function () {
+  try {
+    new window.SplashPanel(this.document, this.log, '0.6.1');
+    this.log('SplashPanel displayed');
+  } catch (error) {
+    this.log(`Failed to display SplashPanel: ${error.message}`);
   }
 };

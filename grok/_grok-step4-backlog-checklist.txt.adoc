@@ -53,7 +53,7 @@
 * [x] Add Identified Posts (count) to header too.
 * [ ] Need to be able to pin/unpin the panel location or a specific drag handle to avoid accidentally moving it.
 * [ ] Add button for timing metrics CSV export.
-* [ ] Have splash screen only open once for the user. Allow a way to show it again later from Tools.
+* [x] Have splash screen only open once for the user. Allow a way to show it again later from Tools.
 * [ ] Decouple xGhosted from ProcessedPostsManager but be careful.
 * [x] Add a copy icon near the url list to make it easy to copy the problems without going to the Tools menu.
 * [x] Start/Stop icons are small and hard to identify.

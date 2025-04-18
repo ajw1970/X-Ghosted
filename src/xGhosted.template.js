@@ -91,11 +91,8 @@
   const xGhosted = new window.XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
 
-  // Initialize SplashPanel with version only if showSplash is true
   let splashPanel = null;
-  if (config.showSplash) {
-    splashPanel = new window.SplashPanel(document, log, '{{VERSION}}');
-  }
+  // SplashPanel instantiation handled by PanelManager.js based on hasSeenSplash
 
   // Wait for theme detection to initialize PanelManager
   document.addEventListener('xghosted:theme-detected', ({ detail: { themeMode } }) => {

@@ -335,6 +335,21 @@ function Panel({
                     style: { marginRight: '8px' },
                   }),
                   'Clear'
+                ),
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => {
+                      document.dispatchEvent(new CustomEvent('xghosted:open-about'));
+                    },
+                    'aria-label': 'Show About Screen',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-info-circle',
+                    style: { marginRight: '8px' },
+                  }),
+                  'About'
                 )
               )
             )
