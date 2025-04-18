@@ -329,7 +329,10 @@ XGhosted.prototype.highlightPosts = function (posts) {
       }
     }
     if (id) {
-      this.postsManager.registerPost(id, { analysis, checked: false });
+      const cachedPost = this.postsManager.getPost(id);
+      if (!cachedPost || cachedPost.analysis.quality.name !== analysis.quality.name || cachedPost.analysis.reason !== analysis.reason) {
+        this.postsManager.registerPost(id, { analysis, checked: cachedPost?.checked || false });
+      }
     }
   };
   const checkReplies = this.state.isWithReplies;
