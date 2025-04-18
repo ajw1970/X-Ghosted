@@ -8,7 +8,7 @@ function Panel({
   onStopPolling,
   onEyeballClick,
   onCopyLinks,
-  setPanelPosition,
+  startDrag,
 }) {
   const flagged = window.preactHooks.useMemo(
     () => xGhosted.postsManager.getProblemPosts(),
@@ -22,7 +22,6 @@ function Panel({
   const [isPolling, setIsPolling] = window.preactHooks.useState(state.isPollingEnabled);
   const [isScrolling, setIsScrolling] = window.preactHooks.useState(state.isAutoScrollingEnabled);
 
-  // Sync local state with prop changes
   window.preactHooks.useEffect(() => {
     setIsPolling(state.isPollingEnabled);
     setIsScrolling(state.isAutoScrollingEnabled);
@@ -44,53 +43,6 @@ function Panel({
     xGhosted.togglePanelVisibility(newVisibility);
   };
 
-  const handleDragStart = (e) => {
-    const draggedContainer = e.target.closest('#xghosted-panel-container');
-    if (!draggedContainer) return;
-    draggedContainer.classList.add('dragging');
-    const computedStyle = window.getComputedStyle(draggedContainer);
-    let currentRight = parseFloat(computedStyle.right) || parseFloat(state.panelPosition.right) || 10;
-    let currentTop = parseFloat(computedStyle.top) || parseFloat(state.panelPosition.top) || 60;
-    let initialX = e.clientX + currentRight;
-    let initialY = e.clientY - currentTop;
-    let right = currentRight;
-    let top = currentTop;
-
-    let lastUpdate = 0;
-    const throttleDelay = 16;
-    const onMouseMove = (e2) => {
-      const now = Date.now();
-      if (now - lastUpdate < throttleDelay) return;
-      lastUpdate = now;
-      right = initialX - e2.clientX;
-      top = e2.clientY - initialY;
-      right = Math.max(0, Math.min(right, window.innerWidth - draggedContainer.offsetWidth));
-      top = Math.max(0, Math.min(top, window.innerHeight - draggedContainer.offsetHeight));
-      draggedContainer.style.right = `${right}px`;
-      draggedContainer.style.top = `${top}px`;
-    };
-
-    const onMouseUp = () => {
-      try {
-        draggedContainer.classList.remove('dragging');
-        if (setPanelPosition) {
-          setPanelPosition({
-            right: `${right}px`,
-            top: `${top}px`,
-          });
-        }
-      } catch (error) {
-        console.error('Error in onMouseUp:', error);
-      } finally {
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
-      }
-    };
-
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  };
-
   const themeOptions = ['dark', 'dim', 'light'].filter((option) => option !== currentMode);
 
   return window.preact.h(
@@ -106,7 +58,6 @@ function Panel({
           borderRadius: '12px',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
           color: config.THEMES[currentMode].text,
-          cursor: 'move',
           fontFamily: config.PANEL.FONT,
           maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
           minWidth: isVisible ? '250px' : '60px',
@@ -114,7 +65,6 @@ function Panel({
           transition: 'width 0.2s ease, max-height 0.2s ease',
           width: isVisible ? config.PANEL.WIDTH : 'auto',
         },
-        onMouseDown: handleDragStart,
       },
       isVisible
         ? window.preact.h(
@@ -283,7 +233,9 @@ function Panel({
                   {
                     className: 'panel-button',
                     onClick: () => {
-                      document.dispatchEvent(new CustomEvent('xghosted:copy-links'));
+                      document.dispatchEvent(
+                        new CustomEvent('xghosted:copy-links')
+                      );
                     },
                     'aria-label': 'Copy Problem Links',
                   },
@@ -298,7 +250,9 @@ function Panel({
                   {
                     className: 'panel-button',
                     onClick: () => {
-                      document.dispatchEvent(new CustomEvent('xghosted:export-csv'));
+                      document.dispatchEvent(
+                        new CustomEvent('xghosted:export-csv')
+                      );
                     },
                     'aria-label': 'Export Posts to CSV',
                   },
@@ -326,7 +280,9 @@ function Panel({
                   {
                     className: 'panel-button',
                     onClick: () => {
-                      document.dispatchEvent(new CustomEvent('xghosted:clear-posts'));
+                      document.dispatchEvent(
+                        new CustomEvent('xghosted:clear-posts')
+                      );
                     },
                     'aria-label': 'Clear Processed Posts',
                   },
@@ -356,10 +312,10 @@ function Panel({
           ),
           window.preact.h(
             'div',
-            { className: 'content-wrapper' },
+            { className: 'problem-posts-header', style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
             window.preact.h(
-              'div',
-              { className: 'problem-posts-header' },
+              'span',
+              { className: 'header-text-group' },
               'Processed Posts (',
               totalPosts,
               ') Concerns (',
@@ -371,7 +327,6 @@ function Panel({
                   style: {
                     cursor: 'pointer',
                     fontSize: '14px',
-                    marginLeft: '8px',
                     verticalAlign: 'middle',
                   },
                   onClick: onCopyLinks,
@@ -382,46 +337,14 @@ function Panel({
               )
             ),
             window.preact.h(
-              'div',
-              { className: 'problem-links-wrapper' },
-              flagged.map(([href, { analysis, checked }]) =>
-                window.preact.h(
-                  'div',
-                  {
-                    className: 'link-row',
-                    style: { padding: '4px 0' },
-                    key: href,
-                  },
-                  analysis.quality.name === 'Problem'
-                    ? window.preact.h('span', {
-                      className: 'status-dot status-problem',
-                    })
-                    : window.preact.h(
-                      'span',
-                      {
-                        className: 'status-eyeball',
-                        tabIndex: 0,
-                        role: 'button',
-                        'aria-label': 'Check post manually',
-                        onClick: () => !checked && onEyeballClick(href),
-                        onKeyDown: (e) => e.key === 'Enter' && !checked && onEyeballClick(href),
-                      },
-                      '\u{1F440}'
-                    ),
-                  window.preact.h(
-                    'div',
-                    { className: 'link-item' },
-                    window.preact.h(
-                      'a',
-                      {
-                        href: `${xGhosted.postsManager.linkPrefix}${href}`,
-                        target: '_blank',
-                      },
-                      href
-                    )
-                  )
-                )
-              )
+              'span',
+              {
+                className: 'drag-handle',
+                onMouseDown: startDrag,
+                'aria-label': 'Drag Panel',
+                title: 'Drag Panel',
+              },
+              window.preact.h('i', { className: 'fas fa-up-down-left-right' })
             )
           )
         )

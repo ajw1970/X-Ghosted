@@ -345,7 +345,6 @@ window.PanelManager.prototype.applyPanelStyles = function () {
       right: ${position.right};
       top: ${position.top};
       z-index: ${this.uiElements.config.PANEL.Z_INDEX};
-      cursor: move;
       border-radius: 12px;
     }
   `;
@@ -399,6 +398,7 @@ window.PanelManager.prototype.renderPanel = function () {
       },
       onCopyLinks: () => this.copyLinks(),
       setPanelPosition: (position) => this.setPanelPosition(position),
+      startDrag: (e) => this.startDrag(e),
     }),
     this.uiElements.panel
   );
@@ -506,4 +506,51 @@ window.PanelManager.prototype.showSplashPage = function () {
   } catch (error) {
     this.log(`Failed to display SplashPanel: ${error.message}`);
   }
+};
+
+window.PanelManager.prototype.startDrag = function (e) {
+  const draggedContainer = this.uiElements.panelContainer;
+  if (!draggedContainer) return;
+  draggedContainer.classList.add('dragging');
+  const computedStyle = window.getComputedStyle(draggedContainer);
+  let currentRight = parseFloat(computedStyle.right) || parseFloat(this.state.panelPosition.right) || 10;
+  let currentTop = parseFloat(computedStyle.top) || parseFloat(this.state.panelPosition.top) || 60;
+  let initialX = e.clientX + currentRight;
+  let initialY = e.clientY - currentTop;
+  let right = currentRight;
+  let top = currentTop;
+
+  let lastUpdate = 0;
+  const throttleDelay = 16;
+  const onMouseMove = (e2) => {
+    const now = Date.now();
+    if (now - lastUpdate < throttleDelay) return;
+    lastUpdate = now;
+    right = initialX - e2.clientX;
+    top = e2.clientY - initialY;
+    right = Math.max(0, Math.min(right, window.innerWidth - draggedContainer.offsetWidth));
+    top = Math.max(0, Math.min(top, window.innerHeight - draggedContainer.offsetHeight));
+    draggedContainer.style.right = `${right}px`;
+    draggedContainer.style.top = `${top}px`;
+  };
+
+  const onMouseUp = () => {
+    try {
+      draggedContainer.classList.remove('dragging');
+      if (this.setPanelPosition) {
+        this.setPanelPosition({
+          right: `${right}px`,
+          top: `${top}px`,
+        });
+      }
+    } catch (error) {
+      console.error('Error in onMouseUp:', error);
+    } finally {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+  };
+
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
 };

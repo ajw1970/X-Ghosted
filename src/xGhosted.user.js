@@ -1411,7 +1411,7 @@
       onStopPolling,
       onEyeballClick,
       onCopyLinks,
-      setPanelPosition,
+      startDrag,
     }) {
       const flagged = window.preactHooks.useMemo(
         () => xGhosted.postsManager.getProblemPosts(),
@@ -1451,61 +1451,6 @@
         setIsVisible(newVisibility);
         xGhosted.togglePanelVisibility(newVisibility);
       };
-      const handleDragStart = (e) => {
-        const draggedContainer = e.target.closest('#xghosted-panel-container');
-        if (!draggedContainer) return;
-        draggedContainer.classList.add('dragging');
-        const computedStyle = window.getComputedStyle(draggedContainer);
-        let currentRight =
-          parseFloat(computedStyle.right) ||
-          parseFloat(state.panelPosition.right) ||
-          10;
-        let currentTop =
-          parseFloat(computedStyle.top) ||
-          parseFloat(state.panelPosition.top) ||
-          60;
-        let initialX = e.clientX + currentRight;
-        let initialY = e.clientY - currentTop;
-        let right = currentRight;
-        let top = currentTop;
-        let lastUpdate = 0;
-        const throttleDelay = 16;
-        const onMouseMove = (e2) => {
-          const now = Date.now();
-          if (now - lastUpdate < throttleDelay) return;
-          lastUpdate = now;
-          right = initialX - e2.clientX;
-          top = e2.clientY - initialY;
-          right = Math.max(
-            0,
-            Math.min(right, window.innerWidth - draggedContainer.offsetWidth)
-          );
-          top = Math.max(
-            0,
-            Math.min(top, window.innerHeight - draggedContainer.offsetHeight)
-          );
-          draggedContainer.style.right = `${right}px`;
-          draggedContainer.style.top = `${top}px`;
-        };
-        const onMouseUp = () => {
-          try {
-            draggedContainer.classList.remove('dragging');
-            if (setPanelPosition) {
-              setPanelPosition({
-                right: `${right}px`,
-                top: `${top}px`,
-              });
-            }
-          } catch (error) {
-            console.error('Error in onMouseUp:', error);
-          } finally {
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-          }
-        };
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
-      };
       const themeOptions = ['dark', 'dim', 'light'].filter(
         (option) => option !== currentMode
       );
@@ -1522,7 +1467,6 @@
               borderRadius: '12px',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
               color: config.THEMES[currentMode].text,
-              cursor: 'move',
               fontFamily: config.PANEL.FONT,
               maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
               minWidth: isVisible ? '250px' : '60px',
@@ -1530,7 +1474,6 @@
               transition: 'width 0.2s ease, max-height 0.2s ease',
               width: isVisible ? config.PANEL.WIDTH : 'auto',
             },
-            onMouseDown: handleDragStart,
           },
           isVisible
             ? window.preact.h(
@@ -1795,10 +1738,17 @@
                 ),
                 window.preact.h(
                   'div',
-                  { className: 'content-wrapper' },
+                  {
+                    className: 'problem-posts-header',
+                    style: {
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    },
+                  },
                   window.preact.h(
-                    'div',
-                    { className: 'problem-posts-header' },
+                    'span',
+                    { className: 'header-text-group' },
                     'Processed Posts (',
                     totalPosts,
                     ') Concerns (',
@@ -1810,7 +1760,6 @@
                         style: {
                           cursor: 'pointer',
                           fontSize: '14px',
-                          marginLeft: '8px',
                           verticalAlign: 'middle',
                         },
                         onClick: onCopyLinks,
@@ -1821,49 +1770,16 @@
                     )
                   ),
                   window.preact.h(
-                    'div',
-                    { className: 'problem-links-wrapper' },
-                    flagged.map(([href, { analysis, checked }]) =>
-                      window.preact.h(
-                        'div',
-                        {
-                          className: 'link-row',
-                          style: { padding: '4px 0' },
-                          key: href,
-                        },
-                        analysis.quality.name === 'Problem'
-                          ? window.preact.h('span', {
-                              className: 'status-dot status-problem',
-                            })
-                          : window.preact.h(
-                              'span',
-                              {
-                                className: 'status-eyeball',
-                                tabIndex: 0,
-                                role: 'button',
-                                'aria-label': 'Check post manually',
-                                onClick: () => !checked && onEyeballClick(href),
-                                onKeyDown: (e) =>
-                                  e.key === 'Enter' &&
-                                  !checked &&
-                                  onEyeballClick(href),
-                              },
-                              '\u{1F440}'
-                            ),
-                        window.preact.h(
-                          'div',
-                          { className: 'link-item' },
-                          window.preact.h(
-                            'a',
-                            {
-                              href: `${xGhosted.postsManager.linkPrefix}${href}`,
-                              target: '_blank',
-                            },
-                            href
-                          )
-                        )
-                      )
-                    )
+                    'span',
+                    {
+                      className: 'drag-handle',
+                      onMouseDown: startDrag,
+                      'aria-label': 'Drag Panel',
+                      title: 'Drag Panel',
+                    },
+                    window.preact.h('i', {
+                      className: 'fas fa-up-down-left-right',
+                    })
                   )
                 )
               )
@@ -2274,7 +2190,6 @@
       right: ${position.right};
       top: ${position.top};
       z-index: ${this.uiElements.config.PANEL.Z_INDEX};
-      cursor: move;
       border-radius: 12px;
     }
   `;
@@ -2325,6 +2240,7 @@
           },
           onCopyLinks: () => this.copyLinks(),
           setPanelPosition: (position) => this.setPanelPosition(position),
+          startDrag: (e) => this.startDrag(e),
         }),
         this.uiElements.panel
       );
@@ -2424,6 +2340,61 @@
       } catch (error) {
         this.log(`Failed to display SplashPanel: ${error.message}`);
       }
+    };
+    window.PanelManager.prototype.startDrag = function (e) {
+      const draggedContainer = this.uiElements.panelContainer;
+      if (!draggedContainer) return;
+      draggedContainer.classList.add('dragging');
+      const computedStyle = window.getComputedStyle(draggedContainer);
+      let currentRight =
+        parseFloat(computedStyle.right) ||
+        parseFloat(this.state.panelPosition.right) ||
+        10;
+      let currentTop =
+        parseFloat(computedStyle.top) ||
+        parseFloat(this.state.panelPosition.top) ||
+        60;
+      let initialX = e.clientX + currentRight;
+      let initialY = e.clientY - currentTop;
+      let right = currentRight;
+      let top = currentTop;
+      let lastUpdate = 0;
+      const throttleDelay = 16;
+      const onMouseMove = (e2) => {
+        const now = Date.now();
+        if (now - lastUpdate < throttleDelay) return;
+        lastUpdate = now;
+        right = initialX - e2.clientX;
+        top = e2.clientY - initialY;
+        right = Math.max(
+          0,
+          Math.min(right, window.innerWidth - draggedContainer.offsetWidth)
+        );
+        top = Math.max(
+          0,
+          Math.min(top, window.innerHeight - draggedContainer.offsetHeight)
+        );
+        draggedContainer.style.right = `${right}px`;
+        draggedContainer.style.top = `${top}px`;
+      };
+      const onMouseUp = () => {
+        try {
+          draggedContainer.classList.remove('dragging');
+          if (this.setPanelPosition) {
+            this.setPanelPosition({
+              right: `${right}px`,
+              top: `${top}px`,
+            });
+          }
+        } catch (error) {
+          console.error('Error in onMouseUp:', error);
+        } finally {
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+        }
+      };
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
     };
     return PanelManager;
   })();
@@ -2679,7 +2650,7 @@
   margin-bottom: 8px;
 }
 
-.toolbar > div {
+.toolbar>div {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2687,7 +2658,7 @@
   margin-left: 12px;
 }
 
-.toolbar > div > button:not(:last-child) {
+.toolbar>div>button:not(:last-child) {
   margin-right: 12px;
 }
 
@@ -2695,7 +2666,7 @@
   /* No opacity to prevent affecting children */
 }
 
-.tools-section > div > div:first-child {
+.tools-section>div>div:first-child {
   padding-bottom: 12px;
   border-bottom: 2px solid var(--border-color);
 }
@@ -2779,7 +2750,8 @@
   padding: 8px 12px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 600; /* Bolder text for better readability */
+  font-weight: 600;
+  /* Bolder text for better readability */
   background-color: var(--button-bg, #3A4A5B);
   color: var(--button-text);
 }
@@ -2799,7 +2771,8 @@
   display: grid;
   grid-template-columns: 20px 1fr;
   align-items: center;
-  column-gap: 8px; /* Adds a consistent gap between columns */
+  column-gap: 8px;
+  /* Adds a consistent gap between columns */
 }
 
 .status-dot {
@@ -2815,7 +2788,8 @@
   color: rgb(29, 155, 240);
   cursor: pointer;
   line-height: 20px;
-  justify-self: center; /* Centers the eyeball in the column */
+  justify-self: center;
+  /* Centers the eyeball in the column */
 }
 
 .status-problem {
@@ -2867,6 +2841,18 @@
 .panel-button i {
   font-size: 16px;
   line-height: 1;
+}
+
+.drag-handle {
+  cursor: move;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.header-text-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }`;
 
   // --- Initialization with Resource Limits and Rate Limiting ---

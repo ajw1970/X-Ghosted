@@ -51,9 +51,13 @@
 * [x] Update Modal to look and feel like Panel. Still needs contrast improvements in Dim and dark themes. The textbox hint is unreadable.
 * [x] Add gap between eyeballs and link in the panel list
 * [x] Add Identified Posts (count) to header too.
-* [ ] Need to be able to pin/unpin the panel location or a specific drag handle to avoid accidentally moving it.
+* [x] Add a specific drag handle to avoid accidentally moving the panel.
+** Implemented on April 18, 2025, with a right-justified drag handle in the list header row using `fa-up-down-left-right` icon.
+* [ ] Add a toggle to enable/disable dragging (pin/unpin panel location).
+** Planned as part of Task 8 in the roadmap, to be implemented in the Tools panel with `isDraggingEnabled` state.
 * [ ] Add button for timing metrics CSV export.
 * [x] Have splash screen only open once for the user. Allow a way to show it again later from Tools.
+** Implemented on April 18, 2025, with `hasSeenSplash` in `PanelManager.js` and "About" button in `Panel.jsx`.
 * [ ] Decouple xGhosted from ProcessedPostsManager but be careful.
 * [x] Add a copy icon near the url list to make it easy to copy the problems without going to the Tools menu.
 * [x] Start/Stop icons are small and hard to identify.
