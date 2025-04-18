@@ -1,3 +1,201 @@
+      const result = [];
+      findDivs(article, 0);
+      return result;
+    }
+
+    // src/utils/getRelativeLinkToPost.js
+    function getRelativeLinkToPost(element) {
+      const link = element.querySelector('a:has(time)')?.getAttribute('href');
+      return link || false;
+    }
+
+    // src/utils/identifyPost.js
+    function identifyPost(post, checkReplies = true, logger = console.log) {
+      const article = post.querySelector('article');
+      if (!article) {
+        return {
+          quality: postQuality.UNDEFINED,
+          reason: 'No article found',
+          link: false,
+        };
+      }
+      const noticeFound = postHasProblemSystemNotice(article);
+      if (noticeFound) {
+        return {
+          quality: postQuality.PROBLEM,
+          reason: `Found notice: ${noticeFound}`,
+          link: getRelativeLinkToPost(post),
+        };
+      }
+      const communityFound = postHasProblemCommunity(article);
+      if (communityFound) {
+        return {
+          quality: postQuality.PROBLEM,
+          reason: `Found community: ${communityFound}`,
+          link: getRelativeLinkToPost(post),
+        };
+      }
+      if (checkReplies) {
+        const replyingToDepths = findReplyingToWithDepth(article);
+        if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
+          const replyingTo = replyingToDepths.find(
+            (object) => object.depth < 10
+          );
+          if (replyingTo) {
+            return {
+              quality: postQuality.POTENTIAL_PROBLEM,
+              reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
+              link: getRelativeLinkToPost(post),
+            };
+          } else {
+          }
+        } else {
+        }
+      }
+      const link = getRelativeLinkToPost(post);
+      if (link) {
+        return {
+          quality: postQuality.GOOD,
+          reason: 'Looks good',
+          link,
+        };
+      }
+      return {
+        quality: postQuality.UNDEFINED,
+        reason: 'Nothing to measure',
+        link: false,
+      };
+    }
+
+    // src/utils/debounce.js
+    function debounce(func, wait) {
+      let timeout;
+      return (...args) => {
+        clearTimeout(timeout);
+        return new Promise((resolve, reject) => {
+          timeout = setTimeout(() => {
+            try {
+              const result = func(...args);
+              if (result && typeof result.then === 'function') {
+                result.then(resolve).catch(reject);
+              } else {
+                resolve(result);
+              }
+            } catch (error) {
+              reject(error);
+            }
+          }, wait);
+        });
+      };
+    }
+
+    // src/dom/findPostContainer.js
+    function findPostContainer(doc, log = () => {}) {
+      const potentialPosts = doc.querySelectorAll(
+        'div[data-testid="cellInnerDiv"]'
+      );
+      if (!potentialPosts.length) {
+        return null;
+      }
+      let firstPost = null;
+      for (const post of potentialPosts) {
+        const closestAriaLabel = post.closest('div[aria-label]');
+        if (
+          closestAriaLabel &&
+          closestAriaLabel.getAttribute('aria-label') === 'Timeline: Messages'
+        ) {
+          log('Skipping post in Messages timeline');
+          continue;
+        }
+        firstPost = post;
+        break;
+      }
+      if (!firstPost) {
+        log('No valid posts found outside Messages timeline');
+        return null;
+      }
+      let currentElement = firstPost.parentElement;
+      while (currentElement) {
+        if (currentElement.hasAttribute('aria-label')) {
+          currentElement.setAttribute('data-xghosted', 'posts-container');
+          const ariaLabel = currentElement.getAttribute('aria-label');
+          log(`Posts container identified with aria-label: "${ariaLabel}"`);
+          return currentElement;
+        }
+        currentElement = currentElement.parentElement;
+      }
+      log('No parent container found with aria-label');
+      return null;
+    }
+
+    // src/dom/parseUrl.js
+    function parseUrl(url) {
+      const reservedPaths = [
+        'i',
+        'notifications',
+        'home',
+        'explore',
+        'messages',
+        'compose',
+        'settings',
+      ];
+      const regex = /^https:\/\/x\.com\/([^/]+)(?:\/(with_replies))?/;
+      const match = url.match(regex);
+      if (match && !reservedPaths.includes(match[1])) {
+        return {
+          isWithReplies: !!match[2],
+          userProfileName: match[1],
+        };
+      }
+      return {
+        isWithReplies: false,
+        userProfileName: null,
+      };
+    }
+
+    // src/utils/clipboardUtils.js
+    function copyTextToClipboard(text, log) {
+      return navigator.clipboard
+        .writeText(text)
+        .then(() => log('Text copied to clipboard'))
+        .catch((err) => log(`Clipboard copy failed: ${err}`));
+    }
+    function exportToCSV(data, filename, doc, log) {
+      const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = doc.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      log(`Exported CSV: ${filename}`);
+    }
+    return {
+      copyTextToClipboard,
+      debounce,
+      detectTheme,
+      exportToCSV,
+      findPostContainer,
+      findReplyingToWithDepth,
+      getRelativeLinkToPost,
+      identifyPost,
+      parseUrl,
+      postHasProblemCommunity,
+      postHasProblemSystemNotice,
+      postQuality,
+    };
+  })();
+
+  // --- Inject Modules ---
+  window.XGhosted = (function () {
+    // src/utils/postQuality.js
+    var postQuality = Object.freeze({
+      UNDEFINED: Object.freeze({ name: 'Undefined', value: 0 }),
+      PROBLEM: Object.freeze({ name: 'Problem', value: 1 }),
+      POTENTIAL_PROBLEM: Object.freeze({ name: 'Potential Problem', value: 2 }),
+      GOOD: Object.freeze({ name: 'Good', value: 3 }),
+    });
+
     // src/dom/detectTheme.js
     function detectTheme(doc) {
       const dataTheme = doc.body.getAttribute('data-theme');
@@ -280,17 +478,14 @@
       };
       this.timing = { ...defaultTiming, ...config.timing };
       this.document = doc;
-      this.log =
-        config.useTampermonkeyLog && typeof GM_log !== 'undefined'
-          ? GM_log.bind(null)
-          : console.log.bind(console);
+      this.log = config.log || console.log.bind(console);
       if (!config.postsManager) {
         throw new Error('XGhosted requires a postsManager instance');
       }
       this.postsManager = config.postsManager;
       this.state = {
         postContainer: null,
-        lastUrl: '',
+        lastUrlFullPath: '',
         isWithReplies: false,
         isRateLimited: false,
         isAutoScrollingEnabled: false,
@@ -298,36 +493,30 @@
         isPollingEnabled: true,
         userProfileName: null,
       };
-      this.events = {};
       this.checkPostInNewTabThrottled = debounce((href) => {
         return this.checkPostInNewTab(href);
       }, this.timing.tabCheckThrottle);
-      this.ensureAndHighlightPostsDebounced = debounce(() => {
-        this.ensureAndHighlightPosts();
+      this.highlightPostsDebounced = debounce(() => {
+        this.highlightPosts();
       }, this.timing.debounceDelay);
-      this.on = (event, callback) => {
-        if (!this.events[event]) this.events[event] = [];
-        this.events[event].push(callback);
-      };
-      this.off = (event, callback) => {
-        if (!this.events[event]) return;
-        this.events[event] = this.events[event].filter((cb) => cb !== callback);
-      };
-      this.emit = (event, data) => {
-        if (!this.events[event]) return;
-        this.events[event].forEach((cb) => cb(data));
-      };
     }
-    XGhosted.POST_SELECTOR =
-      'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
-    XGhosted.prototype.updateState = function (url) {
-      const { isWithReplies, userProfileName } = parseUrl(url);
-      this.state.isWithReplies = isWithReplies;
-      if (this.state.lastUrl !== url) {
-        this.state.postContainer = null;
-        this.postsManager.clearPosts();
-        this.state.lastUrl = url;
+    XGhosted.POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
+    XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
+    XGhosted.prototype.getUrlFullPathIfChanged = function (url) {
+      const urlParts = new URL(url);
+      const urlFullPath = urlParts.origin + urlParts.pathname;
+      if (this.state.lastUrlFullPath === urlFullPath) {
+        return false;
       }
+      this.log(
+        `URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath})`
+      );
+      this.state.lastUrlFullPath = urlFullPath;
+      return urlFullPath;
+    };
+    XGhosted.prototype.handleUrlChange = function (urlFullPath) {
+      const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
+      this.state.isWithReplies = isWithReplies;
       if (this.state.userProfileName !== userProfileName) {
         this.state.userProfileName = userProfileName;
         this.document.dispatchEvent(
@@ -338,6 +527,7 @@
           })
         );
       }
+      this.postsManager.clearPosts();
     };
     XGhosted.prototype.checkPostInNewTab = function (href) {
       this.log(`Checking post in new tab: ${href}`);
@@ -444,7 +634,11 @@
             : postQuality.GOOD;
           cached.checked = true;
           this.postsManager.registerPost(href, cached);
-          this.emit('state-updated', { ...this.state });
+          this.document.dispatchEvent(
+            new CustomEvent('xghosted:state-updated', {
+              detail: { ...this.state },
+            })
+          );
           this.log(`User requested post check completed for ${href}`);
         });
       } else {
@@ -455,9 +649,11 @@
       this.state.isPollingEnabled = true;
       this.startPolling();
       this.startAutoScrolling();
-      this.emit('polling-state-updated', {
-        isPollingEnabled: this.state.isPollingEnabled,
-      });
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:polling-state-updated', {
+          detail: { isPollingEnabled: this.state.isPollingEnabled },
+        })
+      );
     };
     XGhosted.prototype.handleStopPolling = function () {
       this.state.isPollingEnabled = false;
@@ -469,9 +665,11 @@
         clearInterval(this.scrollTimer);
         this.scrollTimer = null;
       }
-      this.emit('polling-state-updated', {
-        isPollingEnabled: this.state.isPollingEnabled,
-      });
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:polling-state-updated', {
+          detail: { isPollingEnabled: this.state.isPollingEnabled },
+        })
+      );
     };
     XGhosted.prototype.startPolling = function () {
       if (!this.state.isPollingEnabled) {
@@ -485,17 +683,31 @@
           this.log('Polling skipped\u2014highlighting in progress');
           return;
         }
-        const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
-        const postCount = posts.length;
-        if (postCount > 0) {
-          this.highlightPosts(posts);
-        } else if (
-          !this.document.querySelector('div[data-xghosted="posts-container"]')
-        ) {
+        const urlFullPath = this.getUrlFullPathIfChanged(
+          this.document.location.href
+        );
+        if (urlFullPath) {
           this.log(
-            'No posts and no container found, ensuring and highlighting...'
+            `URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath})`
           );
-          this.ensureAndHighlightPosts();
+          this.handleUrlChange(urlFullPath);
+        }
+        const unprocessedPosts = this.document.querySelectorAll(
+          XGhosted.UNPROCESSED_POSTS_SELECTOR
+        );
+        if (unprocessedPosts.length > 0) {
+          this.highlightPosts(unprocessedPosts);
+        } else if (
+          !this.document.querySelector(XGhosted.POST_CONTAINER_SELECTOR)
+        ) {
+          this.log('No post container found, trying to find it...');
+          const foundContainer = findPostContainer(this.document, this.log);
+          if (foundContainer) {
+            this.highlightPosts();
+          } else {
+            this.log('Container still not found, skipping highlighting');
+          }
+        } else {
         }
       }, pollInterval);
     };
@@ -512,7 +724,13 @@
           return;
         }
         if (this.state.isAutoScrollingEnabled) {
-          this.log('Performing smooth scroll down...');
+          const scrollHeight = this.document.documentElement.scrollHeight;
+          const scrollTop = window.scrollY + window.innerHeight;
+          if (scrollTop >= scrollHeight - 10) {
+            this.log('Reached page bottom, stopping auto-scrolling');
+            this.toggleAutoScrolling();
+            return;
+          }
           window.scrollBy({
             top: window.innerHeight * 0.8,
             behavior: 'smooth',
@@ -522,9 +740,11 @@
     };
     XGhosted.prototype.toggleAutoScrolling = function () {
       this.state.isAutoScrollingEnabled = !this.state.isAutoScrollingEnabled;
-      this.emit('auto-scrolling-toggled', {
-        isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
-      });
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:auto-scrolling-toggled', {
+          detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled },
+        })
+      );
     };
     XGhosted.prototype.expandArticle = function (article) {
       if (article) {
@@ -534,21 +754,8 @@
         article.style.padding = 'auto';
       }
     };
-    XGhosted.prototype.ensureAndHighlightPosts = function () {
-      let results = this.highlightPosts();
-      if (results.length === 0 && !this.state.postContainer) {
-        this.state.postContainer = findPostContainer(this.document, this.log);
-        if (this.state.postContainer) {
-          results = this.highlightPosts();
-        } else {
-          this.log('Container still not found, skipping highlighting');
-        }
-      }
-      return results;
-    };
     XGhosted.prototype.highlightPosts = function (posts) {
       this.state.isHighlighting = true;
-      this.updateState(this.document.location.href);
       const processPostAnalysis = (post, analysis) => {
         if (!(post instanceof this.document.defaultView.Element)) {
           this.log('Skipping invalid DOM element:', post);
@@ -581,7 +788,8 @@
       const userProfileName = this.state.userProfileName;
       const results = [];
       const postsToProcess =
-        posts || this.document.querySelectorAll(XGhosted.POST_SELECTOR);
+        posts ||
+        this.document.querySelectorAll(XGhosted.UNPROCESSED_POSTS_SELECTOR);
       let postsProcessed = 0;
       let cachedAnalysis = false;
       postsToProcess.forEach((post) => {
@@ -601,8 +809,11 @@
         results.push(analysis);
       });
       if (postsProcessed > 0) {
-        this.state = { ...this.state };
-        this.emit('state-updated', { ...this.state });
+        this.document.dispatchEvent(
+          new CustomEvent('xghosted:state-updated', {
+            detail: { ...this.state },
+          })
+        );
         this.log(
           `Highlighted ${postsProcessed} new posts, state-updated emitted`
         );
@@ -635,13 +846,6 @@
           },
         })
       );
-      this.document.addEventListener('xghosted:csv-import', () => {
-        this.highlightPosts();
-      });
-      this.document.addEventListener('xghosted:posts-cleared', () => {
-        this.postsManager.clearPosts();
-        this.ensureAndHighlightPosts();
-      });
       const styleSheet = this.document.createElement('style');
       styleSheet.textContent = `
     .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
@@ -769,12 +973,14 @@
       onStartPolling,
       onStopPolling,
       onEyeballClick,
+      onCopyLinks,
       setPanelPosition,
     }) {
       const flagged = window.preactHooks.useMemo(
         () => xGhosted.postsManager.getProblemPosts(),
         [xGhosted.postsManager.getAllPosts()]
       );
+      const totalPosts = xGhosted.postsManager.getAllPosts().length;
       const [isVisible, setIsVisible] = window.preactHooks.useState(
         state.isPanelVisible
       );
@@ -783,6 +989,16 @@
       const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
       const [isDropdownOpen, setIsDropdownOpen] =
         window.preactHooks.useState(false);
+      const [isPolling, setIsPolling] = window.preactHooks.useState(
+        state.isPollingEnabled
+      );
+      const [isScrolling, setIsScrolling] = window.preactHooks.useState(
+        state.isAutoScrollingEnabled
+      );
+      window.preactHooks.useEffect(() => {
+        setIsPolling(state.isPollingEnabled);
+        setIsScrolling(state.isAutoScrollingEnabled);
+      }, [state.isPollingEnabled, state.isAutoScrollingEnabled]);
       window.preactHooks.useEffect(() => {
         const handleCsvImport = (e) => {
           if (e.detail.importedCount > 0) {
@@ -790,9 +1006,8 @@
           }
         };
         document.addEventListener('xghosted:csv-import', handleCsvImport);
-        return () => {
+        return () =>
           document.removeEventListener('xghosted:csv-import', handleCsvImport);
-        };
       }, []);
       const toggleVisibility = () => {
         const newVisibility = !isVisible;
@@ -800,70 +1015,44 @@
         xGhosted.togglePanelVisibility(newVisibility);
       };
       const handleDragStart = (e) => {
-        let draggedPanel = e.target.closest('#xghosted-panel');
-        if (!draggedPanel) return;
-        draggedPanel.classList.add('dragging');
-        let currentRight = 0;
-        if (
-          typeof state.panelPosition.right === 'string' &&
-          state.panelPosition.right.endsWith('px')
-        ) {
-          const parsedRight = parseFloat(state.panelPosition.right);
-          if (!isNaN(parsedRight)) {
-            currentRight = parsedRight;
-          } else {
-            console.warn(
-              `Invalid state.panelPosition.right: ${state.panelPosition.right}, defaulting to 10px`
-            );
-            currentRight = 10;
-          }
-        } else {
-          console.warn(
-            `Invalid or missing state.panelPosition.right: ${state.panelPosition.right}, defaulting to 10px`
-          );
-          currentRight = 10;
-        }
-        let currentTop = 0;
-        if (
-          typeof state.panelPosition.top === 'string' &&
-          state.panelPosition.top.endsWith('px')
-        ) {
-          const parsedTop = parseFloat(state.panelPosition.top);
-          if (!isNaN(parsedTop)) {
-            currentTop = parsedTop;
-          } else {
-            console.warn(
-              `Invalid state.panelPosition.top: ${state.panelPosition.top}, defaulting to 60px`
-            );
-            currentTop = 60;
-          }
-        } else {
-          console.warn(
-            `Invalid or missing state.panelPosition.top: ${state.panelPosition.top}, defaulting to 60px`
-          );
-          currentTop = 60;
-        }
-        let initialX = e.clientX - currentRight;
+        const draggedContainer = e.target.closest('#xghosted-panel-container');
+        if (!draggedContainer) return;
+        draggedContainer.classList.add('dragging');
+        const computedStyle = window.getComputedStyle(draggedContainer);
+        let currentRight =
+          parseFloat(computedStyle.right) ||
+          parseFloat(state.panelPosition.right) ||
+          10;
+        let currentTop =
+          parseFloat(computedStyle.top) ||
+          parseFloat(state.panelPosition.top) ||
+          60;
+        let initialX = e.clientX + currentRight;
         let initialY = e.clientY - currentTop;
         let right = currentRight;
         let top = currentTop;
+        let lastUpdate = 0;
+        const throttleDelay = 16;
         const onMouseMove = (e2) => {
+          const now = Date.now();
+          if (now - lastUpdate < throttleDelay) return;
+          lastUpdate = now;
           right = initialX - e2.clientX;
           top = e2.clientY - initialY;
           right = Math.max(
             0,
-            Math.min(right, window.innerWidth - draggedPanel.offsetWidth)
+            Math.min(right, window.innerWidth - draggedContainer.offsetWidth)
           );
           top = Math.max(
             0,
-            Math.min(top, window.innerHeight - draggedPanel.offsetHeight)
+            Math.min(top, window.innerHeight - draggedContainer.offsetHeight)
           );
-          draggedPanel.style.right = `${right}px`;
-          draggedPanel.style.top = `${top}px`;
+          draggedContainer.style.right = `${right}px`;
+          draggedContainer.style.top = `${top}px`;
         };
         const onMouseUp = () => {
           try {
-            draggedPanel.classList.remove('dragging');
+            draggedContainer.classList.remove('dragging');
             if (setPanelPosition) {
               setPanelPosition({
                 right: `${right}px`,
@@ -891,20 +1080,18 @@
           {
             id: 'xghosted-panel',
             style: {
-              width: isVisible ? config.PANEL.WIDTH : 'auto',
+              background: config.THEMES[currentMode].bg,
+              border: `2px solid ${isPolling ? config.THEMES[currentMode].border : '#FFA500'}`,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              color: config.THEMES[currentMode].text,
+              cursor: 'move',
+              fontFamily: config.PANEL.FONT,
               maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
               minWidth: isVisible ? '250px' : '60px',
               padding: isVisible ? '8px 8px 12px 8px' : '4px',
               transition: 'width 0.2s ease, max-height 0.2s ease',
-              fontFamily: config.PANEL.FONT,
-              background: config.THEMES[currentMode].bg,
-              color: config.THEMES[currentMode].text,
-              borderRadius: '12px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-              position: 'fixed',
-              right: state.panelPosition.right,
-              top: state.panelPosition.top,
-              zIndex: 9999,
+              width: isVisible ? config.PANEL.WIDTH : 'auto',
             },
             onMouseDown: handleDragStart,
           },
@@ -918,6 +1105,9 @@
                   window.preact.h(
                     'button',
                     {
+                      key: isToolsExpanded
+                        ? 'tools-expanded'
+                        : 'tools-collapsed',
                       className: 'panel-button',
                       onClick: () => setIsToolsExpanded(!isToolsExpanded),
                       'aria-label': 'Toggle Tools Section',
@@ -934,27 +1124,26 @@
                     'div',
                     {
                       style: {
-                        display: 'flex',
-                        justifyContent: 'space-between',
                         alignItems: 'center',
+                        display: 'flex',
                         flex: 1,
+                        justifyContent: 'space-between',
                       },
                     },
                     window.preact.h(
                       'button',
                       {
-                        className: `panel-button ${state.isPollingEnabled ? '' : 'polling-stopped'}`,
-                        onClick: state.isPollingEnabled
-                          ? onStopPolling
-                          : onStartPolling,
-                        'aria-label': state.isPollingEnabled
+                        key: isPolling ? 'polling-stop' : 'polling-start',
+                        className: `panel-button ${isPolling ? '' : 'polling-stopped'}`,
+                        onClick: isPolling ? onStopPolling : onStartPolling,
+                        'aria-label': isPolling
                           ? 'Stop Polling'
                           : 'Start Polling',
                       },
                       window.preact.h('i', {
-                        className: state.isPollingEnabled
-                          ? 'fa-solid fa-circle-stop'
-                          : 'fa-solid fa-circle-play',
+                        className: isPolling
+                          ? 'fa-solid fa-stop'
+                          : 'fa-solid fa-play',
                         style: { marginRight: '12px' },
                       }),
                       'Polling'
@@ -962,16 +1151,17 @@
                     window.preact.h(
                       'button',
                       {
+                        key: isScrolling ? 'scroll-stop' : 'scroll-start',
                         className: 'panel-button',
                         onClick: () => xGhosted.toggleAutoScrolling(),
-                        'aria-label': state.isAutoScrollingEnabled
+                        'aria-label': isScrolling
                           ? 'Stop Auto-Scroll'
                           : 'Start Auto-Scroll',
                       },
                       window.preact.h('i', {
-                        className: state.isAutoScrollingEnabled
-                          ? 'fa-solid fa-circle-stop'
-                          : 'fa-solid fa-circle-play',
+                        className: isScrolling
+                          ? 'fa-solid fa-stop'
+                          : 'fa-solid fa-play',
                         style: { marginRight: '12px' },
                       }),
                       'Scroll'
@@ -996,13 +1186,13 @@
                   {
                     className: 'tools-section',
                     style: {
-                      display: isToolsExpanded ? 'block' : 'none',
-                      padding: '12px',
-                      borderRadius: '8px',
                       background: config.THEMES[currentMode].bg,
-                      boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
-                      marginBottom: '8px',
                       borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
+                      borderRadius: '8px',
+                      boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
+                      display: isToolsExpanded ? 'block' : 'none',
+                      marginBottom: '8px',
+                      padding: '12px',
                     },
                   },
                   window.preact.h(
@@ -1019,8 +1209,8 @@
                       'div',
                       {
                         style: {
-                          paddingBottom: '12px',
                           borderBottom: '1px solid var(--border-color)',
+                          paddingBottom: '12px',
                         },
                       },
                       window.preact.h(
@@ -1149,9 +1339,26 @@
                   window.preact.h(
                     'div',
                     { className: 'problem-posts-header' },
-                    'Problem Posts (',
+                    'Processed Posts (',
+                    totalPosts,
+                    ') Concerns (',
                     flagged.length,
-                    '):'
+                    '):',
+                    window.preact.h(
+                      'span',
+                      {
+                        style: {
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          marginLeft: '8px',
+                          verticalAlign: 'middle',
+                        },
+                        onClick: onCopyLinks,
+                        'aria-label': 'Copy Concerns to Clipboard',
+                        title: 'Copy Concerns to Clipboard',
+                      },
+                      window.preact.h('i', { className: 'fas fa-copy' })
+                    )
                   ),
                   window.preact.h(
                     'div',
@@ -1291,210 +1498,3 @@
               accept: '.csv',
               onChange: handleFileChange,
               'aria-label': 'Select CSV file to import',
-            })
-          ),
-          window.preact.h('textarea', {
-            className: 'modal-textarea',
-            value: csvText,
-            onInput: (e) => setCsvText(e.target.value),
-            placeholder:
-              'Paste CSV content (e.g. Link Quality Reason Checked) or select a file above',
-            'aria-label': 'CSV content input',
-          }),
-          window.preact.h(
-            'div',
-            { className: 'modal-button-container' },
-            window.preact.h(
-              'button',
-              {
-                className: 'modal-button',
-                onClick: () => onSubmit(csvText),
-                'aria-label': 'Submit CSV content',
-              },
-              window.preact.h('i', {
-                className: 'fas fa-check',
-                style: { marginRight: '6px' },
-              }),
-              'Submit'
-            ),
-            window.preact.h(
-              'button',
-              {
-                className: 'modal-button',
-                onClick: () => {
-                  setCsvText('');
-                  onClose();
-                },
-                'aria-label': 'Close modal and clear input',
-              },
-              window.preact.h('i', {
-                className: 'fas fa-times',
-                style: { marginRight: '6px' },
-              }),
-              'Close'
-            )
-          )
-        )
-      );
-    }
-    window.Modal = Modal;
-    window.PanelManager = function (
-      doc,
-      xGhostedInstance,
-      themeMode = 'light',
-      postsManager,
-      storage
-    ) {
-      this.document = doc;
-      this.xGhosted = xGhostedInstance;
-      this.log = xGhostedInstance.log;
-      this.postsManager = postsManager;
-      this.storage = storage || { get: () => {}, set: () => {} };
-      const validThemes = ['light', 'dim', 'dark'];
-      this.state = {
-        panelPosition: { right: '10px', top: '60px' },
-        instance: xGhostedInstance,
-        isPanelVisible: true,
-        isRateLimited: false,
-        isManualCheckEnabled: false,
-        isPollingEnabled: true,
-        isAutoScrollingEnabled: false,
-        themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
-      };
-      this.log(
-        `PanelManager initialized with themeMode: ${this.state.themeMode}`
-      );
-      this.uiElements = {
-        config: {
-          PANEL: {
-            WIDTH: '400px',
-            MAX_HEIGHT: 'calc(100vh - 70px)',
-            TOP: '60px',
-            RIGHT: '10px',
-            Z_INDEX: '9999',
-            FONT: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-          },
-          THEMES: {
-            light: {
-              bg: '#FFFFFF',
-              text: '#292F33',
-              buttonText: '#000000',
-              border: '#B0BEC5',
-              button: '#3A4A5B',
-              hover: '#90A4AE',
-              scroll: '#CCD6DD',
-              placeholder: '#666666',
-              problem: 'red',
-              potentialProblem: 'yellow',
-              eyeballColor: 'rgb(29, 155, 240)',
-            },
-            dim: {
-              bg: '#15202B',
-              text: '#D9D9D9',
-              buttonText: '#FFFFFF',
-              border: '#8292A2',
-              button: '#3A4A5B',
-              hover: '#8292A2',
-              scroll: '#4A5C6D',
-              placeholder: '#A0A0A0',
-              problem: 'red',
-              potentialProblem: 'yellow',
-              eyeballColor: 'rgb(29, 155, 240)',
-            },
-            dark: {
-              bg: '#000000',
-              text: '#D9D9D9',
-              buttonText: '#FFFFFF',
-              border: '#888888',
-              button: '#3A4A5B',
-              hover: '#888888',
-              scroll: '#666666',
-              placeholder: '#A0A0A0',
-              problem: 'red',
-              potentialProblem: 'yellow',
-              eyeballColor: 'rgb(29, 155, 240)',
-            },
-          },
-        },
-        panel: null,
-        panelContainer: null,
-      };
-      this.styleElement = null;
-      this.dragState = {
-        isDragging: false,
-        startX: 0,
-        startY: 0,
-        initialRight: 0,
-        initialTop: 0,
-      };
-      this.init();
-    };
-    window.PanelManager.prototype.init = function () {
-      this.loadState();
-      this.uiElements.panelContainer = this.document.createElement('div');
-      this.uiElements.panelContainer.id = 'xghosted-panel-container';
-      this.uiElements.panel = this.document.createElement('div');
-      this.uiElements.panel.id = 'xghosted-panel';
-      this.uiElements.panelContainer.appendChild(this.uiElements.panel);
-      this.document.body.appendChild(this.uiElements.panelContainer);
-      if (window.xGhostedStyles) {
-        if (window.xGhostedStyles.modal) {
-          const modalStyleSheet = this.document.createElement('style');
-          modalStyleSheet.textContent = window.xGhostedStyles.modal;
-          this.document.head.appendChild(modalStyleSheet);
-        }
-        if (window.xGhostedStyles.panel) {
-          const panelStyleSheet = this.document.createElement('style');
-          panelStyleSheet.textContent = window.xGhostedStyles.panel;
-          this.document.head.appendChild(panelStyleSheet);
-        }
-      }
-      this.state.isRateLimited = this.xGhosted.state.isRateLimited;
-      this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
-      this.state.isAutoScrollingEnabled =
-        this.xGhosted.state.isAutoScrollingEnabled;
-      this.uiElements.panelContainer.style.right =
-        this.state.panelPosition.right;
-      this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
-      this.uiElements.panelContainer.style.left = 'auto';
-      this.styleElement = this.document.createElement('style');
-      this.document.head.appendChild(this.styleElement);
-      this.applyPanelStyles();
-      this.xGhosted.on('state-updated', (newState) => {
-        this.state.isRateLimited = newState.isRateLimited;
-        this.renderPanel();
-      });
-      this.xGhosted.on('polling-state-updated', ({ isPollingEnabled }) => {
-        this.state.isPollingEnabled = isPollingEnabled;
-        this.renderPanel();
-        this.applyPanelStyles();
-      });
-      this.xGhosted.on(
-        'auto-scrolling-toggled',
-        ({ isAutoScrollingEnabled }) => {
-          this.state.isAutoScrollingEnabled = isAutoScrollingEnabled;
-          this.renderPanel();
-        }
-      );
-      if (window.preact && window.preact.h) {
-        this.renderPanel();
-      } else {
-        this.log('Preact h not available, skipping panel render');
-      }
-    };
-    window.PanelManager.prototype.saveState = function () {
-      const currentState = this.storage.get('xGhostedState', {});
-      const updatedState = {
-        ...currentState,
-        panel: {
-          isPanelVisible: this.state.isPanelVisible,
-          panelPosition: { ...this.state.panelPosition },
-          themeMode: this.state.themeMode,
-        },
-      };
-      this.storage.set('xGhostedState', updatedState);
-      this.log('Saved panel state');
-    };
-    window.PanelManager.prototype.loadState = function () {
-      const savedState = this.storage.get('xGhostedState', {});
-      const panelState = savedState.panel || {};

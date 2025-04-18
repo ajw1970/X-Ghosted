@@ -1,10 +1,10 @@
-   390 grok/1-grok-files.txt
+   450 grok/1-grok-files.txt
     92 grok/2-project.stuff.txt
   1500 grok/3-xGhosted.code-part-00.txt
   1500 grok/3-xGhosted.code-part-01.txt
   1500 grok/3-xGhosted.code-part-02.txt
   1500 grok/3-xGhosted.code-part-03.txt
-   743 grok/3-xGhosted.code-part-04.txt
-    64 grok/4-test.results.txt
+   968 grok/3-xGhosted.code-part-04.txt
+    55 grok/4-test.results.txt
    183 grok/console.log.txt
-  7472 total
+  7748 total

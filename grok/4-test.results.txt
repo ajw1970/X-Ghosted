@@ -6,59 +6,50 @@
  RUN  v3.0.9 /mnt/c/Dev/X-Twitter/Ghosted
       Coverage enabled with v8
 
- ✓ src/utils/debounce.test.js (7 tests) 6ms
- ✓ src/utils/findReplyingToWithDepth.test.js (3 tests) 11ms
- ✓ src/utils/postHasProblemCommunity.test.js (3 tests) 12ms
- ✓ src/utils/postHasProblemSystemNotice.test.js (4 tests) 11ms
- ✓ src/utils/getRelativeLinkToPost.test.js (1 test) 105ms
+ ✓ src/utils/debounce.test.js (7 tests) 7ms
+ ✓ src/utils/findReplyingToWithDepth.test.js (3 tests) 14ms
+ ✓ src/utils/getRelativeLinkToPost.test.js (1 test) 86ms
+ ✓ src/dom/detectTheme.test.js (10 tests) 95ms
  ✓ src/dom/parseUrl.test.js (11 tests) 3ms
- ✓ src/dom/detectTheme.test.js (10 tests) 97ms
- ✓ src/ui/SplashPanel.test.js (4 tests) 77ms
- ✓ src/utils/identifyPosts.sample.test.js (1 test) 697ms
-   ✓ identifyPosts classifies posts 696ms
- ❯ src/xGhosted.test.js (8 tests | 8 failed) 2649ms
-   × xGhosted > updateState sets with_replies flag, userProfileName, and resets on URL change 581ms
+ ❯ src/xGhosted.test.js (5 tests | 5 failed) 2081ms
+   × xGhosted > checkPostInNewTab handles rate limit 553ms
      → XGhosted requires a postsManager instance
-   × xGhosted > updateState dispatches user-profile-updated event when userProfileName changes 342ms
+   × xGhosted > saveState and loadState persist data 402ms
      → XGhosted requires a postsManager instance
-   × xGhosted > checkPostInNewTab handles rate limit 294ms
+   × xGhosted > highlightPosts calls identifyPost once per post 375ms
      → XGhosted requires a postsManager instance
-   × xGhosted > ensureAndHighlightPosts identifies all post qualities 302ms
+   × xGhosted > highlightPosts does not call identifyPost after first processing 376ms
      → XGhosted requires a postsManager instance
-   × xGhosted > saveState and loadState persist data 328ms
+   × xGhosted > highlightPost does not call identifyPost on previously processed posts 373ms
      → XGhosted requires a postsManager instance
-   × xGhosted > highlightPosts calls identifyPost once per post 279ms
-     → XGhosted requires a postsManager instance
-   × xGhosted > highlightPosts does not call identifyPost after first processing 261ms
-     → XGhosted requires a postsManager instance
-   × xGhosted > highlightPost does not call identifyPost on previously processed posts 258ms
-     → XGhosted requires a postsManager instance
+ ✓ src/ui/SplashPanel.test.js (4 tests) 86ms
+ ✓ src/utils/identifyPosts.sample.test.js (1 test) 603ms
+   ✓ identifyPosts classifies posts 602ms
+ ✓ src/utils/postHasProblemCommunity.test.js (3 tests) 12ms
+ ✓ src/utils/postHasProblemSystemNotice.test.js (4 tests) 16ms
 
-⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
 
- FAIL  src/xGhosted.test.js > xGhosted > updateState sets with_replies flag, userProfileName, and resets on URL change
- FAIL  src/xGhosted.test.js > xGhosted > updateState dispatches user-profile-updated event when userProfileName changes
  FAIL  src/xGhosted.test.js > xGhosted > checkPostInNewTab handles rate limit
- FAIL  src/xGhosted.test.js > xGhosted > ensureAndHighlightPosts identifies all post qualities
  FAIL  src/xGhosted.test.js > xGhosted > saveState and loadState persist data
  FAIL  src/xGhosted.test.js > xGhosted > highlightPosts calls identifyPost once per post
  FAIL  src/xGhosted.test.js > xGhosted > highlightPosts does not call identifyPost after first processing
  FAIL  src/xGhosted.test.js > xGhosted > highlightPost does not call identifyPost on previously processed posts
 Error: XGhosted requires a postsManager instance
- ❯ new XGhosted src/xGhosted.js:25:11
-     23|       : console.log.bind(console);
-     24|   if (!config.postsManager) {
-     25|     throw new Error('XGhosted requires a postsManager instance');
+ ❯ new XGhosted src/xGhosted.js:22:11
+     20|   this.log = config.log || console.log.bind(console);
+     21|   if (!config.postsManager) {
+     22|     throw new Error('XGhosted requires a postsManager instance');
        |           ^
-     26|   }
-     27|   this.postsManager = config.postsManager;
+     23|   }
+     24|   this.postsManager = config.postsManager;
  ❯ src/xGhosted.test.js:66:16
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
 
 
  Test Files  1 failed | 9 passed (10)
-      Tests  8 failed | 44 passed (52)
-   Start at  03:22:50
-   Duration  48.77s (transform 2.54s, setup 4.35s, collect 4.61s, tests 3.67s, environment 404.46s, prepare 24.86s)
+      Tests  5 failed | 44 passed (49)
+   Start at  21:07:24
+   Duration  38.71s (transform 2.67s, setup 2.83s, collect 5.21s, tests 3.00s, environment 280.34s, prepare 26.27s)
 

@@ -1,3 +1,243 @@
+        "   3 Posts",
+        "   2 Articles",
+        "   1 Nested Articles",
+        "",
+        "Rated Post Quality (3 Total):",
+        "   1 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   1 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        { quality: PROBLEM, reason: "Found notice: this post is unavailable", link: "/catturd2/status/1886210678752518230", },
+        { quality: UNDEFINED, reason: "No article found", link: false },
+        { quality: GOOD, reason: "Looks good", link: "/BarbieTrueBlue/status/1886211137961680919" }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    it('should identify this unable to view post problem in this nested article', () => {
+      loadHTML('samples/You-Cant-View-This-Post.html');
+      const analyses = identifyPosts(document);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   3 Posts",
+        "   2 Articles",
+        "   1 Nested Articles",
+        "",
+        "Rated Post Quality (3 Total):",
+        "   1 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   1 Undefined"
+      ].join("\n"));
+
+      // Extract analysis from each rated post
+      expect(analyses).toEqual([
+        { quality: PROBLEM, reason: "Found notice: you're unable to view this post", link: "/catturd2/status/1886210678752518230", },
+        { quality: UNDEFINED, reason: "No article found", link: false, },
+        { quality: GOOD, reason: "Looks good", link: "/BarbieTrueBlue/status/1886211137961680919", },
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    it('should identify this unable to view post problem in this nested article', () => {
+      loadHTML('samples/Reply-To-Repost-Of-Account-No-Longer-Exists.html');
+      const analyses = identifyPosts(document);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "  29 Posts",
+        "  20 Articles",
+        "   1 Nested Articles",
+        "",
+        "Rated Post Quality (29 Total):",
+        "  19 Good",
+        "   0 Potential Problem",
+        "   1 Problem",
+        "   9 Undefined"
+      ].join("\n"));
+
+      expect(analyses[0]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/ApostleJohnW/status/1900446828958470577" });
+      expect(analyses[1]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/Name__Error_404/status/1900452964101402693" });
+      expect(analyses[2]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/ApostleJohnW/status/1900454996501475806" });
+      expect(analyses[3]).toEqual({ "quality": UNDEFINED, "reason": "No article found", "link": false });
+      expect(analyses[4]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/adamcarolla/status/1900417203356193038" });
+      expect(analyses[5]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/ApostleJohnW/status/1900454397697495122" });
+      expect(analyses[6]).toEqual({ "quality": UNDEFINED, "reason": "No article found", "link": false });
+      expect(analyses[7]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/klara_sjo/status/1900303399511318989" });
+      expect(analyses[8]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/ApostleJohnW/status/1900453954611232911" });
+      expect(analyses[9]).toEqual({ "quality": UNDEFINED, "reason": "No article found", "link": false });
+      expect(analyses[10]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/CNviolations/status/1900441767553446324" });
+      expect(analyses[11]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/ApostleJohnW/status/1900453039971971160" });
+      expect(analyses[12]).toEqual({ "quality": UNDEFINED, "reason": "No article found", "link": false });
+      expect(analyses[13]).toEqual({ "quality": PROBLEM, "reason": "Found notice: this post is from an account that no longer exists", "link": "/_____USA___/status/1900433669036405235" });
+      expect(analyses[14]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/ApostleJohnW/status/1900452749206044700" });
+      expect(analyses[15]).toEqual({ "quality": UNDEFINED, "reason": "No article found", "link": false });
+      expect(analyses[16]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/CultureCrave/status/1900440715806859351" });
+      expect(analyses[17]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/ApostleJohnW/status/1900452224620179640" });
+      expect(analyses[18]).toEqual({ "quality": UNDEFINED, "reason": "No article found", "link": false });
+      expect(analyses[19]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/MagneticNorse/status/1900444331082690813" });
+      expect(analyses[20]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/ApostleJohnW/status/1900451349776490691" });
+      expect(analyses[21]).toEqual({ "quality": UNDEFINED, "reason": "No article found", "link": false });
+      expect(analyses[22]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/WallStreetMav/status/1900437991761563894" });
+      expect(analyses[23]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/ApostleJohnW/status/1900450032354025709" });
+      expect(analyses[24]).toEqual({ "quality": UNDEFINED, "reason": "No article found", "link": false });
+      expect(analyses[25]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/charliekirk11/status/1900284625467170868" });
+      expect(analyses[26]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/ApostleJohnW/status/1900449357188546773" });
+      expect(analyses[27]).toEqual({ "quality": UNDEFINED, "reason": "No article found", "link": false });
+      expect(analyses[28]).toEqual({ "quality": GOOD, "reason": "Looks good", "link": "/gunsnrosesgirl3/status/1900423541561962874" });
+
+      document.documentElement.innerHTML = '';
+    });
+
+  });
+
+});
+
+describe('identifyPosts - Potential Problems', () => {
+
+  describe('potential problem posts identified with findReplyingToWithDepth', () => {
+
+    it('should identify one potential problem reply in this single post', () => {
+      loadHTML('samples/Home-Timeline-SingleExample.html');
+      const analyses = identifyPosts(document);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   1 Posts",
+        "   1 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (1 Total):",
+        "   0 Good",
+        "   1 Potential Problem",
+        "   0 Problem",
+        "   0 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([{ quality: POTENTIAL_PROBLEM, reason: "Found: 'Replying to <a>@KanekoaTheGreat</a>' at a depth of 6", link: "/ApostleJohnW/status/1890213085878845626" }]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    it('should identify one potential problem reply in this sample size of 23', () => {
+      loadHTML('samples/Home-Timeline-With-Replies-SeparateButRelated.html');
+      const analyses = identifyPosts(document);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "  23 Posts",
+        "  16 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (23 Total):",
+        "  15 Good",
+        "   1 Potential Problem",
+        "   0 Problem",
+        "   7 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        { quality: GOOD, reason: "Looks good", link: "/Polymarket/status/1890150272015692285" },
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890268189273256429" },
+        { quality: UNDEFINED, reason: "No article found", link: false },
+        { quality: GOOD, reason: "Looks good", link: "/joerogan/status/1890256988065747120" },
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890267922888831056" },
+        { quality: UNDEFINED, reason: "No article found", link: false },
+        { quality: GOOD, reason: "Looks good", link: "/elonmusk/status/1890267219021689066" },
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890267836297408744" },
+        { quality: UNDEFINED, reason: "No article found", link: false },
+        { quality: GOOD, reason: "Looks good", link: "/fasc1nate/status/1890159112966529049" },
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890266335059538298" },
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890226210656968925" },
+        { quality: UNDEFINED, reason: "No article found", link: false },
+        { quality: GOOD, reason: "Looks good", link: "/KanekoaTheGreat/status/1890210084158103579" },
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890213612868063403" },
+        { quality: UNDEFINED, reason: "No article found", link: false },
+        { quality: POTENTIAL_PROBLEM, reason: "Found: 'Replying to <a>@KanekoaTheGreat</a>' at a depth of 6", link: "/ApostleJohnW/status/1890213085878845626" },
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890201310458216496" },
+        { quality: UNDEFINED, reason: "No article found", link: false },
+        { quality: GOOD, reason: "Looks good", link: "/amuse/status/1890188509212021011" },
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890197334828470528" },
+        { quality: UNDEFINED, reason: "No article found", link: false },
+        { quality: GOOD, reason: "Looks good", link: "/GuntherEagleman/status/1890193877270737033" }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    it('should identify one potential problem reply in this sample size of 8', () => {
+      loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply-To-DOGE.html');
+      const analyses = identifyPosts(document);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   8 Posts",
+        "   5 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (8 Total):",
+        "   4 Good",
+        "   1 Potential Problem",
+        "   0 Problem",
+        "   3 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890582770079928347" },
+        { quality: UNDEFINED, reason: "No article found", link: false },
+        { quality: GOOD, reason: "Looks good", link: "/realchrisrufo/status/1890461003453972704" },
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890582075989737603" },
+        { quality: UNDEFINED, reason: "No article found", link: false },
+        { quality: POTENTIAL_PROBLEM, reason: "Found: 'Replying to <a>@DOGE</a>' at a depth of 6", link: "/ApostleJohnW/status/1890581864882065729" },
+        { quality: UNDEFINED, reason: "No article found", link: false },
+        { quality: GOOD, reason: "Looks good", link: "/Starlink/status/1890556777910981087" }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    it('should identify one potential problem reply in this sample size of 9', () => {
+      loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply-To-TheRabbitHole84.html');
+      const analyses = identifyPosts(document);
+
+      expect(describeSampleAnalyses(document, analyses)).toBe([
+        "Structure Summary Totals:",
+        "   9 Posts",
+        "   7 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (9 Total):",
+        "   6 Good",
+        "   1 Potential Problem",
+        "   0 Problem",
+        "   2 Undefined"
+      ].join("\n"));
+
+      expect(analyses).toEqual([
+        { quality: GOOD, reason: "Looks good", link: "/TomHoman_/status/1890264842021531908" },
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890492039311114515" },
+        { quality: UNDEFINED, reason: "No article found", link: false },
+        { quality: GOOD, reason: "Looks good", link: "/TRHLofficial/status/1890488779200135602" },
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890489017642127402" },
+        { quality: UNDEFINED, reason: "No article found", link: false },
+        { quality: POTENTIAL_PROBLEM, reason: "Found: 'Replying to <a>@TheRabbitHole84</a>' at a depth of 6", link: "/ApostleJohnW/status/1890483565499932926" },
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890477786164318696" },
+        { quality: GOOD, reason: "Looks good", link: "/ApostleJohnW/status/1890477475659927947" }
+      ]);
+
+      document.documentElement.innerHTML = '';
+    });
+
+    it('should identify one potential problem reply in this sample size of 28', () => {
+      loadHTML('samples/Home-Timeline-With-Replies-With-Suspect-Reply.html');
+      const analyses = identifyPosts(document);
+
       expect(describeSampleAnalyses(document, analyses)).toBe([
         "Structure Summary Totals:",
         "  28 Posts",
@@ -349,17 +589,14 @@ function XGhosted(doc, config = {}) {
   };
   this.timing = { ...defaultTiming, ...config.timing };
   this.document = doc;
-  this.log =
-    config.useTampermonkeyLog && typeof GM_log !== 'undefined'
-      ? GM_log.bind(null)
-      : console.log.bind(console);
+  this.log = config.log || console.log.bind(console);
   if (!config.postsManager) {
     throw new Error('XGhosted requires a postsManager instance');
   }
   this.postsManager = config.postsManager;
   this.state = {
     postContainer: null,
-    lastUrl: '',
+    lastUrlFullPath: '',
     isWithReplies: false,
     isRateLimited: false,
     isAutoScrollingEnabled: false,
@@ -367,37 +604,32 @@ function XGhosted(doc, config = {}) {
     isPollingEnabled: true,
     userProfileName: null,
   };
-  this.events = {};
   this.checkPostInNewTabThrottled = debounce((href) => {
     return this.checkPostInNewTab(href);
   }, this.timing.tabCheckThrottle);
-  this.ensureAndHighlightPostsDebounced = debounce(() => {
-    this.ensureAndHighlightPosts();
+  this.highlightPostsDebounced = debounce(() => {
+    this.highlightPosts();
   }, this.timing.debounceDelay);
-  this.on = (event, callback) => {
-    if (!this.events[event]) this.events[event] = [];
-    this.events[event].push(callback);
-  };
-  this.off = (event, callback) => {
-    if (!this.events[event]) return;
-    this.events[event] = this.events[event].filter((cb) => cb !== callback);
-  };
-  this.emit = (event, data) => {
-    if (!this.events[event]) return;
-    this.events[event].forEach((cb) => cb(data));
-  };
 }
 
-XGhosted.POST_SELECTOR = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
+XGhosted.POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
+XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
 
-XGhosted.prototype.updateState = function (url) {
-  const { isWithReplies, userProfileName } = parseUrl(url);
-  this.state.isWithReplies = isWithReplies;
-  if (this.state.lastUrl !== url) {
-    this.state.postContainer = null;
-    this.postsManager.clearPosts();
-    this.state.lastUrl = url;
+XGhosted.prototype.getUrlFullPathIfChanged = function (url) {
+  const urlParts = new URL(url);
+  const urlFullPath = urlParts.origin + urlParts.pathname;
+  if (this.state.lastUrlFullPath === urlFullPath) {
+    return false;
   }
+
+  this.log(`URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath})`);
+  this.state.lastUrlFullPath = urlFullPath;
+  return urlFullPath;
+};
+
+XGhosted.prototype.handleUrlChange = function (urlFullPath) {
+  const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
+  this.state.isWithReplies = isWithReplies;
   if (this.state.userProfileName !== userProfileName) {
     this.state.userProfileName = userProfileName;
     this.document.dispatchEvent(new CustomEvent('xghosted:user-profile-updated', {
@@ -406,7 +638,9 @@ XGhosted.prototype.updateState = function (url) {
       }
     }));
   }
-};
+
+  this.postsManager.clearPosts();
+}
 
 XGhosted.prototype.checkPostInNewTab = function (href) {
   this.log(`Checking post in new tab: ${href}`);
@@ -485,7 +719,11 @@ XGhosted.prototype.userRequestedPostCheck = function (href, post) {
       cached.analysis.quality = isProblem ? postQuality.PROBLEM : postQuality.GOOD;
       cached.checked = true;
       this.postsManager.registerPost(href, cached);
-      this.emit('state-updated', { ...this.state });
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:state-updated', {
+          detail: { ...this.state }
+        })
+      );
       this.log(`User requested post check completed for ${href}`);
     });
   } else {
@@ -497,7 +735,11 @@ XGhosted.prototype.handleStartPolling = function () {
   this.state.isPollingEnabled = true;
   this.startPolling();
   this.startAutoScrolling();
-  this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
+  this.document.dispatchEvent(
+    new CustomEvent('xghosted:polling-state-updated', {
+      detail: { isPollingEnabled: this.state.isPollingEnabled }
+    })
+  );
 };
 
 XGhosted.prototype.handleStopPolling = function () {
@@ -510,7 +752,11 @@ XGhosted.prototype.handleStopPolling = function () {
     clearInterval(this.scrollTimer);
     this.scrollTimer = null;
   }
-  this.emit('polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
+  this.document.dispatchEvent(
+    new CustomEvent('xghosted:polling-state-updated', {
+      detail: { isPollingEnabled: this.state.isPollingEnabled }
+    })
+  );
 };
 
 XGhosted.prototype.startPolling = function () {
@@ -521,18 +767,33 @@ XGhosted.prototype.startPolling = function () {
   const pollInterval = this.timing.pollInterval || 1000;
   this.log('Starting polling for post changes...');
   this.pollTimer = setInterval(() => {
+
     if (this.state.isHighlighting) {
       this.log('Polling skipped—highlighting in progress');
       return;
     }
 
-    const posts = this.document.querySelectorAll(XGhosted.POST_SELECTOR);
-    const postCount = posts.length;
-    if (postCount > 0) {
-      this.highlightPosts(posts);
-    } else if (!this.document.querySelector('div[data-xghosted="posts-container"]')) {
-      this.log('No posts and no container found, ensuring and highlighting...');
-      this.ensureAndHighlightPosts();
+    // Check for URL changes
+    const urlFullPath = this.getUrlFullPathIfChanged(this.document.location.href);
+    if (urlFullPath) {
+      this.log(`URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath})`);
+      this.handleUrlChange(urlFullPath);
+    }
+
+    // Assuming we've handled any change to the URL origin, we can check for posts
+    const unprocessedPosts = this.document.querySelectorAll(XGhosted.UNPROCESSED_POSTS_SELECTOR);
+    if (unprocessedPosts.length > 0) {
+      this.highlightPosts(unprocessedPosts);
+    } else if (!this.document.querySelector(XGhosted.POST_CONTAINER_SELECTOR)) {
+      this.log('No post container found, trying to find it...');
+      const foundContainer = findPostContainer(this.document, this.log);
+      if (foundContainer) {
+        this.highlightPosts();
+      } else {
+        this.log('Container still not found, skipping highlighting');
+      }
+    } else {
+      // this.log('No unprocessed posts found, skipping highlighting');
     }
   }, pollInterval);
 };
@@ -550,7 +811,14 @@ XGhosted.prototype.startAutoScrolling = function () {
       return;
     }
     if (this.state.isAutoScrollingEnabled) {
-      this.log('Performing smooth scroll down...');
+      const scrollHeight = this.document.documentElement.scrollHeight;
+      const scrollTop = window.scrollY + window.innerHeight;
+      if (scrollTop >= scrollHeight - 10) { // Small buffer
+        this.log('Reached page bottom, stopping auto-scrolling');
+        this.toggleAutoScrolling();
+        return;
+      }
+      // this.log('Performing smooth scroll down...');
       window.scrollBy({
         top: window.innerHeight * 0.8,
         behavior: 'smooth'
@@ -561,7 +829,11 @@ XGhosted.prototype.startAutoScrolling = function () {
 
 XGhosted.prototype.toggleAutoScrolling = function () {
   this.state.isAutoScrollingEnabled = !this.state.isAutoScrollingEnabled;
-  this.emit('auto-scrolling-toggled', { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled });
+  this.document.dispatchEvent(
+    new CustomEvent('xghosted:auto-scrolling-toggled', {
+      detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled }
+    })
+  );
 };
 
 XGhosted.prototype.expandArticle = function (article) {
@@ -573,22 +845,8 @@ XGhosted.prototype.expandArticle = function (article) {
   }
 };
 
-XGhosted.prototype.ensureAndHighlightPosts = function () {
-  let results = this.highlightPosts();
-  if (results.length === 0 && !this.state.postContainer) {
-    this.state.postContainer = findPostContainer(this.document, this.log);
-    if (this.state.postContainer) {
-      results = this.highlightPosts();
-    } else {
-      this.log('Container still not found, skipping highlighting');
-    }
-  }
-  return results;
-};
-
 XGhosted.prototype.highlightPosts = function (posts) {
   this.state.isHighlighting = true;
-  this.updateState(this.document.location.href);
 
   const processPostAnalysis = (post, analysis) => {
     if (!(post instanceof this.document.defaultView.Element)) {
@@ -614,11 +872,9 @@ XGhosted.prototype.highlightPosts = function (posts) {
   };
 
   const checkReplies = this.state.isWithReplies;
-  const userProfileName = this.state.userProfileName; // TODO: Upcoming feature will need this
-
+  const userProfileName = this.state.userProfileName;
   const results = [];
-  const postsToProcess = posts || this.document.querySelectorAll(XGhosted.POST_SELECTOR);
-
+  const postsToProcess = posts || this.document.querySelectorAll(XGhosted.UNPROCESSED_POSTS_SELECTOR);
   let postsProcessed = 0;
   let cachedAnalysis = false;
   postsToProcess.forEach((post) => {
@@ -631,15 +887,16 @@ XGhosted.prototype.highlightPosts = function (posts) {
     if (analysis?.quality === postQuality.PROBLEM) {
       this.handleStopPolling();
     }
-
     if (!cachedAnalysis) postsProcessed++;
     processPostAnalysis(post, analysis);
     results.push(analysis);
   });
-
   if (postsProcessed > 0) {
-    this.state = { ...this.state };
-    this.emit('state-updated', { ...this.state });
+    this.document.dispatchEvent(
+      new CustomEvent('xghosted:state-updated', {
+        detail: { ...this.state }
+      })
+    );
     this.log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
   }
   this.state.isHighlighting = false;
@@ -652,8 +909,6 @@ XGhosted.prototype.getThemeMode = function () {
 
 XGhosted.prototype.init = function () {
   this.log('Initializing XGhosted...');
-
-  // Detect theme early and emit event
   if (this.document.body) {
     const themeMode = this.getThemeMode();
     this.document.dispatchEvent(new CustomEvent('xghosted:theme-detected', {
@@ -662,8 +917,6 @@ XGhosted.prototype.init = function () {
   } else {
     this.log('Document body not available for theme detection');
   }
-
-  // Emit xghosted:init event with config data
   this.document.dispatchEvent(new CustomEvent('xghosted:init', {
     detail: {
       config: {
@@ -672,15 +925,6 @@ XGhosted.prototype.init = function () {
       }
     }
   }));
-
-  // Listen for CSV import and posts cleared to highlight posts
-  this.document.addEventListener('xghosted:csv-import', () => {
-    this.highlightPosts();
-  });
-  this.document.addEventListener('xghosted:posts-cleared', () => {
-    this.postsManager.clearPosts();
-    this.ensureAndHighlightPosts();
-  });
 
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
@@ -698,7 +942,6 @@ XGhosted.prototype.init = function () {
     }
   `;
   this.document.head.appendChild(styleSheet);
-
   this.document.addEventListener('click', (e) => {
     const eyeball = e.target.closest('.xghosted-eyeball') ||
       (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
@@ -721,7 +964,6 @@ XGhosted.prototype.init = function () {
       this.userRequestedPostCheck(href, clickedPost);
     }
   }, { capture: true });
-
   this.startPolling();
   this.startAutoScrolling();
 };
@@ -810,7 +1052,7 @@ export { XGhosted };
       pollInterval: 1000
     },
     showSplash: true,
-    useTampermonkeyLog: true,
+    log, // Pass logger
     postsManager
   };
   const xGhosted = new window.XGhosted(document, config);
@@ -930,7 +1172,7 @@ describe('xGhosted', () => {
       useTampermonkeyLog: false,
       persistProcessedPosts: true,
     });
-    xGhosted.updateState('https://x.com/user/with_replies');
+    xGhosted.handleUrlChange('https://x.com/user/with_replies');
     xGhosted.highlightPostsDebounced = xGhosted.highlightPosts; // Simplify for tests
     xGhosted.state.processedPosts.clear();
     xGhosted.state = {
@@ -944,39 +1186,6 @@ describe('xGhosted', () => {
   afterEach(() => {
     dom.window.document.body.innerHTML = '';
     vi.clearAllMocks();
-  });
-
-  test('updateState sets with_replies flag, userProfileName, and resets on URL change', () => {
-    expect(xGhosted.state.isWithReplies).toBe(true);
-    expect(xGhosted.state.userProfileName).toBe('user');
-    xGhosted.updateState('https://x.com/otherUser');
-    expect(xGhosted.state.isWithReplies).toBe(false);
-    expect(xGhosted.state.userProfileName).toBe('otherUser');
-    expect(xGhosted.state.processedPosts.size).toBe(0);
-  });
-
-  test('updateState dispatches user-profile-updated event when userProfileName changes', () => {
-    // Spy on document.dispatchEvent
-    const spy = vi.spyOn(document, 'dispatchEvent');
-
-    // Trigger the state update
-    xGhosted.updateState('https://x.com/newUser/with_replies');
-
-    // Check that dispatchEvent was called with the correct CustomEvent
-    expect(spy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'xghosted:user-profile-updated',
-        detail: { userProfileName: 'newUser' }
-      })
-    );
-
-    // Verify the state was updated
-    expect(xGhosted.state.userProfileName).toBe('newUser');
-
-    // Reset the spy and test no dispatch on same user
-    spy.mockClear();
-    xGhosted.updateState('https://x.com/newUser');
-    expect(spy).not.toHaveBeenCalled();
   });
 
   test('checkPostInNewTab handles rate limit', async () => {
@@ -997,19 +1206,8 @@ describe('xGhosted', () => {
     expect(mockWindow.close).toHaveBeenCalled();
   });
 
-  test('ensureAndHighlightPosts identifies all post qualities', () => {
-    const analyses = xGhosted.ensureAndHighlightPosts();
-    const summary = summarizeRatedPosts(analyses);
-    expect(summary.Good).toBe(21);
-    expect(summary.Problem).toBe(1);
-    expect(summary['Potential Problem']).toBe(2);
-    expect(summary.Undefined).toBe(12);
-    const post = analyses.find(pa => pa.link === '/OwenGregorian/status/1896977661144260900');
-    expect(post.quality).toBe(postQuality.PROBLEM);
-  });
-
   test('saveState and loadState persist data', () => {
-    xGhosted.ensureAndHighlightPosts();
+    xGhosted.highlightPosts();
     xGhosted.saveState();
     const saved = gmStorage.xGhostedState;
     expect(saved.processedPosts['/OwenGregorian/status/1896977661144260900'].analysis.quality).toBe(postQuality.PROBLEM);
@@ -1300,201 +1498,3 @@ describe('xGhosted', () => {
           findDivs(child, depth + 1)
         );
       }
-      const result = [];
-      findDivs(article, 0);
-      return result;
-    }
-
-    // src/utils/getRelativeLinkToPost.js
-    function getRelativeLinkToPost(element) {
-      const link = element.querySelector('a:has(time)')?.getAttribute('href');
-      return link || false;
-    }
-
-    // src/utils/identifyPost.js
-    function identifyPost(post, checkReplies = true, logger = console.log) {
-      const article = post.querySelector('article');
-      if (!article) {
-        return {
-          quality: postQuality.UNDEFINED,
-          reason: 'No article found',
-          link: false,
-        };
-      }
-      const noticeFound = postHasProblemSystemNotice(article);
-      if (noticeFound) {
-        return {
-          quality: postQuality.PROBLEM,
-          reason: `Found notice: ${noticeFound}`,
-          link: getRelativeLinkToPost(post),
-        };
-      }
-      const communityFound = postHasProblemCommunity(article);
-      if (communityFound) {
-        return {
-          quality: postQuality.PROBLEM,
-          reason: `Found community: ${communityFound}`,
-          link: getRelativeLinkToPost(post),
-        };
-      }
-      if (checkReplies) {
-        const replyingToDepths = findReplyingToWithDepth(article);
-        if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
-          const replyingTo = replyingToDepths.find(
-            (object) => object.depth < 10
-          );
-          if (replyingTo) {
-            return {
-              quality: postQuality.POTENTIAL_PROBLEM,
-              reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
-              link: getRelativeLinkToPost(post),
-            };
-          } else {
-          }
-        } else {
-        }
-      }
-      const link = getRelativeLinkToPost(post);
-      if (link) {
-        return {
-          quality: postQuality.GOOD,
-          reason: 'Looks good',
-          link,
-        };
-      }
-      return {
-        quality: postQuality.UNDEFINED,
-        reason: 'Nothing to measure',
-        link: false,
-      };
-    }
-
-    // src/utils/debounce.js
-    function debounce(func, wait) {
-      let timeout;
-      return (...args) => {
-        clearTimeout(timeout);
-        return new Promise((resolve, reject) => {
-          timeout = setTimeout(() => {
-            try {
-              const result = func(...args);
-              if (result && typeof result.then === 'function') {
-                result.then(resolve).catch(reject);
-              } else {
-                resolve(result);
-              }
-            } catch (error) {
-              reject(error);
-            }
-          }, wait);
-        });
-      };
-    }
-
-    // src/dom/findPostContainer.js
-    function findPostContainer(doc, log = () => {}) {
-      const potentialPosts = doc.querySelectorAll(
-        'div[data-testid="cellInnerDiv"]'
-      );
-      if (!potentialPosts.length) {
-        return null;
-      }
-      let firstPost = null;
-      for (const post of potentialPosts) {
-        const closestAriaLabel = post.closest('div[aria-label]');
-        if (
-          closestAriaLabel &&
-          closestAriaLabel.getAttribute('aria-label') === 'Timeline: Messages'
-        ) {
-          log('Skipping post in Messages timeline');
-          continue;
-        }
-        firstPost = post;
-        break;
-      }
-      if (!firstPost) {
-        log('No valid posts found outside Messages timeline');
-        return null;
-      }
-      let currentElement = firstPost.parentElement;
-      while (currentElement) {
-        if (currentElement.hasAttribute('aria-label')) {
-          currentElement.setAttribute('data-xghosted', 'posts-container');
-          const ariaLabel = currentElement.getAttribute('aria-label');
-          log(`Posts container identified with aria-label: "${ariaLabel}"`);
-          return currentElement;
-        }
-        currentElement = currentElement.parentElement;
-      }
-      log('No parent container found with aria-label');
-      return null;
-    }
-
-    // src/dom/parseUrl.js
-    function parseUrl(url) {
-      const reservedPaths = [
-        'i',
-        'notifications',
-        'home',
-        'explore',
-        'messages',
-        'compose',
-        'settings',
-      ];
-      const regex = /^https:\/\/x\.com\/([^/]+)(?:\/(with_replies))?/;
-      const match = url.match(regex);
-      if (match && !reservedPaths.includes(match[1])) {
-        return {
-          isWithReplies: !!match[2],
-          userProfileName: match[1],
-        };
-      }
-      return {
-        isWithReplies: false,
-        userProfileName: null,
-      };
-    }
-
-    // src/utils/clipboardUtils.js
-    function copyTextToClipboard(text, log) {
-      return navigator.clipboard
-        .writeText(text)
-        .then(() => log('Text copied to clipboard'))
-        .catch((err) => log(`Clipboard copy failed: ${err}`));
-    }
-    function exportToCSV(data, filename, doc, log) {
-      const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = doc.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-      log(`Exported CSV: ${filename}`);
-    }
-    return {
-      copyTextToClipboard,
-      debounce,
-      detectTheme,
-      exportToCSV,
-      findPostContainer,
-      findReplyingToWithDepth,
-      getRelativeLinkToPost,
-      identifyPost,
-      parseUrl,
-      postHasProblemCommunity,
-      postHasProblemSystemNotice,
-      postQuality,
-    };
-  })();
-
-  // --- Inject Modules ---
-  window.XGhosted = (function () {
-    // src/utils/postQuality.js
-    var postQuality = Object.freeze({
-      UNDEFINED: Object.freeze({ name: 'Undefined', value: 0 }),
-      PROBLEM: Object.freeze({ name: 'Problem', value: 1 }),
-      POTENTIAL_PROBLEM: Object.freeze({ name: 'Potential Problem', value: 2 }),
-      GOOD: Object.freeze({ name: 'Good', value: 3 }),
-    });
-

@@ -1,3 +1,233 @@
+            })
+          ),
+          window.preact.h('textarea', {
+            className: 'modal-textarea',
+            value: csvText,
+            onInput: (e) => setCsvText(e.target.value),
+            placeholder:
+              'Paste CSV content (e.g. Link Quality Reason Checked) or select a file above',
+            'aria-label': 'CSV content input',
+          }),
+          window.preact.h(
+            'div',
+            { className: 'modal-button-container' },
+            window.preact.h(
+              'button',
+              {
+                className: 'modal-button',
+                onClick: () => onSubmit(csvText),
+                'aria-label': 'Submit CSV content',
+              },
+              window.preact.h('i', {
+                className: 'fas fa-check',
+                style: { marginRight: '6px' },
+              }),
+              'Submit'
+            ),
+            window.preact.h(
+              'button',
+              {
+                className: 'modal-button',
+                onClick: () => {
+                  setCsvText('');
+                  onClose();
+                },
+                'aria-label': 'Close modal and clear input',
+              },
+              window.preact.h('i', {
+                className: 'fas fa-times',
+                style: { marginRight: '6px' },
+              }),
+              'Close'
+            )
+          )
+        )
+      );
+    }
+    window.Modal = Modal;
+    window.PanelManager = function (
+      doc,
+      xGhostedInstance,
+      themeMode = 'light',
+      postsManager,
+      storage
+    ) {
+      this.document = doc;
+      this.xGhosted = xGhostedInstance;
+      this.log = xGhostedInstance.log;
+      this.postsManager = postsManager;
+      this.storage = storage || { get: () => {}, set: () => {} };
+      const validThemes = ['light', 'dim', 'dark'];
+      this.state = {
+        panelPosition: { right: '10px', top: '60px' },
+        instance: xGhostedInstance,
+        isPanelVisible: true,
+        isRateLimited: false,
+        isManualCheckEnabled: false,
+        isPollingEnabled: true,
+        isAutoScrollingEnabled: false,
+        themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
+      };
+      this.log(
+        `PanelManager initialized with themeMode: ${this.state.themeMode}`
+      );
+      this.uiElements = {
+        config: {
+          PANEL: {
+            WIDTH: '400px',
+            MAX_HEIGHT: 'calc(100vh - 70px)',
+            TOP: '60px',
+            RIGHT: '10px',
+            Z_INDEX: '9999',
+            FONT: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+          },
+          THEMES: {
+            light: {
+              bg: '#FFFFFF',
+              text: '#292F33',
+              buttonText: '#000000',
+              border: '#B0BEC5',
+              button: '#3A4A5B',
+              hover: '#90A4AE',
+              scroll: '#CCD6DD',
+              placeholder: '#666666',
+              problem: 'red',
+              potentialProblem: 'yellow',
+              eyeballColor: 'rgb(29, 155, 240)',
+            },
+            dim: {
+              bg: '#15202B',
+              text: '#D9D9D9',
+              buttonText: '#FFFFFF',
+              border: '#8292A2',
+              button: '#3A4A5B',
+              hover: '#8292A2',
+              scroll: '#4A5C6D',
+              placeholder: '#A0A0A0',
+              problem: 'red',
+              potentialProblem: 'yellow',
+              eyeballColor: 'rgb(29, 155, 240)',
+            },
+            dark: {
+              bg: '#000000',
+              text: '#D9D9D9',
+              buttonText: '#FFFFFF',
+              border: '#888888',
+              button: '#3A4A5B',
+              hover: '#888888',
+              scroll: '#666666',
+              placeholder: '#A0A0A0',
+              problem: 'red',
+              potentialProblem: 'yellow',
+              eyeballColor: 'rgb(29, 155, 240)',
+            },
+          },
+        },
+        panel: null,
+        panelContainer: null,
+      };
+      this.styleElement = null;
+      this.dragState = {
+        isDragging: false,
+        startX: 0,
+        startY: 0,
+        initialRight: 0,
+        initialTop: 0,
+      };
+      this.init();
+    };
+    window.PanelManager.prototype.init = function () {
+      this.loadState();
+      this.uiElements.panelContainer = this.document.createElement('div');
+      this.uiElements.panelContainer.id = 'xghosted-panel-container';
+      this.uiElements.panel = this.document.createElement('div');
+      this.uiElements.panel.id = 'xghosted-panel';
+      this.uiElements.panelContainer.appendChild(this.uiElements.panel);
+      this.document.body.appendChild(this.uiElements.panelContainer);
+      if (window.xGhostedStyles) {
+        if (window.xGhostedStyles.modal) {
+          const modalStyleSheet = this.document.createElement('style');
+          modalStyleSheet.textContent = window.xGhostedStyles.modal;
+          this.document.head.appendChild(modalStyleSheet);
+        }
+        if (window.xGhostedStyles.panel) {
+          const panelStyleSheet = this.document.createElement('style');
+          panelStyleSheet.textContent = window.xGhostedStyles.panel;
+          this.document.head.appendChild(panelStyleSheet);
+        }
+      }
+      this.state.isRateLimited = this.xGhosted.state.isRateLimited;
+      this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
+      this.state.isAutoScrollingEnabled =
+        this.xGhosted.state.isAutoScrollingEnabled;
+      this.uiElements.panelContainer.style.right =
+        this.state.panelPosition.right;
+      this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
+      this.uiElements.panelContainer.style.left = 'auto';
+      this.styleElement = this.document.createElement('style');
+      this.document.head.appendChild(this.styleElement);
+      this.applyPanelStyles();
+      const handleStateUpdated = (e) => {
+        this.state.isRateLimited = e.detail.isRateLimited;
+        this.renderPanel();
+      };
+      const handlePollingStateUpdated = (e) => {
+        this.state.isPollingEnabled = e.detail.isPollingEnabled;
+        this.renderPanel();
+        this.applyPanelStyles();
+      };
+      const handleAutoScrollingToggled = (e) => {
+        this.state.isAutoScrollingEnabled = e.detail.isAutoScrollingEnabled;
+        this.renderPanel();
+      };
+      this.document.addEventListener(
+        'xghosted:state-updated',
+        handleStateUpdated
+      );
+      this.document.addEventListener(
+        'xghosted:polling-state-updated',
+        handlePollingStateUpdated
+      );
+      this.document.addEventListener(
+        'xghosted:auto-scrolling-toggled',
+        handleAutoScrollingToggled
+      );
+      this.cleanup = () => {
+        this.document.removeEventListener(
+          'xghosted:state-updated',
+          handleStateUpdated
+        );
+        this.document.removeEventListener(
+          'xghosted:polling-state-updated',
+          handlePollingStateUpdated
+        );
+        this.document.removeEventListener(
+          'xghosted:auto-scrolling-toggled',
+          handleAutoScrollingToggled
+        );
+      };
+      if (window.preact && window.preact.h) {
+        this.renderPanel();
+      } else {
+        this.log('Preact h not available, skipping panel render');
+      }
+    };
+    window.PanelManager.prototype.saveState = function () {
+      const currentState = this.storage.get('xGhostedState', {});
+      const updatedState = {
+        ...currentState,
+        panel: {
+          isPanelVisible: this.state.isPanelVisible,
+          panelPosition: { ...this.state.panelPosition },
+          themeMode: this.state.themeMode,
+        },
+      };
+      this.storage.set('xGhostedState', updatedState);
+      this.log('Saved panel state:', updatedState);
+    };
+    window.PanelManager.prototype.loadState = function () {
+      const savedState = this.storage.get('xGhostedState', {});
+      const panelState = savedState.panel || {};
       this.state.isPanelVisible = panelState.isPanelVisible ?? true;
       this.state.themeMode = ['light', 'dim', 'dark'].includes(
         panelState.themeMode
@@ -61,9 +291,6 @@
         right: '10px',
         top: '60px',
       };
-      const borderColor = this.state.isPollingEnabled
-        ? this.uiElements.config.THEMES[this.state.themeMode].border
-        : '#FFA500';
       this.styleElement.textContent = `
     button:active { transform: scale(0.95); }
     #xghosted-panel-container {
@@ -72,7 +299,6 @@
       top: ${position.top};
       z-index: ${this.uiElements.config.PANEL.Z_INDEX};
       cursor: move;
-      border: 2px solid ${borderColor};
       border-radius: 12px;
     }
   `;
@@ -121,6 +347,7 @@
             );
             this.xGhosted.userRequestedPostCheck(href, post);
           },
+          onCopyLinks: () => this.copyLinks(),
           setPanelPosition: (position) => this.setPanelPosition(position),
         }),
         this.uiElements.panel
@@ -135,11 +362,18 @@
       const currentState = this.storage.get('xGhostedState', {});
       const updatedState = {
         ...currentState,
-        themeMode: newMode,
+        panel: {
+          ...currentState.panel,
+          themeMode: newMode,
+        },
       };
       this.storage.set('xGhostedState', updatedState);
       this.log(`Saved themeMode: ${newMode}`);
-      this.xGhosted.emit('theme-mode-changed', { themeMode: newMode });
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:theme-mode-changed', {
+          detail: { themeMode: newMode },
+        })
+      );
       this.renderPanel();
     };
     window.PanelManager.prototype.generateCSVData = function () {
@@ -157,13 +391,20 @@
       return [headers.join(','), ...rows].join('\n');
     };
     window.PanelManager.prototype.copyLinks = function () {
-      this.postsManager
-        .copyProblemLinks()
+      const linksText = this.postsManager
+        .getProblemPosts()
+        .map(([link]) => `${this.postsManager.linkPrefix}${link}`)
+        .join('\n');
+      return navigator.clipboard
+        .writeText(linksText)
         .then(() => {
           this.log('Problem links copied to clipboard');
           alert('Problem links copied to clipboard!');
         })
-        .catch((err) => this.log(`Failed to copy problem links: ${err}`));
+        .catch((err) => {
+          this.log(`Failed to copy problem links: ${err}`);
+          alert('Failed to copy problem links.');
+        });
     };
     window.PanelManager.prototype.exportProcessedPostsCSV = function () {
       const csvData = this.generateCSVData();
@@ -210,14 +451,6 @@
       POTENTIAL_PROBLEM: Object.freeze({ name: 'Potential Problem', value: 2 }),
       GOOD: Object.freeze({ name: 'Good', value: 3 }),
     });
-
-    // src/utils/clipboardUtils.js
-    function copyTextToClipboard(text, log) {
-      return navigator.clipboard
-        .writeText(text)
-        .then(() => log('Text copied to clipboard'))
-        .catch((err) => log(`Clipboard copy failed: ${err}`));
-    }
 
     // src/utils/ProcessedPostsManager.js
     var ProcessedPostsManager = class {
@@ -355,12 +588,6 @@
           }
         );
         return [headers.join(','), ...rows].join('\n');
-      }
-      copyProblemLinks() {
-        const linksText = this.getProblemPosts()
-          .map(([link]) => `${this.linkPrefix}${link}`)
-          .join('\n');
-        return copyTextToClipboard(linksText, this.log);
       }
     };
     return ProcessedPostsManager;
@@ -584,33 +811,31 @@
   color: var(--text-color);
 }
 
+.link-row {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: center;
+  column-gap: 8px; /* Adds a consistent gap between columns */
+}
+
 .status-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  margin-right: 6px;
   justify-self: center;
-}
-
-.status-problem {
-  background-color: red;
 }
 
 .status-eyeball {
   font-size: 16px;
   color: rgb(29, 155, 240);
   cursor: pointer;
-  text-align: center;
-  width: 20px;
-  height: 20px;
   line-height: 20px;
+  justify-self: center; /* Centers the eyeball in the column */
 }
 
-.link-row {
-  display: grid;
-  grid-template-columns: 20px 1fr;
-  align-items: center;
+.status-problem {
+  background-color: red;
 }
 
 .problem-links-wrapper {
@@ -656,7 +881,7 @@
 }
 
 .panel-button i {
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1;
 }`;
 
@@ -680,7 +905,7 @@
       pollInterval: 1000,
     },
     showSplash: true,
-    useTampermonkeyLog: true,
+    log, // Pass logger
     postsManager,
   };
   const xGhosted = new window.XGhosted(document, config);
