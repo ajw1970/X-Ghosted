@@ -49,6 +49,7 @@ Step 3 extends this by addressing UI enhancements, ensuring all UI logic resides
   - Removed redundant events `xghosted:posts-updated`, `xghosted:request-csv-export`, and `xghosted:csv-import` as they are handled by `PanelManager.js`.
   - Replaced `togglePanelVisibility` with `xghosted:toggle-panel-visibility` event, eliminating direct UI method calls.
   - Fixed an event loop in `xghosted:copy-links` by removing redundant dispatch from `PanelManager.js.copyLinks`.
+  - Added `xghosted:set-auto-scrolling` event with `{ enabled: boolean }` payload on April 18, 2025, replacing direct `toggleAutoScrolling` calls in `Panel.jsx`, enhancing the pub/sub interface with explicit state communication.
 
 === Task 2: Move Theme Detection to Early Event
 
@@ -110,6 +111,8 @@ Step 3 extends this by addressing UI enhancements, ensuring all UI logic resides
     - Listen for `xghosted:init`, `xghosted:state-updated`, `xghosted:polling-state-updated`, `xghosted:manual-check-toggled`, `xghosted:auto-scrolling-toggled`, `xghosted:theme-detected`.
     - Emit UI actions: `xghosted:start-polling`, `xghosted:stop-polling`, `xghosted:toggle-auto-scrolling`, `xghosted:copy-links`, `xghosted:clear-posts`, `xghosted:toggle-manual-check`, `xghosted:user-post-check`.
   - Add modal closing and alerts for `importProcessedPostsCSV` and `copyProblemLinks`.
+  - Moved dragging logic (`startDrag`) to `PanelManager.js` on April 18, 2025, passing a `startDrag` prop to `Panel.jsx` for a specific drag handle, ensuring all drag-related logic is UI-contained.
+  - Implemented splash screen logic (`hasSeenSplash`, `showSplashPage`) in `PanelManager.js` on April 18, 2025, with an "About" button in `Panel.jsx` dispatching `xghosted:open-about` to trigger display.
 - **Status**: Complete
 - **Notes**:
   - CSV methods and UI state fully moved to `PanelManager.js`.
@@ -152,22 +155,26 @@ Step 3 extends this by addressing UI enhancements, ensuring all UI logic resides
 
 - **Objective**: Display the splash page only on first load (or on demand), with a "Show About" button in the Tools panel.
 - **Actions**:
-  - Add `hasSeenSplash` state to `PanelManager.js`, persisted using `GM_setValue`/`GM_getValue`.
+  - Added `hasSeenSplash` state to `PanelManager.js`, persisted using `GM_setValue`/`GM_getValue`.
   - In `PanelManager.js`:
     - Check `hasSeenSplash` during `init` to show the splash page if `false`.
-    - Add a `showSplashPage` method to display the splash page and update the flag.
+    - Added a `showSplashPage` method to display the splash page and update the flag.
   - In `Panel.jsx`:
-    - Add a "Show About" button in the Tools section that calls `showSplashPage` via a prop.
-  - Ensure `XGhosted.js` remains unaware of the splash page.
-- **Status**: Planned
+    - Added an "About" button in the Tools section that dispatches `xghosted:open-about`, handled by `PanelManager.js`.
+  - Removed automatic `SplashPanel` instantiation from `xGhosted.template.js`, deferring to `PanelManager.js`.
+  - Ensured `XGhosted.js` remains unaware of the splash page.
+- **Status**: Complete
 - **Notes**:
-  - Keeps UI logic in `PanelManager.js`, ensuring `XGhosted.js` is not involved.
-  - Will reuse existing splash page DOM logic, moving it from `XGhosted.js` if present.
+  - Implemented on April 18, 2025, keeping UI logic in `PanelManager.js` and maintaining `XGhosted.js` as UI-agnostic.
+  - Uses existing splash page DOM logic, with `PanelManager.js` handling display decisions.
 
 === Task 8: Add Optional Drag Functionality with Toggle
 
 - **Objective**: Allow users to enable/disable panel dragging via a toggle in the Tools panel, persisting the panel’s location when disabled.
 - **Actions**:
+  - Added a specific drag handle in `Panel.jsx` on April 18, 2025, right-justified in the list header row with `fa-up-down-left-right` icon, requiring users to grab the handle to drag.
+  - Moved dragging logic (`startDrag`) to `PanelManager.js`, passing a `startDrag` prop to `Panel.jsx`.
+  - Removed `cursor: move` from the entire panel in `PanelManager.js`, applying it only to the drag handle.
   - Add `isDraggingEnabled` state to `PanelManager.js`, persisted using `GM_setValue`/`GM_getValue`.
   - In `PanelManager.js`:
     - Update `startDrag` to check `isDraggingEnabled` before initiating a drag.
@@ -175,10 +182,12 @@ Step 3 extends this by addressing UI enhancements, ensuring all UI logic resides
   - In `Panel.jsx`:
     - Add a toggle button in the Tools section that calls `toggleDragging` via a prop.
   - Ensure `XGhosted.js` remains unaware of drag functionality.
-- **Status**: Planned
+- **Status**: In Progress
 - **Notes**:
+  - Drag handle implemented on April 18, 2025, preventing accidental drags by requiring a specific handle, aligning with user feedback on April 16, 2025, about erratic dragging.
+  - Toggle functionality (`isDraggingEnabled`) still pending, to be added in the Tools panel.
   - Keeps drag logic in `PanelManager.js`, maintaining `XGhosted.js`’s UI-agnostic state.
-  - Will ensure panel position persists when dragging is disabled.
+  - Ensures panel position persists when dragging is disabled (already handled by `saveState`).
 
 === Task 9: Improve Tools Panel with Labels and Grouping
 
@@ -211,6 +220,7 @@ Step 3 extends this by addressing UI enhancements, ensuring all UI logic resides
   - `PanelManager.js` handles UI rendering, state, and CSV operations.
   - `xGhosted.template.js` manages instantiation and event wiring, like `SplashPanel.js`.
   - UI-specific states (`hasSeenSplash`, `isDraggingEnabled`) are managed by `PanelManager.js`, keeping `XGhosted.js` unaware.
+  - Reinforced on April 18, 2025, by moving splash screen logic (`hasSeenSplash`, `showSplashPage`) and dragging logic (`startDrag`) to `PanelManager.js`, and replacing `toggleAutoScrolling` with an event (`xghosted:set-auto-scrolling`), ensuring `XGhosted.js` remains UI-agnostic.
 
 == Open Questions
 
@@ -220,14 +230,14 @@ Step 3 extends this by addressing UI enhancements, ensuring all UI logic resides
 
 - **Priority**:
   - Address open question on test updates for `xGhosted.test.js` if confirmed necessary.
-  - Implement Task 7: Make the splash page a one-time display with a "Show About" option.
-  - Implement Task 8: Add optional drag functionality with a toggle.
+  - Complete Task 8: Add toggle for optional drag functionality (`isDraggingEnabled`) in the Tools panel.
   - Implement Task 9: Improve the Tools panel with labels and grouping.
 - **Follow-Up**:
   - Review and optimize event listener pattern if centralization is preferred (currently split between module self-wiring and `xGhosted.template.js`).
 
 == Revision History
 
+- April 18, 2025: Noted `xghosted:set-auto-scrolling` event in Task 1; updated Task 4 with dragging and splash screen logic in `PanelManager.js`; marked Task 7 as complete with implementation details; updated Task 8 to "In Progress" with drag handle implementation; added decoupling reinforcement in Decisions; adjusted Next Steps to reflect completed Task 7 and in-progress Task 8.
 - April 15, 2025: Completed `themeMode` persistence in `PanelManager.js`, restored `SplashPanel` functionality, updated `xGhosted.template.js` to pass `storage`.
 - April 15, 2025: Moved from _grok-step-1-master-prompt.txt.adoc.
 - April 16, 2025: Fixed theme selector (`_option` typo in `Panel.jsx`), added modal closing and alerts for `importProcessedPostsCSV` and `copyProblemLinks`, stabilized build with `ProcessedPostsManager` integration and no duplicates.

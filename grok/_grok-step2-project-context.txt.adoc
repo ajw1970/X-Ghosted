@@ -31,6 +31,7 @@
   - Displays problem/potential problem posts.
   - Allows manual thread checks via eyeball icons.
   - Supports CSV import/export for processed posts (user-triggered, UI-dependent).
+  - Manages splash screen display with `hasSeenSplash` state, showing it only on first load unless triggered via an "About" button in the Tools panel (implemented April 18, 2025).
 - *Dependency*: Requires `xGhosted.js` to function; meaningless without it.
 - *Graceful Failure*: Optional at runtime—`xGhosted.js` operates fully if UI fails (e.g., Preact CDN unavailable).
 
@@ -63,6 +64,7 @@
   - Introduce a minimal pub/sub interface between `xGhosted.js` and `PanelManager.js`.
   - Always include `PanelManager.js` in production, but allow `xGhosted.js` to function without it.
   - Leverage `xGhosted.template.js` for Tampermonkey interfacing (logging, storage, config), keeping `xGhosted.js` agnostic.
+- *Progress*: On April 18, 2025, decoupled `toggleAutoScrolling` in `Panel.jsx` by replacing direct `xGhosted.toggleAutoScrolling()` calls with a `xghosted:set-auto-scrolling` event, reducing UI dependency on `XGhosted.js` and advancing the pub/sub interface.
 - *Benefits*:
   - Robust core functionality (90% of features) without UI dependency.
   - Cleaner, non-minified userscript build.
@@ -75,4 +77,5 @@
 - *Testing*: Isolating `xGhosted.js` for DOM tests, mocking UI triggers (e.g., CSV import/export), and verifying template storage/logging.
 
 == Revision History
+- April 18, 2025: Updated Long-Term Goal to note decoupling of `toggleAutoScrolling` with `xghosted:set-auto-scrolling` event; added splash screen management to UI Functionality features in `PanelManager.js`.
 - April 15, 2025: Moved from _grok-step-1-master-prompt.txt.adoc
