@@ -18,6 +18,7 @@ function XGhosted(doc, config = {}) {
   this.timing = { ...defaultTiming, ...config.timing };
   this.document = doc;
   this.log = config.log || console.log.bind(console);
+  this.timingManager = config.timingManager || null;
   if (!config.postsManager) {
     throw new Error('XGhosted requires a postsManager instance');
   }
@@ -31,6 +32,7 @@ function XGhosted(doc, config = {}) {
     isHighlighting: false,
     isPollingEnabled: true,
     userProfileName: null,
+    firstContainerFound: true,
   };
   this.checkPostInNewTabThrottled = debounce((href) => {
     return this.checkPostInNewTab(href);
@@ -49,7 +51,6 @@ XGhosted.prototype.getUrlFullPathIfChanged = function (url) {
   if (this.state.lastUrlFullPath === urlFullPath) {
     return false;
   }
-
   this.log(`URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath})`);
   this.state.lastUrlFullPath = urlFullPath;
   return urlFullPath;
@@ -61,14 +62,13 @@ XGhosted.prototype.handleUrlChange = function (urlFullPath) {
   if (this.state.userProfileName !== userProfileName) {
     this.state.userProfileName = userProfileName;
     this.document.dispatchEvent(new CustomEvent('xghosted:user-profile-updated', {
-      detail: {
-        userProfileName: this.state.userProfileName
-      }
+      detail: { userProfileName: this.state.userProfileName }
     }));
   }
-
   this.postsManager.clearPosts();
-}
+  this.timingManager?.saveMetrics();
+  this.state.firstContainerFound = true;
+};
 
 XGhosted.prototype.checkPostInNewTab = function (href) {
   this.log(`Checking post in new tab: ${href}`);
@@ -195,34 +195,50 @@ XGhosted.prototype.startPolling = function () {
   const pollInterval = this.timing.pollInterval || 1000;
   this.log('Starting polling for post changes...');
   this.pollTimer = setInterval(() => {
-
     if (this.state.isHighlighting) {
       this.log('Polling skipped—highlighting in progress');
+      this.timingManager?.recordPoll({
+        postsProcessed: 0,
+        wasSkipped: true,
+        containerFound: false,
+        containerAttempted: false,
+        pageType: this.state.isWithReplies ? 'with_replies' : this.state.userProfileName ? 'profile' : 'timeline'
+      });
       return;
     }
-
-    // Check for URL changes
     const urlFullPath = this.getUrlFullPathIfChanged(this.document.location.href);
     if (urlFullPath) {
       this.log(`URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath})`);
       this.handleUrlChange(urlFullPath);
     }
-
-    // Assuming we've handled any change to the URL origin, we can check for posts
     const unprocessedPosts = this.document.querySelectorAll(XGhosted.UNPROCESSED_POSTS_SELECTOR);
+    let containerFound = false;
+    let containerAttempted = false;
     if (unprocessedPosts.length > 0) {
       this.highlightPosts(unprocessedPosts);
     } else if (!this.document.querySelector(XGhosted.POST_CONTAINER_SELECTOR)) {
       this.log('No post container found, trying to find it...');
+      containerAttempted = true;
       const foundContainer = findPostContainer(this.document, this.log);
-      if (foundContainer) {
+      containerFound = !!foundContainer;
+      if (containerFound) {
+        this.log('Container found, setting post density');
+        if (this.state.firstContainerFound && this.timingManager) {
+          this.timingManager.setPostDensity(this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').length);
+          this.state.firstContainerFound = false;
+        }
         this.highlightPosts();
       } else {
         this.log('Container still not found, skipping highlighting');
       }
-    } else {
-      // this.log('No unprocessed posts found, skipping highlighting');
     }
+    this.timingManager?.recordPoll({
+      postsProcessed: unprocessedPosts.length,
+      wasSkipped: false,
+      containerFound,
+      containerAttempted,
+      pageType: this.state.isWithReplies ? 'with_replies' : this.state.userProfileName ? 'profile' : 'timeline'
+    });
   }, pollInterval);
 };
 
@@ -241,16 +257,17 @@ XGhosted.prototype.startAutoScrolling = function () {
     if (this.state.isAutoScrollingEnabled) {
       const scrollHeight = this.document.documentElement.scrollHeight;
       const scrollTop = window.scrollY + window.innerHeight;
-      if (scrollTop >= scrollHeight - 10) { // Small buffer
+      const bottomReached = scrollTop >= scrollHeight - 10;
+      if (bottomReached) {
         this.log('Reached page bottom, stopping auto-scrolling');
         this.toggleAutoScrolling();
-        return;
+      } else {
+        window.scrollBy({
+          top: window.innerHeight * 0.8,
+          behavior: 'smooth'
+        });
       }
-      // this.log('Performing smooth scroll down...');
-      window.scrollBy({
-        top: window.innerHeight * 0.8,
-        behavior: 'smooth'
-      });
+      this.timingManager?.recordScroll({ bottomReached });
     }
   }, scrollInterval);
 };
@@ -274,8 +291,8 @@ XGhosted.prototype.expandArticle = function (article) {
 };
 
 XGhosted.prototype.highlightPosts = function (posts) {
+  const start = performance.now();
   this.state.isHighlighting = true;
-
   const processPostAnalysis = (post, analysis) => {
     if (!(post instanceof this.document.defaultView.Element)) {
       this.log('Skipping invalid DOM element:', post);
@@ -298,9 +315,7 @@ XGhosted.prototype.highlightPosts = function (posts) {
       this.postsManager.registerPost(id, { analysis, checked: false });
     }
   };
-
   const checkReplies = this.state.isWithReplies;
-  const userProfileName = this.state.userProfileName;
   const results = [];
   const postsToProcess = posts || this.document.querySelectorAll(XGhosted.UNPROCESSED_POSTS_SELECTOR);
   let postsProcessed = 0;
@@ -320,6 +335,7 @@ XGhosted.prototype.highlightPosts = function (posts) {
     results.push(analysis);
   });
   if (postsProcessed > 0) {
+    this.timingManager?.saveMetrics();
     this.document.dispatchEvent(
       new CustomEvent('xghosted:state-updated', {
         detail: { ...this.state }
@@ -328,6 +344,7 @@ XGhosted.prototype.highlightPosts = function (posts) {
     this.log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
   }
   this.state.isHighlighting = false;
+  this.timingManager?.recordHighlighting(performance.now() - start);
   return results;
 };
 
@@ -337,6 +354,7 @@ XGhosted.prototype.getThemeMode = function () {
 
 XGhosted.prototype.init = function () {
   this.log('Initializing XGhosted...');
+  const startTime = performance.now();
   if (this.document.body) {
     const themeMode = this.getThemeMode();
     this.document.dispatchEvent(new CustomEvent('xghosted:theme-detected', {
@@ -353,7 +371,6 @@ XGhosted.prototype.init = function () {
       }
     }
   }));
-
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
     .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
@@ -388,12 +405,32 @@ XGhosted.prototype.init = function () {
         this.log(`Eyeball click skipped for ${href} due to rate limit`);
         return;
       }
-      const cached = this.postsManager.getPost(href);
       this.userRequestedPostCheck(href, clickedPost);
     }
   }, { capture: true });
-  this.startPolling();
-  this.startAutoScrolling();
+
+  // Delay polling until DOM is ready
+  const checkDomInterval = setInterval(() => {
+    if (this.document.body && this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').length > 0) {
+      clearInterval(checkDomInterval);
+      const waitTime = performance.now() - startTime;
+      this.timingManager?.setInitialWaitTime(waitTime);
+      this.startPolling();
+      this.startAutoScrolling();
+    }
+  }, 500);
+
+  // Fallback timeout after 5000ms
+  setTimeout(() => {
+    if (checkDomInterval) {
+      clearInterval(checkDomInterval);
+      const waitTime = performance.now() - startTime;
+      this.timingManager?.setInitialWaitTime(waitTime);
+      this.log('DOM readiness timeout reached, starting polling');
+      this.startPolling();
+      this.startAutoScrolling();
+    }
+  }, 5000);
 };
 
 window.XGhosted = XGhosted;

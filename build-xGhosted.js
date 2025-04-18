@@ -85,7 +85,7 @@ const modules = [
       for (const file in imports) {
         if (
           file !== path.relative(process.cwd(), mod.entryPoint) &&
-          file.endsWith('.js') && // Exclude .jsx to avoid Panel.jsx
+          file.endsWith('.js') &&
           !file.includes('.test.') &&
           !modules.some((m) => path.relative(process.cwd(), m.entryPoint) === file)
         ) {
@@ -94,8 +94,9 @@ const modules = [
       }
     }
 
-    // Ensure clipboardUtils.js is included for ProcessedPostsManager
+    // Ensure clipboardUtils.js and TimingManager.js are included
     sharedImports.add(path.resolve(SRC_DIR, 'utils/clipboardUtils.js'));
+    sharedImports.add(path.resolve(SRC_DIR, 'utils/TimingManager.js'));
 
     // Bundle shared utilities
     console.log('Bundling shared utilities:', Array.from(sharedImports));
@@ -113,7 +114,7 @@ const modules = [
       const utilsResult = await esbuild.build({
         entryPoints: [TEMP_UTILS_ENTRY],
         bundle: true,
-        minify: false, // Keep readable
+        minify: false,
         sourcemap: false,
         target: ['es2020'],
         platform: 'browser',
@@ -132,7 +133,6 @@ const modules = [
       );
 
       utilsCode = utilsResult.outputFiles[0].text.trim();
-      // Remove export statements
       utilsCode = utilsCode.replace(/export\s*{[^}]*}\s*;?/g, '');
       utilsCode = utilsCode.replace(/export\s+default\s+[^;]+;?\s*/g, '');
       utilsCode = utilsCode.replace(/export\s+const\s+\w+\s*=/g, 'const ');
@@ -163,7 +163,7 @@ const modules = [
       const result = await esbuild.build({
         entryPoints: [mod.entryPoint],
         bundle: true,
-        minify: false, // Keep readable
+        minify: false,
         sourcemap: false,
         target: ['es2020'],
         platform: 'browser',
@@ -183,10 +183,7 @@ const modules = [
         ]
       });
 
-      // Get bundled code
       let code = result.outputFiles[0].text.trim();
-
-      // Remove export statements
       code = code.replace(/export\s*{[^}]*}\s*;?/g, '');
       code = code.replace(/export\s+default\s+[^;]+;?\s*/g, '');
       code = code.replace(/export\s+class\s+\w+\s*{[^}]*}/g, (match) => {
@@ -196,12 +193,11 @@ const modules = [
         return match.replace(/export\s+function/, 'function');
       });
 
-      // Replace imports with window.XGhostedUtils references
       code = code.replace(/import\s*{([^}]+)}\s*from\s*['"]([^'"]+)['"]/g, (match, imports, source) => {
         if (sharedImports.has(path.resolve(SRC_DIR, source.replace(/\\/g, '/')))) {
           return `const { ${imports.trim()} } = window.XGhostedUtils;`;
         }
-        return match; // Preserve other imports (e.g., Panel.jsx in PanelManager)
+        return match;
       });
 
       // Wrap in window assignment

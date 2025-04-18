@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         xGhosted-decoupling
+// @name         xGhosted-timing
 // @namespace    http://tampermonkey.net/
 // @version      0.6.1
 // @description  Highlight and manage problem posts on X.com with a resizable, draggable panel
@@ -346,7 +346,133 @@
       URL.revokeObjectURL(url);
       log(`Exported CSV: ${filename}`);
     }
+
+    // src/utils/TimingManager.js
+    var TimingManager = class {
+      constructor({ timing, log, storage }) {
+        this.timing = { ...timing };
+        this.log = log || console.log.bind(console);
+        this.storage = storage || { get: () => {}, set: () => {} };
+        this.startTime = performance.now();
+        this.metrics = {
+          polls: 0,
+          postsProcessed: [],
+          pollSkips: 0,
+          containerFinds: 0,
+          containerDetectionAttempts: 0,
+          containerFoundTimestamp: null,
+          initialWaitTime: null,
+          // Time until polling starts
+          scrolls: 0,
+          bottomReached: 0,
+          highlightingDurations: [],
+          postDensity: 0,
+          pageType: 'unknown',
+        };
+        this.log('TimingManager initialized');
+      }
+      recordPoll({
+        postsProcessed,
+        wasSkipped,
+        containerFound,
+        containerAttempted,
+        pageType,
+      }) {
+        this.metrics.polls++;
+        if (wasSkipped) this.metrics.pollSkips++;
+        if (containerFound) {
+          this.metrics.containerFinds++;
+          if (!this.metrics.containerFoundTimestamp) {
+            this.metrics.containerFoundTimestamp =
+              performance.now() - this.startTime;
+          }
+        }
+        if (containerAttempted) this.metrics.containerDetectionAttempts++;
+        if (postsProcessed !== void 0)
+          this.metrics.postsProcessed.push(postsProcessed);
+        this.metrics.pageType = pageType;
+        this.logMetrics();
+      }
+      recordScroll({ bottomReached }) {
+        this.metrics.scrolls++;
+        if (bottomReached) this.metrics.bottomReached++;
+      }
+      recordHighlighting(duration) {
+        this.metrics.highlightingDurations.push(duration);
+      }
+      setPostDensity(count) {
+        this.metrics.postDensity = count;
+        this.log(`Set post density: ${count}`);
+      }
+      setInitialWaitTime(time) {
+        this.metrics.initialWaitTime = time;
+        this.log(`Initial wait time set: ${time}ms`);
+      }
+      logMetrics() {
+        if (this.metrics.polls % 100 === 0 && this.metrics.polls > 0) {
+          this.log('Timing Metrics:', {
+            polls: this.metrics.polls,
+            avgPostsProcessed:
+              this.metrics.postsProcessed.length > 0
+                ? (
+                    this.metrics.postsProcessed.reduce((sum, n) => sum + n, 0) /
+                    this.metrics.postsProcessed.length
+                  ).toFixed(2)
+                : 0,
+            pollSkipRate: (this.metrics.pollSkips / this.metrics.polls).toFixed(
+              2
+            ),
+            containerFinds: this.metrics.containerFinds,
+            containerDetectionAttempts: this.metrics.containerDetectionAttempts,
+            containerDetectionTime: this.metrics.containerFoundTimestamp
+              ? `${this.metrics.containerFoundTimestamp.toFixed(2)}ms`
+              : 'Not found',
+            initialWaitTime: this.metrics.initialWaitTime
+              ? `${this.metrics.initialWaitTime.toFixed(2)}ms`
+              : 'Not set',
+            scrolls: this.metrics.scrolls,
+            bottomReachedRate:
+              this.metrics.scrolls > 0
+                ? (this.metrics.bottomReached / this.metrics.scrolls).toFixed(2)
+                : 0,
+            avgHighlightingDuration:
+              this.metrics.highlightingDurations.length > 0
+                ? (
+                    this.metrics.highlightingDurations.reduce(
+                      (sum, n) => sum + n,
+                      0
+                    ) / this.metrics.highlightingDurations.length
+                  ).toFixed(2)
+                : 0,
+            postDensity: this.metrics.postDensity,
+            pageType: this.metrics.pageType,
+          });
+        }
+      }
+      saveMetrics() {
+        if (
+          this.metrics.containerFinds > 0 ||
+          this.metrics.postsProcessed.some((n) => n > 0)
+        ) {
+          const state = this.storage.get('xGhostedState', {});
+          state.timingMetrics = { ...this.metrics };
+          this.storage.set('xGhostedState', state);
+          this.log('Saved timing metrics to storage');
+        }
+      }
+      loadMetrics() {
+        const state = this.storage.get('xGhostedState', {});
+        if (state.timingMetrics) {
+          this.metrics = { ...state.timingMetrics };
+          this.log('Loaded timing metrics from storage');
+        }
+      }
+      adjustIntervals() {
+        return this.timing;
+      }
+    };
     return {
+      TimingManager,
       copyTextToClipboard,
       debounce,
       detectTheme,
@@ -655,6 +781,7 @@
       this.timing = { ...defaultTiming, ...config.timing };
       this.document = doc;
       this.log = config.log || console.log.bind(console);
+      this.timingManager = config.timingManager || null;
       if (!config.postsManager) {
         throw new Error('XGhosted requires a postsManager instance');
       }
@@ -668,6 +795,7 @@
         isHighlighting: false,
         isPollingEnabled: true,
         userProfileName: null,
+        firstContainerFound: true,
       };
       this.checkPostInNewTabThrottled = debounce((href) => {
         return this.checkPostInNewTab(href);
@@ -697,13 +825,13 @@
         this.state.userProfileName = userProfileName;
         this.document.dispatchEvent(
           new CustomEvent('xghosted:user-profile-updated', {
-            detail: {
-              userProfileName: this.state.userProfileName,
-            },
+            detail: { userProfileName: this.state.userProfileName },
           })
         );
       }
       this.postsManager.clearPosts();
+      this.timingManager?.saveMetrics();
+      this.state.firstContainerFound = true;
     };
     XGhosted.prototype.checkPostInNewTab = function (href) {
       this.log(`Checking post in new tab: ${href}`);
@@ -857,6 +985,17 @@
       this.pollTimer = setInterval(() => {
         if (this.state.isHighlighting) {
           this.log('Polling skipped\u2014highlighting in progress');
+          this.timingManager?.recordPoll({
+            postsProcessed: 0,
+            wasSkipped: true,
+            containerFound: false,
+            containerAttempted: false,
+            pageType: this.state.isWithReplies
+              ? 'with_replies'
+              : this.state.userProfileName
+                ? 'profile'
+                : 'timeline',
+          });
           return;
         }
         const urlFullPath = this.getUrlFullPathIfChanged(
@@ -871,20 +1010,43 @@
         const unprocessedPosts = this.document.querySelectorAll(
           XGhosted.UNPROCESSED_POSTS_SELECTOR
         );
+        let containerFound = false;
+        let containerAttempted = false;
         if (unprocessedPosts.length > 0) {
           this.highlightPosts(unprocessedPosts);
         } else if (
           !this.document.querySelector(XGhosted.POST_CONTAINER_SELECTOR)
         ) {
           this.log('No post container found, trying to find it...');
+          containerAttempted = true;
           const foundContainer = findPostContainer(this.document, this.log);
-          if (foundContainer) {
+          containerFound = !!foundContainer;
+          if (containerFound) {
+            this.log('Container found, setting post density');
+            if (this.state.firstContainerFound && this.timingManager) {
+              this.timingManager.setPostDensity(
+                this.document.querySelectorAll(
+                  'div[data-testid="cellInnerDiv"]'
+                ).length
+              );
+              this.state.firstContainerFound = false;
+            }
             this.highlightPosts();
           } else {
             this.log('Container still not found, skipping highlighting');
           }
-        } else {
         }
+        this.timingManager?.recordPoll({
+          postsProcessed: unprocessedPosts.length,
+          wasSkipped: false,
+          containerFound,
+          containerAttempted,
+          pageType: this.state.isWithReplies
+            ? 'with_replies'
+            : this.state.userProfileName
+              ? 'profile'
+              : 'timeline',
+        });
       }, pollInterval);
     };
     XGhosted.prototype.startAutoScrolling = function () {
@@ -902,15 +1064,17 @@
         if (this.state.isAutoScrollingEnabled) {
           const scrollHeight = this.document.documentElement.scrollHeight;
           const scrollTop = window.scrollY + window.innerHeight;
-          if (scrollTop >= scrollHeight - 10) {
+          const bottomReached = scrollTop >= scrollHeight - 10;
+          if (bottomReached) {
             this.log('Reached page bottom, stopping auto-scrolling');
             this.toggleAutoScrolling();
-            return;
+          } else {
+            window.scrollBy({
+              top: window.innerHeight * 0.8,
+              behavior: 'smooth',
+            });
           }
-          window.scrollBy({
-            top: window.innerHeight * 0.8,
-            behavior: 'smooth',
-          });
+          this.timingManager?.recordScroll({ bottomReached });
         }
       }, scrollInterval);
     };
@@ -931,6 +1095,7 @@
       }
     };
     XGhosted.prototype.highlightPosts = function (posts) {
+      const start = performance.now();
       this.state.isHighlighting = true;
       const processPostAnalysis = (post, analysis) => {
         if (!(post instanceof this.document.defaultView.Element)) {
@@ -961,7 +1126,6 @@
         }
       };
       const checkReplies = this.state.isWithReplies;
-      const userProfileName = this.state.userProfileName;
       const results = [];
       const postsToProcess =
         posts ||
@@ -985,6 +1149,7 @@
         results.push(analysis);
       });
       if (postsProcessed > 0) {
+        this.timingManager?.saveMetrics();
         this.document.dispatchEvent(
           new CustomEvent('xghosted:state-updated', {
             detail: { ...this.state },
@@ -995,6 +1160,7 @@
         );
       }
       this.state.isHighlighting = false;
+      this.timingManager?.recordHighlighting(performance.now() - start);
       return results;
     };
     XGhosted.prototype.getThemeMode = function () {
@@ -1002,6 +1168,7 @@
     };
     XGhosted.prototype.init = function () {
       this.log('Initializing XGhosted...');
+      const startTime = performance.now();
       if (this.document.body) {
         const themeMode = this.getThemeMode();
         this.document.dispatchEvent(
@@ -1059,14 +1226,34 @@
               this.log(`Eyeball click skipped for ${href} due to rate limit`);
               return;
             }
-            const cached = this.postsManager.getPost(href);
             this.userRequestedPostCheck(href, clickedPost);
           }
         },
         { capture: true }
       );
-      this.startPolling();
-      this.startAutoScrolling();
+      const checkDomInterval = setInterval(() => {
+        if (
+          this.document.body &&
+          this.document.querySelectorAll('div[data-testid="cellInnerDiv"]')
+            .length > 0
+        ) {
+          clearInterval(checkDomInterval);
+          const waitTime = performance.now() - startTime;
+          this.timingManager?.setInitialWaitTime(waitTime);
+          this.startPolling();
+          this.startAutoScrolling();
+        }
+      }, 500);
+      setTimeout(() => {
+        if (checkDomInterval) {
+          clearInterval(checkDomInterval);
+          const waitTime = performance.now() - startTime;
+          this.timingManager?.setInitialWaitTime(waitTime);
+          this.log('DOM readiness timeout reached, starting polling');
+          this.startPolling();
+          this.startAutoScrolling();
+        }
+      }, 5e3);
     };
     window.XGhosted = XGhosted;
     return XGhosted;
@@ -2579,10 +2766,19 @@
       exportThrottle: 5000,
       rateLimitPause: RATE_LIMIT_PAUSE,
       pollInterval: 1000,
+      scrollInterval: 1500,
     },
     showSplash: true,
-    log, // Pass logger
+    log,
     postsManager,
+    timingManager: new window.XGhostedUtils.TimingManager({
+      timing: {
+        pollInterval: 1000,
+        scrollInterval: 1500,
+      },
+      log,
+      storage: { get: GM_getValue, set: GM_setValue },
+    }),
   };
   const xGhosted = new window.XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
