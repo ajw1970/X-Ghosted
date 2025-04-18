@@ -892,7 +892,7 @@
         this.log('Auto-scrolling not started: polling is disabled');
         return;
       }
-      const scrollInterval = this.timing.scrollInterval || 3e3;
+      const scrollInterval = this.timing.scrollInterval || 1500;
       this.log('Starting auto-scrolling timer...');
       this.scrollTimer = setInterval(() => {
         if (!this.state.isPollingEnabled) {
