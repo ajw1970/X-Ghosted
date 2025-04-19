@@ -19,7 +19,7 @@
   'use strict';
 
   // Safety check: Ensure we're on X.com with a valid document
-  const log = typeof GM_log !== 'undefined' ? GM_log : console.log.bind(console);
+  const log = GM_log;
   if (!window.location.href.startsWith('https://x.com/') || !document.body) {
     log('xGhosted: Aborting - invalid environment');
     return;
@@ -102,7 +102,8 @@
         xGhosted,
         themeMode || 'light',
         postsManager,
-        { get: GM_getValue, set: GM_setValue }
+        { get: GM_getValue, set: GM_setValue },
+        log
       );
       log('GUI Panel initialized successfully');
 

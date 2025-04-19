@@ -346,6 +346,42 @@ function Panel({
               },
               window.preact.h('i', { className: 'fas fa-up-down-left-right' })
             )
+          ),
+          window.preact.h(
+            'div',
+            { className: 'problem-links-wrapper' },
+            flagged.length > 0
+              ? flagged.map(([href, { analysis }]) =>
+                window.preact.h(
+                  'div',
+                  { className: 'link-row', key: href },
+                  analysis.quality.name === 'Potential Problem'
+                    ? window.preact.h('span', {
+                      className: 'status-eyeball',
+                      onClick: () => onEyeballClick(href),
+                      'aria-label': 'Check post details',
+                    }, '👀')
+                    : window.preact.h('span', {
+                      className: 'status-dot status-problem',
+                      'aria-label': 'Problem post',
+                    }),
+                  window.preact.h(
+                    'span',
+                    { className: 'link-item' },
+                    window.preact.h(
+                      'a',
+                      {
+                        href: `${xGhosted.postsManager.linkPrefix}${href}`,
+                        target: '_blank',
+                        rel: 'noopener noreferrer',
+                        'aria-label': `Open post ${href} in new tab`,
+                      },
+                      href
+                    )
+                  )
+                )
+              )
+              : window.preact.h('span', { className: 'status-label' }, 'No concerns found.')
           )
         )
         : window.preact.h(

@@ -100,13 +100,14 @@ window.PanelManager = function (
   xGhostedInstance,
   themeMode = 'light',
   postsManager,
-  storage
+  storage,
+  log
 ) {
   this.document = doc;
   this.xGhosted = xGhostedInstance;
-  this.log = xGhostedInstance.log;
   this.postsManager = postsManager;
   this.storage = storage || { get: () => { }, set: () => { } };
+  this.log = log;
   const validThemes = ['light', 'dim', 'dark'];
   this.state = {
     panelPosition: { right: '10px', top: '60px' },
@@ -544,7 +545,7 @@ window.PanelManager.prototype.startDrag = function (e) {
         });
       }
     } catch (error) {
-      console.error('Error in onMouseUp:', error);
+      this.log(`Error in onMouseUp: ${error}`);
     } finally {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);

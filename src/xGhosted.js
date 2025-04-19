@@ -12,12 +12,12 @@ function XGhosted(doc, config = {}) {
     throttleDelay: 1000,
     tabCheckThrottle: 5000,
     exportThrottle: 5000,
-    pollInterval: 1000,
-    scrollInterval: 1500,
+    pollInterval: 625,
+    scrollInterval: 1250,
   };
   this.timing = { ...defaultTiming, ...config.timing };
   this.document = doc;
-  this.log = config.log || console.log.bind(console);
+  this.log = config.log;
   this.timingManager = config.timingManager || null;
   if (!config.postsManager) {
     throw new Error('XGhosted requires a postsManager instance');
@@ -48,6 +48,15 @@ function XGhosted(doc, config = {}) {
 
 XGhosted.POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
 XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
+
+XGhosted.prototype.emit = function (eventName, data) {
+  this.log(`Emitting event: ${eventName} with data:`, data);
+  this.document.dispatchEvent(
+    new CustomEvent(eventName, {
+      detail: data,
+    })
+  );
+};
 
 XGhosted.prototype.getUrlFullPathIfChanged = function (url) {
   const urlParts = new URL(url);
@@ -260,24 +269,31 @@ XGhosted.prototype.startPolling = function () {
 };
 
 XGhosted.prototype.startAutoScrolling = function () {
-  const scrollInterval = this.timing.scrollInterval || 1500;
+  if (!this.state.isPollingEnabled || !this.state.isAutoScrollingEnabled) {
+    return; // Exit silently if polling or auto-scrolling is disabled
+  }
+  const scrollInterval = this.timing.scrollInterval || 1250;
+  this.log('Starting auto-scrolling timer...');
   this.scrollTimer = setInterval(() => {
-    if (this.state.isPollingEnabled && this.state.isAutoScrollingEnabled) {
-      const scrollHeight = this.document.documentElement.scrollHeight;
-      const scrollTop = window.scrollY + window.innerHeight;
-      const bottomReached = scrollTop >= scrollHeight - 10;
-      if (bottomReached) {
-        this.log('Reached page bottom, stopping auto-scrolling');
-        this.toggleAutoScrolling();
-      } else {
-        this.log('Scrolling...');
-        window.scrollBy({
-          top: window.innerHeight * 0.8,
-          behavior: 'smooth'
-        });
-      }
-      this.timingManager?.recordScroll({ bottomReached });
+    if (!this.state.isPollingEnabled || !this.state.isAutoScrollingEnabled) {
+      return;
     }
+    this.log('Performing smooth scroll down...');
+    window.scrollBy({
+      top: window.innerHeight * 0.8,
+      behavior: 'smooth',
+    });
+    const bottomReached = window.innerHeight + window.scrollY >= document.body.scrollHeight;
+    if (bottomReached) {
+      this.log('Reached page bottom, stopping auto-scrolling');
+      this.state.isAutoScrollingEnabled = false;
+      if (this.scrollTimer) {
+        clearInterval(this.scrollTimer);
+        this.scrollTimer = null;
+      }
+      this.emit('xghosted:set-auto-scrolling', false);
+    }
+    this.timingManager?.recordScroll({ bottomReached });
   }, scrollInterval);
 };
 

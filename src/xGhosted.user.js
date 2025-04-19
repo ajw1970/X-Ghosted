@@ -19,8 +19,7 @@
   'use strict';
 
   // Safety check: Ensure we're on X.com with a valid document
-  const log =
-    typeof GM_log !== 'undefined' ? GM_log : console.log.bind(console);
+  const log = GM_log;
   if (!window.location.href.startsWith('https://x.com/') || !document.body) {
     log('xGhosted: Aborting - invalid environment');
     return;
@@ -819,12 +818,12 @@
         throttleDelay: 1e3,
         tabCheckThrottle: 5e3,
         exportThrottle: 5e3,
-        pollInterval: 1e3,
-        scrollInterval: 1500,
+        pollInterval: 625,
+        scrollInterval: 1250,
       };
       this.timing = { ...defaultTiming, ...config.timing };
       this.document = doc;
-      this.log = config.log || console.log.bind(console);
+      this.log = config.log;
       this.timingManager = config.timingManager || null;
       if (!config.postsManager) {
         throw new Error('XGhosted requires a postsManager instance');
@@ -852,6 +851,14 @@
     }
     XGhosted.POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
     XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
+    XGhosted.prototype.emit = function (eventName, data) {
+      this.log(`Emitting event: ${eventName} with data:`, data);
+      this.document.dispatchEvent(
+        new CustomEvent(eventName, {
+          detail: data,
+        })
+      );
+    };
     XGhosted.prototype.getUrlFullPathIfChanged = function (url) {
       const urlParts = new URL(url);
       const urlFullPath = urlParts.origin + urlParts.pathname;
@@ -1114,24 +1121,35 @@
       }, pollInterval);
     };
     XGhosted.prototype.startAutoScrolling = function () {
-      const scrollInterval = this.timing.scrollInterval || 1500;
+      if (!this.state.isPollingEnabled || !this.state.isAutoScrollingEnabled) {
+        return;
+      }
+      const scrollInterval = this.timing.scrollInterval || 1250;
+      this.log('Starting auto-scrolling timer...');
       this.scrollTimer = setInterval(() => {
-        if (this.state.isPollingEnabled && this.state.isAutoScrollingEnabled) {
-          const scrollHeight = this.document.documentElement.scrollHeight;
-          const scrollTop = window.scrollY + window.innerHeight;
-          const bottomReached = scrollTop >= scrollHeight - 10;
-          if (bottomReached) {
-            this.log('Reached page bottom, stopping auto-scrolling');
-            this.toggleAutoScrolling();
-          } else {
-            this.log('Scrolling...');
-            window.scrollBy({
-              top: window.innerHeight * 0.8,
-              behavior: 'smooth',
-            });
-          }
-          this.timingManager?.recordScroll({ bottomReached });
+        if (
+          !this.state.isPollingEnabled ||
+          !this.state.isAutoScrollingEnabled
+        ) {
+          return;
         }
+        this.log('Performing smooth scroll down...');
+        window.scrollBy({
+          top: window.innerHeight * 0.8,
+          behavior: 'smooth',
+        });
+        const bottomReached =
+          window.innerHeight + window.scrollY >= document.body.scrollHeight;
+        if (bottomReached) {
+          this.log('Reached page bottom, stopping auto-scrolling');
+          this.state.isAutoScrollingEnabled = false;
+          if (this.scrollTimer) {
+            clearInterval(this.scrollTimer);
+            this.scrollTimer = null;
+          }
+          this.emit('xghosted:set-auto-scrolling', false);
+        }
+        this.timingManager?.recordScroll({ bottomReached });
       }, scrollInterval);
     };
     XGhosted.prototype.setAutoScrolling = function (enabled) {
@@ -1781,6 +1799,50 @@
                       className: 'fas fa-up-down-left-right',
                     })
                   )
+                ),
+                window.preact.h(
+                  'div',
+                  { className: 'problem-links-wrapper' },
+                  flagged.length > 0
+                    ? flagged.map(([href, { analysis }]) =>
+                        window.preact.h(
+                          'div',
+                          { className: 'link-row', key: href },
+                          analysis.quality.name === 'Potential Problem'
+                            ? window.preact.h(
+                                'span',
+                                {
+                                  className: 'status-eyeball',
+                                  onClick: () => onEyeballClick(href),
+                                  'aria-label': 'Check post details',
+                                },
+                                '\u{1F440}'
+                              )
+                            : window.preact.h('span', {
+                                className: 'status-dot status-problem',
+                                'aria-label': 'Problem post',
+                              }),
+                          window.preact.h(
+                            'span',
+                            { className: 'link-item' },
+                            window.preact.h(
+                              'a',
+                              {
+                                href: `${xGhosted.postsManager.linkPrefix}${href}`,
+                                target: '_blank',
+                                rel: 'noopener noreferrer',
+                                'aria-label': `Open post ${href} in new tab`,
+                              },
+                              href
+                            )
+                          )
+                        )
+                      )
+                    : window.preact.h(
+                        'span',
+                        { className: 'status-label' },
+                        'No concerns found.'
+                      )
                 )
               )
             : window.preact.h(
@@ -1926,13 +1988,14 @@
       xGhostedInstance,
       themeMode = 'light',
       postsManager,
-      storage
+      storage,
+      log
     ) {
       this.document = doc;
       this.xGhosted = xGhostedInstance;
-      this.log = xGhostedInstance.log;
       this.postsManager = postsManager;
       this.storage = storage || { get: () => {}, set: () => {} };
+      this.log = log;
       const validThemes = ['light', 'dim', 'dark'];
       this.state = {
         panelPosition: { right: '10px', top: '60px' },
@@ -2387,7 +2450,7 @@
             });
           }
         } catch (error) {
-          console.error('Error in onMouseUp:', error);
+          this.log(`Error in onMouseUp: ${error}`);
         } finally {
           document.removeEventListener('mousemove', onMouseMove);
           document.removeEventListener('mouseup', onMouseUp);
@@ -2903,7 +2966,8 @@
           xGhosted,
           themeMode || 'light',
           postsManager,
-          { get: GM_getValue, set: GM_setValue }
+          { get: GM_getValue, set: GM_setValue },
+          log
         );
         log('GUI Panel initialized successfully');
 
