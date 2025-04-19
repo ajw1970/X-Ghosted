@@ -1533,7 +1533,13 @@
                       {
                         key: isPolling ? 'polling-stop' : 'polling-start',
                         className: `panel-button ${isPolling ? '' : 'polling-stopped'}`,
-                        onClick: isPolling ? onStopPolling : onStartPolling,
+                        onClick: () => {
+                          document.dispatchEvent(
+                            new CustomEvent('xghosted:set-polling', {
+                              detail: { enabled: !isPolling },
+                            })
+                          );
+                        },
                         'aria-label': isPolling
                           ? 'Stop Polling'
                           : 'Start Polling',
@@ -2293,8 +2299,6 @@
           xGhosted: this.xGhosted,
           currentMode: this.state.themeMode,
           toggleThemeMode: (newMode) => this.handleModeChange(newMode),
-          onStartPolling: () => this.xGhosted.handleStartPolling(),
-          onStopPolling: () => this.xGhosted.handleStopPolling(),
           onEyeballClick: (href) => {
             const post = this.document.querySelector(
               `[data-xghosted-id="${href}"]`
@@ -2997,6 +3001,16 @@
           'xghosted:set-auto-scrolling',
           ({ detail: { enabled } }) => {
             xGhosted.setAutoScrolling(enabled);
+          }
+        );
+        document.addEventListener(
+          'xghosted:set-polling',
+          ({ detail: { enabled } }) => {
+            if (enabled) {
+              xGhosted.handleStartPolling();
+            } else {
+              xGhosted.handleStopPolling();
+            }
           }
         );
       } catch (error) {

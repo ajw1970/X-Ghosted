@@ -102,7 +102,13 @@ function Panel({
                 {
                   key: isPolling ? 'polling-stop' : 'polling-start',
                   className: `panel-button ${isPolling ? '' : 'polling-stopped'}`,
-                  onClick: isPolling ? onStopPolling : onStartPolling,
+                  onClick: () => {
+                    document.dispatchEvent(
+                      new CustomEvent('xghosted:set-polling', {
+                        detail: { enabled: !isPolling }
+                      })
+                    );
+                  },
                   'aria-label': isPolling ? 'Stop Polling' : 'Start Polling',
                 },
                 window.preact.h('i', {

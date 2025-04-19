@@ -389,8 +389,6 @@ window.PanelManager.prototype.renderPanel = function () {
       xGhosted: this.xGhosted,
       currentMode: this.state.themeMode,
       toggleThemeMode: (newMode) => this.handleModeChange(newMode),
-      onStartPolling: () => this.xGhosted.handleStartPolling(),
-      onStopPolling: () => this.xGhosted.handleStopPolling(),
       onEyeballClick: (href) => {
         const post = this.document.querySelector(
           `[data-xghosted-id="${href}"]`

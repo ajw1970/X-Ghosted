@@ -126,6 +126,13 @@
       document.addEventListener('xghosted:set-auto-scrolling', ({ detail: { enabled } }) => {
         xGhosted.setAutoScrolling(enabled);
       });
+      document.addEventListener('xghosted:set-polling', ({ detail: { enabled } }) => {
+        if (enabled) {
+          xGhosted.handleStartPolling();
+        } else {
+          xGhosted.handleStopPolling();
+        }
+      });
     } catch (error) {
       log(`Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`);
     }
