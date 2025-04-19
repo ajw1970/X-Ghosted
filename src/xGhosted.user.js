@@ -1148,6 +1148,12 @@
         pollInterval: pollInterval || 'Unknown',
         scrollInterval: scrollInterval || 'Unknown',
       };
+      this.isDragging = false;
+      this.dragStartX = 0;
+      this.dragStartY = 0;
+      this.initialTop = 0;
+      this.initialLeft = 0;
+      this.styleElement = null;
       this.init = function () {
         this.logger('Initializing SplashPanel...');
         this.container = this.document.createElement('div');
@@ -1155,10 +1161,21 @@
         this.container.style.cssText =
           'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; border: 2px solid #333; border-radius: 12px; padding: 20px; z-index: 10000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);';
         this.document.body.appendChild(this.container);
+        this.styleElement = this.document.createElement('style');
+        this.styleElement.textContent = `
+            #xghosted-splash {
+                cursor: move;
+            }
+            #xghosted-splash button {
+                cursor: pointer;
+            }
+        `;
+        this.document.head.appendChild(this.styleElement);
         this.render({
           pollInterval: this.config.pollInterval,
           scrollInterval: this.config.scrollInterval,
         });
+        this.container.addEventListener('mousedown', (e) => this.startDrag(e));
         this.document.addEventListener('xghosted:init', (e) => {
           const config = e.detail?.config || {};
           this.config = {
@@ -1184,6 +1201,43 @@
           });
         });
       };
+      this.startDrag = function (e) {
+        if (e.target.tagName === 'BUTTON') return;
+        e.preventDefault();
+        this.isDragging = true;
+        this.dragStartX = e.clientX;
+        this.dragStartY = e.clientY;
+        const rect = this.container.getBoundingClientRect();
+        this.initialTop = rect.top + window.scrollY;
+        this.initialLeft = rect.left + window.scrollX;
+        this.container.style.transform = 'none';
+        this.container.style.top = `${this.initialTop}px`;
+        this.container.style.left = `${this.initialLeft}px`;
+        this.document.addEventListener('mousemove', (e2) => this.onDrag(e2));
+        this.document.addEventListener('mouseup', () => this.stopDrag(), {
+          once: true,
+        });
+        this.logger('Started dragging SplashPanel');
+      };
+      this.onDrag = function (e) {
+        if (!this.isDragging) return;
+        const deltaX = e.clientX - this.dragStartX;
+        const deltaY = e.clientY - this.dragStartY;
+        let newTop = this.initialTop + deltaY;
+        let newLeft = this.initialLeft + deltaX;
+        const rect = this.container.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        newTop = Math.max(0, Math.min(newTop, windowHeight - rect.height));
+        newLeft = Math.max(0, Math.min(newLeft, windowWidth - rect.width));
+        this.container.style.top = `${newTop}px`;
+        this.container.style.left = `${this.initialLeft + deltaX}px`;
+      };
+      this.stopDrag = function () {
+        this.isDragging = false;
+        this.document.removeEventListener('mousemove', this.onDrag);
+        this.logger('Stopped dragging SplashPanel');
+      };
       this.render = function (config) {
         this.container.innerHTML = `
             <h2 style="margin: 0 0 10px 0; font-size: 24px; color: #333; display: block;">xGhosted: \u{1D54F} Post Analyzer!</h2>
@@ -1194,7 +1248,8 @@
             <button style="padding: 8px 16px; background: #3A4A5B; color: #fff; border: 2px solid #8292A2; border-radius: 8px; cursor: pointer; font-size: 14px; display: inline-block;">Close</button>
         `;
         const closeButton = this.container.querySelector('button');
-        closeButton.addEventListener('click', () => {
+        closeButton.addEventListener('click', (e) => {
+          e.stopPropagation();
           this.logger('SplashPanel closed');
           this.container.remove();
         });
@@ -1238,6 +1293,9 @@
         state.isAutoScrollingEnabled
       );
       window.preactHooks.useEffect(() => {
+        setIsVisible(state.isPanelVisible);
+      }, [state.isPanelVisible]);
+      window.preactHooks.useEffect(() => {
         setIsPolling(state.isPollingEnabled);
         setIsScrolling(state.isAutoScrollingEnabled);
       }, [state.isPollingEnabled, state.isAutoScrollingEnabled]);
@@ -1253,6 +1311,9 @@
       }, []);
       const toggleVisibility = () => {
         const newVisibility = !isVisible;
+        console.log(
+          `Panel.jsx toggleVisibility: newVisibility=${newVisibility}`
+        );
         setIsVisible(newVisibility);
         document.dispatchEvent(
           new CustomEvent('xghosted:toggle-panel-visibility', {
@@ -1946,6 +2007,10 @@
         );
         this.renderPanel();
       };
+      const handleToggleVisibility = (e) => {
+        const { isPanelVisible } = e.detail;
+        this.setVisibility(isPanelVisible);
+      };
       const handleOpenAbout = () => {
         this.showSplashPage();
       };
@@ -1965,6 +2030,10 @@
       this.document.addEventListener(
         'xghosted:user-profile-updated',
         handleUserProfileUpdated
+      );
+      this.document.addEventListener(
+        'xghosted:toggle-panel-visibility',
+        handleToggleVisibility
       );
       this.document.addEventListener('xghosted:open-about', handleOpenAbout);
       this.cleanup = () => {
@@ -1986,6 +2055,10 @@
           handleUserProfileUpdated
         );
         this.document.removeEventListener(
+          'xghosted:toggle-panel-visibility',
+          handleToggleVisibility
+        );
+        this.document.removeEventListener(
           'xghosted:open-about',
           handleOpenAbout
         );
@@ -1997,9 +2070,7 @@
       }
     };
     window.PanelManager.prototype.saveState = function () {
-      const currentState = this.storage.get('xGhostedState', {});
       const updatedState = {
-        ...currentState,
         panel: {
           isPanelVisible: this.state.isPanelVisible,
           panelPosition: { ...this.state.panelPosition },
@@ -2007,11 +2078,12 @@
           hasSeenSplash: this.state.hasSeenSplash,
         },
       };
+      this.log('Saving state with isPanelVisible:', this.state.isPanelVisible);
       this.storage.set('xGhostedState', updatedState);
-      this.log('Saved panel state:', updatedState);
     };
     window.PanelManager.prototype.loadState = function () {
       const savedState = this.storage.get('xGhostedState', {});
+      this.log('Loaded state from storage:', savedState);
       const panelState = savedState.panel || {};
       this.state.isPanelVisible = panelState.isPanelVisible ?? true;
       this.state.themeMode = ['light', 'dim', 'dark'].includes(
@@ -2087,6 +2159,13 @@
       border-radius: 12px;
     }
   `;
+    };
+    window.PanelManager.prototype.setVisibility = function (isVisible) {
+      this.state.isPanelVisible =
+        typeof isVisible === 'boolean' ? isVisible : this.state.isPanelVisible;
+      this.saveState();
+      this.renderPanel();
+      this.log(`Set panel visibility: ${this.state.isPanelVisible}`);
     };
     window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
       this.state.isPanelVisible =
@@ -2800,7 +2879,7 @@
         document.addEventListener(
           'xghosted:toggle-panel-visibility',
           ({ detail: { isPanelVisible } }) => {
-            panelManager.toggleVisibility(isPanelVisible);
+            panelManager.setVisibility(isPanelVisible);
           }
         );
         document.addEventListener('xghosted:copy-links', () => {

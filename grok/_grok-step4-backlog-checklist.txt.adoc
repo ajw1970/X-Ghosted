@@ -56,7 +56,7 @@
 * [x] Add a toggle to enable/disable dragging (pin/unpin panel location).
 ** Planned as part of Task 8 in the roadmap, to be implemented in the Tools panel with `isDraggingEnabled` state.
 * [ ] Add button for timing metrics CSV export.
-* [ ] Make Splash panel draggable
+* [x] Make Splash panel draggable
 * [ ] Replace new windows post check with Puppeteer or something similar to avoid the need for a new window.
 * [x] Have splash screen only open once for the user. Allow a way to show it again later from Tools.
 ** Implemented on April 18, 2025, with `hasSeenSplash` in `PanelManager.js` and "About" button in `Panel.jsx`.

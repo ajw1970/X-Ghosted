@@ -250,6 +250,10 @@ window.PanelManager.prototype.init = function () {
     );
     this.renderPanel();
   };
+  const handleToggleVisibility = (e) => {
+    const { isPanelVisible } = e.detail;
+    this.setVisibility(isPanelVisible);
+  };
   const handleOpenAbout = () => {
     this.showSplashPage();
   };
@@ -269,6 +273,10 @@ window.PanelManager.prototype.init = function () {
   this.document.addEventListener(
     'xghosted:user-profile-updated',
     handleUserProfileUpdated
+  );
+  this.document.addEventListener(
+    'xghosted:toggle-panel-visibility',
+    handleToggleVisibility
   );
   this.document.addEventListener('xghosted:open-about', handleOpenAbout);
   this.cleanup = () => {
@@ -290,6 +298,10 @@ window.PanelManager.prototype.init = function () {
       handleUserProfileUpdated
     );
     this.document.removeEventListener(
+      'xghosted:toggle-panel-visibility',
+      handleToggleVisibility
+    );
+    this.document.removeEventListener(
       'xghosted:open-about',
       handleOpenAbout
     );
@@ -302,9 +314,7 @@ window.PanelManager.prototype.init = function () {
 };
 
 window.PanelManager.prototype.saveState = function () {
-  const currentState = this.storage.get('xGhostedState', {});
   const updatedState = {
-    ...currentState,
     panel: {
       isPanelVisible: this.state.isPanelVisible,
       panelPosition: { ...this.state.panelPosition },
@@ -312,17 +322,16 @@ window.PanelManager.prototype.saveState = function () {
       hasSeenSplash: this.state.hasSeenSplash,
     },
   };
+  this.log('Saving state with isPanelVisible:', this.state.isPanelVisible);
   this.storage.set('xGhostedState', updatedState);
-  this.log('Saved panel state:', updatedState);
 };
 
 window.PanelManager.prototype.loadState = function () {
   const savedState = this.storage.get('xGhostedState', {});
+  this.log('Loaded state from storage:', savedState);
   const panelState = savedState.panel || {};
   this.state.isPanelVisible = panelState.isPanelVisible ?? true;
-  this.state.themeMode = ['light', 'dim', 'dark'].includes(
-    panelState.themeMode
-  )
+  this.state.themeMode = ['light', 'dim', 'dark'].includes(panelState.themeMode)
     ? panelState.themeMode
     : this.state.themeMode;
   this.state.hasSeenSplash = panelState.hasSeenSplash ?? false;
@@ -394,6 +403,13 @@ window.PanelManager.prototype.applyPanelStyles = function () {
       border-radius: 12px;
     }
   `;
+};
+
+window.PanelManager.prototype.setVisibility = function (isVisible) {
+  this.state.isPanelVisible = typeof isVisible === 'boolean' ? isVisible : this.state.isPanelVisible;
+  this.saveState();
+  this.renderPanel();
+  this.log(`Set panel visibility: ${this.state.isPanelVisible}`);
 };
 
 window.PanelManager.prototype.toggleVisibility = function (newVisibility) {

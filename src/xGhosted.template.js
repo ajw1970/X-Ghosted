@@ -97,7 +97,7 @@
       document.addEventListener(
         'xghosted:toggle-panel-visibility',
         ({ detail: { isPanelVisible } }) => {
-          panelManager.toggleVisibility(isPanelVisible);
+          panelManager.setVisibility(isPanelVisible);
         }
       );
       document.addEventListener('xghosted:copy-links', () => {
@@ -138,8 +138,11 @@
         }
       );
       document.addEventListener('click', (e) => {
-        const eyeball = e.target.closest('.xghosted-eyeball') ||
-          (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
+        const eyeball =
+          e.target.closest('.xghosted-eyeball') ||
+          (e.target.classList.contains('xghosted-eyeball')
+            ? e.target
+            : null);
         if (eyeball) {
           e.preventDefault();
           e.stopPropagation();
