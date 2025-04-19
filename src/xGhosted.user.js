@@ -1132,12 +1132,22 @@
   })();
   window.SplashPanel = (function () {
     // src/ui/SplashPanel.js
-    function SplashPanel(doc, logger, version) {
+    function SplashPanel(
+      doc,
+      logger,
+      version,
+      userProfileName,
+      pollInterval,
+      scrollInterval
+    ) {
       this.document = doc;
       this.logger = logger;
       this.container = null;
-      this.userProfileName = null;
-      this.config = {};
+      this.userProfileName = userProfileName || null;
+      this.config = {
+        pollInterval: pollInterval || 'Unknown',
+        scrollInterval: scrollInterval || 'Unknown',
+      };
       this.init = function () {
         this.logger('Initializing SplashPanel...');
         this.container = this.document.createElement('div');
@@ -1146,43 +1156,43 @@
           'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; border: 2px solid #333; border-radius: 12px; padding: 20px; z-index: 10000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);';
         this.document.body.appendChild(this.container);
         this.render({
-          pollInterval: 'Unknown',
-          scrollInterval: 'Unknown',
+          pollInterval: this.config.pollInterval,
+          scrollInterval: this.config.scrollInterval,
         });
-        this.document.addEventListener(
-          'xghosted:init',
-          (e) => {
-            this.config = e.detail?.config || {};
-            this.logger('Received xghosted:init with config:', this.config);
-            this.render({
-              pollInterval: this.config.pollInterval || 'Unknown',
-              scrollInterval: this.config.scrollInterval || 'Unknown',
-            });
-          },
-          { once: true }
-        );
+        this.document.addEventListener('xghosted:init', (e) => {
+          const config = e.detail?.config || {};
+          this.config = {
+            pollInterval: config.pollInterval || this.config.pollInterval,
+            scrollInterval: config.scrollInterval || this.config.scrollInterval,
+          };
+          this.logger('Received xghosted:init with config:', this.config);
+          this.render({
+            pollInterval: this.config.pollInterval,
+            scrollInterval: this.config.scrollInterval,
+          });
+        });
         this.document.addEventListener('xghosted:user-profile-updated', (e) => {
-          const { userProfileName } = e.detail || {};
+          const { userProfileName: userProfileName2 } = e.detail || {};
           this.logger(
             'Received xghosted:user-profile-updated with userProfileName:',
-            userProfileName
+            userProfileName2
           );
-          this.userProfileName = userProfileName;
+          this.userProfileName = userProfileName2 || this.userProfileName;
           this.render({
-            pollInterval: this.config.pollInterval || 'Unknown',
-            scrollInterval: this.config.scrollInterval || 'Unknown',
+            pollInterval: this.config.pollInterval,
+            scrollInterval: this.config.scrollInterval,
           });
         });
       };
       this.render = function (config) {
         this.container.innerHTML = `
-          <h2 style="margin: 0 0 10px 0; font-size: 24px; color: #333; display: block;">xGhosted: \u{1D54F} Post Analyzer!</h2>
-          <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Tampermonkey Version: ${version}</p>
-          ${this.userProfileName ? `<p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Profile: ${this.userProfileName}</p>` : ''}
-          <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Poll Interval: ${config.pollInterval} ms</p>
-          <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Scroll Interval: ${config.scrollInterval} ms</p>
-          <button style="padding: 8px 16px; background: #3A4A5B; color: #fff; border: 2px solid #8292A2; border-radius: 8px; cursor: pointer; font-size: 14px; display: inline-block;">Close</button>
-      `;
+            <h2 style="margin: 0 0 10px 0; font-size: 24px; color: #333; display: block;">xGhosted: \u{1D54F} Post Analyzer!</h2>
+            <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Tampermonkey Version: ${version}</p>
+            ${this.userProfileName ? `<p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Profile: ${this.userProfileName}</p>` : ''}
+            <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Poll Interval: ${config.pollInterval} ms</p>
+            <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Scroll Interval: ${config.scrollInterval} ms</p>
+            <button style="padding: 8px 16px; background: #3A4A5B; color: #fff; border: 2px solid #8292A2; border-radius: 8px; cursor: pointer; font-size: 14px; display: inline-block;">Close</button>
+        `;
         const closeButton = this.container.querySelector('button');
         closeButton.addEventListener('click', () => {
           this.logger('SplashPanel closed');
@@ -1803,6 +1813,9 @@
         isAutoScrollingEnabled: false,
         themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
         hasSeenSplash: false,
+        userProfileName: null,
+        pollInterval: 'Unknown',
+        scrollInterval: 'Unknown',
       };
       this.log(
         `PanelManager initialized with themeMode: ${this.state.themeMode}`
@@ -1917,6 +1930,22 @@
         this.state.isAutoScrollingEnabled = e.detail.isAutoScrollingEnabled;
         this.renderPanel();
       };
+      const handleInit = (e) => {
+        const config = e.detail?.config || {};
+        this.state.pollInterval = config.pollInterval || 'Unknown';
+        this.state.scrollInterval = config.scrollInterval || 'Unknown';
+        this.log('Received xghosted:init with config:', config);
+        this.renderPanel();
+      };
+      const handleUserProfileUpdated = (e) => {
+        const { userProfileName } = e.detail || {};
+        this.state.userProfileName = userProfileName;
+        this.log(
+          'Received xghosted:user-profile-updated with userProfileName:',
+          userProfileName
+        );
+        this.renderPanel();
+      };
       const handleOpenAbout = () => {
         this.showSplashPage();
       };
@@ -1932,6 +1961,11 @@
         'xghosted:auto-scrolling-toggled',
         handleAutoScrollingToggled
       );
+      this.document.addEventListener('xghosted:init', handleInit);
+      this.document.addEventListener(
+        'xghosted:user-profile-updated',
+        handleUserProfileUpdated
+      );
       this.document.addEventListener('xghosted:open-about', handleOpenAbout);
       this.cleanup = () => {
         this.document.removeEventListener(
@@ -1945,6 +1979,11 @@
         this.document.removeEventListener(
           'xghosted:auto-scrolling-toggled',
           handleAutoScrollingToggled
+        );
+        this.document.removeEventListener('xghosted:init', handleInit);
+        this.document.removeEventListener(
+          'xghosted:user-profile-updated',
+          handleUserProfileUpdated
         );
         this.document.removeEventListener(
           'xghosted:open-about',
@@ -2182,7 +2221,14 @@
     };
     window.PanelManager.prototype.showSplashPage = function () {
       try {
-        new window.SplashPanel(this.document, this.log, '0.6.1');
+        new window.SplashPanel(
+          this.document,
+          this.log,
+          '0.6.1',
+          this.state.userProfileName,
+          this.state.pollInterval,
+          this.state.scrollInterval
+        );
         this.log('SplashPanel displayed');
       } catch (error) {
         this.log(`Failed to display SplashPanel: ${error.message}`);

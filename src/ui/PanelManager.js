@@ -116,6 +116,9 @@ window.PanelManager = function (
     isAutoScrollingEnabled: false,
     themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
     hasSeenSplash: false,
+    userProfileName: null,
+    pollInterval: 'Unknown',
+    scrollInterval: 'Unknown',
   };
   this.log(
     `PanelManager initialized with themeMode: ${this.state.themeMode}`
@@ -211,7 +214,8 @@ window.PanelManager.prototype.init = function () {
     this.state.hasSeenSplash = true;
     this.saveState();
   }
-  this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
+  this.uiElements.panelContainer.style.right =
+    this.state.panelPosition.right;
   this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
   this.uiElements.panelContainer.style.left = 'auto';
   this.styleElement = this.document.createElement('style');
@@ -230,18 +234,65 @@ window.PanelManager.prototype.init = function () {
     this.state.isAutoScrollingEnabled = e.detail.isAutoScrollingEnabled;
     this.renderPanel();
   };
+  const handleInit = (e) => {
+    const config = e.detail?.config || {};
+    this.state.pollInterval = config.pollInterval || 'Unknown';
+    this.state.scrollInterval = config.scrollInterval || 'Unknown';
+    this.log('Received xghosted:init with config:', config);
+    this.renderPanel();
+  };
+  const handleUserProfileUpdated = (e) => {
+    const { userProfileName } = e.detail || {};
+    this.state.userProfileName = userProfileName;
+    this.log(
+      'Received xghosted:user-profile-updated with userProfileName:',
+      userProfileName
+    );
+    this.renderPanel();
+  };
   const handleOpenAbout = () => {
     this.showSplashPage();
   };
-  this.document.addEventListener('xghosted:state-updated', handleStateUpdated);
-  this.document.addEventListener('xghosted:polling-state-updated', handlePollingStateUpdated);
-  this.document.addEventListener('xghosted:auto-scrolling-toggled', handleAutoScrollingToggled);
+  this.document.addEventListener(
+    'xghosted:state-updated',
+    handleStateUpdated
+  );
+  this.document.addEventListener(
+    'xghosted:polling-state-updated',
+    handlePollingStateUpdated
+  );
+  this.document.addEventListener(
+    'xghosted:auto-scrolling-toggled',
+    handleAutoScrollingToggled
+  );
+  this.document.addEventListener('xghosted:init', handleInit);
+  this.document.addEventListener(
+    'xghosted:user-profile-updated',
+    handleUserProfileUpdated
+  );
   this.document.addEventListener('xghosted:open-about', handleOpenAbout);
   this.cleanup = () => {
-    this.document.removeEventListener('xghosted:state-updated', handleStateUpdated);
-    this.document.removeEventListener('xghosted:polling-state-updated', handlePollingStateUpdated);
-    this.document.removeEventListener('xghosted:auto-scrolling-toggled', handleAutoScrollingToggled);
-    this.document.removeEventListener('xghosted:open-about', handleOpenAbout);
+    this.document.removeEventListener(
+      'xghosted:state-updated',
+      handleStateUpdated
+    );
+    this.document.removeEventListener(
+      'xghosted:polling-state-updated',
+      handlePollingStateUpdated
+    );
+    this.document.removeEventListener(
+      'xghosted:auto-scrolling-toggled',
+      handleAutoScrollingToggled
+    );
+    this.document.removeEventListener('xghosted:init', handleInit);
+    this.document.removeEventListener(
+      'xghosted:user-profile-updated',
+      handleUserProfileUpdated
+    );
+    this.document.removeEventListener(
+      'xghosted:open-about',
+      handleOpenAbout
+    );
   };
   if (window.preact && window.preact.h) {
     this.renderPanel();
@@ -410,7 +461,7 @@ window.PanelManager.prototype.handleModeChange = function (newMode) {
   this.log(`Saved themeMode: ${newMode}`);
   this.document.dispatchEvent(
     new CustomEvent('xghosted:theme-mode-changed', {
-      detail: { themeMode: newMode }
+      detail: { themeMode: newMode },
     })
   );
   this.renderPanel();
@@ -488,7 +539,14 @@ window.PanelManager.prototype.clearPosts = function () {
 
 window.PanelManager.prototype.showSplashPage = function () {
   try {
-    new window.SplashPanel(this.document, this.log, '0.6.1');
+    new window.SplashPanel(
+      this.document,
+      this.log,
+      '0.6.1',
+      this.state.userProfileName,
+      this.state.pollInterval,
+      this.state.scrollInterval
+    );
     this.log('SplashPanel displayed');
   } catch (error) {
     this.log(`Failed to display SplashPanel: ${error.message}`);
@@ -500,13 +558,18 @@ window.PanelManager.prototype.startDrag = function (e) {
   if (!draggedContainer) return;
   draggedContainer.classList.add('dragging');
   const computedStyle = window.getComputedStyle(draggedContainer);
-  let currentRight = parseFloat(computedStyle.right) || parseFloat(this.state.panelPosition.right) || 10;
-  let currentTop = parseFloat(computedStyle.top) || parseFloat(this.state.panelPosition.top) || 60;
+  let currentRight =
+    parseFloat(computedStyle.right) ||
+    parseFloat(this.state.panelPosition.right) ||
+    10;
+  let currentTop =
+    parseFloat(computedStyle.top) ||
+    parseFloat(this.state.panelPosition.top) ||
+    60;
   let initialX = e.clientX + currentRight;
   let initialY = e.clientY - currentTop;
   let right = currentRight;
   let top = currentTop;
-
   let lastUpdate = 0;
   const throttleDelay = 16;
   const onMouseMove = (e2) => {
@@ -515,12 +578,17 @@ window.PanelManager.prototype.startDrag = function (e) {
     lastUpdate = now;
     right = initialX - e2.clientX;
     top = e2.clientY - initialY;
-    right = Math.max(0, Math.min(right, window.innerWidth - draggedContainer.offsetWidth));
-    top = Math.max(0, Math.min(top, window.innerHeight - draggedContainer.offsetHeight));
+    right = Math.max(
+      0,
+      Math.min(right, window.innerWidth - draggedContainer.offsetWidth)
+    );
+    top = Math.max(
+      0,
+      Math.min(top, window.innerHeight - draggedContainer.offsetHeight)
+    );
     draggedContainer.style.right = `${right}px`;
     draggedContainer.style.top = `${top}px`;
   };
-
   const onMouseUp = () => {
     try {
       draggedContainer.classList.remove('dragging');
@@ -537,7 +605,6 @@ window.PanelManager.prototype.startDrag = function (e) {
       document.removeEventListener('mouseup', onMouseUp);
     }
   };
-
   document.addEventListener('mousemove', onMouseMove);
   document.addEventListener('mouseup', onMouseUp);
 };
