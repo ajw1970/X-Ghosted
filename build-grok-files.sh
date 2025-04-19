@@ -10,8 +10,8 @@ TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
 FILES=(
     "grok/_grok-step1-master-prompt.txt.adoc"
     "grok/_grok-step2-project-context.txt.adoc"
-    "grok/_grok-step3-roadmap.txt.adoc"
-    "grok/_grok-step4-backlog-checklist.txt.adoc"
+    # "grok/_grok-step3-roadmap.txt.adoc"
+    # "grok/_grok-step4-backlog-checklist.txt.adoc"
 )
 
 # Function to display progress messages with consistent formatting
