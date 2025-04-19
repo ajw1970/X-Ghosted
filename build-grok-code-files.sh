@@ -21,6 +21,6 @@ node grokify.js build-xGhosted.js src/*.js src/*/*.js src/ui/*.css src/ui/*.js* 
 }
 
 # Replace large file with smaller chunks
-split -l 2000 grok/3-xGhosted.code.txt -d --additional-suffix=.txt grok/3-xGhosted.code-part-
+split -l 1500 grok/3-xGhosted.code.txt -d --additional-suffix=.txt grok/3-xGhosted.code-part-
 rm grok/3-xGhosted.code.txt
 
