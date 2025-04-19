@@ -133,6 +133,9 @@
           xGhosted.handleStopPolling();
         }
       });
+      document.addEventListener('xghosted:request-post-check', ({ detail: { href, post } }) => {
+        xGhosted.userRequestedPostCheck(href, post);
+      });
     } catch (error) {
       log(`Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`);
     }

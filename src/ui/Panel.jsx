@@ -364,7 +364,14 @@ function Panel({
                   analysis.quality.name === 'Potential Problem'
                     ? window.preact.h('span', {
                       className: 'status-eyeball',
-                      onClick: () => onEyeballClick(href),
+                      onClick: () => {
+                        const post = document.querySelector(`[data-xghosted-id="${href}"]`);
+                        document.dispatchEvent(
+                          new CustomEvent('xghosted:request-post-check', {
+                            detail: { href, post }
+                          })
+                        );
+                      },
                       'aria-label': 'Check post details',
                     }, '👀')
                     : window.preact.h('span', {

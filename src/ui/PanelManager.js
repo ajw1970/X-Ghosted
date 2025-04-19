@@ -389,12 +389,6 @@ window.PanelManager.prototype.renderPanel = function () {
       xGhosted: this.xGhosted,
       currentMode: this.state.themeMode,
       toggleThemeMode: (newMode) => this.handleModeChange(newMode),
-      onEyeballClick: (href) => {
-        const post = this.document.querySelector(
-          `[data-xghosted-id="${href}"]`
-        );
-        this.xGhosted.userRequestedPostCheck(href, post);
-      },
       onCopyLinks: () => this.copyLinks(),
       setPanelPosition: (position) => this.setPanelPosition(position),
       startDrag: (e) => this.startDrag(e),

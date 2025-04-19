@@ -1819,7 +1819,19 @@
                                 'span',
                                 {
                                   className: 'status-eyeball',
-                                  onClick: () => onEyeballClick(href),
+                                  onClick: () => {
+                                    const post = document.querySelector(
+                                      `[data-xghosted-id="${href}"]`
+                                    );
+                                    document.dispatchEvent(
+                                      new CustomEvent(
+                                        'xghosted:request-post-check',
+                                        {
+                                          detail: { href, post },
+                                        }
+                                      )
+                                    );
+                                  },
                                   'aria-label': 'Check post details',
                                 },
                                 '\u{1F440}'
@@ -2299,12 +2311,6 @@
           xGhosted: this.xGhosted,
           currentMode: this.state.themeMode,
           toggleThemeMode: (newMode) => this.handleModeChange(newMode),
-          onEyeballClick: (href) => {
-            const post = this.document.querySelector(
-              `[data-xghosted-id="${href}"]`
-            );
-            this.xGhosted.userRequestedPostCheck(href, post);
-          },
           onCopyLinks: () => this.copyLinks(),
           setPanelPosition: (position) => this.setPanelPosition(position),
           startDrag: (e) => this.startDrag(e),
@@ -3011,6 +3017,12 @@
             } else {
               xGhosted.handleStopPolling();
             }
+          }
+        );
+        document.addEventListener(
+          'xghosted:request-post-check',
+          ({ detail: { href, post } }) => {
+            xGhosted.userRequestedPostCheck(href, post);
           }
         );
       } catch (error) {
