@@ -391,20 +391,27 @@ XGhosted.prototype.init = function () {
   const startTime = performance.now();
   if (this.document.body) {
     const themeMode = this.getThemeMode();
-    this.document.dispatchEvent(new CustomEvent('xghosted:theme-detected', {
-      detail: { themeMode }
-    }));
+    this.document.dispatchEvent(
+      new CustomEvent('xghosted:theme-detected', {
+        detail: { themeMode },
+      })
+    );
   } else {
     this.log('Document body not available for theme detection');
   }
-  this.document.dispatchEvent(new CustomEvent('xghosted:init', {
-    detail: {
-      config: {
-        pollInterval: this.timing.pollInterval,
-        scrollInterval: this.timing.scrollInterval
-      }
-    }
-  }));
+  this.document.dispatchEvent(
+    new CustomEvent('xghosted:init', {
+      detail: {
+        config: {
+          pollInterval: this.timing.pollInterval,
+          scrollInterval: this.timing.scrollInterval,
+        },
+      },
+    })
+  );
+  this.emit('xghosted:state-updated', { isRateLimited: this.state.isRateLimited });
+  this.emit('xghosted:polling-state-updated', { isPollingEnabled: this.state.isPollingEnabled });
+  this.emit('xghosted:auto-scrolling-toggled', { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled });
   const styleSheet = this.document.createElement('style');
   styleSheet.textContent = `
     .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
@@ -413,7 +420,7 @@ XGhosted.prototype.init = function () {
     .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
     .xghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
     .xghosted-eyeball::after {
-      content: '👀';
+      content: '\u{1F440}';
       color: rgb(29, 155, 240);
       padding: 8px;
       cursor: pointer;
@@ -421,31 +428,11 @@ XGhosted.prototype.init = function () {
     }
   `;
   this.document.head.appendChild(styleSheet);
-  this.document.addEventListener('click', (e) => {
-    const eyeball = e.target.closest('.xghosted-eyeball') ||
-      (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
-    if (eyeball) {
-      e.preventDefault();
-      e.stopPropagation();
-      this.log('Eyeball clicked! Digging in...');
-      const clickedPost = eyeball.closest('div[data-xghosted-id]');
-      const href = clickedPost?.getAttribute('data-xghosted-id');
-      if (!href) {
-        this.log('No href found for clicked eyeball');
-        return;
-      }
-      this.log(`Processing eyeball click for: ${href}`);
-      if (this.state.isRateLimited) {
-        this.log(`Eyeball click skipped for ${href} due to rate limit`);
-        return;
-      }
-      this.userRequestedPostCheck(href, clickedPost);
-    }
-  }, { capture: true });
-
-  // Delay polling until DOM is ready
   const checkDomInterval = setInterval(() => {
-    if (this.document.body && this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').length > 0) {
+    if (
+      this.document.body &&
+      this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').length > 0
+    ) {
       clearInterval(checkDomInterval);
       const waitTime = performance.now() - startTime;
       this.timingManager?.setInitialWaitTime(waitTime);
@@ -453,8 +440,6 @@ XGhosted.prototype.init = function () {
       this.startAutoScrolling();
     }
   }, 500);
-
-  // Fallback timeout after 5000ms
   setTimeout(() => {
     if (checkDomInterval) {
       clearInterval(checkDomInterval);

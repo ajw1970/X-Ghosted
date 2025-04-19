@@ -1279,6 +1279,15 @@
           },
         })
       );
+      this.emit('xghosted:state-updated', {
+        isRateLimited: this.state.isRateLimited,
+      });
+      this.emit('xghosted:polling-state-updated', {
+        isPollingEnabled: this.state.isPollingEnabled,
+      });
+      this.emit('xghosted:auto-scrolling-toggled', {
+        isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
+      });
       const styleSheet = this.document.createElement('style');
       styleSheet.textContent = `
     .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
@@ -1295,32 +1304,6 @@
     }
   `;
       this.document.head.appendChild(styleSheet);
-      this.document.addEventListener(
-        'click',
-        (e) => {
-          const eyeball =
-            e.target.closest('.xghosted-eyeball') ||
-            (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
-          if (eyeball) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.log('Eyeball clicked! Digging in...');
-            const clickedPost = eyeball.closest('div[data-xghosted-id]');
-            const href = clickedPost?.getAttribute('data-xghosted-id');
-            if (!href) {
-              this.log('No href found for clicked eyeball');
-              return;
-            }
-            this.log(`Processing eyeball click for: ${href}`);
-            if (this.state.isRateLimited) {
-              this.log(`Eyeball click skipped for ${href} due to rate limit`);
-              return;
-            }
-            this.userRequestedPostCheck(href, clickedPost);
-          }
-        },
-        { capture: true }
-      );
       const checkDomInterval = setInterval(() => {
         if (
           this.document.body &&
@@ -1423,19 +1406,16 @@
       state,
       config,
       currentMode,
-      xGhosted,
+      postsManager,
       toggleThemeMode,
-      onStartPolling,
-      onStopPolling,
-      onEyeballClick,
       onCopyLinks,
       startDrag,
     }) {
       const flagged = window.preactHooks.useMemo(
-        () => xGhosted.postsManager.getProblemPosts(),
-        [xGhosted.postsManager.getAllPosts()]
+        () => postsManager.getProblemPosts(),
+        [postsManager.getAllPosts()]
       );
-      const totalPosts = xGhosted.postsManager.getAllPosts().length;
+      const totalPosts = postsManager.getAllPosts().length;
       const [isVisible, setIsVisible] = window.preactHooks.useState(
         state.isPanelVisible
       );
@@ -1467,7 +1447,11 @@
       const toggleVisibility = () => {
         const newVisibility = !isVisible;
         setIsVisible(newVisibility);
-        xGhosted.togglePanelVisibility(newVisibility);
+        document.dispatchEvent(
+          new CustomEvent('xghosted:toggle-panel-visibility', {
+            detail: { isPanelVisible: newVisibility },
+          })
+        );
       };
       const themeOptions = ['dark', 'dim', 'light'].filter(
         (option) => option !== currentMode
@@ -1846,7 +1830,7 @@
                             window.preact.h(
                               'a',
                               {
-                                href: `${xGhosted.postsManager.linkPrefix}${href}`,
+                                href: `${postsManager.linkPrefix}${href}`,
                                 target: '_blank',
                                 rel: 'noopener noreferrer',
                                 'aria-label': `Open post ${href} in new tab`,
@@ -2003,21 +1987,18 @@
     window.Modal = Modal;
     window.PanelManager = function (
       doc,
-      xGhostedInstance,
       themeMode = 'light',
       postsManager,
       storage,
       log
     ) {
       this.document = doc;
-      this.xGhosted = xGhostedInstance;
       this.postsManager = postsManager;
       this.storage = storage || { get: () => {}, set: () => {} };
       this.log = log;
       const validThemes = ['light', 'dim', 'dark'];
       this.state = {
         panelPosition: { right: '10px', top: '60px' },
-        instance: xGhostedInstance,
         isPanelVisible: true,
         isRateLimited: false,
         isManualCheckEnabled: false,
@@ -2119,10 +2100,6 @@
         this.state.hasSeenSplash = true;
         this.saveState();
       }
-      this.state.isRateLimited = this.xGhosted.state.isRateLimited;
-      this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
-      this.state.isAutoScrollingEnabled =
-        this.xGhosted.state.isAutoScrollingEnabled;
       this.uiElements.panelContainer.style.right =
         this.state.panelPosition.right;
       this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
@@ -2308,7 +2285,7 @@
         window.preact.h(window.Panel, {
           state: this.state,
           config: this.uiElements.config,
-          xGhosted: this.xGhosted,
+          postsManager: this.postsManager,
           currentMode: this.state.themeMode,
           toggleThemeMode: (newMode) => this.handleModeChange(newMode),
           onCopyLinks: () => this.copyLinks(),
@@ -2973,7 +2950,6 @@
       try {
         const panelManager = new window.PanelManager(
           document,
-          xGhosted,
           themeMode || 'light',
           postsManager,
           { get: GM_getValue, set: GM_setValue },
@@ -2981,7 +2957,6 @@
         );
         log('GUI Panel initialized successfully');
 
-        // Wire UI events to handlers
         document.addEventListener(
           'xghosted:toggle-panel-visibility',
           ({ detail: { isPanelVisible } }) => {
@@ -3024,6 +2999,38 @@
           ({ detail: { href, post } }) => {
             xGhosted.userRequestedPostCheck(href, post);
           }
+        );
+        document.addEventListener(
+          'click',
+          (e) => {
+            const eyeball =
+              e.target.closest('.xghosted-eyeball') ||
+              (e.target.classList.contains('xghosted-eyeball')
+                ? e.target
+                : null);
+            if (eyeball) {
+              e.preventDefault();
+              e.stopPropagation();
+              log('Eyeball clicked! Digging in...');
+              const clickedPost = eyeball.closest('div[data-xghosted-id]');
+              const href = clickedPost?.getAttribute('data-xghosted-id');
+              if (!href) {
+                log('No href found for clicked eyeball');
+                return;
+              }
+              log(`Processing eyeball click for: ${href}`);
+              if (xGhosted.state.isRateLimited) {
+                log(`Eyeball click skipped for ${href} due to rate limit`);
+                return;
+              }
+              document.dispatchEvent(
+                new CustomEvent('xghosted:request-post-check', {
+                  detail: { href, post: clickedPost },
+                })
+              );
+            }
+          },
+          { capture: true }
         );
       } catch (error) {
         log(

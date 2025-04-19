@@ -2,19 +2,16 @@ function Panel({
   state,
   config,
   currentMode,
-  xGhosted,
+  postsManager,
   toggleThemeMode,
-  onStartPolling,
-  onStopPolling,
-  onEyeballClick,
   onCopyLinks,
   startDrag,
 }) {
   const flagged = window.preactHooks.useMemo(
-    () => xGhosted.postsManager.getProblemPosts(),
-    [xGhosted.postsManager.getAllPosts()]
+    () => postsManager.getProblemPosts(),
+    [postsManager.getAllPosts()]
   );
-  const totalPosts = xGhosted.postsManager.getAllPosts().length;
+  const totalPosts = postsManager.getAllPosts().length;
   const [isVisible, setIsVisible] = window.preactHooks.useState(state.isPanelVisible);
   const [isToolsExpanded, setIsToolsExpanded] = window.preactHooks.useState(false);
   const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
@@ -40,7 +37,11 @@ function Panel({
   const toggleVisibility = () => {
     const newVisibility = !isVisible;
     setIsVisible(newVisibility);
-    xGhosted.togglePanelVisibility(newVisibility);
+    document.dispatchEvent(
+      new CustomEvent('xghosted:toggle-panel-visibility', {
+        detail: { isPanelVisible: newVisibility }
+      })
+    );
   };
 
   const themeOptions = ['dark', 'dim', 'light'].filter((option) => option !== currentMode);
@@ -373,29 +374,29 @@ function Panel({
                         );
                       },
                       'aria-label': 'Check post details',
-                    }, '👀')
-                    : window.preact.h('span', {
-                      className: 'status-dot status-problem',
-                      'aria-label': 'Problem post',
-                    }),
-                  window.preact.h(
-                    'span',
-                    { className: 'link-item' },
-                    window.preact.h(
-                      'a',
-                      {
-                        href: `${xGhosted.postsManager.linkPrefix}${href}`,
-                        target: '_blank',
-                        rel: 'noopener noreferrer',
-                        'aria-label': `Open post ${href} in new tab`,
-                      },
-                      href
+                        }, '\u{1F440}')
+                        : window.preact.h('span', {
+                          className: 'status-dot status-problem',
+                          'aria-label': 'Problem post',
+                        }),
+                      window.preact.h(
+                        'span',
+                        { className: 'link-item' },
+                        window.preact.h(
+                          'a',
+                          {
+                            href: `${postsManager.linkPrefix}${href}`,
+                            target: '_blank',
+                            rel: 'noopener noreferrer',
+                            'aria-label': `Open post ${href} in new tab`,
+                          },
+                          href
+                        )
+                      )
                     )
-                  )
                 )
-              )
-              : window.preact.h('span', { className: 'status-label' }, 'No concerns found.')
-          )
+                : window.preact.h('span', { className: 'status-label' }, 'No concerns found.')
+            )
         )
         : window.preact.h(
           'div',

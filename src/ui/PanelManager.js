@@ -97,21 +97,18 @@ window.Modal = Modal;
 
 window.PanelManager = function (
   doc,
-  xGhostedInstance,
   themeMode = 'light',
   postsManager,
   storage,
   log
 ) {
   this.document = doc;
-  this.xGhosted = xGhostedInstance;
   this.postsManager = postsManager;
   this.storage = storage || { get: () => { }, set: () => { } };
   this.log = log;
   const validThemes = ['light', 'dim', 'dark'];
   this.state = {
     panelPosition: { right: '10px', top: '60px' },
-    instance: xGhostedInstance,
     isPanelVisible: true,
     isRateLimited: false,
     isManualCheckEnabled: false,
@@ -214,9 +211,6 @@ window.PanelManager.prototype.init = function () {
     this.state.hasSeenSplash = true;
     this.saveState();
   }
-  this.state.isRateLimited = this.xGhosted.state.isRateLimited;
-  this.state.isPollingEnabled = this.xGhosted.state.isPollingEnabled;
-  this.state.isAutoScrollingEnabled = this.xGhosted.state.isAutoScrollingEnabled;
   this.uiElements.panelContainer.style.right = this.state.panelPosition.right;
   this.uiElements.panelContainer.style.top = this.state.panelPosition.top;
   this.uiElements.panelContainer.style.left = 'auto';
@@ -386,7 +380,7 @@ window.PanelManager.prototype.renderPanel = function () {
     window.preact.h(window.Panel, {
       state: this.state,
       config: this.uiElements.config,
-      xGhosted: this.xGhosted,
+      postsManager: this.postsManager,
       currentMode: this.state.themeMode,
       toggleThemeMode: (newMode) => this.handleModeChange(newMode),
       onCopyLinks: () => this.copyLinks(),
