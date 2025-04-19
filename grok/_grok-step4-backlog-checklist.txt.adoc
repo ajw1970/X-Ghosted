@@ -73,6 +73,8 @@
 * [x] Switch to Auto Scroll instead of Auto Collapse. 
 ** [x] Stop when no more scrolling available. Separate polling timer for scrolling. Maybe use smooth scrolling too?
 ** [x] Use separate polling. 
+* [ ] Make sure we're not persisting processedPosts. 
+* [ ] Make sure we clear processedPosts when the urlFullPath changes.
 * [ ] Fix tests
 * [ ] Identify, isolate, and test critical behaviors to prevent regression
 
