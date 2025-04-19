@@ -28,21 +28,22 @@
   // Log startup with safety focus
   log('xGhosted v{{VERSION}} starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds');
 
-  // Check if Preact and Preact Hooks dependencies loaded
-  if (!window.preact || !window.preactHooks) {
-    log(
-      'xGhosted: Aborting - Failed to load dependencies. Preact: ' +
-      (window.preact ? 'loaded' : 'missing') +
-      ', Preact Hooks: ' +
-      (window.preactHooks ? 'loaded' : 'missing')
-    );
-    return;
-  }
-
-  // Check if Font Awesome loaded
-  if (typeof window.FontAwesome === 'undefined') {
-    log('xGhosted: Font Awesome failed to load, icons may not display correctly');
-  }
+  // Configuration
+  const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
+  const config = {
+    timing: {
+      debounceDelay: 500,
+      throttleDelay: 1000,
+      tabCheckThrottle: 5000,
+      exportThrottle: 5000,
+      rateLimitPause: RATE_LIMIT_PAUSE,
+      pollInterval: 1000,
+      scrollInterval: 1500
+    },
+    showSplash: true,
+    log,
+    persistProcessedPosts: false
+  };
 
   // --- Inject Shared Utilities ---
   // INJECT: Utils
@@ -56,45 +57,32 @@
   // --- Inject Styles ---
   // INJECT: Styles
 
-  // --- Initialization with Resource Limits and Rate Limiting ---
-  const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
+  // Initialize core components
   const postsManager = new window.ProcessedPostsManager({
     storage: {
       get: GM_getValue,
       set: GM_setValue
     },
     log,
-    linkPrefix: 'https://x.com'
+    linkPrefix: 'https://x.com',
+    persistProcessedPosts: config.persistProcessedPosts
   });
-  const config = {
+  config.postsManager = postsManager;
+  config.timingManager = new window.XGhostedUtils.TimingManager({
     timing: {
-      debounceDelay: 500,
-      throttleDelay: 1000,
-      tabCheckThrottle: 5000,
-      exportThrottle: 5000,
-      rateLimitPause: RATE_LIMIT_PAUSE,
       pollInterval: 1000,
       scrollInterval: 1500
     },
-    showSplash: true,
     log,
-    postsManager,
-    timingManager: new window.XGhostedUtils.TimingManager({
-      timing: {
-        pollInterval: 1000,
-        scrollInterval: 1500
-      },
-      log,
-      storage: { get: GM_getValue, set: GM_setValue }
-    })
-  };
+    storage: { get: GM_getValue, set: GM_setValue }
+  });
   const xGhosted = new window.XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
 
   let splashPanel = null;
   // SplashPanel instantiation handled by PanelManager.js based on hasSeenSplash
 
-  // Wait for theme detection to initialize PanelManager
+  // Initialize UI panel after theme detection
   document.addEventListener('xghosted:theme-detected', ({ detail: { themeMode } }) => {
     try {
       const panelManager = new window.PanelManager(
@@ -175,11 +163,14 @@
         }
       }, { capture: true });
     } catch (error) {
-      log(
-        `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`
-      );
+      log(`Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`);
     }
   }, { once: true });
+
+  // Log Font Awesome status
+  if (typeof window.FontAwesome === 'undefined') {
+    log('xGhosted: Font Awesome failed to load, icons may not display correctly');
+  }
 
   xGhosted.init();
 })();

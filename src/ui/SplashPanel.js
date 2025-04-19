@@ -39,7 +39,7 @@ function SplashPanel(doc, logger, version) {
 
   this.render = function (config) {
       this.container.innerHTML = `
-          <h2 style="margin: 0 0 10px 0; font-size: 24px; color: #333; display: block;">Welcome to xGhosted!</h2>
+          <h2 style="margin: 0 0 10px 0; font-size: 24px; color: #333; display: block;">xGhosted: 𝕏 Post Analyzer!</h2>
           <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Tampermonkey Version: ${version}</p>
           ${this.userProfileName ? `<p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Profile: ${this.userProfileName}</p>` : ''}
           <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Poll Interval: ${config.pollInterval} ms</p>

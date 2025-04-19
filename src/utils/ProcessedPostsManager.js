@@ -1,15 +1,22 @@
 import { postQuality } from './postQuality.js';
 
 class ProcessedPostsManager {
-  constructor({ storage, log, linkPrefix }) {
+  constructor({ storage, log, linkPrefix, persistProcessedPosts = false }) {
     this.storage = storage || { get: () => { }, set: () => { } };
     this.log = log || console.log.bind(console);
     this.linkPrefix = linkPrefix || '';
+    this.persistProcessedPosts = persistProcessedPosts;
     this.posts = {};
-    this.load();
+    if (this.persistProcessedPosts) {
+      this.load();
+    }
   }
 
   load() {
+    if (!this.persistProcessedPosts) {
+      this.log('Persistence disabled, skipping load');
+      return;
+    }
     const state = this.storage.get('xGhostedState', {});
     this.posts = {};
     const savedPosts = state.processedPosts || {};
@@ -23,6 +30,10 @@ class ProcessedPostsManager {
   }
 
   save() {
+    if (!this.persistProcessedPosts) {
+      this.log('Persistence disabled, skipping save');
+      return;
+    }
     const state = this.storage.get('xGhostedState', {});
     state.processedPosts = {};
     for (const [id, { analysis, checked }] of Object.entries(this.posts)) {
@@ -46,7 +57,9 @@ class ProcessedPostsManager {
       checked: data.checked || false
     };
     this.log(`Registered post: ${id} with quality: ${this.posts[id].analysis.quality.name}`, this.posts[id].analysis);
-    this.save();
+    if (this.persistProcessedPosts) {
+      this.save();
+    }
     return true;
   }
 
@@ -72,7 +85,9 @@ class ProcessedPostsManager {
 
   clearPosts() {
     this.posts = {};
-    this.save();
+    if (this.persistProcessedPosts) {
+      this.save();
+    }
     this.log('Cleared all processed posts');
   }
 
@@ -117,7 +132,9 @@ class ProcessedPostsManager {
       };
       importedCount++;
     });
-    this.save();
+    if (this.persistProcessedPosts) {
+      this.save();
+    }
     this.log(`Imported ${importedCount} posts from CSV`);
     return importedCount;
   }

@@ -30,23 +30,22 @@
     'xGhosted v0.6.1 starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds'
   );
 
-  // Check if Preact and Preact Hooks dependencies loaded
-  if (!window.preact || !window.preactHooks) {
-    log(
-      'xGhosted: Aborting - Failed to load dependencies. Preact: ' +
-        (window.preact ? 'loaded' : 'missing') +
-        ', Preact Hooks: ' +
-        (window.preactHooks ? 'loaded' : 'missing')
-    );
-    return;
-  }
-
-  // Check if Font Awesome loaded
-  if (typeof window.FontAwesome === 'undefined') {
-    log(
-      'xGhosted: Font Awesome failed to load, icons may not display correctly'
-    );
-  }
+  // Configuration
+  const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
+  const config = {
+    timing: {
+      debounceDelay: 500,
+      throttleDelay: 1000,
+      tabCheckThrottle: 5000,
+      exportThrottle: 5000,
+      rateLimitPause: RATE_LIMIT_PAUSE,
+      pollInterval: 1000,
+      scrollInterval: 1500,
+    },
+    showSplash: true,
+    log,
+    persistProcessedPosts: false,
+  };
 
   // --- Inject Shared Utilities ---
   window.XGhostedUtils = (function () {
@@ -1379,7 +1378,7 @@
       };
       this.render = function (config) {
         this.container.innerHTML = `
-          <h2 style="margin: 0 0 10px 0; font-size: 24px; color: #333; display: block;">Welcome to xGhosted!</h2>
+          <h2 style="margin: 0 0 10px 0; font-size: 24px; color: #333; display: block;">xGhosted: \u{1D54F} Post Analyzer!</h2>
           <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Tampermonkey Version: ${version}</p>
           ${this.userProfileName ? `<p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Profile: ${this.userProfileName}</p>` : ''}
           <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Poll Interval: ${config.pollInterval} ms</p>
@@ -2459,14 +2458,21 @@
 
     // src/utils/ProcessedPostsManager.js
     var ProcessedPostsManager = class {
-      constructor({ storage, log, linkPrefix }) {
+      constructor({ storage, log, linkPrefix, persistProcessedPosts = false }) {
         this.storage = storage || { get: () => {}, set: () => {} };
         this.log = log || console.log.bind(console);
         this.linkPrefix = linkPrefix || '';
+        this.persistProcessedPosts = persistProcessedPosts;
         this.posts = {};
-        this.load();
+        if (this.persistProcessedPosts) {
+          this.load();
+        }
       }
       load() {
+        if (!this.persistProcessedPosts) {
+          this.log('Persistence disabled, skipping load');
+          return;
+        }
         const state = this.storage.get('xGhostedState', {});
         this.posts = {};
         const savedPosts = state.processedPosts || {};
@@ -2479,6 +2485,10 @@
         this.log(`Loaded ${Object.keys(this.posts).length} posts from storage`);
       }
       save() {
+        if (!this.persistProcessedPosts) {
+          this.log('Persistence disabled, skipping save');
+          return;
+        }
         const state = this.storage.get('xGhostedState', {});
         state.processedPosts = {};
         for (const [id, { analysis, checked }] of Object.entries(this.posts)) {
@@ -2503,7 +2513,9 @@
           `Registered post: ${id} with quality: ${this.posts[id].analysis.quality.name}`,
           this.posts[id].analysis
         );
-        this.save();
+        if (this.persistProcessedPosts) {
+          this.save();
+        }
         return true;
       }
       getAllPosts() {
@@ -2532,7 +2544,9 @@
       }
       clearPosts() {
         this.posts = {};
-        this.save();
+        if (this.persistProcessedPosts) {
+          this.save();
+        }
         this.log('Cleared all processed posts');
       }
       importPosts(csvText) {
@@ -2576,7 +2590,9 @@
           };
           importedCount++;
         });
-        this.save();
+        if (this.persistProcessedPosts) {
+          this.save();
+        }
         this.log(`Imported ${importedCount} posts from CSV`);
         return importedCount;
       }
@@ -2905,8 +2921,7 @@
   gap: 12px;
 }`;
 
-  // --- Initialization with Resource Limits and Rate Limiting ---
-  const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
+  // Initialize core components
   const postsManager = new window.ProcessedPostsManager({
     storage: {
       get: GM_getValue,
@@ -2914,36 +2929,24 @@
     },
     log,
     linkPrefix: 'https://x.com',
+    persistProcessedPosts: config.persistProcessedPosts,
   });
-  const config = {
+  config.postsManager = postsManager;
+  config.timingManager = new window.XGhostedUtils.TimingManager({
     timing: {
-      debounceDelay: 500,
-      throttleDelay: 1000,
-      tabCheckThrottle: 5000,
-      exportThrottle: 5000,
-      rateLimitPause: RATE_LIMIT_PAUSE,
       pollInterval: 1000,
       scrollInterval: 1500,
     },
-    showSplash: true,
     log,
-    postsManager,
-    timingManager: new window.XGhostedUtils.TimingManager({
-      timing: {
-        pollInterval: 1000,
-        scrollInterval: 1500,
-      },
-      log,
-      storage: { get: GM_getValue, set: GM_setValue },
-    }),
-  };
+    storage: { get: GM_getValue, set: GM_setValue },
+  });
   const xGhosted = new window.XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
 
   let splashPanel = null;
   // SplashPanel instantiation handled by PanelManager.js based on hasSeenSplash
 
-  // Wait for theme detection to initialize PanelManager
+  // Initialize UI panel after theme detection
   document.addEventListener(
     'xghosted:theme-detected',
     ({ detail: { themeMode } }) => {
@@ -3040,6 +3043,13 @@
     },
     { once: true }
   );
+
+  // Log Font Awesome status
+  if (typeof window.FontAwesome === 'undefined') {
+    log(
+      'xGhosted: Font Awesome failed to load, icons may not display correctly'
+    );
+  }
 
   xGhosted.init();
 })();

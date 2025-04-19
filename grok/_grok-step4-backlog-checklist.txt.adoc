@@ -53,9 +53,11 @@
 * [x] Add Identified Posts (count) to header too.
 * [x] Add a specific drag handle to avoid accidentally moving the panel.
 ** Implemented on April 18, 2025, with a right-justified drag handle in the list header row using `fa-up-down-left-right` icon.
-* [ ] Add a toggle to enable/disable dragging (pin/unpin panel location).
+* [x] Add a toggle to enable/disable dragging (pin/unpin panel location).
 ** Planned as part of Task 8 in the roadmap, to be implemented in the Tools panel with `isDraggingEnabled` state.
 * [ ] Add button for timing metrics CSV export.
+* [ ] Make Splash panel draggable
+* [ ] Replace new windows post check with Puppeteer or something similar to avoid the need for a new window.
 * [x] Have splash screen only open once for the user. Allow a way to show it again later from Tools.
 ** Implemented on April 18, 2025, with `hasSeenSplash` in `PanelManager.js` and "About" button in `Panel.jsx`.
 * [ ] Decouple xGhosted from ProcessedPostsManager but be careful.
@@ -73,7 +75,7 @@
 * [x] Switch to Auto Scroll instead of Auto Collapse. 
 ** [x] Stop when no more scrolling available. Separate polling timer for scrolling. Maybe use smooth scrolling too?
 ** [x] Use separate polling. 
-* [ ] Make sure we're not persisting processedPosts. 
+* [x] Make sure we're not persisting processedPosts. 
 * [ ] Make sure we clear processedPosts when the urlFullPath changes.
 * [ ] Fix tests
 * [ ] Identify, isolate, and test critical behaviors to prevent regression
