@@ -49,302 +49,6 @@
 
   // --- Inject Shared Utilities ---
   window.XGhostedUtils = (function () {
-    // src/utils/postQuality.js
-    var postQuality = Object.freeze({
-      UNDEFINED: Object.freeze({ name: 'Undefined', value: 0 }),
-      PROBLEM: Object.freeze({ name: 'Problem', value: 1 }),
-      POTENTIAL_PROBLEM: Object.freeze({ name: 'Potential Problem', value: 2 }),
-      GOOD: Object.freeze({ name: 'Good', value: 3 }),
-    });
-
-    // src/dom/detectTheme.js
-    function detectTheme(doc) {
-      const dataTheme = doc.body.getAttribute('data-theme');
-      if (dataTheme) {
-        if (dataTheme.includes('lights-out') || dataTheme.includes('dark')) {
-          return 'dark';
-        } else if (dataTheme.includes('dim')) {
-          return 'dim';
-        } else if (
-          dataTheme.includes('light') ||
-          dataTheme.includes('default')
-        ) {
-          return 'light';
-        }
-      }
-      const bodyClasses = doc.body.classList;
-      if (
-        bodyClasses.contains('dark') ||
-        bodyClasses.contains('theme-dark') ||
-        bodyClasses.contains('theme-lights-out')
-      ) {
-        return 'dark';
-      } else if (
-        bodyClasses.contains('dim') ||
-        bodyClasses.contains('theme-dim')
-      ) {
-        return 'dim';
-      } else if (
-        bodyClasses.contains('light') ||
-        bodyClasses.contains('theme-light')
-      ) {
-        return 'light';
-      }
-      const bodyBgColor = doc.defaultView.getComputedStyle(
-        doc.body
-      ).backgroundColor;
-      if (bodyBgColor === 'rgb(0, 0, 0)') {
-        return 'dark';
-      } else if (bodyBgColor === 'rgb(21, 32, 43)') {
-        return 'dim';
-      } else if (bodyBgColor === 'rgb(255, 255, 255)') {
-        return 'light';
-      }
-      return 'light';
-    }
-
-    // src/utils/postHasProblemCommunity.js
-    function postHasProblemCommunity(article) {
-      const communityIds = ['1889908654133911912'];
-      const aTags = Array.from(article.querySelectorAll('a'));
-      for (const aTag of aTags) {
-        for (const id of communityIds) {
-          if (aTag.href.endsWith(`/i/communities/${id}`)) {
-            return id;
-          }
-        }
-      }
-      return false;
-    }
-
-    // src/utils/postHasProblemSystemNotice.js
-    function postHasProblemSystemNotice(article) {
-      const targetNotices = [
-        'unavailable',
-        'content warning',
-        'this post is unavailable',
-        'this post violated the x rules',
-        'this post was deleted by the post author',
-        'this post is from an account that no longer exists',
-        "this post may violate x's rules against hateful conduct",
-        'this media has been disabled in response to a report by the copyright owner',
-        "you're unable to view this post",
-      ];
-      function normalizedTextContent(textContent) {
-        return textContent.replace(/[‘’]/g, "'").toLowerCase();
-      }
-      const spans = Array.from(article.querySelectorAll('span'));
-      for (const span of spans) {
-        const textContent = normalizedTextContent(span.textContent);
-        for (const notice of targetNotices) {
-          if (textContent.startsWith(notice)) {
-            return notice;
-          }
-        }
-      }
-      return false;
-    }
-
-    // src/utils/findReplyingToWithDepth.js
-    function findReplyingToWithDepth(article) {
-      function getInnerHTMLWithoutAttributes(element) {
-        const clone = element.cloneNode(true);
-        clone.querySelectorAll('*').forEach((el) => {
-          while (el.attributes.length > 0) {
-            el.removeAttribute(el.attributes[0].name);
-          }
-        });
-        return clone.innerHTML;
-      }
-      function findDivs(element, depth) {
-        if (element.tagName === 'DIV') {
-          if (element.innerHTML.startsWith('Replying to')) {
-            result.push({
-              depth,
-              innerHTML: getInnerHTMLWithoutAttributes(element).replace(
-                /<\/?(div|span)>/gi,
-                ''
-              ),
-            });
-          }
-        }
-        Array.from(element.children).forEach((child) =>
-          findDivs(child, depth + 1)
-        );
-      }
-      const result = [];
-      findDivs(article, 0);
-      return result;
-    }
-
-    // src/utils/getRelativeLinkToPost.js
-    function getRelativeLinkToPost(element) {
-      const link = element.querySelector('a:has(time)')?.getAttribute('href');
-      return link || false;
-    }
-
-    // src/utils/identifyPost.js
-    function identifyPost(post, checkReplies = true, logger = console.log) {
-      const article = post.querySelector('article');
-      if (!article) {
-        return {
-          quality: postQuality.UNDEFINED,
-          reason: 'No article found',
-          link: false,
-        };
-      }
-      const noticeFound = postHasProblemSystemNotice(article);
-      if (noticeFound) {
-        return {
-          quality: postQuality.PROBLEM,
-          reason: `Found notice: ${noticeFound}`,
-          link: getRelativeLinkToPost(post),
-        };
-      }
-      const communityFound = postHasProblemCommunity(article);
-      if (communityFound) {
-        return {
-          quality: postQuality.PROBLEM,
-          reason: `Found community: ${communityFound}`,
-          link: getRelativeLinkToPost(post),
-        };
-      }
-      if (checkReplies) {
-        const replyingToDepths = findReplyingToWithDepth(article);
-        if (Array.isArray(replyingToDepths) && replyingToDepths.length > 0) {
-          const replyingTo = replyingToDepths.find(
-            (object) => object.depth < 10
-          );
-          if (replyingTo) {
-            return {
-              quality: postQuality.POTENTIAL_PROBLEM,
-              reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
-              link: getRelativeLinkToPost(post),
-            };
-          } else {
-          }
-        } else {
-        }
-      }
-      const link = getRelativeLinkToPost(post);
-      if (link) {
-        return {
-          quality: postQuality.GOOD,
-          reason: 'Looks good',
-          link,
-        };
-      }
-      return {
-        quality: postQuality.UNDEFINED,
-        reason: 'Nothing to measure',
-        link: false,
-      };
-    }
-
-    // src/utils/debounce.js
-    function debounce(func, wait) {
-      let timeout;
-      return (...args) => {
-        clearTimeout(timeout);
-        return new Promise((resolve, reject) => {
-          timeout = setTimeout(() => {
-            try {
-              const result = func(...args);
-              if (result && typeof result.then === 'function') {
-                result.then(resolve).catch(reject);
-              } else {
-                resolve(result);
-              }
-            } catch (error) {
-              reject(error);
-            }
-          }, wait);
-        });
-      };
-    }
-
-    // src/dom/findPostContainer.js
-    function findPostContainer(doc, log = () => {}) {
-      const potentialPosts = doc.querySelectorAll(
-        'div[data-testid="cellInnerDiv"]'
-      );
-      if (!potentialPosts.length) {
-        return null;
-      }
-      let firstPost = null;
-      for (const post of potentialPosts) {
-        const closestAriaLabel = post.closest('div[aria-label]');
-        if (
-          closestAriaLabel &&
-          closestAriaLabel.getAttribute('aria-label') === 'Timeline: Messages'
-        ) {
-          log('Skipping post in Messages timeline');
-          continue;
-        }
-        firstPost = post;
-        break;
-      }
-      if (!firstPost) {
-        log('No valid posts found outside Messages timeline');
-        return null;
-      }
-      let currentElement = firstPost.parentElement;
-      while (currentElement) {
-        if (currentElement.hasAttribute('aria-label')) {
-          currentElement.setAttribute('data-xghosted', 'posts-container');
-          const ariaLabel = currentElement.getAttribute('aria-label');
-          log(`Posts container identified with aria-label: "${ariaLabel}"`);
-          return currentElement;
-        }
-        currentElement = currentElement.parentElement;
-      }
-      log('No parent container found with aria-label');
-      return null;
-    }
-
-    // src/dom/parseUrl.js
-    function parseUrl(url) {
-      const reservedPaths = [
-        'i',
-        'notifications',
-        'home',
-        'explore',
-        'messages',
-        'compose',
-        'settings',
-      ];
-      const regex = /^https:\/\/x\.com\/([^/]+)(?:\/(with_replies))?/;
-      const match = url.match(regex);
-      if (match && !reservedPaths.includes(match[1])) {
-        return {
-          isWithReplies: !!match[2],
-          userProfileName: match[1],
-        };
-      }
-      return {
-        isWithReplies: false,
-        userProfileName: null,
-      };
-    }
-
-    // src/utils/clipboardUtils.js
-    function copyTextToClipboard(text, log) {
-      return navigator.clipboard
-        .writeText(text)
-        .then(() => log('Text copied to clipboard'))
-        .catch((err) => log(`Clipboard copy failed: ${err}`));
-    }
-    function exportToCSV(data, filename, doc, log) {
-      const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = doc.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-      log(`Exported CSV: ${filename}`);
-    }
-
     // src/utils/TimingManager.js
     var TimingManager = class {
       constructor({ timing, log, storage }) {
@@ -513,25 +217,47 @@
         return this.timing;
       }
     };
-    return {
-      TimingManager,
-      copyTextToClipboard,
-      debounce,
-      detectTheme,
-      exportToCSV,
-      findPostContainer,
-      findReplyingToWithDepth,
-      getRelativeLinkToPost,
-      identifyPost,
-      parseUrl,
-      postHasProblemCommunity,
-      postHasProblemSystemNotice,
-      postQuality,
-    };
-  })();
 
-  // --- Inject Modules ---
-  window.XGhosted = (function () {
+    // src/utils/clipboardUtils.js
+    function copyTextToClipboard(text, log) {
+      return navigator.clipboard
+        .writeText(text)
+        .then(() => log('Text copied to clipboard'))
+        .catch((err) => log(`Clipboard copy failed: ${err}`));
+    }
+    function exportToCSV(data, filename, doc, log) {
+      const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = doc.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      log(`Exported CSV: ${filename}`);
+    }
+
+    // src/utils/debounce.js
+    function debounce(func, wait) {
+      let timeout;
+      return (...args) => {
+        clearTimeout(timeout);
+        return new Promise((resolve, reject) => {
+          timeout = setTimeout(() => {
+            try {
+              const result = func(...args);
+              if (result && typeof result.then === 'function') {
+                result.then(resolve).catch(reject);
+              } else {
+                resolve(result);
+              }
+            } catch (error) {
+              reject(error);
+            }
+          }, wait);
+        });
+      };
+    }
+
     // src/utils/postQuality.js
     var postQuality = Object.freeze({
       UNDEFINED: Object.freeze({ name: 'Undefined', value: 0 }),
@@ -540,50 +266,92 @@
       GOOD: Object.freeze({ name: 'Good', value: 3 }),
     });
 
-    // src/dom/detectTheme.js
-    function detectTheme(doc) {
-      const dataTheme = doc.body.getAttribute('data-theme');
-      if (dataTheme) {
-        if (dataTheme.includes('lights-out') || dataTheme.includes('dark')) {
-          return 'dark';
-        } else if (dataTheme.includes('dim')) {
-          return 'dim';
-        } else if (
-          dataTheme.includes('light') ||
-          dataTheme.includes('default')
-        ) {
-          return 'light';
+    // src/utils/summarizeRatedPosts.js
+    function summarizeRatedPosts(analyses) {
+      const summary = {
+        [postQuality.UNDEFINED.name]: 0,
+        [postQuality.PROBLEM.name]: 0,
+        [postQuality.POTENTIAL_PROBLEM.name]: 0,
+        [postQuality.GOOD.name]: 0,
+      };
+      if (!Array.isArray(analyses)) {
+        return summary;
+      }
+      analyses.forEach((analysis) => {
+        if (analysis && analysis.quality && analysis.quality.name) {
+          summary[analysis.quality.name]++;
         }
+      });
+      return summary;
+    }
+
+    // src/utils/describeSampleAnalyses.js
+    function describeSampleAnalyses(document, analyses) {
+      const totalPosts = document.querySelectorAll(
+        'div[data-testid="cellInnerDiv"]'
+      ).length;
+      const totalArticles = document.querySelectorAll(
+        'article:not(article article)'
+      ).length;
+      const totalNestedArticles =
+        document.querySelectorAll('article article').length;
+      const postQualitySummary = summarizeRatedPosts(analyses);
+      const $padding = 2;
+      const totalGood = postQualitySummary[postQuality.GOOD.name];
+      const totalPotentialProblems =
+        postQualitySummary[postQuality.POTENTIAL_PROBLEM.name];
+      const totalProblems = postQualitySummary[postQuality.PROBLEM.name];
+      const totalUndefined = postQualitySummary[postQuality.UNDEFINED.name];
+      return [
+        `Structure Summary Totals:`,
+        `  ${`${totalPosts}`.padStart($padding, ' ')} Posts`,
+        `  ${`${totalArticles}`.padStart($padding, ' ')} Articles`,
+        `  ${`${totalNestedArticles}`.padStart($padding, ' ')} Nested Articles`,
+        ``,
+        `Rated Post Quality (${analyses ? analyses.length : 0} Total):`,
+        `  ${`${totalGood}`.padStart($padding, ' ')} ${postQuality.GOOD.name}`,
+        `  ${`${totalPotentialProblems}`.padStart($padding, ' ')} ${postQuality.POTENTIAL_PROBLEM.name}`,
+        `  ${`${totalProblems}`.padStart($padding, ' ')} ${postQuality.PROBLEM.name}`,
+        `  ${`${totalUndefined}`.padStart($padding, ' ')} ${postQuality.UNDEFINED.name}`,
+      ].join('\n');
+    }
+
+    // src/utils/findReplyingToWithDepth.js
+    function findReplyingToWithDepth(article) {
+      function getInnerHTMLWithoutAttributes(element) {
+        const clone = element.cloneNode(true);
+        clone.querySelectorAll('*').forEach((el) => {
+          while (el.attributes.length > 0) {
+            el.removeAttribute(el.attributes[0].name);
+          }
+        });
+        return clone.innerHTML;
       }
-      const bodyClasses = doc.body.classList;
-      if (
-        bodyClasses.contains('dark') ||
-        bodyClasses.contains('theme-dark') ||
-        bodyClasses.contains('theme-lights-out')
-      ) {
-        return 'dark';
-      } else if (
-        bodyClasses.contains('dim') ||
-        bodyClasses.contains('theme-dim')
-      ) {
-        return 'dim';
-      } else if (
-        bodyClasses.contains('light') ||
-        bodyClasses.contains('theme-light')
-      ) {
-        return 'light';
+      function findDivs(element, depth) {
+        if (element.tagName === 'DIV') {
+          if (element.innerHTML.startsWith('Replying to')) {
+            result.push({
+              depth,
+              innerHTML: getInnerHTMLWithoutAttributes(element).replace(
+                /<\/?(div|span)>/gi,
+                ''
+              ),
+            });
+          }
+        }
+        Array.from(element.children).forEach((child) =>
+          findDivs(child, depth + 1)
+        );
       }
-      const bodyBgColor = doc.defaultView.getComputedStyle(
-        doc.body
-      ).backgroundColor;
-      if (bodyBgColor === 'rgb(0, 0, 0)') {
-        return 'dark';
-      } else if (bodyBgColor === 'rgb(21, 32, 43)') {
-        return 'dim';
-      } else if (bodyBgColor === 'rgb(255, 255, 255)') {
-        return 'light';
-      }
-      return 'light';
+      const result = [];
+      findDivs(article, 0);
+      return result;
+    }
+
+    // src/utils/getRelativeLinkToPost.js
+    function getRelativeLinkToPost(element) {
+      const link = element.querySelector('a:has(time)')?.getAttribute('href');
+      return link || false;
     }
 
     // src/utils/postHasProblemCommunity.js
@@ -626,44 +394,6 @@
         }
       }
       return false;
-    }
-
-    // src/utils/findReplyingToWithDepth.js
-    function findReplyingToWithDepth(article) {
-      function getInnerHTMLWithoutAttributes(element) {
-        const clone = element.cloneNode(true);
-        clone.querySelectorAll('*').forEach((el) => {
-          while (el.attributes.length > 0) {
-            el.removeAttribute(el.attributes[0].name);
-          }
-        });
-        return clone.innerHTML;
-      }
-      function findDivs(element, depth) {
-        if (element.tagName === 'DIV') {
-          if (element.innerHTML.startsWith('Replying to')) {
-            result.push({
-              depth,
-              innerHTML: getInnerHTMLWithoutAttributes(element).replace(
-                /<\/?(div|span)>/gi,
-                ''
-              ),
-            });
-          }
-        }
-        Array.from(element.children).forEach((child) =>
-          findDivs(child, depth + 1)
-        );
-      }
-      const result = [];
-      findDivs(article, 0);
-      return result;
-    }
-
-    // src/utils/getRelativeLinkToPost.js
-    function getRelativeLinkToPost(element) {
-      const link = element.querySelector('a:has(time)')?.getAttribute('href');
-      return link || false;
     }
 
     // src/utils/identifyPost.js
@@ -724,26 +454,64 @@
       };
     }
 
-    // src/utils/debounce.js
-    function debounce(func, wait) {
-      let timeout;
-      return (...args) => {
-        clearTimeout(timeout);
-        return new Promise((resolve, reject) => {
-          timeout = setTimeout(() => {
-            try {
-              const result = func(...args);
-              if (result && typeof result.then === 'function') {
-                result.then(resolve).catch(reject);
-              } else {
-                resolve(result);
-              }
-            } catch (error) {
-              reject(error);
-            }
-          }, wait);
-        });
-      };
+    // src/utils/identifyPosts.js
+    function identifyPosts(
+      document,
+      selector = 'div[data-testid="cellInnerDiv"]',
+      checkReplies = true
+    ) {
+      const results = [];
+      document.querySelectorAll(selector).forEach((post) => {
+        const analysis = identifyPost(post, checkReplies);
+        results.push(analysis);
+      });
+      return results;
+    }
+
+    // src/dom/detectTheme.js
+    function detectTheme(doc) {
+      const dataTheme = doc.body.getAttribute('data-theme');
+      if (dataTheme) {
+        if (dataTheme.includes('lights-out') || dataTheme.includes('dark')) {
+          return 'dark';
+        } else if (dataTheme.includes('dim')) {
+          return 'dim';
+        } else if (
+          dataTheme.includes('light') ||
+          dataTheme.includes('default')
+        ) {
+          return 'light';
+        }
+      }
+      const bodyClasses = doc.body.classList;
+      if (
+        bodyClasses.contains('dark') ||
+        bodyClasses.contains('theme-dark') ||
+        bodyClasses.contains('theme-lights-out')
+      ) {
+        return 'dark';
+      } else if (
+        bodyClasses.contains('dim') ||
+        bodyClasses.contains('theme-dim')
+      ) {
+        return 'dim';
+      } else if (
+        bodyClasses.contains('light') ||
+        bodyClasses.contains('theme-light')
+      ) {
+        return 'light';
+      }
+      const bodyBgColor = doc.defaultView.getComputedStyle(
+        doc.body
+      ).backgroundColor;
+      if (bodyBgColor === 'rgb(0, 0, 0)') {
+        return 'dark';
+      } else if (bodyBgColor === 'rgb(21, 32, 43)') {
+        return 'dim';
+      } else if (bodyBgColor === 'rgb(255, 255, 255)') {
+        return 'light';
+      }
+      return 'light';
     }
 
     // src/dom/findPostContainer.js
@@ -809,7 +577,37 @@
         userProfileName: null,
       };
     }
+    return {
+      TimingManager,
+      copyTextToClipboard,
+      debounce,
+      describeSampleAnalyses,
+      detectTheme,
+      exportToCSV,
+      findPostContainer,
+      findReplyingToWithDepth,
+      getRelativeLinkToPost,
+      identifyPost,
+      identifyPosts,
+      parseUrl,
+      postHasProblemCommunity,
+      postHasProblemSystemNotice,
+      postQuality,
+      summarizeRatedPosts,
+    };
+  })();
 
+  // --- Inject Modules ---
+  window.XGhosted = (function () {
+    const {
+      postQuality,
+      detectTheme,
+      identifyPost,
+      debounce,
+      findPostContainer,
+      getRelativeLinkToPost,
+      parseUrl,
+    } = window.XGhostedUtils;
     // src/xGhosted.js
     function XGhosted(doc, config = {}) {
       const defaultTiming = {
@@ -2448,14 +2246,7 @@
     return PanelManager;
   })();
   window.ProcessedPostsManager = (function () {
-    // src/utils/postQuality.js
-    var postQuality = Object.freeze({
-      UNDEFINED: Object.freeze({ name: 'Undefined', value: 0 }),
-      PROBLEM: Object.freeze({ name: 'Problem', value: 1 }),
-      POTENTIAL_PROBLEM: Object.freeze({ name: 'Potential Problem', value: 2 }),
-      GOOD: Object.freeze({ name: 'Good', value: 3 }),
-    });
-
+    const { postQuality } = window.XGhostedUtils;
     // src/utils/ProcessedPostsManager.js
     var ProcessedPostsManager = class {
       constructor({ storage, log, linkPrefix, persistProcessedPosts = false }) {
