@@ -1,7 +1,6 @@
 import { postQuality } from './utils/postQuality.js';
-import { detectTheme } from './dom/detectTheme';
-import { identifyPost } from './utils/identifyPost';
-import { debounce } from './utils/debounce';
+import { identifyPost } from './utils/identifyPost.js';
+import { debounce } from './utils/debounce.js';
 import { findPostContainer } from './dom/findPostContainer.js';
 import { getRelativeLinkToPost } from './utils/getRelativeLinkToPost.js';
 import { parseUrl } from './dom/parseUrl.js';
@@ -23,19 +22,17 @@ function XGhosted(doc, config = {}) {
     throw new Error('XGhosted requires a postsManager instance');
   }
   this.postsManager = config.postsManager;
-  // Prepare state values from page url
   const urlFullPath = doc.location.origin + doc.location.pathname;
   const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
-
   this.state = {
     postContainer: null,
     lastUrlFullPath: urlFullPath,
-    isWithReplies: isWithReplies,
+    isWithReplies,
     isRateLimited: false,
     isAutoScrollingEnabled: false,
     isHighlighting: false,
     isPollingEnabled: true,
-    userProfileName: userProfileName,
+    userProfileName,
     firstContainerFound: true,
   };
   this.checkPostInNewTabThrottled = debounce((href) => {
@@ -45,10 +42,8 @@ function XGhosted(doc, config = {}) {
     this.highlightPosts();
   }, this.timing.debounceDelay);
 }
-
 XGhosted.POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
 XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
-
 XGhosted.prototype.emit = function (eventName, data) {
   this.log(`Emitting event: ${eventName} with data:`, data);
   this.document.dispatchEvent(
@@ -57,7 +52,6 @@ XGhosted.prototype.emit = function (eventName, data) {
     })
   );
 };
-
 XGhosted.prototype.getUrlFullPathIfChanged = function (url) {
   const urlParts = new URL(url);
   const urlFullPath = urlParts.origin + urlParts.pathname;
@@ -68,21 +62,21 @@ XGhosted.prototype.getUrlFullPathIfChanged = function (url) {
   this.state.lastUrlFullPath = urlFullPath;
   return urlFullPath;
 };
-
 XGhosted.prototype.handleUrlChange = function (urlFullPath) {
   const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
   this.state.isWithReplies = isWithReplies;
   if (this.state.userProfileName !== userProfileName) {
     this.state.userProfileName = userProfileName;
-    this.document.dispatchEvent(new CustomEvent('xghosted:user-profile-updated', {
-      detail: { userProfileName: this.state.userProfileName }
-    }));
+    this.document.dispatchEvent(
+      new CustomEvent('xghosted:user-profile-updated', {
+        detail: { userProfileName: this.state.userProfileName },
+      })
+    );
   }
   this.postsManager.clearPosts();
   this.timingManager?.saveMetrics();
   this.state.firstContainerFound = true;
 };
-
 XGhosted.prototype.checkPostInNewTab = function (href) {
   this.log(`Checking post in new tab: ${href}`);
   const fullUrl = `${this.postsManager.linkPrefix}${href}`;
@@ -130,7 +124,6 @@ XGhosted.prototype.checkPostInNewTab = function (href) {
     }, 500);
   });
 };
-
 XGhosted.prototype.userRequestedPostCheck = function (href, post) {
   this.log(`User requested check for ${href}`);
   const cached = this.postsManager.getPost(href);
@@ -162,7 +155,7 @@ XGhosted.prototype.userRequestedPostCheck = function (href, post) {
       this.postsManager.registerPost(href, cached);
       this.document.dispatchEvent(
         new CustomEvent('xghosted:state-updated', {
-          detail: { ...this.state }
+          detail: { ...this.state },
         })
       );
       this.log(`User requested post check completed for ${href}`);
@@ -171,18 +164,16 @@ XGhosted.prototype.userRequestedPostCheck = function (href, post) {
     this.log(`Manual check skipped for ${href}: already checked`);
   }
 };
-
 XGhosted.prototype.handleStartPolling = function () {
   this.state.isPollingEnabled = true;
   this.startPolling();
   this.startAutoScrolling();
   this.document.dispatchEvent(
     new CustomEvent('xghosted:polling-state-updated', {
-      detail: { isPollingEnabled: this.state.isPollingEnabled }
+      detail: { isPollingEnabled: this.state.isPollingEnabled },
     })
   );
 };
-
 XGhosted.prototype.handleStopPolling = function () {
   this.state.isPollingEnabled = false;
   if (this.pollTimer) {
@@ -193,9 +184,13 @@ XGhosted.prototype.handleStopPolling = function () {
       wasSkipped: false,
       containerFound: false,
       containerAttempted: false,
-      pageType: this.state.isWithReplies ? 'with_replies' : this.state.userProfileName ? 'profile' : 'timeline',
+      pageType: this.state.isWithReplies
+        ? 'with_replies'
+        : this.state.userProfileName
+          ? 'profile'
+          : 'timeline',
       isPollingStarted: false,
-      isPollingStopped: true
+      isPollingStopped: true,
     });
   }
   if (this.scrollTimer) {
@@ -204,11 +199,10 @@ XGhosted.prototype.handleStopPolling = function () {
   }
   this.document.dispatchEvent(
     new CustomEvent('xghosted:polling-state-updated', {
-      detail: { isPollingEnabled: this.state.isPollingEnabled }
+      detail: { isPollingEnabled: this.state.isPollingEnabled },
     })
   );
 };
-
 XGhosted.prototype.startPolling = function () {
   if (!this.state.isPollingEnabled) {
     this.log('Polling not started: polling is disabled');
@@ -224,9 +218,13 @@ XGhosted.prototype.startPolling = function () {
         wasSkipped: true,
         containerFound: false,
         containerAttempted: false,
-        pageType: this.state.isWithReplies ? 'with_replies' : this.state.userProfileName ? 'profile' : 'timeline',
+        pageType: this.state.isWithReplies
+          ? 'with_replies'
+          : this.state.userProfileName
+            ? 'profile'
+            : 'timeline',
         isPollingStarted: false,
-        isPollingStopped: false
+        isPollingStopped: false,
       });
       return;
     }
@@ -248,7 +246,9 @@ XGhosted.prototype.startPolling = function () {
       if (containerFound) {
         this.log('Container found, setting post density');
         if (this.state.firstContainerFound && this.timingManager) {
-          this.timingManager.setPostDensity(this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').length);
+          this.timingManager.setPostDensity(
+            this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').length
+          );
           this.state.firstContainerFound = false;
         }
         this.highlightPosts();
@@ -262,15 +262,14 @@ XGhosted.prototype.startPolling = function () {
       containerFound,
       containerAttempted,
       pageType: this.state.isWithReplies ? 'with_replies' : this.state.userProfileName ? 'profile' : 'timeline',
-      isPollingStarted: !this.pollTimer, // First poll after start
+      isPollingStarted: !this.pollTimer,
       isPollingStopped: false
     });
   }, pollInterval);
 };
-
 XGhosted.prototype.startAutoScrolling = function () {
   if (!this.state.isPollingEnabled || !this.state.isAutoScrollingEnabled) {
-    return; // Exit silently if polling or auto-scrolling is disabled
+    return;
   }
   const scrollInterval = this.timing.scrollInterval || 1250;
   this.log('Starting auto-scrolling timer...');
@@ -296,7 +295,6 @@ XGhosted.prototype.startAutoScrolling = function () {
     this.timingManager?.recordScroll({ bottomReached });
   }, scrollInterval);
 };
-
 XGhosted.prototype.setAutoScrolling = function (enabled) {
   this.state.isAutoScrollingEnabled = enabled;
   if (this.scrollTimer && !enabled) {
@@ -311,7 +309,6 @@ XGhosted.prototype.setAutoScrolling = function (enabled) {
     })
   );
 };
-
 XGhosted.prototype.expandArticle = function (article) {
   if (article) {
     article.style.height = 'auto';
@@ -320,7 +317,6 @@ XGhosted.prototype.expandArticle = function (article) {
     article.style.padding = 'auto';
   }
 };
-
 XGhosted.prototype.highlightPosts = function (posts) {
   const start = performance.now();
   this.state.isHighlighting = true;
@@ -372,7 +368,7 @@ XGhosted.prototype.highlightPosts = function (posts) {
     this.timingManager?.saveMetrics();
     this.document.dispatchEvent(
       new CustomEvent('xghosted:state-updated', {
-        detail: { ...this.state }
+        detail: { ...this.state },
       })
     );
     this.log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
@@ -381,24 +377,9 @@ XGhosted.prototype.highlightPosts = function (posts) {
   this.timingManager?.recordHighlighting(performance.now() - start);
   return results;
 };
-
-XGhosted.prototype.getThemeMode = function () {
-  return detectTheme(this.document);
-};
-
 XGhosted.prototype.init = function () {
   this.log('Initializing XGhosted...');
   const startTime = performance.now();
-  if (this.document.body) {
-    const themeMode = this.getThemeMode();
-    this.document.dispatchEvent(
-      new CustomEvent('xghosted:theme-detected', {
-        detail: { themeMode },
-      })
-    );
-  } else {
-    this.log('Document body not available for theme detection');
-  }
   this.document.dispatchEvent(
     new CustomEvent('xghosted:init', {
       detail: {
@@ -453,7 +434,5 @@ XGhosted.prototype.init = function () {
     }
   }, 5000);
 };
-
-window.XGhosted = XGhosted;
 
 export { XGhosted };

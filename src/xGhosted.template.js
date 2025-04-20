@@ -82,93 +82,91 @@
   let splashPanel = null;
   // SplashPanel instantiation handled by PanelManager.js based on hasSeenSplash
 
-  // Initialize UI panel after theme detection
-  document.addEventListener('xghosted:theme-detected', ({ detail: { themeMode } }) => {
-    try {
-      const panelManager = new window.PanelManager(
-        document,
-        themeMode || 'light',
-        postsManager,
-        { get: GM_getValue, set: GM_setValue },
-        log
-      );
-      log('GUI Panel initialized successfully');
+  // Initialize UI panel
+  try {
+    const panelManager = new window.PanelManager(
+      document,
+      'light', // Default theme
+      postsManager,
+      { get: GM_getValue, set: GM_getValue },
+      log
+    );
+    log('GUIVGUI Panel initialized successfully');
 
-      document.addEventListener(
-        'xghosted:toggle-panel-visibility',
-        ({ detail: { isPanelVisible } }) => {
-          panelManager.setVisibility(isPanelVisible);
+    document.addEventListener(
+      'xghosted:toggle-panel-visibility',
+      ({ detail: { isPanelVisible } }) => {
+        panelManager.setVisibility(isPanelVisible);
+      }
+    );
+    document.addEventListener('xghosted:copy-links', () => {
+      panelManager.copyLinks();
+    });
+    document.addEventListener('xghosted:export-csv', () => {
+      panelManager.exportProcessedPostsCSV();
+    });
+    document.addEventListener('xghosted:clear-posts', () => {
+      panelManager.clearPosts();
+    });
+    document.addEventListener(
+      'xghosted:csv-import',
+      ({ detail: { csvText } }) => {
+        panelManager.importProcessedPostsCSV(csvText, () => { });
+      }
+    );
+    document.addEventListener(
+      'xghosted:set-auto-scrolling',
+      ({ detail: { enabled } }) => {
+        xGhosted.setAutoScrolling(enabled);
+      }
+    );
+    document.addEventListener(
+      'xghosted:set-polling',
+      ({ detail: { enabled } }) => {
+        if (enabled) {
+          xGhosted.handleStartPolling();
+        } else {
+          xGhosted.handleStopPolling();
         }
-      );
-      document.addEventListener('xghosted:copy-links', () => {
-        panelManager.copyLinks();
-      });
-      document.addEventListener('xghosted:export-csv', () => {
-        panelManager.exportProcessedPostsCSV();
-      });
-      document.addEventListener('xghosted:clear-posts', () => {
-        panelManager.clearPosts();
-      });
-      document.addEventListener(
-        'xghosted:csv-import',
-        ({ detail: { csvText } }) => {
-          panelManager.importProcessedPostsCSV(csvText, () => { });
+      }
+    );
+    document.addEventListener(
+      'xghosted:request-post-check',
+      ({ detail: { href, post } }) => {
+        xGhosted.userRequestedPostCheck(href, post);
+      }
+    );
+    document.addEventListener('click', (e) => {
+      const eyeball =
+        e.target.closest('.xghosted-eyeball') ||
+        (e.target.classList.contains('xghosted-eyeball')
+          ? e.target
+          : null);
+      if (eyeball) {
+        e.preventDefault();
+        e.stopPropagation();
+        log('Eyeball clicked! Digging in...');
+        const clickedPost = eyeball.closest('div[data-xghosted-id]');
+        const href = clickedPost?.getAttribute('data-xghosted-id');
+        if (!href) {
+          log('No href found for clicked eyeball');
+          return;
         }
-      );
-      document.addEventListener(
-        'xghosted:set-auto-scrolling',
-        ({ detail: { enabled } }) => {
-          xGhosted.setAutoScrolling(enabled);
+        log(`Processing eyeball click for: ${href}`);
+        if (xGhosted.state.isRateLimited) {
+          log(`Eyeball click skipped for ${href} due to rate limit`);
+          return;
         }
-      );
-      document.addEventListener(
-        'xghosted:set-polling',
-        ({ detail: { enabled } }) => {
-          if (enabled) {
-            xGhosted.handleStartPolling();
-          } else {
-            xGhosted.handleStopPolling();
-          }
-        }
-      );
-      document.addEventListener(
-        'xghosted:request-post-check',
-        ({ detail: { href, post } }) => {
-          xGhosted.userRequestedPostCheck(href, post);
-        }
-      );
-      document.addEventListener('click', (e) => {
-        const eyeball =
-          e.target.closest('.xghosted-eyeball') ||
-          (e.target.classList.contains('xghosted-eyeball')
-            ? e.target
-            : null);
-        if (eyeball) {
-          e.preventDefault();
-          e.stopPropagation();
-          log('Eyeball clicked! Digging in...');
-          const clickedPost = eyeball.closest('div[data-xghosted-id]');
-          const href = clickedPost?.getAttribute('data-xghosted-id');
-          if (!href) {
-            log('No href found for clicked eyeball');
-            return;
-          }
-          log(`Processing eyeball click for: ${href}`);
-          if (xGhosted.state.isRateLimited) {
-            log(`Eyeball click skipped for ${href} due to rate limit`);
-            return;
-          }
-          document.dispatchEvent(
-            new CustomEvent('xghosted:request-post-check', {
-              detail: { href, post: clickedPost },
-            })
-          );
-        }
-      }, { capture: true });
-    } catch (error) {
-      log(`Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`);
-    }
-  }, { once: true });
+        document.dispatchEvent(
+          new CustomEvent('xghosted:request-post-check', {
+            detail: { href, post: clickedPost },
+          })
+        );
+      }
+    }, { capture: true });
+  } catch (error) {
+    log(`Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`);
+  }
 
   // Log Font Awesome status
   if (typeof window.FontAwesome === 'undefined') {

@@ -73,11 +73,11 @@ const modules = [
     const sharedImports = new Set();
     const moduleEntryPoints = new Set(modules.map(mod => path.resolve(mod.entryPoint)));
 
-    // Dynamically scan src/utils/ and src/dom/ for .js files, excluding tests
+    // Dynamically scan src/utils/ and src/dom/ for .js files, excluding tests and detectTheme.js
     const utilityDirs = ['utils', 'dom'].map(dir => path.resolve(SRC_DIR, dir));
     for (const dir of utilityDirs) {
       const files = fs.readdirSync(dir).filter(file =>
-        file.endsWith('.js') && !file.includes('.test.')
+        file.endsWith('.js') && !file.includes('.test.') && file !== 'detectTheme.js'
       );
       files.forEach(file => {
         const filePath = path.resolve(dir, file);
@@ -104,13 +104,14 @@ const modules = [
           file !== path.relative(process.cwd(), mod.entryPoint) &&
           file.endsWith('.js') &&
           !file.includes('.test.') &&
-          !moduleEntryPoints.has(filePath)
+          !moduleEntryPoints.has(filePath) &&
+          !file.includes('detectTheme.js')
         ) {
           sharedImports.add(filePath);
-          importPaths.add(filePath); // Absolute path
-          importPaths.add(path.relative(process.cwd(), filePath).replace(/\\/g, '/')); // Relative to project root
-          importPaths.add(path.relative(SRC_DIR, filePath).replace(/\\/g, '/')); // Relative to src
-          importPaths.add('./' + path.relative(SRC_DIR, filePath).replace(/\\/g, '/')); // With ./
+          importPaths.add(filePath);
+          importPaths.add(path.relative(process.cwd(), filePath).replace(/\\/g, '/'));
+          importPaths.add(path.relative(SRC_DIR, filePath).replace(/\\/g, '/'));
+          importPaths.add('./' + path.relative(SRC_DIR, filePath).replace(/\\/g, '/'));
         }
       }
     }
@@ -226,7 +227,7 @@ const modules = [
               importMap.add(cleaned);
             }
           });
-          return ''; // Remove the import statement
+          return '';
         }
         console.log(`Keeping non-shared import: ${match}`);
         return match;
