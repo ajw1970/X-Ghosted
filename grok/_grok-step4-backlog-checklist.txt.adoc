@@ -68,6 +68,10 @@
 * [x] Use build-xGhosted to replace placeholder in xGhosted.template.js with package.json version. Have this included in the Splash Screen.
 * [ ] If on with_replies, get account name from url and make sure to highlight reply to a problem that didn't belong to that account. As it is now, a bad post can have a good looking reply but we want the user to notice that they might want to step out of that conversation.
 ** [ ] Test with this sample: Reply-to-repost-of-unavailable.html
+* [ ] build ChatRTX local copy of samples and tests to see what's redundant and what's not tested yet.
+* [ ] Identify reply to without <a> tag.
+* [ ] Display reason in Panel problems list.
+* [ ] Stop leaving confirmed problem tab open. 
 * [x] Stop persisting auto scroll
 * [x] Fix panel layout and margins.
 * [x] Fix panel width when collapsed.
@@ -76,7 +80,7 @@
 ** [x] Stop when no more scrolling available. Separate polling timer for scrolling. Maybe use smooth scrolling too?
 ** [x] Use separate polling. 
 * [x] Make sure we're not persisting processedPosts. 
-* [ ] Make sure we clear processedPosts when the urlFullPath changes.
+* [ \x] Make sure we clear processedPosts when the urlFullPath changes.
 * [ ] Fix tests
 * [ ] Identify, isolate, and test critical behaviors to prevent regression
 
