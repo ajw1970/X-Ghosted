@@ -16,17 +16,19 @@
 // ==/UserScript==
 
 (function () {
-  'use strict';
+  "use strict";
 
   // Safety check: Ensure we're on X.com with a valid document
   const log = GM_log;
-  if (!window.location.href.startsWith('https://x.com/') || !document.body) {
-    log('xGhosted: Aborting - invalid environment');
+  if (!window.location.href.startsWith("https://x.com/") || !document.body) {
+    log("xGhosted: Aborting - invalid environment");
     return;
   }
 
   // Log startup with safety focus
-  log('xGhosted v{{VERSION}} starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds');
+  log(
+    "xGhosted v{{VERSION}} starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds"
+  );
 
   // Configuration
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
@@ -38,11 +40,11 @@
       exportThrottle: 5000,
       rateLimitPause: RATE_LIMIT_PAUSE,
       pollInterval: 1000,
-      scrollInterval: 1500
+      scrollInterval: 1500,
     },
     showSplash: true,
     log,
-    persistProcessedPosts: false
+    persistProcessedPosts: false,
   };
 
   // --- Inject Shared Utilities ---
@@ -61,20 +63,20 @@
   const postsManager = new window.ProcessedPostsManager({
     storage: {
       get: GM_getValue,
-      set: GM_setValue
+      set: GM_setValue,
     },
     log,
-    linkPrefix: 'https://x.com',
-    persistProcessedPosts: config.persistProcessedPosts
+    linkPrefix: "https://x.com",
+    persistProcessedPosts: config.persistProcessedPosts,
   });
   config.postsManager = postsManager;
   config.timingManager = new window.XGhostedUtils.TimingManager({
     timing: {
       pollInterval: 1000,
-      scrollInterval: 1500
+      scrollInterval: 1500,
     },
     log,
-    storage: { get: GM_getValue, set: GM_setValue }
+    storage: { get: GM_getValue, set: GM_setValue },
   });
   const xGhosted = new window.XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
@@ -86,42 +88,42 @@
   try {
     const panelManager = new window.PanelManager(
       document,
-      'light', // Default theme
+      "light", // Default theme
       postsManager,
       { get: GM_getValue, set: GM_getValue },
       log
     );
-    log('GUIVGUI Panel initialized successfully');
+    log("GUIVGUI Panel initialized successfully");
 
     document.addEventListener(
-      'xghosted:toggle-panel-visibility',
+      "xghosted:toggle-panel-visibility",
       ({ detail: { isPanelVisible } }) => {
         panelManager.setVisibility(isPanelVisible);
       }
     );
-    document.addEventListener('xghosted:copy-links', () => {
+    document.addEventListener("xghosted:copy-links", () => {
       panelManager.copyLinks();
     });
-    document.addEventListener('xghosted:export-csv', () => {
+    document.addEventListener("xghosted:export-csv", () => {
       panelManager.exportProcessedPostsCSV();
     });
-    document.addEventListener('xghosted:clear-posts', () => {
+    document.addEventListener("xghosted:clear-posts", () => {
       panelManager.clearPosts();
     });
     document.addEventListener(
-      'xghosted:csv-import',
+      "xghosted:csv-import",
       ({ detail: { csvText } }) => {
-        panelManager.importProcessedPostsCSV(csvText, () => { });
+        panelManager.importProcessedPostsCSV(csvText, () => {});
       }
     );
     document.addEventListener(
-      'xghosted:set-auto-scrolling',
+      "xghosted:set-auto-scrolling",
       ({ detail: { enabled } }) => {
         xGhosted.setAutoScrolling(enabled);
       }
     );
     document.addEventListener(
-      'xghosted:set-polling',
+      "xghosted:set-polling",
       ({ detail: { enabled } }) => {
         if (enabled) {
           xGhosted.handleStartPolling();
@@ -131,46 +133,52 @@
       }
     );
     document.addEventListener(
-      'xghosted:request-post-check',
+      "xghosted:request-post-check",
       ({ detail: { href, post } }) => {
         xGhosted.userRequestedPostCheck(href, post);
       }
     );
-    document.addEventListener('click', (e) => {
-      const eyeball =
-        e.target.closest('.xghosted-eyeball') ||
-        (e.target.classList.contains('xghosted-eyeball')
-          ? e.target
-          : null);
-      if (eyeball) {
-        e.preventDefault();
-        e.stopPropagation();
-        log('Eyeball clicked! Digging in...');
-        const clickedPost = eyeball.closest('div[data-xghosted-id]');
-        const href = clickedPost?.getAttribute('data-xghosted-id');
-        if (!href) {
-          log('No href found for clicked eyeball');
-          return;
+    document.addEventListener(
+      "click",
+      (e) => {
+        const eyeball =
+          e.target.closest(".xghosted-eyeball") ||
+          (e.target.classList.contains("xghosted-eyeball") ? e.target : null);
+        if (eyeball) {
+          e.preventDefault();
+          e.stopPropagation();
+          log("Eyeball clicked! Digging in...");
+          const clickedPost = eyeball.closest("div[data-xghosted-id]");
+          const href = clickedPost?.getAttribute("data-xghosted-id");
+          if (!href) {
+            log("No href found for clicked eyeball");
+            return;
+          }
+          log(`Processing eyeball click for: ${href}`);
+          if (xGhosted.state.isRateLimited) {
+            log(`Eyeball click skipped for ${href} due to rate limit`);
+            return;
+          }
+          document.dispatchEvent(
+            new CustomEvent("xghosted:request-post-check", {
+              detail: { href, post: clickedPost },
+            })
+          );
         }
-        log(`Processing eyeball click for: ${href}`);
-        if (xGhosted.state.isRateLimited) {
-          log(`Eyeball click skipped for ${href} due to rate limit`);
-          return;
-        }
-        document.dispatchEvent(
-          new CustomEvent('xghosted:request-post-check', {
-            detail: { href, post: clickedPost },
-          })
-        );
-      }
-    }, { capture: true });
+      },
+      { capture: true }
+    );
   } catch (error) {
-    log(`Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`);
+    log(
+      `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`
+    );
   }
 
   // Log Font Awesome status
-  if (typeof window.FontAwesome === 'undefined') {
-    log('xGhosted: Font Awesome failed to load, icons may not display correctly');
+  if (typeof window.FontAwesome === "undefined") {
+    log(
+      "xGhosted: Font Awesome failed to load, icons may not display correctly"
+    );
   }
 
   xGhosted.init();
