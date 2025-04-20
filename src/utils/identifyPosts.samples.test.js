@@ -1,9 +1,197 @@
 import { postQuality } from './postQuality';
 import { identifyPosts } from './identifyPosts';
-import { describeSampleAnalyses } from './describeSampleAnalyses';
-import { postHasProblemSystemNotice } from './postHasProblemSystemNotice';
-import { expect } from 'vitest';
+import { identifyPostConnectors } from "./identifyPostConnectors";
+import { postConnector } from "./postConnector";
+import { describeSampleAnalyses } from "./describeSampleAnalyses";
+import { postHasProblemSystemNotice } from "./postHasProblemSystemNotice";
+import { describe, expect, it } from "vitest";
+import { getRelativeLinkToPost } from "./getRelativeLinkToPost";
+import { extractUserFromLink } from "./extractUserFromLink";
 const { PROBLEM, POTENTIAL_PROBLEM, GOOD, UNDEFINED } = postQuality;
+
+describe("identifyPosts - Conversation Threads", () => {
+  function newPostAnalysis(post) {
+    var id = getRelativeLinkToPost(post);
+    var user = extractUserFromLink(id);
+
+    return {
+      id,
+      user,
+      connectors: identifyPostConnectors(post),
+    };
+  }
+
+  const UNPROCESSED_POSTS_SELECTOR = `div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
+  const { DISCONNECTED, STARTS, CONTINUES, ENDS } = postConnector;
+
+  it("Should find three good posts in this conversation thread", () => {
+    loadHTML("samples/Replying-To-Conversation-Thread-with-Dashed-Lines.html");
+    const analyses = identifyPosts(document);
+
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+      [
+        "Structure Summary Totals:",
+        "   4 Posts",
+        "   3 Articles",
+        "   0 Nested Articles",
+        "",
+        "Rated Post Quality (4 Total):",
+        "   3 Good",
+        "   0 Potential Problem",
+        "   0 Problem",
+        "   1 Undefined",
+      ].join("\n")
+    );
+
+    // const postsToProcess = this.collectUnprocessedPosts(posts);
+    const postsToProcess = Array.from(
+      document.querySelectorAll(UNPROCESSED_POSTS_SELECTOR)
+    );
+    expect(postsToProcess.length).toBe(4);
+
+    expect(newPostAnalysis(postsToProcess[0])).toEqual({
+      id: "/monetization_x/status/1913663906209206751",
+      user: "monetization_x",
+      connectors: STARTS,
+    });
+
+    expect(newPostAnalysis(postsToProcess[1])).toEqual({
+      id: false,
+      user: null,
+      connectors: CONTINUES,
+    });
+
+    expect(newPostAnalysis(postsToProcess[2])).toEqual({
+      id: "/james_xond/status/1913865472275005708",
+      user: "james_xond",
+      connectors: CONTINUES,
+    });
+
+    expect(newPostAnalysis(postsToProcess[3])).toEqual({
+      id: "/ApostleJohnW/status/1913882293850067050",
+      user: "ApostleJohnW",
+      connectors: ENDS,
+    });
+
+    // const results = [];
+    // let postsProcessed = 0;
+    // for (let i = 0; i < postsToProcess.length; i++) {
+    //   const post = postsToProcess[i];
+    //   // const analysis = this.analyzePost(post, this.state.isWithReplies);
+    //   // this.handleProblemDetection(analysis);
+
+    //   // const postId = analysis.link;
+    //   // const cachedPost = postId ? this.postsManager.getPost(postId) : null;
+    //   // if (!cachedPost) postsProcessed++;
+
+    //   // this.applyPostStyles(post, analysis);
+    //   // this.updatePostCache(postId, analysis, cachedPost);
+    //   results.push(analysis);
+    // }
+
+    expect(analyses[0]).toEqual({
+      quality: GOOD,
+      reason: "Looks good",
+      link: "/monetization_x/status/1913663906209206751",
+    });
+
+    expect(analyses[1]).toEqual({
+      quality: UNDEFINED,
+      reason: "No article found",
+      link: false,
+    });
+
+    expect(analyses[2]).toEqual({
+      quality: GOOD,
+      reason: "Looks good",
+      link: "/james_xond/status/1913865472275005708",
+    });
+
+    expect(analyses[3]).toEqual({
+      quality: GOOD,
+      reason: "Looks good",
+      link: "/ApostleJohnW/status/1913882293850067050",
+    });
+
+    document.documentElement.innerHTML = "";
+  });
+
+  it("Should find two problem posts in this conversation with unavailable post", () => {
+    loadHTML("samples/Reply-to-repost-of-unavailable.html");
+    const analyses = identifyPosts(document);
+
+    expect(describeSampleAnalyses(document, analyses)).toBe(
+      [
+        "Structure Summary Totals:",
+        "   4 Posts",
+        "   3 Articles",
+        "   1 Nested Articles",
+        "",
+        "Rated Post Quality (4 Total):",
+        "   2 Good", // should be 1
+        "   0 Potential Problem",
+        "   1 Problem", // should be 2
+        "   1 Undefined",
+      ].join("\n")
+    );
+
+    // const postsToProcess = this.collectUnprocessedPosts(posts);
+    const postsToProcess = Array.from(
+      document.querySelectorAll(UNPROCESSED_POSTS_SELECTOR)
+    );
+    expect(postsToProcess.length).toBe(4);
+
+    expect(newPostAnalysis(postsToProcess[0])).toEqual({
+      id: "/Dr_ZainabFatima/status/1911066452385219026",
+      user: "Dr_ZainabFatima",
+      connectors: STARTS,
+    });
+
+    expect(newPostAnalysis(postsToProcess[1])).toEqual({
+      id: "/paulspivak_/status/1911067375199285395",
+      user: "paulspivak_",
+      connectors: CONTINUES,
+    });
+
+    expect(newPostAnalysis(postsToProcess[2])).toEqual({
+      id: "/monetization_x/status/1911125224113811765",
+      user: "monetization_x",
+      connectors: ENDS,
+    });
+
+    expect(newPostAnalysis(postsToProcess[3])).toEqual({
+      id: false,
+      user: null,
+      connectors: DISCONNECTED,
+    });
+
+    expect(analyses[0]).toEqual({
+      quality: PROBLEM,
+      reason: "Found notice: this post is unavailable",
+      link: "/Dr_ZainabFatima/status/1911066452385219026",
+    });
+
+    expect(analyses[1]).toEqual({
+      quality: GOOD,
+      reason: "Looks good",
+      link: "/paulspivak_/status/1911067375199285395",
+    });
+
+    expect(analyses[2]).toEqual({
+      quality: GOOD,
+      reason: "Looks good",
+      link: "/monetization_x/status/1911125224113811765",
+    });
+
+    expect(analyses[3]).toEqual({
+      quality: UNDEFINED,
+      reason: "No article found",
+      link: false,
+    });
+
+    document.documentElement.innerHTML = "";
+  });
+});
 
 it('should find one problem and one potential problem post', () => {
   loadHTML('samples/ajweltytest-with-replies.html');
