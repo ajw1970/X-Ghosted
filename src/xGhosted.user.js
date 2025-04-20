@@ -620,7 +620,7 @@
       this.state.lastUrlFullPath = urlFullPath;
       return urlFullPath;
     };
-    XGhosted.prototype.handleUrlChange = function (urlFullPath) {
+    XGhosted.prototype.handleUrlChange = async function (urlFullPath) {
       const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
       this.state.isWithReplies = isWithReplies;
       if (this.state.userProfileName !== userProfileName) {
@@ -631,7 +631,7 @@
           })
         );
       }
-      this.postsManager.clearPosts();
+      await this.postsManager.clearPosts();
       this.timingManager?.saveMetrics();
       this.state.firstContainerFound = true;
     };
@@ -1029,7 +1029,6 @@
     .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.1); }
     .xghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.1); }
     .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
-    .xghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
     .xghosted-eyeball::after {
       content: '\u{1F440}';
       color: rgb(29, 155, 240);
@@ -2395,12 +2394,13 @@
         );
         return problemPosts;
       }
-      clearPosts() {
+      async clearPosts() {
         this.posts = {};
         if (this.persistProcessedPosts) {
           this.save();
         }
         this.log('Cleared all processed posts');
+        return Promise.resolve();
       }
       importPosts(csvText) {
         if (typeof csvText !== 'string' || !csvText.trim()) {

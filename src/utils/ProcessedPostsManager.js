@@ -1,10 +1,10 @@
-import { postQuality } from './postQuality.js';
+import { postQuality } from "./postQuality.js";
 
 class ProcessedPostsManager {
   constructor({ storage, log, linkPrefix, persistProcessedPosts = false }) {
-    this.storage = storage || { get: () => { }, set: () => { } };
+    this.storage = storage || { get: () => {}, set: () => {} };
     this.log = log || console.log.bind(console);
-    this.linkPrefix = linkPrefix || '';
+    this.linkPrefix = linkPrefix || "";
     this.persistProcessedPosts = persistProcessedPosts;
     this.posts = {};
     if (this.persistProcessedPosts) {
@@ -14,16 +14,16 @@ class ProcessedPostsManager {
 
   load() {
     if (!this.persistProcessedPosts) {
-      this.log('Persistence disabled, skipping load');
+      this.log("Persistence disabled, skipping load");
       return;
     }
-    const state = this.storage.get('xGhostedState', {});
+    const state = this.storage.get("xGhostedState", {});
     this.posts = {};
     const savedPosts = state.processedPosts || {};
     for (const [id, { analysis, checked }] of Object.entries(savedPosts)) {
       this.posts[id] = {
         analysis: { ...analysis },
-        checked
+        checked,
       };
     }
     this.log(`Loaded ${Object.keys(this.posts).length} posts from storage`);
@@ -31,16 +31,16 @@ class ProcessedPostsManager {
 
   save() {
     if (!this.persistProcessedPosts) {
-      this.log('Persistence disabled, skipping save');
+      this.log("Persistence disabled, skipping save");
       return;
     }
-    const state = this.storage.get('xGhostedState', {});
+    const state = this.storage.get("xGhostedState", {});
     state.processedPosts = {};
     for (const [id, { analysis, checked }] of Object.entries(this.posts)) {
       state.processedPosts[id] = { analysis: { ...analysis }, checked };
     }
-    this.storage.set('xGhostedState', state);
-    this.log('Saved processed posts to storage');
+    this.storage.set("xGhostedState", state);
+    this.log("Saved processed posts to storage");
   }
 
   getPost(id) {
@@ -54,9 +54,12 @@ class ProcessedPostsManager {
     }
     this.posts[id] = {
       analysis: { ...data.analysis },
-      checked: data.checked || false
+      checked: data.checked || false,
     };
-    this.log(`Registered post: ${id} with quality: ${this.posts[id].analysis.quality.name}`, this.posts[id].analysis);
+    this.log(
+      `Registered post: ${id} with quality: ${this.posts[id].analysis.quality.name}`,
+      this.posts[id].analysis
+    );
     if (this.persistProcessedPosts) {
       this.save();
     }
@@ -76,59 +79,66 @@ class ProcessedPostsManager {
     );
     this.log(
       `getProblemPosts: Found ${problemPosts.length} posts`,
-      problemPosts.map(([id, { analysis }]) => ({ id, quality: analysis.quality.name })),
+      problemPosts.map(([id, { analysis }]) => ({
+        id,
+        quality: analysis.quality.name,
+      })),
       `All posts:`,
-      allPosts.map(([id, { analysis }]) => ({ id, quality: analysis.quality.name }))
+      allPosts.map(([id, { analysis }]) => ({
+        id,
+        quality: analysis.quality.name,
+      }))
     );
     return problemPosts;
   }
 
-  clearPosts() {
+  async clearPosts() {
     this.posts = {};
     if (this.persistProcessedPosts) {
       this.save();
     }
-    this.log('Cleared all processed posts');
+    this.log("Cleared all processed posts");
+    return Promise.resolve();
   }
 
   importPosts(csvText) {
-    if (typeof csvText !== 'string' || !csvText.trim()) {
-      this.log('Invalid CSV text provided');
+    if (typeof csvText !== "string" || !csvText.trim()) {
+      this.log("Invalid CSV text provided");
       return 0;
     }
     const lines = csvText
       .trim()
-      .split('\n')
+      .split("\n")
       .map((line) =>
         line
-          .split(',')
-          .map((cell) => cell.replace(/^"|"$/g, '').replace(/""/g, '"'))
+          .split(",")
+          .map((cell) => cell.replace(/^"|"$/g, "").replace(/""/g, '"'))
       );
     if (lines.length < 2) {
-      this.log('CSV must have at least one data row');
+      this.log("CSV must have at least one data row");
       return 0;
     }
     const headers = lines[0];
-    const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
+    const expectedHeaders = ["Link", "Quality", "Reason", "Checked"];
     if (!expectedHeaders.every((header, i) => header === headers[i])) {
-      this.log('CSV header mismatch');
+      this.log("CSV header mismatch");
       return 0;
     }
     const qualityMap = {
       [postQuality.UNDEFINED.name]: postQuality.UNDEFINED,
       [postQuality.PROBLEM.name]: postQuality.PROBLEM,
       [postQuality.POTENTIAL_PROBLEM.name]: postQuality.POTENTIAL_PROBLEM,
-      [postQuality.GOOD.name]: postQuality.GOOD
+      [postQuality.GOOD.name]: postQuality.GOOD,
     };
     let importedCount = 0;
     lines.slice(1).forEach((row) => {
       const [link, qualityName, reason, checkedStr] = row;
       const quality = qualityMap[qualityName];
       if (!quality) return;
-      const id = link.replace(this.linkPrefix, '');
+      const id = link.replace(this.linkPrefix, "");
       this.posts[id] = {
         analysis: { quality, reason, link: id },
-        checked: checkedStr === 'true'
+        checked: checkedStr === "true",
       };
       importedCount++;
     });
@@ -140,16 +150,18 @@ class ProcessedPostsManager {
   }
 
   exportPosts() {
-    const headers = ['Link', 'Quality', 'Reason', 'Checked'];
-    const rows = Object.entries(this.posts).map(([id, { analysis, checked }]) => {
-      return [
-        `${this.linkPrefix}${id}`,
-        analysis.quality.name,
-        analysis.reason,
-        checked ? 'true' : 'false'
-      ].join(',');
-    });
-    return [headers.join(','), ...rows].join('\n');
+    const headers = ["Link", "Quality", "Reason", "Checked"];
+    const rows = Object.entries(this.posts).map(
+      ([id, { analysis, checked }]) => {
+        return [
+          `${this.linkPrefix}${id}`,
+          analysis.quality.name,
+          analysis.reason,
+          checked ? "true" : "false",
+        ].join(",");
+      }
+    );
+    return [headers.join(","), ...rows].join("\n");
   }
 }
 
