@@ -14,21 +14,16 @@ function XGhosted(doc, config = {}) {
     pollInterval: 625,
     scrollInterval: 1250,
   };
-
   this.timing = { ...defaultTiming, ...config.timing };
   this.document = doc;
   this.log = config.log;
   this.timingManager = config.timingManager || null;
-
   if (!config.postsManager) {
     throw new Error("XGhosted requires a postsManager instance");
   }
-
   this.postsManager = config.postsManager;
-
   const urlFullPath = doc.location.origin + doc.location.pathname;
   const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
-
   this.state = {
     postContainer: null,
     lastUrlFullPath: urlFullPath,
@@ -38,16 +33,23 @@ function XGhosted(doc, config = {}) {
     isHighlighting: false,
     isPollingEnabled: true,
     userProfileName,
-    firstContainerFound: true,
+    containerFound: false,
   };
-
   this.checkPostInNewTabThrottled = debounce((href) => {
     return this.checkPostInNewTab(href);
   }, this.timing.tabCheckThrottle);
-
   this.highlightPostsDebounced = debounce(() => {
     this.highlightPosts();
   }, this.timing.debounceDelay);
+  this.checkUrlDebounced = debounce((url) => {
+    const urlFullPath2 = this.getUrlFullPathIfChanged(url);
+    if (urlFullPath2) {
+      this.log(
+        `URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath2})`
+      );
+      this.handleUrlChange(urlFullPath2);
+    }
+  }, 100);
 }
 
 XGhosted.POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
@@ -70,9 +72,6 @@ XGhosted.prototype.getUrlFullPathIfChanged = function (url) {
     return false;
   }
 
-  this.log(
-    `URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath})`
-  );
   this.state.lastUrlFullPath = urlFullPath;
 
   return urlFullPath;
@@ -80,12 +79,9 @@ XGhosted.prototype.getUrlFullPathIfChanged = function (url) {
 
 XGhosted.prototype.handleUrlChange = async function (urlFullPath) {
   const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
-
   this.state.isWithReplies = isWithReplies;
-
   if (this.state.userProfileName !== userProfileName) {
     this.state.userProfileName = userProfileName;
-
     this.document.dispatchEvent(
       new CustomEvent("xghosted:user-profile-updated", {
         detail: { userProfileName: this.state.userProfileName },
@@ -94,8 +90,27 @@ XGhosted.prototype.handleUrlChange = async function (urlFullPath) {
   }
 
   await this.postsManager.clearPosts();
+
+  this.state.isPollingEnabled = true;
+  this.state.isAutoScrollingEnabled = false;
+  this.handleStartPolling();
+
   this.timingManager?.saveMetrics();
-  this.state.firstContainerFound = true;
+  this.document.dispatchEvent(
+    new CustomEvent("xghosted:posts-cleared", {
+      detail: {},
+    })
+  );
+  this.document.dispatchEvent(
+    new CustomEvent("xghosted:polling-state-updated", {
+      detail: { isPollingEnabled: this.state.isPollingEnabled },
+    })
+  );
+  this.document.dispatchEvent(
+    new CustomEvent("xghosted:auto-scrolling-toggled", {
+      detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled },
+    })
+  );
 };
 
 XGhosted.prototype.checkPostInNewTab = function (href) {
@@ -275,18 +290,11 @@ XGhosted.prototype.handleStopPolling = function () {
 };
 
 XGhosted.prototype.startPolling = function () {
-  if (!this.state.isPollingEnabled) {
-    this.log("Polling not started: polling is disabled");
-    return;
-  }
-
   const pollInterval = this.timing.pollInterval || 1000;
   this.log("Starting polling for post changes...");
-
   this.pollTimer = setInterval(() => {
     if (this.state.isHighlighting) {
-      this.log("Polling skipped—highlighting in progress");
-
+      this.log("Polling skipped\u2014highlighting in progress");
       this.timingManager?.recordPoll({
         postsProcessed: 0,
         wasSkipped: true,
@@ -300,53 +308,42 @@ XGhosted.prototype.startPolling = function () {
         isPollingStarted: false,
         isPollingStopped: false,
       });
-
       return;
     }
-
-    const urlFullPath = this.getUrlFullPathIfChanged(
-      this.document.location.href
-    );
-
-    if (urlFullPath) {
-      this.log(
-        `URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath})`
-      );
-      this.handleUrlChange(urlFullPath);
+    this.checkUrlDebounced(this.document.location.href);
+    if (!this.state.isPollingEnabled) {
+      return;
     }
-
     const unprocessedPosts = this.document.querySelectorAll(
       XGhosted.UNPROCESSED_POSTS_SELECTOR
     );
     let containerFound = false;
     let containerAttempted = false;
-
     if (unprocessedPosts.length > 0) {
       this.highlightPosts(unprocessedPosts);
     } else if (!this.document.querySelector(XGhosted.POST_CONTAINER_SELECTOR)) {
       this.log("No post container found, trying to find it...");
       containerAttempted = true;
-
       const foundContainer = findPostContainer(this.document, this.log);
       containerFound = !!foundContainer;
-
       if (containerFound) {
         this.log("Container found, setting post density");
-
-        if (this.state.firstContainerFound && this.timingManager) {
+        if (
+          !this.state.containerFound &&
+          this.timingManager &&
+          !this.timingManager.hasSetDensity
+        ) {
           this.timingManager.setPostDensity(
             this.document.querySelectorAll('div[data-testid="cellInnerDiv"]')
               .length
           );
-          this.state.firstContainerFound = false;
+          this.state.containerFound = true;
         }
-
         this.highlightPosts();
       } else {
         this.log("Container still not found, skipping highlighting");
       }
     }
-
     this.timingManager?.recordPoll({
       postsProcessed: unprocessedPosts.length,
       wasSkipped: false,
@@ -522,7 +519,11 @@ XGhosted.prototype.highlightPosts = function (posts) {
 XGhosted.prototype.init = function () {
   this.log("Initializing XGhosted...");
   const startTime = performance.now();
-
+  this.document.dispatchEvent(
+    new CustomEvent("xghosted:user-profile-updated", {
+      detail: { userProfileName: this.state.userProfileName },
+    })
+  );
   this.document.dispatchEvent(
     new CustomEvent("xghosted:init", {
       detail: {
@@ -533,7 +534,6 @@ XGhosted.prototype.init = function () {
       },
     })
   );
-
   this.emit("xghosted:state-updated", {
     isRateLimited: this.state.isRateLimited,
   });
@@ -543,13 +543,13 @@ XGhosted.prototype.init = function () {
   this.emit("xghosted:auto-scrolling-toggled", {
     isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
   });
-
   const styleSheet = this.document.createElement("style");
   styleSheet.textContent = `
     .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
     .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.1); }
     .xghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.1); }
     .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+    .xghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
     .xghosted-eyeball::after {
       content: '\u{1F440}';
       color: rgb(29, 155, 240);
@@ -558,9 +558,7 @@ XGhosted.prototype.init = function () {
       text-decoration: none;
     }
   `;
-
   this.document.head.appendChild(styleSheet);
-
   const checkDomInterval = setInterval(() => {
     if (
       this.document.body &&
@@ -568,23 +566,18 @@ XGhosted.prototype.init = function () {
         0
     ) {
       clearInterval(checkDomInterval);
-
       const waitTime = performance.now() - startTime;
       this.timingManager?.setInitialWaitTime(waitTime);
-
       this.startPolling();
       this.startAutoScrolling();
     }
   }, 500);
-
   setTimeout(() => {
     if (checkDomInterval) {
       clearInterval(checkDomInterval);
-
       if (!this.pollTimer) {
         const waitTime = performance.now() - startTime;
         this.timingManager?.setInitialWaitTime(waitTime);
-
         this.log("DOM readiness timeout reached, starting polling");
         this.startPolling();
         this.startAutoScrolling();

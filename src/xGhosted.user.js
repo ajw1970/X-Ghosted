@@ -49,175 +49,6 @@
 
   // --- Inject Shared Utilities ---
   window.XGhostedUtils = (function () {
-    // src/utils/TimingManager.js
-    var TimingManager = class {
-      constructor({ timing, log, storage }) {
-        this.timing = { ...timing };
-        this.log = log || console.log.bind(console);
-        this.storage = storage || { get: () => {}, set: () => {} };
-        this.startTime = performance.now();
-        this.metrics = {
-          polls: 0,
-          postsProcessed: [],
-          pollSkips: 0,
-          containerFinds: 0,
-          containerDetectionAttempts: 0,
-          containerFoundTimestamp: null,
-          initialWaitTime: null,
-          scrolls: 0,
-          bottomReached: 0,
-          highlightingDurations: [],
-          postDensity: 0,
-          pageType: 'unknown',
-          sessionStarts: 0,
-          // Count of polling session starts
-          sessionStops: 0,
-          // Count of polling session stops
-          sessionDurations: [],
-          // Durations of polling sessions in ms
-          currentSessionStart: null,
-          // Timestamp of current session start
-        };
-        this.initialWaitTimeSet = false;
-        this.log('TimingManager initialized');
-      }
-      recordPoll({
-        postsProcessed,
-        wasSkipped,
-        containerFound,
-        containerAttempted,
-        pageType,
-        isPollingStarted,
-        isPollingStopped,
-      }) {
-        this.metrics.polls++;
-        if (wasSkipped) this.metrics.pollSkips++;
-        if (containerFound) {
-          this.metrics.containerFinds++;
-          if (!this.metrics.containerFoundTimestamp) {
-            this.metrics.containerFoundTimestamp =
-              performance.now() - this.startTime;
-          }
-        }
-        if (containerAttempted) this.metrics.containerDetectionAttempts++;
-        if (postsProcessed !== void 0)
-          this.metrics.postsProcessed.push(postsProcessed);
-        this.metrics.pageType = pageType;
-        if (isPollingStarted) {
-          this.metrics.sessionStarts++;
-          this.metrics.currentSessionStart = performance.now();
-          this.log(
-            `Polling session started (count: ${this.metrics.sessionStarts})`
-          );
-        }
-        if (isPollingStopped) {
-          this.metrics.sessionStops++;
-          if (this.metrics.currentSessionStart) {
-            const duration =
-              performance.now() - this.metrics.currentSessionStart;
-            this.metrics.sessionDurations.push(duration);
-            this.log(
-              `Polling session stopped (duration: ${duration.toFixed(2)}ms)`
-            );
-            this.metrics.currentSessionStart = null;
-          }
-        }
-        this.logMetrics();
-      }
-      recordScroll({ bottomReached }) {
-        this.metrics.scrolls++;
-        if (bottomReached) this.metrics.bottomReached++;
-      }
-      recordHighlighting(duration) {
-        this.metrics.highlightingDurations.push(duration);
-      }
-      setPostDensity(count) {
-        this.metrics.postDensity = count;
-        this.log(`Set post density: ${count}`);
-      }
-      setInitialWaitTime(time) {
-        if (!this.initialWaitTimeSet) {
-          this.metrics.initialWaitTime = time;
-          this.initialWaitTimeSet = true;
-          this.log(`Initial wait time set: ${time}ms`);
-        }
-      }
-      logMetrics() {
-        if (this.metrics.polls % 100 === 0 && this.metrics.polls > 0) {
-          this.log('Timing Metrics:', {
-            polls: this.metrics.polls,
-            avgPostsProcessed:
-              this.metrics.postsProcessed.length > 0
-                ? (
-                    this.metrics.postsProcessed.reduce((sum, n) => sum + n, 0) /
-                    this.metrics.postsProcessed.length
-                  ).toFixed(2)
-                : 0,
-            pollSkipRate: (this.metrics.pollSkips / this.metrics.polls).toFixed(
-              2
-            ),
-            containerFinds: this.metrics.containerFinds,
-            containerDetectionAttempts: this.metrics.containerDetectionAttempts,
-            containerDetectionTime: this.metrics.containerFoundTimestamp
-              ? `${this.metrics.containerFoundTimestamp.toFixed(2)}ms`
-              : 'Not found',
-            initialWaitTime: this.metrics.initialWaitTime
-              ? `${this.metrics.initialWaitTime.toFixed(2)}ms`
-              : 'Not set',
-            scrolls: this.metrics.scrolls,
-            bottomReachedRate:
-              this.metrics.scrolls > 0
-                ? (this.metrics.bottomReached / this.metrics.scrolls).toFixed(2)
-                : 0,
-            avgHighlightingDuration:
-              this.metrics.highlightingDurations.length > 0
-                ? (
-                    this.metrics.highlightingDurations.reduce(
-                      (sum, n) => sum + n,
-                      0
-                    ) / this.metrics.highlightingDurations.length
-                  ).toFixed(2)
-                : 0,
-            postDensity: this.metrics.postDensity,
-            pageType: this.metrics.pageType,
-            sessionStarts: this.metrics.sessionStarts,
-            sessionStops: this.metrics.sessionStops,
-            avgSessionDuration:
-              this.metrics.sessionDurations.length > 0
-                ? (
-                    this.metrics.sessionDurations.reduce(
-                      (sum, n) => sum + n,
-                      0
-                    ) / this.metrics.sessionDurations.length
-                  ).toFixed(2)
-                : 0,
-          });
-        }
-      }
-      saveMetrics() {
-        if (
-          this.metrics.containerFinds > 0 ||
-          this.metrics.postsProcessed.some((n) => n > 0)
-        ) {
-          const state = this.storage.get('xGhostedState', {});
-          state.timingMetrics = { ...this.metrics };
-          this.storage.set('xGhostedState', state);
-          this.log('Saved timing metrics to storage');
-        }
-      }
-      loadMetrics() {
-        const state = this.storage.get('xGhostedState', {});
-        if (state.timingMetrics) {
-          this.metrics = { ...state.timingMetrics, currentSessionStart: null };
-          this.initialWaitTimeSet = !!this.metrics.initialWaitTime;
-          this.log('Loaded timing metrics from storage');
-        }
-      }
-      adjustIntervals() {
-        return this.timing;
-      }
-    };
-
     // src/utils/clipboardUtils.js
     function copyTextToClipboard(text, log) {
       return navigator.clipboard
@@ -532,7 +363,6 @@
       };
     }
     return {
-      TimingManager,
       copyTextToClipboard,
       debounce,
       describeSampleAnalyses,
@@ -589,7 +419,7 @@
         isHighlighting: false,
         isPollingEnabled: true,
         userProfileName,
-        firstContainerFound: true,
+        containerFound: false,
       };
       this.checkPostInNewTabThrottled = debounce((href) => {
         return this.checkPostInNewTab(href);
@@ -597,6 +427,15 @@
       this.highlightPostsDebounced = debounce(() => {
         this.highlightPosts();
       }, this.timing.debounceDelay);
+      this.checkUrlDebounced = debounce((url) => {
+        const urlFullPath2 = this.getUrlFullPathIfChanged(url);
+        if (urlFullPath2) {
+          this.log(
+            `URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath2})`
+          );
+          this.handleUrlChange(urlFullPath2);
+        }
+      }, 100);
     }
     XGhosted.POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
     XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
@@ -614,9 +453,6 @@
       if (this.state.lastUrlFullPath === urlFullPath) {
         return false;
       }
-      this.log(
-        `URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath})`
-      );
       this.state.lastUrlFullPath = urlFullPath;
       return urlFullPath;
     };
@@ -632,8 +468,25 @@
         );
       }
       await this.postsManager.clearPosts();
+      this.state.isPollingEnabled = true;
+      this.state.isAutoScrollingEnabled = false;
+      this.handleStartPolling();
       this.timingManager?.saveMetrics();
-      this.state.firstContainerFound = true;
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:posts-cleared', {
+          detail: {},
+        })
+      );
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:polling-state-updated', {
+          detail: { isPollingEnabled: this.state.isPollingEnabled },
+        })
+      );
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:auto-scrolling-toggled', {
+          detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled },
+        })
+      );
     };
     XGhosted.prototype.checkPostInNewTab = function (href) {
       this.log(`Checking post in new tab: ${href}`);
@@ -791,10 +644,6 @@
       );
     };
     XGhosted.prototype.startPolling = function () {
-      if (!this.state.isPollingEnabled) {
-        this.log('Polling not started: polling is disabled');
-        return;
-      }
       const pollInterval = this.timing.pollInterval || 1e3;
       this.log('Starting polling for post changes...');
       this.pollTimer = setInterval(() => {
@@ -815,14 +664,9 @@
           });
           return;
         }
-        const urlFullPath = this.getUrlFullPathIfChanged(
-          this.document.location.href
-        );
-        if (urlFullPath) {
-          this.log(
-            `URL has changed from (${this.state.lastUrlFullPath}) to (${urlFullPath})`
-          );
-          this.handleUrlChange(urlFullPath);
+        this.checkUrlDebounced(this.document.location.href);
+        if (!this.state.isPollingEnabled) {
+          return;
         }
         const unprocessedPosts = this.document.querySelectorAll(
           XGhosted.UNPROCESSED_POSTS_SELECTOR
@@ -840,13 +684,17 @@
           containerFound = !!foundContainer;
           if (containerFound) {
             this.log('Container found, setting post density');
-            if (this.state.firstContainerFound && this.timingManager) {
+            if (
+              !this.state.containerFound &&
+              this.timingManager &&
+              !this.timingManager.hasSetDensity
+            ) {
               this.timingManager.setPostDensity(
                 this.document.querySelectorAll(
                   'div[data-testid="cellInnerDiv"]'
                 ).length
               );
-              this.state.firstContainerFound = false;
+              this.state.containerFound = true;
             }
             this.highlightPosts();
           } else {
@@ -1005,6 +853,11 @@
       this.log('Initializing XGhosted...');
       const startTime = performance.now();
       this.document.dispatchEvent(
+        new CustomEvent('xghosted:user-profile-updated', {
+          detail: { userProfileName: this.state.userProfileName },
+        })
+      );
+      this.document.dispatchEvent(
         new CustomEvent('xghosted:init', {
           detail: {
             config: {
@@ -1029,6 +882,7 @@
     .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.1); }
     .xghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.1); }
     .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+    .xghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
     .xghosted-eyeball::after {
       content: '\u{1F440}';
       color: rgb(29, 155, 240);
@@ -1099,13 +953,13 @@
         this.document.body.appendChild(this.container);
         this.styleElement = this.document.createElement('style');
         this.styleElement.textContent = `
-            #xghosted-splash {
-                cursor: move;
-            }
-            #xghosted-splash button {
-                cursor: pointer;
-            }
-        `;
+              #xghosted-splash {
+                  cursor: move;
+              }
+              #xghosted-splash button {
+                  cursor: pointer;
+              }
+          `;
         this.document.head.appendChild(this.styleElement);
         this.render({
           pollInterval: this.config.pollInterval,
@@ -1176,13 +1030,13 @@
       };
       this.render = function (config) {
         this.container.innerHTML = `
-            <h2 style="margin: 0 0 10px 0; font-size: 24px; color: #333; display: block;">xGhosted: \u{1D54F} Post Analyzer!</h2>
-            <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Tampermonkey Version: ${version}</p>
-            ${this.userProfileName ? `<p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Profile: ${this.userProfileName}</p>` : ''}
-            <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Poll Interval: ${config.pollInterval} ms</p>
-            <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Scroll Interval: ${config.scrollInterval} ms</p>
-            <button style="padding: 8px 16px; background: #3A4A5B; color: #fff; border: 2px solid #8292A2; border-radius: 8px; cursor: pointer; font-size: 14px; display: inline-block;">Close</button>
-        `;
+              <h2 style="margin: 0 0 10px 0; font-size: 24px; color: #333; display: block;">xGhosted: \u{1D54F} Post Analyzer!</h2>
+              <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Tampermonkey Version: ${version}</p>
+              ${this.userProfileName ? `<p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Profile: ${this.userProfileName}</p>` : ''}
+              <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Poll Interval: ${config.pollInterval} ms</p>
+              <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Scroll Interval: ${config.scrollInterval} ms</p>
+              <button style="padding: 8px 16px; background: #3A4A5B; color: #fff; border: 2px solid #8292A2; border-radius: 8px; cursor: pointer; font-size: 14px; display: inline-block;">Close</button>
+          `;
         const closeButton = this.container.querySelector('button');
         closeButton.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -1209,9 +1063,10 @@
       onCopyLinks,
       startDrag,
     }) {
+      const [refreshKey, setRefreshKey] = window.preactHooks.useState(0);
       const flagged = window.preactHooks.useMemo(
         () => postsManager.getProblemPosts(),
-        [postsManager.getAllPosts()]
+        [postsManager.getAllPosts(), refreshKey]
       );
       const totalPosts = postsManager.getAllPosts().length;
       const [isVisible, setIsVisible] = window.preactHooks.useState(
@@ -1228,6 +1083,9 @@
       const [isScrolling, setIsScrolling] = window.preactHooks.useState(
         state.isAutoScrollingEnabled
       );
+      const [userProfileName, setUserProfileName] = window.preactHooks.useState(
+        state.userProfileName
+      );
       window.preactHooks.useEffect(() => {
         setIsVisible(state.isPanelVisible);
       }, [state.isPanelVisible]);
@@ -1236,14 +1094,57 @@
         setIsScrolling(state.isAutoScrollingEnabled);
       }, [state.isPollingEnabled, state.isAutoScrollingEnabled]);
       window.preactHooks.useEffect(() => {
+        const handlePollingStateUpdated = (e) => {
+          setIsPolling(e.detail.isPollingEnabled);
+        };
+        const handleAutoScrollingToggled = (e) => {
+          setIsScrolling(e.detail.isAutoScrollingEnabled);
+        };
+        const handleUserProfileUpdated = (e) => {
+          setUserProfileName(e.detail.userProfileName);
+        };
+        const handlePostsCleared = () => {
+          setRefreshKey((prev) => prev + 1);
+        };
         const handleCsvImport = (e) => {
           if (e.detail.importedCount > 0) {
             setIsModalOpen(false);
+            setRefreshKey((prev) => prev + 1);
           }
         };
+        document.addEventListener(
+          'xghosted:polling-state-updated',
+          handlePollingStateUpdated
+        );
+        document.addEventListener(
+          'xghosted:auto-scrolling-toggled',
+          handleAutoScrollingToggled
+        );
+        document.addEventListener(
+          'xghosted:user-profile-updated',
+          handleUserProfileUpdated
+        );
+        document.addEventListener('xghosted:posts-cleared', handlePostsCleared);
         document.addEventListener('xghosted:csv-import', handleCsvImport);
-        return () =>
+        return () => {
+          document.removeEventListener(
+            'xghosted:polling-state-updated',
+            handlePollingStateUpdated
+          );
+          document.removeEventListener(
+            'xghosted:auto-scrolling-toggled',
+            handleAutoScrollingToggled
+          );
+          document.removeEventListener(
+            'xghosted:user-profile-updated',
+            handleUserProfileUpdated
+          );
+          document.removeEventListener(
+            'xghosted:posts-cleared',
+            handlePostsCleared
+          );
           document.removeEventListener('xghosted:csv-import', handleCsvImport);
+        };
       }, []);
       const toggleVisibility = () => {
         const newVisibility = !isVisible;
@@ -2466,6 +2367,177 @@
     };
     return ProcessedPostsManager;
   })();
+  window.TimingManager = (function () {
+    // src/utils/TimingManager.js
+    var TimingManager = class {
+      constructor({ timing, log, storage }) {
+        this.timing = { ...timing };
+        this.log = log || console.log.bind(console);
+        this.storage = storage || { get: () => {}, set: () => {} };
+        this.startTime = performance.now();
+        this.metrics = {
+          polls: 0,
+          postsProcessed: [],
+          pollSkips: 0,
+          containerFinds: 0,
+          containerDetectionAttempts: 0,
+          containerFoundTimestamp: null,
+          initialWaitTime: null,
+          scrolls: 0,
+          bottomReached: 0,
+          highlightingDurations: [],
+          postDensity: 0,
+          pageType: 'unknown',
+          sessionStarts: 0,
+          sessionStops: 0,
+          sessionDurations: [],
+          currentSessionStart: null,
+        };
+        this.initialWaitTimeSet = false;
+        this.hasSetDensity = false;
+        this.log('TimingManager initialized');
+      }
+      recordPoll({
+        postsProcessed,
+        wasSkipped,
+        containerFound,
+        containerAttempted,
+        pageType,
+        isPollingStarted,
+        isPollingStopped,
+      }) {
+        this.metrics.polls++;
+        if (wasSkipped) this.metrics.pollSkips++;
+        if (containerFound) {
+          this.metrics.containerFinds++;
+          if (!this.metrics.containerFoundTimestamp) {
+            this.metrics.containerFoundTimestamp =
+              performance.now() - this.startTime;
+          }
+        }
+        if (containerAttempted) this.metrics.containerDetectionAttempts++;
+        if (postsProcessed !== void 0)
+          this.metrics.postsProcessed.push(postsProcessed);
+        this.metrics.pageType = pageType;
+        if (isPollingStarted) {
+          this.metrics.sessionStarts++;
+          this.metrics.currentSessionStart = performance.now();
+          this.log(
+            `Polling session started (count: ${this.metrics.sessionStarts})`
+          );
+        }
+        if (isPollingStopped) {
+          this.metrics.sessionStops++;
+          if (this.metrics.currentSessionStart) {
+            const duration =
+              performance.now() - this.metrics.currentSessionStart;
+            this.metrics.sessionDurations.push(duration);
+            this.log(
+              `Polling session stopped (duration: ${duration.toFixed(2)}ms)`
+            );
+            this.metrics.currentSessionStart = null;
+          }
+        }
+        this.logMetrics();
+      }
+      recordScroll({ bottomReached }) {
+        this.metrics.scrolls++;
+        if (bottomReached) this.metrics.bottomReached++;
+      }
+      recordHighlighting(duration) {
+        this.metrics.highlightingDurations.push(duration);
+      }
+      setPostDensity(count) {
+        if (!this.hasSetDensity) {
+          this.metrics.postDensity = count;
+          this.hasSetDensity = true;
+          this.log(`Set post density: ${count}`);
+        }
+      }
+      setInitialWaitTime(time) {
+        if (!this.initialWaitTimeSet) {
+          this.metrics.initialWaitTime = time;
+          this.initialWaitTimeSet = true;
+          this.log(`Initial wait time set: ${time}ms`);
+        }
+      }
+      logMetrics() {
+        if (this.metrics.polls % 100 === 0 && this.metrics.polls > 0) {
+          this.log('Timing Metrics:', {
+            polls: this.metrics.polls,
+            avgPostsProcessed:
+              this.metrics.postsProcessed.length > 0
+                ? (
+                    this.metrics.postsProcessed.reduce((sum, n) => sum + n, 0) /
+                    this.metrics.postsProcessed.length
+                  ).toFixed(2)
+                : 0,
+            pollSkipRate: (this.metrics.pollSkips / this.metrics.polls).toFixed(
+              2
+            ),
+            containerFinds: this.metrics.containerFinds,
+            containerDetectionAttempts: this.metrics.containerDetectionAttempts,
+            containerDetectionTime: this.metrics.containerFoundTimestamp
+              ? `${this.metrics.containerFoundTimestamp.toFixed(2)}ms`
+              : 'Not found',
+            initialWaitTime: this.metrics.initialWaitTime
+              ? `${this.metrics.initialWaitTime.toFixed(2)}ms`
+              : 'Not set',
+            scrolls: this.metrics.scrolls,
+            bottomReachedRate:
+              this.metrics.scrolls > 0
+                ? (this.metrics.bottomReached / this.metrics.scrolls).toFixed(2)
+                : 0,
+            avgHighlightingDuration:
+              this.metrics.highlightingDurations.length > 0
+                ? (
+                    this.metrics.highlightingDurations.reduce(
+                      (sum, n) => sum + n,
+                      0
+                    ) / this.metrics.highlightingDurations.length
+                  ).toFixed(2)
+                : 0,
+            postDensity: this.metrics.postDensity,
+            pageType: this.metrics.pageType,
+            sessionStarts: this.metrics.sessionStarts,
+            sessionStops: this.metrics.sessionStops,
+            avgSessionDuration:
+              this.metrics.sessionDurations.length > 0
+                ? (
+                    this.metrics.sessionDurations.reduce(
+                      (sum, n) => sum + n,
+                      0
+                    ) / this.metrics.sessionDurations.length
+                  ).toFixed(2)
+                : 0,
+          });
+        }
+      }
+      saveMetrics() {
+        if (
+          this.metrics.containerFinds > 0 ||
+          this.metrics.postsProcessed.some((n) => n > 0)
+        ) {
+          const state = this.storage.get('xGhostedState', {});
+          state.timingMetrics = { ...this.metrics };
+          this.storage.set('xGhostedState', state);
+          this.log('Saved timing metrics to storage');
+        }
+      }
+      loadMetrics() {
+        const state = this.storage.get('xGhostedState', {});
+        if (state.timingMetrics) {
+          this.metrics = { ...state.timingMetrics, currentSessionStart: null };
+          this.initialWaitTimeSet = !!this.metrics.initialWaitTime;
+          this.log('Loaded timing metrics from storage');
+        }
+      }
+      adjustIntervals() {
+        return this.timing;
+      }
+    };
+    return TimingManager;
+  })();
 
   // --- Inject Styles ---
 
@@ -2785,7 +2857,7 @@
     persistProcessedPosts: config.persistProcessedPosts,
   });
   config.postsManager = postsManager;
-  config.timingManager = new window.XGhostedUtils.TimingManager({
+  config.timingManager = new window.TimingManager({
     timing: {
       pollInterval: 1000,
       scrollInterval: 1500,
@@ -2805,7 +2877,7 @@
       document,
       'light', // Default theme
       postsManager,
-      { get: GM_getValue, set: GM_getValue },
+      { get: GM_getValue, set: GM_setValue },
       log
     );
     log('GUIVGUI Panel initialized successfully');

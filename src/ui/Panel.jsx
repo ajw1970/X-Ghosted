@@ -7,9 +7,10 @@ function Panel({
   onCopyLinks,
   startDrag,
 }) {
+  const [refreshKey, setRefreshKey] = window.preactHooks.useState(0);
   const flagged = window.preactHooks.useMemo(
     () => postsManager.getProblemPosts(),
-    [postsManager.getAllPosts()]
+    [postsManager.getAllPosts(), refreshKey]
   );
   const totalPosts = postsManager.getAllPosts().length;
   const [isVisible, setIsVisible] = window.preactHooks.useState(
@@ -26,6 +27,9 @@ function Panel({
   const [isScrolling, setIsScrolling] = window.preactHooks.useState(
     state.isAutoScrollingEnabled
   );
+  const [userProfileName, setUserProfileName] = window.preactHooks.useState(
+    state.userProfileName
+  );
 
   // Sync isVisible with state.isPanelVisible
   window.preactHooks.useEffect(() => {
@@ -38,14 +42,36 @@ function Panel({
   }, [state.isPollingEnabled, state.isAutoScrollingEnabled]);
 
   window.preactHooks.useEffect(() => {
+    const handlePollingStateUpdated = (e) => {
+      setIsPolling(e.detail.isPollingEnabled);
+    };
+    const handleAutoScrollingToggled = (e) => {
+      setIsScrolling(e.detail.isAutoScrollingEnabled);
+    };
+    const handleUserProfileUpdated = (e) => {
+      setUserProfileName(e.detail.userProfileName);
+    };
+    const handlePostsCleared = () => {
+      setRefreshKey((prev) => prev + 1);
+    };
     const handleCsvImport = (e) => {
       if (e.detail.importedCount > 0) {
         setIsModalOpen(false);
+        setRefreshKey((prev) => prev + 1);
       }
     };
+    document.addEventListener('xghosted:polling-state-updated', handlePollingStateUpdated);
+    document.addEventListener('xghosted:auto-scrolling-toggled', handleAutoScrollingToggled);
+    document.addEventListener('xghosted:user-profile-updated', handleUserProfileUpdated);
+    document.addEventListener('xghosted:posts-cleared', handlePostsCleared);
     document.addEventListener('xghosted:csv-import', handleCsvImport);
-    return () =>
+    return () => {
+      document.removeEventListener('xghosted:polling-state-updated', handlePollingStateUpdated);
+      document.removeEventListener('xghosted:auto-scrolling-toggled', handleAutoScrollingToggled);
+      document.removeEventListener('xghosted:user-profile-updated', handleUserProfileUpdated);
+      document.removeEventListener('xghosted:posts-cleared', handlePostsCleared);
       document.removeEventListener('xghosted:csv-import', handleCsvImport);
+    };
   }, []);
 
   const toggleVisibility = () => {

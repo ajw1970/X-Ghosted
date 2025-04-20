@@ -55,6 +55,7 @@
   // INJECT: SplashPanel
   // INJECT: PanelManager
   // INJECT: ProcessedPostsManager
+  // INJECT: TimingManager
 
   // --- Inject Styles ---
   // INJECT: Styles
@@ -70,7 +71,7 @@
     persistProcessedPosts: config.persistProcessedPosts,
   });
   config.postsManager = postsManager;
-  config.timingManager = new window.XGhostedUtils.TimingManager({
+  config.timingManager = new window.TimingManager({
     timing: {
       pollInterval: 1000,
       scrollInterval: 1500,
@@ -90,7 +91,7 @@
       document,
       "light", // Default theme
       postsManager,
-      { get: GM_getValue, set: GM_getValue },
+      { get: GM_getValue, set: GM_setValue },
       log
     );
     log("GUIVGUI Panel initialized successfully");

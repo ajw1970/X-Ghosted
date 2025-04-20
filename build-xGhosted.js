@@ -69,6 +69,11 @@ const modules = [
     placeholder: "// INJECT: ProcessedPostsManager",
     globalName: "ProcessedPostsManager",
   },
+  {
+    entryPoint: path.resolve(SRC_DIR, "utils/TimingManager.js"),
+    placeholder: "// INJECT: TimingManager",
+    globalName: "TimingManager",
+  },
 ];
 
 (async () => {
