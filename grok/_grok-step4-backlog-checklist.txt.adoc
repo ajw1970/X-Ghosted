@@ -72,6 +72,7 @@
 ** [ ] Also test with: Replying-To-Conversation-Thread-with-Dashed-Lines.html
 * [ ] Add Two Problems to postQuality. OUR-PROBLEM AND NOT-OUR-PROBLEM. (Checking username of href)
 * [ ] build ChatRTX local copy of samples and tests to see what's redundant and what's not tested yet.
+* [ ] Splash screen dragging is broken now - sticks to bottom of the page once dragging starts.
 * [ ] Identify reply to without <a> tag.
 * [ ] Display reason in Panel problems list.
 * [ ] Stop leaving confirmed problem tab open. 
