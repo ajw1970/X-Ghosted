@@ -1,15 +1,26 @@
 import { postHasProblemCommunity } from './postHasProblemCommunity';
 import { postHasProblemSystemNotice } from './postHasProblemSystemNotice';
 import { findReplyingToWithDepth } from './findReplyingToWithDepth';
-import { getRelativeLinkToPost } from './getRelativeLinkToPost';
-import { identifyPostConnectors } from "./identifyPostConnectors";
+import { getRelativeLinkToPost } from "./getRelativeLinkToPost";
 import { postQuality } from "./postQuality";
 
-function identifyPost(post, checkReplies = true, logger = console.log) {
+function identifyPost(
+  post,
+  checkReplies = true,
+  isPostDivider = false,
+  logger = console.log
+) {
+  if (isPostDivider) {
+    return {
+      quality: postQuality.UNDEFINED,
+      reason: "Invisible Divider Between Post Collections",
+      link: false,
+    };
+  }
+
   const article = post.querySelector("article");
   if (!article) {
     return {
-      connector: identifyPostConnectors(post),
       quality: postQuality.UNDEFINED,
       reason: "No article found",
       link: false,
@@ -20,7 +31,6 @@ function identifyPost(post, checkReplies = true, logger = console.log) {
   const noticeFound = postHasProblemSystemNotice(article);
   if (noticeFound) {
     return {
-      connector: identifyPostConnectors(post, noticeFound),
       quality: postQuality.PROBLEM,
       reason: `Found notice: ${noticeFound}`,
       link: getRelativeLinkToPost(post),
@@ -31,7 +41,6 @@ function identifyPost(post, checkReplies = true, logger = console.log) {
   const communityFound = postHasProblemCommunity(article);
   if (communityFound) {
     return {
-      connector: identifyPostConnectors(post),
       quality: postQuality.PROBLEM,
       reason: `Found community: ${communityFound}`,
       link: getRelativeLinkToPost(post),
@@ -48,7 +57,6 @@ function identifyPost(post, checkReplies = true, logger = console.log) {
       if (replyingTo) {
         // logger(`POTENTIAL_PROBLEM detected: '${replyingTo.innerHTML}' at depth ${replyingTo.depth}`);
         return {
-          connector: identifyPostConnectors(post),
           quality: postQuality.POTENTIAL_PROBLEM,
           reason: `Found: '${replyingTo.innerHTML}' at a depth of ${replyingTo.depth}`,
           link: getRelativeLinkToPost(post),
@@ -65,7 +73,6 @@ function identifyPost(post, checkReplies = true, logger = console.log) {
   const link = getRelativeLinkToPost(post);
   if (link) {
     return {
-      connector: identifyPostConnectors(post),
       quality: postQuality.GOOD,
       reason: "Looks good",
       link: link,
@@ -73,7 +80,6 @@ function identifyPost(post, checkReplies = true, logger = console.log) {
   }
 
   return {
-    connector: identifyPostConnectors(post),
     quality: postQuality.UNDEFINED,
     reason: "Nothing to measure",
     link: false,

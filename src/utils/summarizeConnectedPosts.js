@@ -3,7 +3,8 @@ import { postConnector } from './postConnector';
 function summarizeConnectedPosts(analyses) {
   // Initialize counters object using the enum values
   const summary = {
-    [postConnector.DISCONNECTED.name]: 0,
+    [postConnector.DIVIDES.name]: 0,
+    [postConnector.STANDSALONE.name]: 0,
     [postConnector.STARTS.name]: 0,
     [postConnector.CONTINUES.name]: 0,
     [postConnector.DANGLES.name]: 0,

@@ -5,7 +5,7 @@ import { postQuality } from "./postQuality";
 
 function describeSampleAnalyses(document, analyses) {
   const { GOOD, PROBLEM, POTENTIAL_PROBLEM, UNDEFINED } = postQuality;
-  const { DISCONNECTED, STARTS, CONTINUES, DANGLES } = postConnector;
+  const { DIVIDES, STANDSALONE, STARTS, CONTINUES, DANGLES } = postConnector;
 
   const totalPosts = document.querySelectorAll(
     'div[data-testid="cellInnerDiv"]'
@@ -24,7 +24,8 @@ function describeSampleAnalyses(document, analyses) {
   const totalProblems = postQualitySummary[PROBLEM.name];
   const totalUndefined = postQualitySummary[UNDEFINED.name];
 
-  const totalDisconnected = postConnectorSummary[DISCONNECTED.name];
+  const totalDivides = postConnectorSummary[DIVIDES.name];
+  const totalStandsAlone = postConnectorSummary[STANDSALONE.name];
   const totalStarts = postConnectorSummary[STARTS.name];
   const totalContinues = postConnectorSummary[CONTINUES.name];
   const totalDangles = postConnectorSummary[DANGLES.name];
@@ -42,7 +43,8 @@ function describeSampleAnalyses(document, analyses) {
     `  ${`${totalUndefined}`.padStart($padding, " ")} ${UNDEFINED.name}`,
     ``,
     `Post Connections Totals:`,
-    `  ${`${totalDisconnected}`.padStart($padding, " ")} ${DISCONNECTED.name}`,
+    `  ${`${totalDivides}`.padStart($padding, " ")} ${DIVIDES.name}`,
+    `  ${`${totalStandsAlone}`.padStart($padding, " ")} ${STANDSALONE.name}`,
     `  ${`${totalStarts}`.padStart($padding, " ")} ${STARTS.name}`,
     `  ${`${totalContinues}`.padStart($padding, " ")} ${CONTINUES.name}`,
     `  ${`${totalDangles}`.padStart($padding, " ")} ${DANGLES.name}`,
