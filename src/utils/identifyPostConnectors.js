@@ -70,8 +70,16 @@ function identifyPostConnectors(
 
   // Posts with community context and no reply start a conversation
   if (hasCommunityContext && !isReply && !isPlaceholder) {
-    logger("identifyPostConnectors returning STARTS due to community context");
-    return STARTS;
+    if (hasLines) {
+      logger(
+        "identifyPostConnectors returning STARTS due to community context with lines"
+      );
+      return STARTS;
+    }
+    logger(
+      "identifyPostConnectors returning STANDSALINE due to community context without lines"
+    );
+    return STANDSALONE;
   }
 
   // Posts with a nested post, no indentation, and not a reply start a conversation
