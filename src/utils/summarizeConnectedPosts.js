@@ -6,9 +6,7 @@ function summarizeConnectedPosts(analyses) {
     [postConnector.DISCONNECTED.name]: 0,
     [postConnector.STARTS.name]: 0,
     [postConnector.CONTINUES.name]: 0,
-    [postConnector.ENDS.name]: 0,
     [postConnector.DANGLES.name]: 0,
-    [postConnector.NOT_APPLICABLE.name]: 0,
   };
 
   // Check if posts is valid and iterable

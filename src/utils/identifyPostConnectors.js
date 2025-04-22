@@ -1,10 +1,6 @@
 import { postConnector } from "./postConnector";
 
-function identifyPostConnectors(post, checkingReplies = true) {
-  if (!checkingReplies) {
-    return postConnector.NOT_APPLICABLE;
-  }
-
+function identifyPostConnectors(post, containsSystemNotice = false) {
   const container = post.querySelector(".r-18u37iz");
   if (!container) {
     return postConnector.DISCONNECTED;
@@ -22,26 +18,19 @@ function identifyPostConnectors(post, checkingReplies = true) {
   const hasIndentation =
     container.querySelector(".r-15zivkp") && !hasCommunityContext;
 
-  // Check for placeholder posts (e.g., deleted account)
-  const placeholderText =
-    post.querySelector('div[id^="id__"]')?.textContent || "";
-  const isPlaceholder =
-    placeholderText.includes("This Post") &&
-    (placeholderText.includes("deleted") ||
-      placeholderText.includes("unavailable") ||
-      placeholderText.includes("no longer exists") ||
-      placeholderText.includes("restricted"));
+  // Check if the post is a placeholder using postQuality
+  const isPlaceholder = containsSystemNotice;
 
   // Check if the post is a reply by looking for the "Replying to" div (structurally)
   const isReply = post.querySelector(".r-4qtqp9.r-zl2h9q") !== null;
 
-  if (lines.length === 1) {
-    if (hasIndentation) {
-      return postConnector.ENDS;
-    }
+  // Posts with exactly one connecting line and no indentation start a conversation
+  if (lines.length === 1 && !hasIndentation) {
     return postConnector.STARTS;
-  } else if (lines.length > 1) {
-    return postConnector.CONTINUES;
+  }
+  // Posts with connecting lines are part of a conversation
+  if (lines.length >= 1) {
+    return postConnector.CONTINUES; // Includes indented posts or posts with multiple lines
   } else {
     // Handle placeholder posts that might be parents
     if (isPlaceholder && !hasIndentation) {

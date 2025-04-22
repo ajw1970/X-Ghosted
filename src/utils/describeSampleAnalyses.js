@@ -5,8 +5,7 @@ import { postQuality } from "./postQuality";
 
 function describeSampleAnalyses(document, analyses) {
   const { GOOD, PROBLEM, POTENTIAL_PROBLEM, UNDEFINED } = postQuality;
-  const { DISCONNECTED, STARTS, CONTINUES, ENDS, DANGLES, NOT_APPLICABLE } =
-    postConnector;
+  const { DISCONNECTED, STARTS, CONTINUES, DANGLES } = postConnector;
 
   const totalPosts = document.querySelectorAll(
     'div[data-testid="cellInnerDiv"]'
@@ -28,9 +27,7 @@ function describeSampleAnalyses(document, analyses) {
   const totalDisconnected = postConnectorSummary[DISCONNECTED.name];
   const totalStarts = postConnectorSummary[STARTS.name];
   const totalContinues = postConnectorSummary[CONTINUES.name];
-  const totalEnds = postConnectorSummary[ENDS.name];
   const totalDangles = postConnectorSummary[DANGLES.name];
-  const totalNotApplicable = postConnectorSummary[NOT_APPLICABLE.name];
 
   return [
     `Structure Summary Totals:`,
@@ -48,9 +45,7 @@ function describeSampleAnalyses(document, analyses) {
     `  ${`${totalDisconnected}`.padStart($padding, " ")} ${DISCONNECTED.name}`,
     `  ${`${totalStarts}`.padStart($padding, " ")} ${STARTS.name}`,
     `  ${`${totalContinues}`.padStart($padding, " ")} ${CONTINUES.name}`,
-    `  ${`${totalEnds}`.padStart($padding, " ")} ${ENDS.name}`,
     `  ${`${totalDangles}`.padStart($padding, " ")} ${DANGLES.name}`,
-    `  ${`${totalNotApplicable}`.padStart($padding, " ")} ${NOT_APPLICABLE.name}`,
   ].join("\n");
 }
 

@@ -9,7 +9,7 @@ test("identifyPosts classifies posts", () => {
     "samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html"
   );
   const { GOOD, PROBLEM, POTENTIAL_PROBLEM, UNDEFINED } = postQuality;
-  const { DISCONNECTED, STARTS, CONTINUES, DANGLES, ENDS } = postConnector;
+  const { DISCONNECTED, STARTS, CONTINUES, DANGLES } = postConnector;
   const analyses = identifyPosts(document);
 
   expect(describeSampleAnalyses(document, analyses)).toBe(
@@ -28,10 +28,8 @@ test("identifyPosts classifies posts", () => {
       "Post Connections Totals:",
       "  10 Disconnected",
       "   9 Starting",
-      "   6 Continuing",
-      "   9 Ending",
+      "  15 Continuing",
       "   2 Dangling",
-      "   0 Not Applicable",
     ].join("\n")
   );
 
@@ -48,7 +46,7 @@ test("identifyPosts classifies posts", () => {
     reason: "Looks good",
   });
   expect(analyses[2]).toEqual({
-    connector: ENDS,
+    connector: CONTINUES,
     quality: GOOD,
     link: "/ApostleJohnW/status/1897016048639180873",
     reason: "Looks good",
@@ -78,7 +76,7 @@ test("identifyPosts classifies posts", () => {
     reason: "Looks good",
   });
   expect(analyses[7]).toEqual({
-    connector: ENDS,
+    connector: CONTINUES,
     quality: GOOD,
     link: "/ApostleJohnW/status/1897015899099414914",
     reason: "Looks good",
@@ -96,7 +94,7 @@ test("identifyPosts classifies posts", () => {
     reason: "Looks good",
   });
   expect(analyses[10]).toEqual({
-    connector: ENDS,
+    connector: CONTINUES,
     quality: GOOD,
     link: "/ApostleJohnW/status/1897015449176748449",
     reason: "Looks good",
@@ -120,7 +118,7 @@ test("identifyPosts classifies posts", () => {
     reason: "Looks good",
   });
   expect(analyses[14]).toEqual({
-    connector: ENDS,
+    connector: CONTINUES,
     quality: GOOD,
     link: "/ApostleJohnW/status/1897013413664145793",
     reason: "Looks good",
@@ -138,7 +136,7 @@ test("identifyPosts classifies posts", () => {
     reason: "Found notice: this post is unavailable",
   });
   expect(analyses[17]).toEqual({
-    connector: ENDS,
+    connector: CONTINUES,
     quality: GOOD, // should be bad
     link: "/ApostleJohnW/status/1897011110072738182",
     reason: "Looks good",
@@ -156,7 +154,7 @@ test("identifyPosts classifies posts", () => {
     reason: "Looks good",
   });
   expect(analyses[20]).toEqual({
-    connector: ENDS,
+    connector: CONTINUES,
     quality: GOOD,
     link: "/ApostleJohnW/status/1897010202974806174",
     reason: "Looks good",
@@ -186,7 +184,7 @@ test("identifyPosts classifies posts", () => {
     reason: "Looks good",
   });
   expect(analyses[25]).toEqual({
-    connector: ENDS,
+    connector: CONTINUES,
     quality: GOOD,
     link: "/ApostleJohnW/status/1897004848614420667",
     reason: "Looks good",
@@ -217,7 +215,7 @@ test("identifyPosts classifies posts", () => {
     reason: "Looks good",
   });
   expect(analyses[30]).toEqual({
-    connector: ENDS,
+    connector: CONTINUES,
     quality: GOOD,
     link: "/ApostleJohnW/status/1897002963107025141",
     reason: "Looks good",
@@ -235,7 +233,7 @@ test("identifyPosts classifies posts", () => {
     reason: "Looks good",
   });
   expect(analyses[33]).toEqual({
-    connector: ENDS,
+    connector: CONTINUES,
     quality: GOOD,
     link: "/ApostleJohnW/status/1897002818214748430",
     reason: "Looks good",

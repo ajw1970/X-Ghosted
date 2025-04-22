@@ -6,7 +6,7 @@ import { postHasProblemSystemNotice } from "./postHasProblemSystemNotice";
 import { describe, expect, it } from "vitest";
 
 const { PROBLEM, POTENTIAL_PROBLEM, GOOD, UNDEFINED } = postQuality;
-const { DISCONNECTED, STARTS, CONTINUES, ENDS, DANGLES } = postConnector;
+const { DISCONNECTED, STARTS, CONTINUES, DANGLES } = postConnector;
 
 describe("identifyPosts - Conversation Threads", () => {
   it("Should find three good posts in this conversation thread", () => {
@@ -29,10 +29,8 @@ describe("identifyPosts - Conversation Threads", () => {
         "Post Connections Totals:",
         "   0 Disconnected",
         "   1 Starting",
-        "   2 Continuing",
-        "   1 Ending",
+        "   3 Continuing",
         "   0 Dangling",
-        "   0 Not Applicable",
       ].join("\n")
     );
 
@@ -58,7 +56,7 @@ describe("identifyPosts - Conversation Threads", () => {
     });
 
     expect(analyses[3]).toEqual({
-      connector: ENDS,
+      connector: CONTINUES,
       quality: GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1913882293850067050",
@@ -87,10 +85,8 @@ describe("identifyPosts - Conversation Threads", () => {
         "Post Connections Totals:",
         "   1 Disconnected",
         "   1 Starting", // Problem post
-        "   1 Continuing", // Problem by association
-        "   1 Ending", // Problem by association
+        "   2 Continuing", // Problem by association
         "   0 Dangling",
-        "   0 Not Applicable",
       ].join("\n")
     );
 
@@ -109,7 +105,7 @@ describe("identifyPosts - Conversation Threads", () => {
     });
 
     expect(analyses[2]).toEqual({
-      connector: ENDS,
+      connector: CONTINUES,
       quality: GOOD, // TODO: should be PROBLEM by association
       reason: "Looks good",
       link: "/monetization_x/status/1911125224113811765",
@@ -144,18 +140,16 @@ it("should find one problem and one potential problem post", () => {
       "  10 Undefined",
       "",
       "Post Connections Totals:",
-      "  11 Disconnected",
-      "   2 Starting",
-      "   0 Continuing",
-      "   2 Ending",
+      "  10 Disconnected",
+      "   3 Starting",
+      "   2 Continuing",
       "   1 Dangling",
-      "   0 Not Applicable",
     ].join("\n")
   );
 
   expect(analyses).toEqual([
     {
-      connector: DISCONNECTED,
+      connector: STARTS,
       quality: PROBLEM,
       reason: "Found notice: this post is unavailable",
       link: "/ajweltytest/status/1901080866002014636",
@@ -173,7 +167,7 @@ it("should find one problem and one potential problem post", () => {
       link: "/ApostleJohnW/status/1899820744072110204",
     },
     {
-      connector: ENDS,
+      connector: CONTINUES,
       quality: GOOD,
       reason: "Looks good",
       link: "/ajweltytest/status/1899820959197995180",
@@ -203,7 +197,7 @@ it("should find one problem and one potential problem post", () => {
       link: "/ApostleJohnW/status/1895367468908192087",
     },
     {
-      connector: ENDS,
+      connector: CONTINUES,
       quality: GOOD,
       reason: "Looks good",
       link: "/ajweltytest/status/1895407388871798985",
@@ -274,10 +268,8 @@ describe("identifyPosts - Good", () => {
         "Post Connections Totals:",
         "   5 Disconnected",
         "   2 Starting",
-        "   2 Continuing",
-        "   2 Ending",
+        "   4 Continuing",
         "   0 Dangling",
-        "   0 Not Applicable",
       ].join("\n")
     );
 
@@ -307,7 +299,7 @@ describe("identifyPosts - Good", () => {
         link: "/buymeacoffee/status/1895088351235187111",
       },
       {
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895172905203589591",
@@ -337,7 +329,7 @@ describe("identifyPosts - Good", () => {
         link: "/tahreem57/status/1894971735172149613",
       },
       {
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895169898252509372",
@@ -373,10 +365,8 @@ describe("identifyPosts - Good", () => {
         "Post Connections Totals:",
         "   2 Disconnected",
         "   2 Starting",
-        "   1 Continuing",
-        "   1 Ending",
+        "   2 Continuing",
         "   0 Dangling",
-        "   0 Not Applicable",
       ].join("\n")
     );
 
@@ -388,7 +378,7 @@ describe("identifyPosts - Good", () => {
     });
 
     expect(analyses[1]).toEqual({
-      connector: ENDS,
+      connector: CONTINUES,
       quality: GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1881841967291928947",
@@ -442,9 +432,7 @@ describe("identifyPosts - Good", () => {
         "   1 Disconnected",
         "   0 Starting",
         "   0 Continuing",
-        "   0 Ending",
         "   0 Dangling",
-        "   0 Not Applicable",
       ].join("\n")
     );
 
@@ -481,9 +469,7 @@ describe("identifyPosts - Good", () => {
         "   0 Disconnected",
         "   1 Starting",
         "   0 Continuing",
-        "   0 Ending",
         "   0 Dangling",
-        "   0 Not Applicable",
       ].join("\n")
     );
 
@@ -520,9 +506,7 @@ describe("identifyPosts - Good", () => {
         "   1 Disconnected",
         "   0 Starting",
         "   0 Continuing",
-        "   0 Ending",
         "   0 Dangling",
-        "   0 Not Applicable",
       ].join("\n")
     );
 
@@ -562,9 +546,7 @@ describe("identifyPosts - Problems", () => {
           "   4 Disconnected",
           "   0 Starting",
           "   0 Continuing",
-          "   0 Ending",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -620,9 +602,7 @@ describe("identifyPosts - Problems", () => {
           "   4 Disconnected",
           "   0 Starting",
           "   0 Continuing",
-          "   0 Ending",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -678,10 +658,8 @@ describe("identifyPosts - Problems", () => {
           "Post Connections Totals:",
           "   0 Disconnected",
           "   1 Starting",
-          "   1 Continuing",
-          "   2 Ending",
+          "   3 Continuing",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -693,7 +671,7 @@ describe("identifyPosts - Problems", () => {
           link: "/Breaking911/status/1884691881587523595",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: PROBLEM,
           reason: "Found notice: this post was deleted by the post author",
           link: false,
@@ -705,7 +683,7 @@ describe("identifyPosts - Problems", () => {
           link: "/WarPumpkin22/status/1884794131643314464",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1884794615716307143",
@@ -735,10 +713,8 @@ describe("identifyPosts - Problems", () => {
           "Post Connections Totals:",
           "   1 Disconnected",
           "   1 Starting",
-          "   0 Continuing",
-          "   1 Ending",
+          "   1 Continuing",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -751,7 +727,7 @@ describe("identifyPosts - Problems", () => {
           link: false,
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1880635863631344062",
@@ -787,17 +763,15 @@ describe("identifyPosts - Problems", () => {
           "  10 Undefined",
           "",
           "Post Connections Totals:",
-          "  20 Disconnected",
-          "   0 Starting",
+          "  19 Disconnected",
+          "   1 Starting",
           "   0 Continuing",
-          "   0 Ending",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
       expect(analyses[0]).toEqual({
-        connector: DISCONNECTED,
+        connector: STARTS,
         quality: PROBLEM,
         reason:
           "Found notice: this media has been disabled in response to a report by the copyright owner",
@@ -939,24 +913,22 @@ describe("identifyPosts - Problems", () => {
           "   1 Undefined",
           "",
           "Post Connections Totals:",
-          "   2 Disconnected",
-          "   0 Starting",
-          "   0 Continuing",
-          "   1 Ending",
+          "   1 Disconnected",
+          "   1 Starting",
+          "   1 Continuing",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
       expect(analyses[0]).toEqual({
-        connector: DISCONNECTED,
+        connector: STARTS,
         quality: PROBLEM,
         reason: "Found notice: you're unable to view this post",
         link: false,
       });
 
       expect(analyses[1]).toEqual({
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1882615672984969338",
@@ -990,23 +962,21 @@ describe("identifyPosts - Problems", () => {
           "   2 Undefined",
           "",
           "Post Connections Totals:",
-          "   4 Disconnected",
-          "   0 Starting",
-          "   0 Continuing",
-          "   2 Ending",
+          "   2 Disconnected",
+          "   2 Starting",
+          "   2 Continuing",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
       expect(analyses[0]).toEqual({
-        connector: DISCONNECTED,
+        connector: STARTS,
         quality: PROBLEM,
         reason: "Found notice: you're unable to view this post",
         link: false,
       });
       expect(analyses[1]).toEqual({
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1883292681188917450",
@@ -1018,13 +988,13 @@ describe("identifyPosts - Problems", () => {
         link: false,
       });
       expect(analyses[3]).toEqual({
-        connector: DISCONNECTED,
+        connector: STARTS,
         quality: PROBLEM,
         reason: "Found notice: you're unable to view this post",
         link: false,
       });
       expect(analyses[4]).toEqual({
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1883293430052430332",
@@ -1059,10 +1029,8 @@ describe("identifyPosts - Problems", () => {
           "Post Connections Totals:",
           "   0 Disconnected",
           "   1 Starting",
-          "   1 Continuing",
-          "   2 Ending",
+          "   3 Continuing",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -1080,13 +1048,13 @@ describe("identifyPosts - Problems", () => {
           link: "/ApostleJohnW/status/1883978356900913165",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: PROBLEM,
           reason: "Found notice: this post is unavailable",
           link: false,
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1884150859036254640",
@@ -1116,10 +1084,8 @@ describe("identifyPosts - Problems", () => {
           "Post Connections Totals:",
           "   1 Disconnected",
           "   1 Starting",
-          "   0 Continuing",
-          "   1 Ending",
+          "   1 Continuing",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -1130,7 +1096,7 @@ describe("identifyPosts - Problems", () => {
         link: "/RepNancyMace/status/1884565403483218235",
       });
       expect(analyses[1]).toEqual({
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1884566696322592842",
@@ -1169,9 +1135,7 @@ describe("identifyPosts - Problems", () => {
           "   0 Disconnected",
           "   1 Starting",
           "   0 Continuing",
-          "   0 Ending",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -1215,9 +1179,7 @@ describe("identifyPosts - Problems", () => {
           "   0 Disconnected",
           "   1 Starting",
           "   0 Continuing",
-          "   0 Ending",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -1252,18 +1214,16 @@ describe("identifyPosts - Problems", () => {
           "   1 Undefined",
           "",
           "Post Connections Totals:",
-          "   3 Disconnected",
-          "   0 Starting",
+          "   2 Disconnected",
+          "   1 Starting",
           "   0 Continuing",
-          "   0 Ending",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
       expect(analyses).toEqual([
         {
-          connector: DISCONNECTED,
+          connector: STARTS,
           quality: PROBLEM,
           reason: "Found notice: this post is unavailable",
           link: "/catturd2/status/1886210678752518230",
@@ -1303,19 +1263,17 @@ describe("identifyPosts - Problems", () => {
           "   1 Undefined",
           "",
           "Post Connections Totals:",
-          "   3 Disconnected",
-          "   0 Starting",
+          "   2 Disconnected",
+          "   1 Starting",
           "   0 Continuing",
-          "   0 Ending",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
       // Extract analysis from each rated post
       expect(analyses).toEqual([
         {
-          connector: DISCONNECTED,
+          connector: STARTS,
           quality: PROBLEM,
           reason: "Found notice: you're unable to view this post",
           link: "/catturd2/status/1886210678752518230",
@@ -1357,10 +1315,8 @@ describe("identifyPosts - Problems", () => {
           "Post Connections Totals:",
           "   9 Disconnected",
           "  10 Starting",
-          "   1 Continuing",
-          "   9 Ending",
+          "  10 Continuing",
           "   0 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -1377,7 +1333,7 @@ describe("identifyPosts - Problems", () => {
         link: "/Name__Error_404/status/1900452964101402693",
       });
       expect(analyses[2]).toEqual({
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900454996501475806",
@@ -1395,7 +1351,7 @@ describe("identifyPosts - Problems", () => {
         link: "/adamcarolla/status/1900417203356193038",
       });
       expect(analyses[5]).toEqual({
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900454397697495122",
@@ -1413,7 +1369,7 @@ describe("identifyPosts - Problems", () => {
         link: "/klara_sjo/status/1900303399511318989",
       });
       expect(analyses[8]).toEqual({
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900453954611232911",
@@ -1431,7 +1387,7 @@ describe("identifyPosts - Problems", () => {
         link: "/CNviolations/status/1900441767553446324",
       });
       expect(analyses[11]).toEqual({
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900453039971971160",
@@ -1451,7 +1407,7 @@ describe("identifyPosts - Problems", () => {
       });
       expect(analyses[14]).toEqual({
         connector: DISCONNECTED,
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900452749206044700",
@@ -1469,7 +1425,7 @@ describe("identifyPosts - Problems", () => {
         link: "/CultureCrave/status/1900440715806859351",
       });
       expect(analyses[17]).toEqual({
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900452224620179640",
@@ -1487,7 +1443,7 @@ describe("identifyPosts - Problems", () => {
         link: "/MagneticNorse/status/1900444331082690813",
       });
       expect(analyses[20]).toEqual({
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900451349776490691",
@@ -1505,7 +1461,7 @@ describe("identifyPosts - Problems", () => {
         link: "/WallStreetMav/status/1900437991761563894",
       });
       expect(analyses[23]).toEqual({
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900450032354025709",
@@ -1523,7 +1479,7 @@ describe("identifyPosts - Problems", () => {
         link: "/charliekirk11/status/1900284625467170868",
       });
       expect(analyses[26]).toEqual({
-        connector: ENDS,
+        connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900449357188546773",
@@ -1569,9 +1525,7 @@ describe("identifyPosts - Potential Problems", () => {
           "   0 Disconnected",
           "   0 Starting",
           "   0 Continuing",
-          "   0 Ending",
           "   1 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -1608,10 +1562,8 @@ describe("identifyPosts - Potential Problems", () => {
           "Post Connections Totals:",
           "   9 Disconnected",
           "   6 Starting",
-          "   1 Continuing",
-          "   6 Ending",
+          "   7 Continuing",
           "   1 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -1623,7 +1575,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/Polymarket/status/1890150272015692285",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890268189273256429",
@@ -1641,7 +1593,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/joerogan/status/1890256988065747120",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890267922888831056",
@@ -1659,7 +1611,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/elonmusk/status/1890267219021689066",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890267836297408744",
@@ -1677,7 +1629,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/fasc1nate/status/1890159112966529049",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890266335059538298",
@@ -1701,7 +1653,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/KanekoaTheGreat/status/1890210084158103579",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890213612868063403",
@@ -1738,7 +1690,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/amuse/status/1890188509212021011",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890197334828470528",
@@ -1782,16 +1734,14 @@ describe("identifyPosts - Potential Problems", () => {
           "Post Connections Totals:",
           "   3 Disconnected",
           "   2 Starting",
-          "   0 Continuing",
-          "   2 Ending",
+          "   2 Continuing",
           "   1 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
       expect(analyses).toEqual([
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890582770079928347",
@@ -1809,7 +1759,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/realchrisrufo/status/1890461003453972704",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890582075989737603",
@@ -1865,10 +1815,8 @@ describe("identifyPosts - Potential Problems", () => {
           "Post Connections Totals:",
           "   4 Disconnected",
           "   2 Starting",
-          "   0 Continuing",
-          "   2 Ending",
+          "   2 Continuing",
           "   1 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -1880,7 +1828,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/TomHoman_/status/1890264842021531908",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890492039311114515",
@@ -1898,7 +1846,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/TRHLofficial/status/1890488779200135602",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890489017642127402",
@@ -1953,10 +1901,8 @@ describe("identifyPosts - Potential Problems", () => {
           "Post Connections Totals:",
           "   9 Disconnected",
           "   7 Starting",
-          "   5 Continuing",
-          "   6 Ending",
+          "  11 Continuing",
           "   1 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -1993,7 +1939,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/ArthurMacwaters/status/1897274644358693224",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1897277949675733193",
@@ -2023,7 +1969,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/cgallaty/status/1897274689350729929",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1897274953936117962",
@@ -2053,7 +1999,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/ArthurMacwaters/status/1897267322261528696",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1897274123841090000",
@@ -2071,7 +2017,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/BasedMikeLee/status/1897263908613971994",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1897267944742384013",
@@ -2089,7 +2035,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/BreannaMorello/status/1897264239783633229",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1897266164189040752",
@@ -2113,7 +2059,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/DrEtiquette/status/1897264279868596522",
         },
         {
-          connector: ENDS,
+          connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1897265836777513106",
@@ -2156,9 +2102,7 @@ describe("identifyPosts - Potential Problems", () => {
           "   0 Disconnected",
           "   0 Starting",
           "   0 Continuing",
-          "   0 Ending",
           "   1 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -2196,9 +2140,7 @@ describe("identifyPosts - Potential Problems", () => {
           "   0 Disconnected",
           "   0 Starting",
           "   0 Continuing",
-          "   0 Ending",
           "   1 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -2236,9 +2178,7 @@ describe("identifyPosts - Potential Problems", () => {
           "   3 Disconnected",
           "   0 Starting",
           "   0 Continuing",
-          "   0 Ending",
           "   4 Dangling",
-          "   0 Not Applicable",
         ].join("\n")
       );
 
@@ -2312,12 +2252,10 @@ describe("identifyPosts - Problems and Potential Problems", () => {
         "   0 Undefined",
         "",
         "Post Connections Totals:",
-        "   5 Disconnected",
-        "   0 Starting",
+        "   4 Disconnected",
+        "   1 Starting",
         "   0 Continuing",
-        "   0 Ending",
         "   1 Dangling",
-        "   0 Not Applicable",
       ].join("\n")
     );
 
@@ -2342,7 +2280,7 @@ describe("identifyPosts - Problems and Potential Problems", () => {
         link: "/catturd2/status/1886189049674616930",
       },
       {
-        connector: DISCONNECTED,
+        connector: STARTS,
         quality: PROBLEM,
         reason: "Found notice: this post is unavailable",
         link: "/catturd2/status/1886188210524438792",
