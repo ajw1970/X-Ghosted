@@ -15,12 +15,12 @@ function identifyPosts(
   document.querySelectorAll(selector).forEach((post) => {
     const isDivider = isPostDivider(post);
 
-    const postQuality = identifyPost(post, checkReplies, isDivider, logger);
+    const postAnalysis = identifyPost(post, checkReplies, isDivider, logger);
     const hasProblemSystemNotice =
-      postQuality.reason.startsWith("Found notice:");
+      postAnalysis.reason.startsWith("Found notice:");
     const postText = getTweetText(post);
 
-    logger(`Calling identifyPostConnectors for: postText: <<${postText}>>`);
+    logger(`Calling identifyPostConnectors for: ${postAnalysis.link}`);
     const postConnector = identifyPostConnectors(
       post,
       isDivider,
@@ -33,9 +33,9 @@ function identifyPosts(
 
     results.push({
       connector: postConnector,
-      quality: postQuality.quality,
-      reason: postQuality.reason,
-      link: postQuality.link,
+      quality: postAnalysis.quality,
+      reason: postAnalysis.reason,
+      link: postAnalysis.link,
       text: postText,
     });
   });

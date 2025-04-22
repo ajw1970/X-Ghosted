@@ -35,6 +35,10 @@ function identifyPostConnectors(
       );
       return CONTINUES;
     }
+    logger(
+      `identifyPostConnectors returning STARTS based on lines without previous post`
+    );
+    return STARTS;
   }
 
   const container = post.querySelector(".r-18u37iz");
