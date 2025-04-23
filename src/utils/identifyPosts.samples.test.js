@@ -6,7 +6,7 @@ import { postHasProblemSystemNotice } from "./postHasProblemSystemNotice";
 import { describe, expect, it } from "vitest";
 
 const { PROBLEM, POTENTIAL_PROBLEM, GOOD, DIVIDER, UNDEFINED } = postQuality;
-const { DIVIDES, STANDSALONE, STARTS, CONTINUES, DANGLES } = postConnector;
+const { DIVIDES, INDEPENDENT, STARTS, CONTINUES, DANGLES } = postConnector;
 
 describe("identifyPosts - Conversation Threads", () => {
   it("Should find three good posts in this conversation thread", () => {
@@ -123,7 +123,7 @@ describe("identifyPosts - Conversation Threads", () => {
     });
 
     expect(analyses[3]).toEqual({
-      connector: STANDSALONE,
+      connector: INDEPENDENT,
       quality: UNDEFINED,
       reason: "No article found",
       link: false,
@@ -163,7 +163,7 @@ it("should find one problem and one potential problem post", () => {
 
   expect(analyses).toEqual([
     {
-      connector: STARTS, // In a full sample, this would have beeen preceded by DIVIDES and then been STANDSALONE
+      connector: STARTS, // In a full sample, this would have beeen preceded by DIVIDES and then been INDEPENDENT
       quality: PROBLEM,
       reason: "Found notice: this post is unavailable",
       link: "/ajweltytest/status/1901080866002014636",
@@ -233,42 +233,42 @@ it("should find one problem and one potential problem post", () => {
       text: "",
     },
     {
-      connector: STANDSALONE,
+      connector: INDEPENDENT,
       quality: UNDEFINED,
       reason: "No article found",
       link: false,
       text: "",
     },
     {
-      connector: STANDSALONE,
+      connector: INDEPENDENT,
       quality: UNDEFINED,
       reason: "No article found",
       link: false,
       text: "",
     },
     {
-      connector: STANDSALONE,
+      connector: INDEPENDENT,
       quality: UNDEFINED,
       reason: "No article found",
       link: false,
       text: "",
     },
     {
-      connector: STANDSALONE,
+      connector: INDEPENDENT,
       quality: UNDEFINED,
       reason: "No article found",
       link: false,
       text: "",
     },
     {
-      connector: STANDSALONE,
+      connector: INDEPENDENT,
       quality: UNDEFINED,
       reason: "No article found",
       link: false,
       text: "",
     },
     {
-      connector: STANDSALONE,
+      connector: INDEPENDENT,
       quality: UNDEFINED,
       reason: "No article found",
       link: false,
@@ -307,14 +307,14 @@ describe("identifyPosts - Good", () => {
 
     expect(analyses).toEqual([
       {
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895111411140907450",
         text: 'Did you know? Trusting anything less than Jesus will fail you in the end. "To trust Jesus, you must touch Him, and to touch Him, you must know how." - Trusting in Jesus means building your faith with the stewarded knowledge of the New Covenant instead of anything that came',
       },
       {
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895174358902956217",
@@ -377,7 +377,7 @@ describe("identifyPosts - Good", () => {
         text: "I wouldn't say they don't want to. I'm assuming it's difficult for them to address with the current design of their algorithm.",
       },
       {
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895168899793994232",
@@ -452,7 +452,7 @@ describe("identifyPosts - Good", () => {
       text: "",
     });
     expect(analyses[5]).toEqual({
-      connector: STANDSALONE, // Separator
+      connector: INDEPENDENT, // Separator
       quality: UNDEFINED,
       reason: "No article found",
       link: false,
@@ -491,7 +491,7 @@ describe("identifyPosts - Good", () => {
 
     expect(analyses).toEqual([
       {
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1890787999731913068",
@@ -571,7 +571,7 @@ describe("identifyPosts - Good", () => {
 
     expect(analyses).toEqual([
       {
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1898022285140758652",
@@ -614,7 +614,7 @@ describe("identifyPosts - Problems", () => {
 
       expect(analyses).toEqual([
         {
-          connector: STANDSALONE,
+          connector: INDEPENDENT,
           quality: PROBLEM,
           reason: "Found community: 1889908654133911912",
           link: "/ApostleJohnW/status/1898022285140758652",
@@ -628,14 +628,14 @@ describe("identifyPosts - Problems", () => {
           text: "",
         },
         {
-          connector: STANDSALONE,
+          connector: INDEPENDENT,
           quality: GOOD,
           reason: "Looks good",
           link: "/Waqar_sahito01/status/1898023692958843033",
           text: "Checking it out!",
         },
         {
-          connector: STANDSALONE,
+          connector: INDEPENDENT,
           quality: UNDEFINED,
           reason: "No article found",
           link: false,
@@ -676,28 +676,28 @@ describe("identifyPosts - Problems", () => {
 
       expect(analyses).toEqual([
         {
-          connector: STANDSALONE,
+          connector: INDEPENDENT,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1888719160592453713",
           text: "What's the holdup Google? Hop to it! - Gulf of America day today!",
         },
         {
-          connector: STANDSALONE,
+          connector: INDEPENDENT,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1888717684822438329",
           text: "Bravo",
         },
         {
-          connector: STANDSALONE,
+          connector: INDEPENDENT,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1888713602850320746",
           text: "Did you know? Jesus wants to lead you by the hand of His restored apostolic stewardship into experiencing a cleansed conscience and purged soul by learning to keep covenant contact with Him at His altar of holy ordered knowledge. Lasting fellowship with God is found in the",
         },
         {
-          connector: STANDSALONE,
+          connector: INDEPENDENT,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1888712977848656024",
@@ -815,7 +815,7 @@ describe("identifyPosts - Problems", () => {
           text: "She's basically a carry-on",
         },
         {
-          connector: STANDSALONE,
+          connector: INDEPENDENT,
           quality: UNDEFINED,
           reason: "No article found",
           link: false,
@@ -871,7 +871,7 @@ describe("identifyPosts - Problems", () => {
         text: "",
       });
       expect(analyses[2]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1894812853124706554",
@@ -885,7 +885,7 @@ describe("identifyPosts - Problems", () => {
         text: "",
       });
       expect(analyses[4]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/MyBasicFinance/status/1894819472562651293",
@@ -899,7 +899,7 @@ describe("identifyPosts - Problems", () => {
         text: "",
       });
       expect(analyses[6]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/MattZeeMiller/status/1894849813050740802",
@@ -913,7 +913,7 @@ describe("identifyPosts - Problems", () => {
         text: "",
       });
       expect(analyses[8]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/DaytonDan55/status/1894837596963951054",
@@ -927,7 +927,7 @@ describe("identifyPosts - Problems", () => {
         text: "",
       });
       expect(analyses[10]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/YHfLNQEzT942049/status/1894948247187403259",
@@ -941,7 +941,7 @@ describe("identifyPosts - Problems", () => {
         text: "",
       });
       expect(analyses[12]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/daz1985/status/1894834410198835673",
@@ -955,7 +955,7 @@ describe("identifyPosts - Problems", () => {
         text: "",
       });
       expect(analyses[14]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/Harry_Bdict/status/1894810993449955580",
@@ -969,7 +969,7 @@ describe("identifyPosts - Problems", () => {
         text: "",
       });
       expect(analyses[16]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/Harry_Bdict/status/1894810900009201975",
@@ -983,14 +983,14 @@ describe("identifyPosts - Problems", () => {
         text: "",
       });
       expect(analyses[18]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/smokedandsalted/status/1894811105706271142",
         text: "Wow, a lazy Susan",
       });
       expect(analyses[19]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: UNDEFINED,
         reason: "Nothing to measure",
         link: false,
@@ -1044,7 +1044,7 @@ describe("identifyPosts - Problems", () => {
       });
 
       expect(analyses[2]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1117,7 +1117,7 @@ describe("identifyPosts - Problems", () => {
         text: "Fair enough",
       });
       expect(analyses[5]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1230,7 +1230,7 @@ describe("identifyPosts - Problems", () => {
         text: "",
       });
       expect(analyses[2]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1374,7 +1374,7 @@ describe("identifyPosts - Problems", () => {
           text: "",
         },
         {
-          connector: STANDSALONE,
+          connector: INDEPENDENT,
           quality: GOOD,
           reason: "Looks good",
           link: "/BarbieTrueBlue/status/1886211137961680919",
@@ -1429,7 +1429,7 @@ describe("identifyPosts - Problems", () => {
           text: "",
         },
         {
-          connector: STANDSALONE,
+          connector: INDEPENDENT,
           quality: GOOD,
           reason: "Looks good",
           link: "/BarbieTrueBlue/status/1886211137961680919",
@@ -1836,7 +1836,7 @@ describe("identifyPosts - Potential Problems", () => {
       });
 
       expect(analyses[11]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1890226210656968925",
@@ -1884,7 +1884,7 @@ describe("identifyPosts - Potential Problems", () => {
       });
 
       expect(analyses[17]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1890201310458216496",
@@ -2111,7 +2111,7 @@ describe("identifyPosts - Potential Problems", () => {
       });
 
       expect(analyses[7]).toEqual({
-        connector: STANDSALONE, // Community post
+        connector: INDEPENDENT, // Community post
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1890477786164318696",
@@ -2119,7 +2119,7 @@ describe("identifyPosts - Potential Problems", () => {
       });
 
       expect(analyses[8]).toEqual({
-        connector: STANDSALONE, // Community post
+        connector: INDEPENDENT, // Community post
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1890477475659927947",
@@ -2157,7 +2157,7 @@ describe("identifyPosts - Potential Problems", () => {
       );
 
       expect(analyses[0]).toEqual({
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1897284088387535306",
@@ -2512,14 +2512,14 @@ It's just generally annoying to go into something not knowing`,
           text: "Here's a link to the help page:",
         },
         {
-          connector: STANDSALONE,
+          connector: INDEPENDENT,
           link: "/ApostleJohnW/status/1878503164703379943",
           quality: GOOD,
           reason: "Looks good",
           text: 'If you already have 𝕏 Premium or Premium+, be sure to check out the benefits of 𝕏 Pro: From the Help Site on "How to use X Pro" X Pro offers a more convenient X experience by letting you view multiple timelines in one easy interface. It includes a host of advanced features to',
         },
         {
-          connector: STANDSALONE,
+          connector: INDEPENDENT,
           link: "/ApostleJohnW/status/1878492936129650980",
           quality: GOOD,
           reason: "Looks good",
@@ -2534,7 +2534,7 @@ It's just generally annoying to go into something not knowing`,
           text: "For more information about the warning provided by God through Enoch concerning the independent ministries (fake church) of the 6th Week of Darkness:",
         },
         {
-          connector: STANDSALONE,
+          connector: INDEPENDENT,
           link: "/ApostleJohnW/status/1878432165748220160",
           quality: GOOD,
           reason: "Looks good",
@@ -2584,14 +2584,14 @@ describe("identifyPosts - Problems and Potential Problems", () => {
 
     expect(analyses).toEqual([
       {
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/catturd2/status/1886191961670893917",
         text: "Sounds like a lineup of the losers who were paid to support Kamala but had zero influence.",
       },
       {
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/catturd2/status/1886191251562606816",
@@ -2606,21 +2606,21 @@ describe("identifyPosts - Problems and Potential Problems", () => {
         text: "Meanwhile, Thune takes a three day weekend off.",
       },
       {
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: PROBLEM,
         reason: "Found notice: this post is unavailable",
         link: "/catturd2/status/1886188210524438792",
         text: "They seem nice. https:// /ObjectLockdown/status/1884671499078164795 …",
       },
       {
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/catturd2/status/1886186665342849268",
         text: "This is what I voted for.",
       },
       {
-        connector: STANDSALONE,
+        connector: INDEPENDENT,
         quality: GOOD,
         reason: "Looks good",
         link: "/catturd2/status/1886185480791744705",

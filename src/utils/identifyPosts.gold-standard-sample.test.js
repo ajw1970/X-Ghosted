@@ -8,7 +8,7 @@ test("identifyPosts classifies posts", () => {
   // Same sample used in src/xGhosted.test.js
   loadHTML("samples/ajweltytest-with-replies-april-21-2025.html");
   const { GOOD, PROBLEM, POTENTIAL_PROBLEM, DIVIDER, UNDEFINED } = postQuality;
-  const { DIVIDES, STANDSALONE, STARTS, CONTINUES, DANGLES } = postConnector;
+  const { DIVIDES, INDEPENDENT, STARTS, CONTINUES, DANGLES } = postConnector;
   const analyses = identifyPosts(document);
 
   var description = describeSampleAnalyses(document, analyses);
@@ -58,7 +58,7 @@ test("identifyPosts classifies posts", () => {
       text: "I feel like this needs another reply",
     },
     {
-      connector: STANDSALONE, // Profile user repost "This post is unavailable"
+      connector: INDEPENDENT, // Profile user repost "This post is unavailable"
       quality: PROBLEM,
       reason: "Found notice: this post is unavailable",
       link: "/ajweltytest/status/1901080866002014636",

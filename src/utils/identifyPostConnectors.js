@@ -19,7 +19,7 @@ const SELECTORS = {
 function getConnectorName(connector) {
   if (!connector) return "none";
   if (connector === postConnector.DIVIDES) return "DIVIDES";
-  if (connector === postConnector.STANDSALONE) return "STANDSALONE";
+  if (connector === postConnector.INDEPENDENT) return "INDEPENDENT";
   if (connector === postConnector.STARTS) return "STARTS";
   if (connector === postConnector.CONTINUES) return "CONTINUES";
   if (connector === postConnector.DANGLES) return "DANGLES";
@@ -58,7 +58,8 @@ function identifyPostConnectors(
   }
 
   // Check for community context
-  const hasCommunityContext = post.querySelector(SELECTORS.COMMUNITY_CONTEXT) !== null;
+  const hasCommunityContext =
+    post.querySelector(SELECTORS.COMMUNITY_CONTEXT) !== null;
 
   // Check for indentation, excluding community context
   const hasIndent = hasIndentation(post, hasCommunityContext);
@@ -74,8 +75,8 @@ function identifyPostConnectors(
     return postConnector.DANGLES;
   }
 
-  logger("Returning STANDSALONE: default case");
-  return postConnector.STANDSALONE;
+  logger("Returning INDEPENDENT: default case");
+  return postConnector.INDEPENDENT;
 }
 
 /**
@@ -95,7 +96,9 @@ function hasVerticalLine(post) {
  */
 function hasIndentation(post, hasCommunityContext) {
   const container = post.querySelector(SELECTORS.CONTAINER);
-  return container?.querySelector(SELECTORS.INDENTATION) && !hasCommunityContext;
+  return (
+    container?.querySelector(SELECTORS.INDENTATION) && !hasCommunityContext
+  );
 }
 
 /**
@@ -118,7 +121,9 @@ function classifyVerticalLinePost(post, quality, logger) {
   const isReply = post.querySelector(SELECTORS.REPLY_INDICATOR) !== null;
 
   if (isReply || quality === postQuality.UNDEFINED) {
-    logger("Returning CONTINUES: has vertical lines with reply indicator or undefined quality");
+    logger(
+      "Returning CONTINUES: has vertical lines with reply indicator or undefined quality"
+    );
     return postConnector.CONTINUES;
   }
 
@@ -134,13 +139,18 @@ function classifyVerticalLinePost(post, quality, logger) {
  * @returns {postConnector}
  */
 function classifyPlaceholderPost(previousPostConnector, hasIndent, logger) {
-  if (!hasIndent && (!previousPostConnector || previousPostConnector === postConnector.DIVIDES)) {
-    logger("Returning STARTS: placeholder with no indent and no/divider previous connector");
+  if (
+    !hasIndent &&
+    (!previousPostConnector || previousPostConnector === postConnector.DIVIDES)
+  ) {
+    logger(
+      "Returning STARTS: placeholder with no indent and no/divider previous connector"
+    );
     return postConnector.STARTS;
   }
 
-  logger("Returning STANDSALONE: placeholder default");
-  return postConnector.STANDSALONE;
+  logger("Returning INDEPENDENT: placeholder default");
+  return postConnector.INDEPENDENT;
 }
 
 export { identifyPostConnectors };

@@ -3,7 +3,6 @@ import { identifyPosts } from "./identifyPosts";
 import { describeSampleAnalyses } from "./describeSampleAnalyses";
 import { postConnector } from "./postConnector";
 import { test } from "vitest";
-import { summarizeConnectedPosts } from "./summarizeConnectedPosts";
 
 test("identifyPosts classifies posts", () => {
   // Same sample used in src/xGhosted.test.js
