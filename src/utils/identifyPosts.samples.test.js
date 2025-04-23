@@ -1567,7 +1567,6 @@ describe("identifyPosts - Problems", () => {
         text: "Fact check: True https:// /FLALoudMouth/status/1900310585377423798 …",
       });
       expect(analyses[14]).toEqual({
-        connector: STANDSALONE,
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
