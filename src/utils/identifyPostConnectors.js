@@ -42,12 +42,12 @@ function identifyPostConnectors(
   }
 
   const container = post.querySelector(".r-18u37iz");
-  if (!container) {
-    logger(
-      "identifyPostConnectors returning STANDSALONE due to missing container"
-    );
-    return STANDSALONE;
-  }
+  // if (!container) {
+  //   logger(
+  //     "identifyPostConnectors returning STANDSALONE due to missing container"
+  //   );
+  //   return STANDSALONE;
+  // }
 
   // Check for community context
   const hasCommunityContext =
@@ -68,25 +68,25 @@ function identifyPostConnectors(
   const hasNestedPost =
     post.querySelector('[data-testid="tweetText"] ~ [role="article"]') !== null;
 
-  // Posts with community context and no reply start a conversation
-  if (hasCommunityContext && !isReply && !isPlaceholder) {
-    if (hasLines) {
-      logger(
-        "identifyPostConnectors returning STARTS due to community context with lines"
-      );
-      return STARTS;
-    }
-    logger(
-      "identifyPostConnectors returning STANDSALINE due to community context without lines"
-    );
-    return STANDSALONE;
-  }
+  // // Posts with community context and no reply start a conversation
+  // if (hasCommunityContext && !isReply && !isPlaceholder) {
+  //   if (hasLines) {
+  //     logger(
+  //       "identifyPostConnectors returning STARTS due to community context with lines"
+  //     );
+  //     return STARTS;
+  //   }
+  //   logger(
+  //     "identifyPostConnectors returning STANDSALINE due to community context without lines"
+  //   );
+  //   return STANDSALONE;
+  // }
 
-  // Posts with a nested post, no indentation, and not a reply start a conversation
-  if (hasNestedPost && !hasIndentation && !isReply && !isPlaceholder) {
-    logger("identifyPostConnectors returning STARTS due to nested post");
-    return STARTS;
-  }
+  // // Posts with a nested post, no indentation, and not a reply start a conversation
+  // if (hasNestedPost && !hasIndentation && !isReply && !isPlaceholder) {
+  //   logger("identifyPostConnectors returning STARTS due to nested post");
+  //   return STARTS;
+  // }
 
   // Handle placeholder posts that might be parents
   if (!hasLines && isPlaceholder && !hasIndentation) {
@@ -102,19 +102,19 @@ function identifyPostConnectors(
     return DANGLES;
   }
 
-  // Otherwise, it's a disconnected post
-  if (
-    previousPostConnector &&
-    (previousPostConnector === STARTS || previousPostConnector === CONTINUES)
-  ) {
-    logger(
-      `identifyPostConnectors returning based on previous post connector ${previousPostConnector.name}`
-    );
-    return CONTINUES;
-  }
+  // // Otherwise, it's a disconnected post
+  // if (
+  //   previousPostConnector &&
+  //   (previousPostConnector === STARTS || previousPostConnector === CONTINUES)
+  // ) {
+  //   logger(
+  //     `identifyPostConnectors returning based on previous post connector ${previousPostConnector.name}`
+  //   );
+  //   return CONTINUES;
+  // }
 
-  logger("identifyPostConnectors returning STANDSALONE as default case");
-  return STANDSALONE;
+  // logger("identifyPostConnectors returning STANDSALONE as default case");
+  // return STANDSALONE;
 }
 
 export { identifyPostConnectors };

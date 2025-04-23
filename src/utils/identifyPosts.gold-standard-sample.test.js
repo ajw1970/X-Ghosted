@@ -43,21 +43,21 @@ test("identifyPosts classifies posts", () => {
       text: "",
     },
     {
-      connector: STARTS,
+      connector: STARTS, // Other user post
       quality: GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1899820744072110204",
       text: "Test post #2 for",
     },
     {
-      connector: CONTINUES,
+      connector: CONTINUES, // Profile user reply
       quality: GOOD,
       reason: "Looks good",
       link: "/ajweltytest/status/1909349357331304643",
       text: "I feel like this needs another reply",
     },
     {
-      connector: STANDSALONE,
+      connector: STANDSALONE, // Profile user repost "This post is unavailable"
       quality: PROBLEM,
       reason: "Found notice: this post is unavailable",
       link: "/ajweltytest/status/1901080866002014636",
@@ -71,7 +71,7 @@ test("identifyPosts classifies posts", () => {
       text: "",
     },
     {
-      connector: DANGLES,
+      connector: DANGLES, // Profile user dangling reply to other user
       quality: POTENTIAL_PROBLEM,
       reason: "Found: 'Replying to <a>@ApostleJohnW</a>' at a depth of 6",
       link: "/ajweltytest/status/1899820959197995180",
@@ -85,7 +85,7 @@ test("identifyPosts classifies posts", () => {
       text: "",
     },
     {
-      connector: DANGLES,
+      connector: DANGLES, // Profile user dangling reply to other user
       quality: POTENTIAL_PROBLEM,
       reason: "Found: 'Replying to <a>@ApostleJohnW</a>' at a depth of 6",
       link: "/ajweltytest/status/1899820920266535120",
@@ -99,14 +99,14 @@ test("identifyPosts classifies posts", () => {
       text: "",
     },
     {
-      connector: STARTS,
+      connector: STARTS, // Community Post
       quality: GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1895367468908192087",
       text:  "What do you think—good or bad? I had Grok-3 whip up an image of me styled as a Mandalorian, complete with my helmet beside me.",
     },
     {
-      connector: CONTINUES,
+      connector: CONTINUES, // Community Post reply
       quality: GOOD,
       reason: "Looks good",
       link: "/ajweltytest/status/1895407388871798985",
