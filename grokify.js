@@ -30,38 +30,45 @@ async function generateGrokPrompt(inputPatterns, outputDir = 'grok', outputFileN
     console.log('Processing the following input files:');
     inputFiles.forEach(file => console.log(`- ${file}`));
 
-    // Add initial files as dependencies
+    // Separate JavaScript and HTML files
+    const jsFiles = inputFiles.filter(file => file.endsWith('.js') || file.endsWith('.ts'));
+    const htmlFiles = inputFiles.filter(file => file.endsWith('.html'));
+
+    // Add all input files as dependencies
     inputFiles.forEach(file => {
         const relativePath = relative(process.cwd(), resolve(file));
         dependencies.add(relativePath);
     });
 
-    // Use esbuild to collect dependencies via metafile
-    const result = await build({
-        entryPoints: inputFiles,
-        bundle: true, // Required to trace dependencies
-        write: false, // Don’t write output files
-        metafile: true, // Generate dependency metadata
-        outdir: 'grok/dummy', // Dummy directory, not actually used
-        platform: 'node', // Treat as Node.js environment
-        format: 'esm', // Use ESM format to support import.meta
-        external: [
-            // Node.js built-ins
-            'fs', 'path', 'events', 'net', 'tls', 'url', 'util', 'stream',
-            // External modules from node_modules
-            'esbuild', 'glob', 'jsdom', '@jest/globals'
-        ], // Exclude built-ins and node_modules, but not local files
-        logLevel: 'info', // Show resolution details for debugging
-    });
+    // Process JavaScript files with esbuild for dependency tracing
+    if (jsFiles.length > 0) {
+        try {
+            const result = await build({
+                entryPoints: jsFiles,
+                bundle: true,
+                write: false,
+                metafile: true,
+                outdir: 'grok/dummy',
+                platform: 'node',
+                format: 'esm',
+                external: [
+                    'fs', 'path', 'events', 'net', 'tls', 'url', 'util', 'stream',
+                    'esbuild', 'glob', 'jsdom', '@jest/globals'
+                ],
+                logLevel: 'info',
+            });
 
-    // Debug: Log metafile inputs to see what esbuild resolved
-    console.log('Metafile inputs:', Object.keys(result.metafile.inputs));
+            console.log('Metafile inputs:', Object.keys(result.metafile.inputs));
 
-    // Extract dependencies from metafile, filtering out node_modules
-    for (const file in result.metafile.inputs) {
-        const relativePath = relative(process.cwd(), resolve(file));
-        if (!relativePath.startsWith('node_modules/')) {
-            dependencies.add(relativePath);
+            // Extract dependencies from metafile, excluding node_modules
+            for (const file in result.metafile.inputs) {
+                const relativePath = relative(process.cwd(), resolve(file));
+                if (!relativePath.startsWith('node_modules/')) {
+                    dependencies.add(relativePath);
+                }
+            }
+        } catch (error) {
+            console.error('esbuild failed for JavaScript files:', error.message);
         }
     }
 
