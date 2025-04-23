@@ -24,6 +24,7 @@ describe("identifyPosts - Conversation Threads", () => {
         "   3 Good",
         "   0 Potential Problem",
         "   0 Problem",
+        "   0 Invisible Divider",
         "   1 Undefined Container",
         "",
         "Post Connections Totals:",
@@ -40,6 +41,7 @@ describe("identifyPosts - Conversation Threads", () => {
       quality: GOOD,
       reason: "Looks good",
       link: "/monetization_x/status/1913663906209206751",
+      text: "Subscribers - I have some extra time available for a bit. What can I help you with? Questions? Profile reviews? Posts you think I might like to quote repost?",
     });
 
     expect(analyses[1]).toEqual({
@@ -47,6 +49,7 @@ describe("identifyPosts - Conversation Threads", () => {
       quality: UNDEFINED,
       reason: "No article found",
       link: false,
+      text: "",
     });
 
     expect(analyses[2]).toEqual({
@@ -54,6 +57,7 @@ describe("identifyPosts - Conversation Threads", () => {
       quality: GOOD,
       reason: "Looks good",
       link: "/james_xond/status/1913865472275005708",
+      text: "Hopefully the plans are promising and they fix things for the legit ones",
     });
 
     expect(analyses[3]).toEqual({
@@ -61,6 +65,7 @@ describe("identifyPosts - Conversation Threads", () => {
       quality: GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1913882293850067050",
+      text: "Indeed. I've been on this platform since 2009, and I'm staying either way.",
     });
 
     document.documentElement.innerHTML = "";
@@ -81,6 +86,7 @@ describe("identifyPosts - Conversation Threads", () => {
         "   2 Good", // should be 0
         "   0 Potential Problem",
         "   1 Problem", // should be 3
+        "   0 Invisible Divider",
         "   1 Undefined Container",
         "",
         "Post Connections Totals:",
@@ -143,12 +149,13 @@ it("should find one problem and one potential problem post", () => {
       "   4 Good",
       "   1 Potential Problem",
       "   1 Problem",
-      "  10 Undefined Container",
+      "   4 Invisible Divider",
+      "   6 Undefined Container",
       "",
       "Post Connections Totals:",
       "   4 Invisibly Dividing",
-      "   7 Standing Alone",
-      "   2 Starting",
+      "   6 Standing Alone",
+      "   3 Starting",
       "   2 Continuing",
       "   1 Dangling",
     ].join("\n")
@@ -156,14 +163,15 @@ it("should find one problem and one potential problem post", () => {
 
   expect(analyses).toEqual([
     {
-      connector: STARTS,
+      connector: STARTS, // In a full sample, this would have beeen preceded by DIVIDES and then been STANDSALONE
       quality: PROBLEM,
       reason: "Found notice: this post is unavailable",
       link: "/ajweltytest/status/1901080866002014636",
+      text: "Tested https:// /ApostleJohnW/status/1901080737941467534 …",
     },
     {
       connector: DIVIDES,
-      quality: UNDEFINED,
+      quality: DIVIDER,
       reason: "Invisible Divider Between Post Collections",
       link: false,
       text: "",
@@ -173,16 +181,18 @@ it("should find one problem and one potential problem post", () => {
       quality: GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1899820744072110204",
+      text: "Test post #2 for",
     },
     {
       connector: CONTINUES,
       quality: GOOD,
       reason: "Looks good",
       link: "/ajweltytest/status/1899820959197995180",
+      text: "Test reply to 2nd test post",
     },
     {
       connector: DIVIDES,
-      quality: UNDEFINED,
+      quality: DIVIDER,
       reason: "Invisible Divider Between Post Collections",
       link: false,
       text: "",
@@ -192,10 +202,11 @@ it("should find one problem and one potential problem post", () => {
       quality: POTENTIAL_PROBLEM,
       reason: "Found: 'Replying to <a>@ApostleJohnW</a>' at a depth of 6",
       link: "/ajweltytest/status/1899820920266535120",
+      text: "Test reply to first test post",
     },
     {
       connector: DIVIDES,
-      quality: UNDEFINED,
+      quality: DIVIDER,
       reason: "Invisible Divider Between Post Collections",
       link: false,
       text: "",
@@ -205,59 +216,61 @@ it("should find one problem and one potential problem post", () => {
       quality: GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1895367468908192087",
+      text: "What do you think—good or bad? I had Grok-3 whip up an image of me styled as a Mandalorian, complete with my helmet beside me.",
     },
     {
       connector: CONTINUES,
       quality: GOOD,
       reason: "Looks good",
       link: "/ajweltytest/status/1895407388871798985",
+      text: "This is a great Avi for my test account.",
     },
     {
       connector: DIVIDES,
-      quality: UNDEFINED,
+      quality: DIVIDER,
       reason: "Invisible Divider Between Post Collections",
       link: false,
       text: "",
     },
     {
-      connector: DIVIDES,
+      connector: STANDSALONE,
       quality: UNDEFINED,
-      reason: "Invisible Divider Between Post Collections",
+      reason: "No article found",
       link: false,
       text: "",
     },
     {
-      connector: DIVIDES,
+      connector: STANDSALONE,
       quality: UNDEFINED,
-      reason: "Invisible Divider Between Post Collections",
+      reason: "No article found",
       link: false,
       text: "",
     },
     {
-      connector: DIVIDES,
+      connector: STANDSALONE,
       quality: UNDEFINED,
-      reason: "Invisible Divider Between Post Collections",
+      reason: "No article found",
       link: false,
       text: "",
     },
     {
-      connector: DIVIDES,
+      connector: STANDSALONE,
       quality: UNDEFINED,
-      reason: "Invisible Divider Between Post Collections",
+      reason: "No article found",
       link: false,
       text: "",
     },
     {
-      connector: DIVIDES,
+      connector: STANDSALONE,
       quality: UNDEFINED,
-      reason: "Invisible Divider Between Post Collections",
+      reason: "No article found",
       link: false,
       text: "",
     },
     {
-      connector: DIVIDES,
+      connector: STANDSALONE,
       quality: UNDEFINED,
-      reason: "Invisible Divider Between Post Collections",
+      reason: "No article found",
       link: false,
       text: "",
     },
@@ -280,13 +293,14 @@ describe("identifyPosts - Good", () => {
         "   8 Good",
         "   0 Potential Problem",
         "   0 Problem",
-        "   3 Undefined Container",
+        "   2 Invisible Divider",
+        "   1 Undefined Container",
         "",
         "Post Connections Totals:",
         "   2 Invisibly Dividing",
-        "   0 Standing Alone",
-        "   4 Starting",
-        "   5 Continuing",
+        "   3 Standing Alone",
+        "   2 Starting",
+        "   4 Continuing",
         "   0 Dangling",
       ].join("\n")
     );
@@ -297,66 +311,77 @@ describe("identifyPosts - Good", () => {
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895111411140907450",
+        text: 'Did you know? Trusting anything less than Jesus will fail you in the end. "To trust Jesus, you must touch Him, and to touch Him, you must know how." - Trusting in Jesus means building your faith with the stewarded knowledge of the New Covenant instead of anything that came',
       },
       {
         connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895174358902956217",
+        text: "Amen Apostle Eric. Praise God",
       },
       {
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       },
       {
         connector: STARTS,
         quality: GOOD,
         reason: "Looks good",
         link: "/buymeacoffee/status/1895088351235187111",
+        text: 'GIVEAWAY 1 winner. 5 coffees. Like & repost + drop a " " in the replies. Picking someone soon.',
       },
       {
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895172905203589591",
+        text: "While we wait for a winner, consider buying super supportive a coffee or two (in her profile linktree).",
       },
       {
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       },
       {
         connector: STARTS,
         quality: GOOD,
         reason: "Looks good",
         link: "/monetization_x/status/1894962473914298538",
+        text: "If your reach suddenly drops, it’s possible one of your regular connections was suspended and now all those orphaned replies are dragging down your reach. In most cases, if you know which of your friends was suspended, you can just search for all replies you made to them and",
       },
       {
         connector: CONTINUES,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
+        text: "",
       },
       {
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/tahreem57/status/1894971735172149613",
+        text: "Great It's so weird that X doesn't want to rectify it",
       },
       {
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895169898252509372",
+        text: "I wouldn't say they don't want to. I'm assuming it's difficult for them to address with the current design of their algorithm.",
       },
       {
         connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895168899793994232",
+        text: "This is a helpful post from Monetization Coach",
       },
     ]);
 
@@ -378,12 +403,13 @@ describe("identifyPosts - Good", () => {
         "   3 Good",
         "   0 Potential Problem",
         "   0 Problem",
-        "   3 Undefined Container",
+        "   1 Invisible Divider",
+        "   2 Undefined Container",
         "",
         "Post Connections Totals:",
         "   1 Invisibly Dividing",
-        "   2 Standing Alone",
-        "   1 Starting",
+        "   1 Standing Alone",
+        "   2 Starting",
         "   2 Continuing",
         "   0 Dangling",
       ].join("\n")
@@ -394,6 +420,7 @@ describe("identifyPosts - Good", () => {
       quality: GOOD,
       reason: "Looks good",
       link: "/Eddie_1X/status/1881836273264103665",
+      text: 'Greg Gutfeld rips Jessica Tarlov and I\'m here for it "Trump did more in a day than what Biden did in his damn career!"',
     });
 
     expect(analyses[1]).toEqual({
@@ -401,10 +428,11 @@ describe("identifyPosts - Good", () => {
       quality: GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1881841967291928947",
+      text: 'Spot on! "The fact is the system is being gamed." - Greg Gutfeld',
     });
     expect(analyses[2]).toEqual({
       connector: DIVIDES,
-      quality: UNDEFINED,
+      quality: DIVIDER,
       reason: "Invisible Divider Between Post Collections",
       link: false,
       text: "",
@@ -414,18 +442,21 @@ describe("identifyPosts - Good", () => {
       quality: GOOD,
       reason: "Looks good",
       link: "/Eddie_1X/status/1881843269208093033",
+      text: "100%. Gutfeld nailed it.",
     });
     expect(analyses[4]).toEqual({
       connector: CONTINUES,
       quality: UNDEFINED,
       reason: "No article found",
       link: false,
+      text: "",
     });
     expect(analyses[5]).toEqual({
       connector: STANDSALONE, // Separator
       quality: UNDEFINED,
       reason: "No article found",
       link: false,
+      text: "",
     });
 
     document.documentElement.innerHTML = "";
@@ -446,6 +477,7 @@ describe("identifyPosts - Good", () => {
         "   1 Good",
         "   0 Potential Problem",
         "   0 Problem",
+        "   0 Invisible Divider",
         "   0 Undefined Container",
         "",
         "Post Connections Totals:",
@@ -463,6 +495,7 @@ describe("identifyPosts - Good", () => {
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1890787999731913068",
+        text: "What do you all think? Would you like to hear more from on the vision and direction of 𝕏?",
       },
     ]);
 
@@ -484,12 +517,13 @@ describe("identifyPosts - Good", () => {
         "   1 Good",
         "   0 Potential Problem",
         "   0 Problem",
+        "   0 Invisible Divider",
         "   0 Undefined Container",
         "",
         "Post Connections Totals:",
         "   0 Invisibly Dividing",
-        "   1 Standing Alone",
-        "   0 Starting",
+        "   0 Standing Alone",
+        "   1 Starting", // this is a single post div without any parent container or reply but it does have the vertical line
         "   0 Continuing",
         "   0 Dangling",
       ].join("\n")
@@ -501,6 +535,7 @@ describe("identifyPosts - Good", () => {
         quality: GOOD,
         reason: "Looks good",
         link: "/TRHLofficial/status/1890488779200135602",
+        text: "Happy Valentine’s Day. I thirst for you like the Tree of Liberty thirsts for the blood of tyrants",
       },
     ]);
 
@@ -522,13 +557,14 @@ describe("identifyPosts - Good", () => {
         "   1 Good",
         "   0 Potential Problem",
         "   0 Problem",
+        "   0 Invisible Divider",
         "   0 Undefined Container",
         "",
         "Post Connections Totals:",
         "   0 Invisibly Dividing",
-        "   0 Standing Alone",
-        "   1 Starting",
-        "   0 Continuing", // feels wrong
+        "   1 Standing Alone",
+        "   0 Starting",
+        "   0 Continuing",
         "   0 Dangling",
       ].join("\n")
     );
@@ -539,6 +575,7 @@ describe("identifyPosts - Good", () => {
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1898022285140758652",
+        text: "ICYMI - Short Video Drop from Apostle Eric vonAnderseck",
       },
     ]);
 
@@ -563,7 +600,8 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   2 Undefined Container",
+          "   1 Invisible Divider",
+          "   1 Undefined Container",
           "",
           "Post Connections Totals:",
           "   1 Invisibly Dividing",
@@ -584,7 +622,7 @@ describe("identifyPosts - Problems", () => {
         },
         {
           connector: DIVIDES,
-          quality: UNDEFINED,
+          quality: DIVIDER,
           reason: "Invisible Divider Between Post Collections",
           link: false,
           text: "",
@@ -594,7 +632,7 @@ describe("identifyPosts - Problems", () => {
           quality: GOOD,
           reason: "Looks good",
           link: "/Waqar_sahito01/status/1898023692958843033",
-          link: "Checking it out!",
+          text: "Checking it out!",
         },
         {
           connector: STANDSALONE,
@@ -624,6 +662,7 @@ describe("identifyPosts - Problems", () => {
           "   4 Good",
           "   0 Potential Problem",
           "   0 Problem",
+          "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
           "Post Connections Totals:",
@@ -686,13 +725,14 @@ describe("identifyPosts - Problems", () => {
           "   3 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
           "Post Connections Totals:",
           "   0 Invisibly Dividing",
-          "   1 Standing Alone",
-          "   0 Starting",
-          "   3 Continuing", // This can't be right
+          "   0 Standing Alone",
+          "   1 Starting",
+          "   3 Continuing",
           "   0 Dangling",
         ].join("\n")
       );
@@ -746,6 +786,7 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   0 Invisible Divider",
           "   1 Undefined Container",
           "",
           "Post Connections Totals:",
@@ -802,19 +843,20 @@ describe("identifyPosts - Problems", () => {
           "   9 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "  10 Undefined Container",
+          "   9 Invisible Divider",
+          "   1 Undefined Container",
           "",
           "Post Connections Totals:",
           "   9 Invisibly Dividing",
-          "  11 Standing Alone",
-          "   0 Starting",
+          "  10 Standing Alone",
+          "   1 Starting",
           "   0 Continuing",
           "   0 Dangling",
         ].join("\n")
       );
 
       expect(analyses[0]).toEqual({
-        connector: STANDSALONE,
+        connector: STARTS, // returning STARTS due to placeholder post and previous post connector false - sample missed preceding DIV
         quality: PROBLEM,
         reason:
           "Found notice: this media has been disabled in response to a report by the copyright owner",
@@ -822,118 +864,137 @@ describe("identifyPosts - Problems", () => {
         text: "The infinity drawer!",
       });
       expect(analyses[1]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[2]).toEqual({
         connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1894812853124706554",
+        text: "The new Lazy Susan!",
       });
       expect(analyses[3]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[4]).toEqual({
         connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/MyBasicFinance/status/1894819472562651293",
+        text: "Very cool drawer.",
       });
       expect(analyses[5]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[6]).toEqual({
         connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/MattZeeMiller/status/1894849813050740802",
+        text: "Wanna ride in that infinity draw looks fun",
       });
       expect(analyses[7]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[8]).toEqual({
         connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/DaytonDan55/status/1894837596963951054",
+        text: "Also called a lazy susan",
       });
       expect(analyses[9]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[10]).toEqual({
         connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/YHfLNQEzT942049/status/1894948247187403259",
+        text: "素晴らしい 無駄が無くて、美しい",
       });
       expect(analyses[11]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[12]).toEqual({
         connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/daz1985/status/1894834410198835673",
+        text: "I like it",
       });
       expect(analyses[13]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[14]).toEqual({
         connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/Harry_Bdict/status/1894810993449955580",
+        text: "Lmfao this is something bank system lacks",
       });
       expect(analyses[15]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[16]).toEqual({
         connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/Harry_Bdict/status/1894810900009201975",
+        text: "This mind blowing, you could hide a bank asset there",
       });
       expect(analyses[17]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[18]).toEqual({
         connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/smokedandsalted/status/1894811105706271142",
+        text: "Wow, a lazy Susan",
       });
       expect(analyses[19]).toEqual({
         connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "Nothing to measure",
         link: false,
+        text: "",
       });
 
       document.documentElement.innerHTML = "";
@@ -954,13 +1015,14 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   0 Invisible Divider",
           "   1 Undefined Container",
           "",
           "Post Connections Totals:",
           "   0 Invisibly Dividing",
-          "   2 Standing Alone",
-          "   0 Starting",
-          "   1 Continuing", // This can't be right
+          "   1 Standing Alone",
+          "   1 Starting",
+          "   1 Continuing",
           "   0 Dangling",
         ].join("\n")
       );
@@ -978,6 +1040,7 @@ describe("identifyPosts - Problems", () => {
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1882615672984969338",
+        text: "What happens when we repost subscription content? Teaser posts?",
       });
 
       expect(analyses[2]).toEqual({
@@ -985,6 +1048,7 @@ describe("identifyPosts - Problems", () => {
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
+        text: "",
       });
 
       document.documentElement.innerHTML = "";
@@ -1005,13 +1069,14 @@ describe("identifyPosts - Problems", () => {
           "   2 Good",
           "   0 Potential Problem",
           "   2 Problem",
-          "   2 Undefined Container",
+          "   1 Invisible Divider",
+          "   1 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   0 Invisibly Dividing",
-          "   2 Standing Alone",
+          "   1 Invisibly Dividing",
+          "   1 Standing Alone",
           "   2 Starting",
-          "   2 Continuing", // This can't be right
+          "   2 Continuing",
           "   0 Dangling",
         ].join("\n")
       );
@@ -1028,30 +1093,35 @@ describe("identifyPosts - Problems", () => {
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1883292681188917450",
+        text: "Kristi Noem already is DHS Secretary.",
       });
       expect(analyses[2]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[3]).toEqual({
         connector: STARTS,
         quality: PROBLEM,
         reason: "Found notice: you're unable to view this post",
         link: false,
+        text: "",
       });
       expect(analyses[4]).toEqual({
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1883293430052430332",
+        text: "Fair enough",
       });
       expect(analyses[5]).toEqual({
         connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
+        text: "",
       });
 
       document.documentElement.innerHTML = "";
@@ -1072,6 +1142,7 @@ describe("identifyPosts - Problems", () => {
           "   3 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
           "Post Connections Totals:",
@@ -1132,11 +1203,12 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   0 Invisible Divider",
           "   1 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   1 Invisibly Dividing",
-          "   0 Standing Alone",
+          "   0 Invisibly Dividing",
+          "   1 Standing Alone",
           "   1 Starting",
           "   1 Continuing", // This can't be right
           "   0 Dangling",
@@ -1155,9 +1227,10 @@ describe("identifyPosts - Problems", () => {
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1884566696322592842",
+        text: "",
       });
       expect(analyses[2]).toEqual({
-        connector: DIVIDES,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1185,12 +1258,13 @@ describe("identifyPosts - Problems", () => {
           "   0 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
           "Post Connections Totals:",
           "   0 Invisibly Dividing",
-          "   1 Standing Alone",
-          "   0 Starting",
+          "   0 Standing Alone",
+          "   1 Starting",
           "   0 Continuing",
           "   0 Dangling",
         ].join("\n")
@@ -1202,7 +1276,7 @@ describe("identifyPosts - Problems", () => {
 
       expect(analyses).toEqual([
         {
-          connector: STANDSALONE,
+          connector: STARTS,
           quality: PROBLEM,
           reason: "Found notice: this post is unavailable",
           link: "/OwenGregorian/status/1896977661144260900",
@@ -1231,12 +1305,13 @@ describe("identifyPosts - Problems", () => {
           "   0 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
           "Post Connections Totals:",
           "   0 Invisibly Dividing",
-          "   1 Standing Alone",
-          "   0 Starting",
+          "   0 Standing Alone",
+          "   1 Starting",
           "   0 Continuing",
           "   0 Dangling",
         ].join("\n")
@@ -1244,7 +1319,7 @@ describe("identifyPosts - Problems", () => {
 
       expect(analyses).toEqual([
         {
-          connector: STANDSALONE,
+          connector: STARTS,
           quality: PROBLEM,
           reason: "Found notice: this post is unavailable",
           link: "/OwenGregorian/status/1896977661144260900",
@@ -1271,12 +1346,13 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   1 Undefined Container",
+          "   1 Invisible Divider",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
           "   1 Invisibly Dividing",
-          "   2 Standing Alone",
-          "   0 Starting",
+          "   1 Standing Alone",
+          "   1 Starting",
           "   0 Continuing",
           "   0 Dangling",
         ].join("\n")
@@ -1284,7 +1360,7 @@ describe("identifyPosts - Problems", () => {
 
       expect(analyses).toEqual([
         {
-          connector: STARTS,
+          connector: STARTS, // returning STARTS due to placeholder post and previous post connector false
           quality: PROBLEM,
           reason: "Found notice: this post is unavailable",
           link: "/catturd2/status/1886210678752518230",
@@ -1292,7 +1368,7 @@ describe("identifyPosts - Problems", () => {
         },
         {
           connector: DIVIDES,
-          quality: UNDEFINED,
+          quality: DIVIDER,
           reason: "Invisible Divider Between Post Collections",
           link: false,
           text: "",
@@ -1324,12 +1400,13 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   1 Undefined Container",
+          "   1 Invisible Divider",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
           "   1 Invisibly Dividing",
-          "   2 Standing Alone",
-          "   0 Starting",
+          "   1 Standing Alone",
+          "   1 Starting",
           "   0 Continuing",
           "   0 Dangling",
         ].join("\n")
@@ -1338,7 +1415,7 @@ describe("identifyPosts - Problems", () => {
       // Extract analysis from each rated post
       expect(analyses).toEqual([
         {
-          connector: STANDSALONE,
+          connector: STARTS, // returning STARTS due to placeholder post and previous post connector false
           quality: PROBLEM,
           reason: "Found notice: you're unable to view this post",
           link: "/catturd2/status/1886210678752518230",
@@ -1346,7 +1423,7 @@ describe("identifyPosts - Problems", () => {
         },
         {
           connector: DIVIDES,
-          quality: UNDEFINED,
+          quality: DIVIDER,
           reason: "Invisible Divider Between Post Collections",
           link: false,
           text: "",
@@ -1378,12 +1455,13 @@ describe("identifyPosts - Problems", () => {
           "  19 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   9 Undefined Container",
+          "   9 Invisible Divider",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
           "   9 Invisibly Dividing",
-          "   1 Standing Alone",
-          "   9 Starting",
+          "   0 Standing Alone",
+          "  10 Starting",
           "  10 Continuing",
           "   0 Dangling",
         ].join("\n")
@@ -1401,72 +1479,84 @@ describe("identifyPosts - Problems", () => {
         quality: GOOD,
         reason: "Looks good",
         link: "/Name__Error_404/status/1900452964101402693",
+        text: "He literally took three business days to catch that fish",
       });
       expect(analyses[2]).toEqual({
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900454996501475806",
+        text: "Savoring every moment! You can see him twitch in anticipation near the end.",
       });
       expect(analyses[3]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[4]).toEqual({
         connector: STARTS,
         quality: GOOD,
         reason: "Looks good",
         link: "/adamcarolla/status/1900417203356193038",
+        text: "I can’t speak for others but I go to the lobby and shake hands and take pictures after every show",
       });
       expect(analyses[5]).toEqual({
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900454397697495122",
+        text: "Joe Machi does too.",
       });
       expect(analyses[6]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[7]).toEqual({
         connector: STARTS,
         quality: GOOD,
         reason: "Looks good",
         link: "/klara_sjo/status/1900303399511318989",
+        text: "She has absolutely no respect for gravity.",
       });
       expect(analyses[8]).toEqual({
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900453954611232911",
+        text: "Inconceivably impressive!",
       });
       expect(analyses[9]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[10]).toEqual({
         connector: STARTS,
         quality: GOOD,
         reason: "Looks good",
         link: "/CNviolations/status/1900441767553446324",
+        text: "It's gotten that bad.",
       });
       expect(analyses[11]).toEqual({
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900453039971971160",
+        text: "Cute one.",
       });
       expect(analyses[12]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[13]).toEqual({
         connector: STARTS,
@@ -1474,6 +1564,7 @@ describe("identifyPosts - Problems", () => {
         reason:
           "Found notice: this post is from an account that no longer exists",
         link: "/_____USA___/status/1900433669036405235",
+        text: "Fact check: True https:// /FLALoudMouth/status/1900310585377423798 …",
       });
       expect(analyses[14]).toEqual({
         connector: STANDSALONE,
@@ -1481,90 +1572,105 @@ describe("identifyPosts - Problems", () => {
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900452749206044700",
+        text: "That's also every county Kamala turned blue.",
       });
       expect(analyses[15]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[16]).toEqual({
         connector: STARTS,
         quality: GOOD,
         reason: "Looks good",
         link: "/CultureCrave/status/1900440715806859351",
+        text: "Happy 92nd Birthday to Sir Michael Caine",
       });
       expect(analyses[17]).toEqual({
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900452224620179640",
+        text: "I've never seen photos of Michael Caine at such a young age. He's a handsome young chap.",
       });
       expect(analyses[18]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[19]).toEqual({
         connector: STARTS,
         quality: GOOD,
         reason: "Looks good",
         link: "/MagneticNorse/status/1900444331082690813",
+        text: "Look closer",
       });
       expect(analyses[20]).toEqual({
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900451349776490691",
+        text: "Ah yes, the good old semi-automatic way to serve British breakfast beans.",
       });
       expect(analyses[21]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[22]).toEqual({
         connector: STARTS,
         quality: GOOD,
         reason: "Looks good",
         link: "/WallStreetMav/status/1900437991761563894",
+        text: "Breaking: US mortgage rates fall to their lowest level since December for the sixth week in a row.",
       });
       expect(analyses[23]).toEqual({
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900450032354025709",
+        text: "I saw that! Especially 15-year mortgage rates.",
       });
       expect(analyses[24]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[25]).toEqual({
         connector: STARTS,
         quality: GOOD,
         reason: "Looks good",
         link: "/charliekirk11/status/1900284625467170868",
+        text: 'Rep. Maxine Waters: "I believe [Trump] expects violence. I believe he expects confrontation. I believe he\'s working toward a civil war."',
       });
       expect(analyses[26]).toEqual({
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900449357188546773",
+        text: "Gives us a break, Maxine!",
       });
       expect(analyses[27]).toEqual({
-        connector: STANDSALONE,
-        quality: UNDEFINED,
-        reason: "No article found",
+        connector: DIVIDES,
+        quality: DIVIDER,
+        reason: "Invisible Divider Between Post Collections",
         link: false,
+        text: "",
       });
       expect(analyses[28]).toEqual({
         connector: STARTS,
         quality: GOOD,
         reason: "Looks good",
         link: "/gunsnrosesgirl3/status/1900423541561962874",
+        text: "How tulips are harvested",
       });
 
       document.documentElement.innerHTML = "";
@@ -1589,6 +1695,7 @@ describe("identifyPosts - Potential Problems", () => {
           "   0 Good",
           "   1 Potential Problem",
           "   0 Problem",
+          "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
           "Post Connections Totals:",
@@ -1629,7 +1736,8 @@ describe("identifyPosts - Potential Problems", () => {
           "  15 Good",
           "   1 Potential Problem",
           "   0 Problem",
-          "   7 Undefined Container",
+          "   7 Invisible Divider",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
           "   7 Invisibly Dividing",
@@ -1658,7 +1766,7 @@ describe("identifyPosts - Potential Problems", () => {
 
       expect(analyses[2]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -1682,7 +1790,7 @@ describe("identifyPosts - Potential Problems", () => {
 
       expect(analyses[5]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -1706,7 +1814,7 @@ describe("identifyPosts - Potential Problems", () => {
 
       expect(analyses[8]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -1738,7 +1846,7 @@ describe("identifyPosts - Potential Problems", () => {
 
       expect(analyses[12]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -1762,7 +1870,7 @@ describe("identifyPosts - Potential Problems", () => {
 
       expect(analyses[15]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -1786,7 +1894,7 @@ describe("identifyPosts - Potential Problems", () => {
 
       expect(analyses[18]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -1810,7 +1918,7 @@ describe("identifyPosts - Potential Problems", () => {
 
       expect(analyses[21]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -1935,7 +2043,8 @@ describe("identifyPosts - Potential Problems", () => {
           "   6 Good",
           "   1 Potential Problem",
           "   0 Problem",
-          "   2 Undefined Container",
+          "   2 Invisible Divider",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
           "   2 Invisibly Dividing",
@@ -1964,7 +2073,7 @@ describe("identifyPosts - Potential Problems", () => {
 
       expect(analyses[2]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -1988,7 +2097,7 @@ describe("identifyPosts - Potential Problems", () => {
 
       expect(analyses[5]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -2036,7 +2145,8 @@ describe("identifyPosts - Potential Problems", () => {
           "  17 Good",
           "   1 Potential Problem",
           "   0 Problem",
-          "  10 Undefined Container",
+          "   8 Invisible Divider",
+          "   2 Undefined Container",
           "",
           "Post Connections Totals:",
           "   8 Invisibly Dividing",
@@ -2057,7 +2167,7 @@ describe("identifyPosts - Potential Problems", () => {
 
       expect(analyses[1]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -2097,7 +2207,7 @@ describe("identifyPosts - Potential Problems", () => {
 
       expect(analyses[6]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -2141,7 +2251,7 @@ It's just generally annoying to go into something not knowing`,
 
       expect(analyses[11]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -2157,7 +2267,7 @@ It's just generally annoying to go into something not knowing`,
 
       expect(analyses[13]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -2181,7 +2291,7 @@ It's just generally annoying to go into something not knowing`,
 
       expect(analyses[16]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -2205,7 +2315,7 @@ It's just generally annoying to go into something not knowing`,
 
       expect(analyses[19]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -2229,7 +2339,7 @@ It's just generally annoying to go into something not knowing`,
 
       expect(analyses[22]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -2261,7 +2371,7 @@ It's just generally annoying to go into something not knowing`,
 
       expect(analyses[26]).toEqual({
         connector: DIVIDES,
-        quality: UNDEFINED,
+        quality: DIVIDER,
         reason: "Invisible Divider Between Post Collections",
         link: false,
         text: "",
@@ -2293,6 +2403,7 @@ It's just generally annoying to go into something not knowing`,
           "   0 Good",
           "   1 Potential Problem",
           "   0 Problem",
+          "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
           "Post Connections Totals:",
@@ -2333,6 +2444,7 @@ It's just generally annoying to go into something not knowing`,
           "   0 Good",
           "   1 Potential Problem",
           "   0 Problem",
+          "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
           "Post Connections Totals:",
@@ -2373,6 +2485,7 @@ It's just generally annoying to go into something not knowing`,
           "   3 Good",
           "   4 Potential Problem",
           "   0 Problem",
+          "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
           "Post Connections Totals:",
@@ -2458,6 +2571,7 @@ describe("identifyPosts - Problems and Potential Problems", () => {
         "   4 Good",
         "   1 Potential Problem",
         "   1 Problem",
+        "   0 Invisible Divider",
         "   0 Undefined Container",
         "",
         "Post Connections Totals:",

@@ -37,20 +37,13 @@ function identifyPostConnectors(
     return STARTS;
   }
 
-  const container = post.querySelector(".r-18u37iz");
-  // if (!container) {
-  //   logger(
-  //     "identifyPostConnectors returning STANDSALONE due to missing container"
-  //   );
-  //   return STANDSALONE;
-  // }
-
   // Check for community context
   const hasCommunityContext =
     post.querySelector(".r-q3we1") ||
     post.querySelector('a[href*="/i/communities/"]');
 
   // Check for indentation, but ignore if it's due to community context
+  const container = post.querySelector(".r-18u37iz");
   const hasIndentation =
     container?.querySelector(".r-15zivkp") && !hasCommunityContext;
 
@@ -59,30 +52,6 @@ function identifyPostConnectors(
 
   // Check if the post is a reply by looking for the "Replying to" div
   const isReplyingTo = post.querySelector(".r-4qtqp9.r-zl2h9q") !== null;
-
-  // Check for nested posts (e.g., quote tweets)
-  // const hasNestedPost =
-  //   post.querySelector('[data-testid="tweetText"] ~ [role="article"]') !== null;
-
-  // // Posts with community context and no reply start a conversation
-  // if (hasCommunityContext && !isReply && !isPlaceholder) {
-  //   if (hasLines) {
-  //     logger(
-  //       "identifyPostConnectors returning STARTS due to community context with lines"
-  //     );
-  //     return STARTS;
-  //   }
-  //   logger(
-  //     "identifyPostConnectors returning STANDSALINE due to community context without lines"
-  //   );
-  //   return STANDSALONE;
-  // }
-
-  // // Posts with a nested post, no indentation, and not a reply start a conversation
-  // if (hasNestedPost && !hasIndentation && !isReply && !isPlaceholder) {
-  //   logger("identifyPostConnectors returning STARTS due to nested post");
-  //   return STARTS;
-  // }
 
   // Handle placeholder posts that might be parents
   if (isPlaceholder && !hasIndentation) {
@@ -103,17 +72,6 @@ function identifyPostConnectors(
     logger("identifyPostConnectors returning DANGLES due to reply structure");
     return DANGLES;
   }
-
-  // // Otherwise, it's a disconnected post
-  // if (
-  //   previousPostConnector &&
-  //   (previousPostConnector === STARTS || previousPostConnector === CONTINUES)
-  // ) {
-  //   logger(
-  //     `identifyPostConnectors returning based on previous post connector ${previousPostConnector.name}`
-  //   );
-  //   return CONTINUES;
-  // }
 
   logger("identifyPostConnectors returning STANDSALONE as default case");
   return STANDSALONE;
