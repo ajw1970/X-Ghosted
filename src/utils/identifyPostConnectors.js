@@ -52,7 +52,7 @@ function identifyPostConnectors(
 
   // Check for indentation, but ignore if it's due to community context
   const hasIndentation =
-    container.querySelector(".r-15zivkp") && !hasCommunityContext;
+    container?.querySelector(".r-15zivkp") && !hasCommunityContext;
 
   // Check if the post is a placeholder using containsSystemNotice
   const isPlaceholder = containsSystemNotice === true;
@@ -86,6 +86,12 @@ function identifyPostConnectors(
 
   // Handle placeholder posts that might be parents
   if (isPlaceholder && !hasIndentation) {
+    if (!previousPostConnector || previousPostConnector === DIVIDES) {
+      logger(
+        "identifyPostConnectors returning STARTS due to placeholder post and previous post connector false or DIVIDES"
+      );
+      return STARTS;
+    }
     logger(
       "identifyPostConnectors returning STANDSALONE due to placeholder post"
     );
@@ -109,8 +115,8 @@ function identifyPostConnectors(
   //   return CONTINUES;
   // }
 
-  // logger("identifyPostConnectors returning STANDSALONE as default case");
-  // return STANDSALONE;
+  logger("identifyPostConnectors returning STANDSALONE as default case");
+  return STANDSALONE;
 }
 
 export { identifyPostConnectors };
