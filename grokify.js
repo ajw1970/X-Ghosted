@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 // Single-line comment to avoid multi-line parsing issues
-// Usage: node grokify.js <input-pattern>... [output-dir] [output-filename]
+// Usage: node grokify.js <input-pattern>... [output-dir] [output-filename] [--exclude <pattern>]
 // Examples:
-//   node grokify.js src/xGhosted.test.js
-//   node grokify.js "src/**/*.test.js" grok all_tests.txt
+//   node grokify.js src/xGhosted.js
+//   node grokify.js "src/**/*.js" grok all_files.txt --exclude "*.test.js"
 // Dependencies: fs.promises, path (built-in), glob, esbuild (npm install glob esbuild)
 
 import { promises as fs } from 'fs';
@@ -12,14 +12,26 @@ import { relative, resolve, join, parse } from 'path';
 import { glob } from 'glob';
 import { build } from 'esbuild';
 
-async function generateGrokPrompt(inputPatterns, outputDir = 'grok', outputFileName = 'combined_output.txt') {
+async function generateGrokPrompt(inputPatterns, outputDir = 'grok', outputFileName = 'combined_output.txt', excludePatterns = []) {
     const dependencies = new Set();
     let outputContent = '';
+
+    // Normalize exclude patterns to ensure recursive matching
+    const normalizedExcludePatterns = excludePatterns.map(pattern => {
+        if (pattern.startsWith('**')) return pattern;
+        if (pattern.includes('/')) return pattern;
+        return `**/${pattern}`;
+    });
+
+    console.log('Exclude patterns:', normalizedExcludePatterns);
 
     // Resolve input patterns to file paths
     const inputFiles = [];
     for (const pattern of Array.isArray(inputPatterns) ? inputPatterns : [inputPatterns]) {
-        const files = await glob(pattern, { nodir: true });
+        const files = await glob(pattern, { 
+            nodir: true,
+            ignore: normalizedExcludePatterns // Use normalized exclude patterns
+        });
         inputFiles.push(...files);
     }
 
@@ -100,38 +112,59 @@ async function main() {
     const args = process.argv.slice(2);
 
     if (args.length < 1) {
-        console.log('Usage: node grokify.js <file-or-pattern>... [output_directory] [output_filename]');
+        console.log('Usage: node grokify.js <file-or-pattern>... [output_directory] [output_filename] [--exclude <pattern>]');
         console.log('Examples:');
-        console.log('  node grokify.js src/xGhosted.test.js');
-        console.log('  node grokify.js "src/**/*.test.js" grok combined_tests.txt');
+        console.log('  node grokify.js src/xGhosted.js');
+        console.log('  node grokify.js "src/**/*.js" grok combined_tests.txt --exclude "*.test.js"');
         process.exit(1);
     }
 
     let inputPatterns = [];
     let outputDir = 'grok';
     let outputFileName = 'combined_output.txt';
+    let excludePatterns = [];
 
-    if (args.length >= 2 && args[args.length - 1].endsWith('.txt')) {
-        const lastArg = args[args.length - 1];
+    // Process arguments
+    let i = 0;
+    while (i < args.length) {
+        if (args[i] === '--exclude') {
+            if (i + 1 < args.length) {
+                excludePatterns.push(args[i + 1]);
+                i += 2;
+            } else {
+                console.error('Error: --exclude requires a pattern');
+                process.exit(1);
+            }
+        } else {
+            i++;
+        }
+    }
+
+    // Filter out --exclude and its values from args for remaining processing
+    const filteredArgs = args.filter((arg, index) => arg !== '--exclude' && (index === 0 || args[index - 1] !== '--exclude'));
+
+    // Process remaining arguments as before
+    if (filteredArgs.length >= 2 && filteredArgs[filteredArgs.length - 1].endsWith('.txt')) {
+        const lastArg = filteredArgs[filteredArgs.length - 1];
         const parsedPath = parse(lastArg);
         outputFileName = parsedPath.base;
         if (parsedPath.dir) {
             outputDir = parsedPath.dir;
         }
-        if (args.length >= 3 && !args[args.length - 2].includes('.')) {
-            outputDir = join(args[args.length - 2], outputDir);
-            inputPatterns = args.slice(0, args.length - 2);
+        if (filteredArgs.length >= 3 && !filteredArgs[filteredArgs.length - 2].includes('.')) {
+            outputDir = join(filteredArgs[filteredArgs.length - 2], outputDir);
+            inputPatterns = filteredArgs.slice(0, filteredArgs.length - 2);
         } else {
-            inputPatterns = args.slice(0, args.length - 1);
+            inputPatterns = filteredArgs.slice(0, filteredArgs.length - 1);
         }
-    } else if (args.length >= 2 && !args[args.length - 1].includes('.')) {
-        outputDir = args[args.length - 1];
-        inputPatterns = args.slice(0, args.length - 1);
+    } else if (filteredArgs.length >= 2 && !filteredArgs[filteredArgs.length - 1].includes('.')) {
+        outputDir = filteredArgs[filteredArgs.length - 1];
+        inputPatterns = filteredArgs.slice(0, filteredArgs.length - 1);
     } else {
-        inputPatterns = args;
+        inputPatterns = filteredArgs;
     }
 
-    await generateGrokPrompt(inputPatterns, outputDir, outputFileName);
+    await generateGrokPrompt(inputPatterns, outputDir, outputFileName, excludePatterns);
 }
 
 main().catch(console.error);
