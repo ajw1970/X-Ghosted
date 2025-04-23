@@ -1,12 +1,12 @@
-import { postQuality } from './postQuality';
+import { postQuality } from "./postQuality";
 import { identifyPosts } from "./identifyPosts";
 import { postConnector } from "./postConnector";
 import { describeSampleAnalyses } from "./describeSampleAnalyses";
 import { postHasProblemSystemNotice } from "./postHasProblemSystemNotice";
 import { describe, expect, it } from "vitest";
 
-const { PROBLEM, POTENTIAL_PROBLEM, GOOD, UNDEFINED } = postQuality;
-const { DISCONNECTED, STARTS, CONTINUES, DANGLES } = postConnector;
+const { PROBLEM, POTENTIAL_PROBLEM, GOOD, DIVIDER, UNDEFINED } = postQuality;
+const { DIVIDES, STANDSALONE, STARTS, CONTINUES, DANGLES } = postConnector;
 
 describe("identifyPosts - Conversation Threads", () => {
   it("Should find three good posts in this conversation thread", () => {
@@ -24,10 +24,11 @@ describe("identifyPosts - Conversation Threads", () => {
         "   3 Good",
         "   0 Potential Problem",
         "   0 Problem",
-        "   1 Undefined",
+        "   1 Undefined Container",
         "",
         "Post Connections Totals:",
-        "   0 Disconnected",
+        "   0 Invisibly Dividing",
+        "   0 Standing Alone",
         "   1 Starting",
         "   3 Continuing",
         "   0 Dangling",
@@ -80,10 +81,11 @@ describe("identifyPosts - Conversation Threads", () => {
         "   2 Good", // should be 0
         "   0 Potential Problem",
         "   1 Problem", // should be 3
-        "   1 Undefined",
+        "   1 Undefined Container",
         "",
         "Post Connections Totals:",
-        "   1 Disconnected",
+        "   0 Invisibly Dividing",
+        "   1 Standing Alone",
         "   1 Starting", // Problem post
         "   2 Continuing", // Problem by association
         "   0 Dangling",
@@ -95,27 +97,31 @@ describe("identifyPosts - Conversation Threads", () => {
       quality: PROBLEM,
       reason: "Found notice: this post is unavailable",
       link: "/Dr_ZainabFatima/status/1911066452385219026",
+      text: "Another day another issue for .So am highlighting another major issue that 90% of X Creators didn't get paid by yet and it's now 6 to 8 hours when X was distributing payouts to X Creators. Not even small butt big Accounts didn't get payout even they all have huge  https:// /paulspivak_/status/1911064491556585546 …",
     });
 
     expect(analyses[1]).toEqual({
       connector: CONTINUES,
-      quality: GOOD, // TODO: should be PROBLEM by association
+      quality: GOOD,
       reason: "Looks good",
       link: "/paulspivak_/status/1911067375199285395",
+      text: "X is targeting spam accounts from India, Bangladesh and Pakistan which have become out of control. Especially Pakistan since X isn't even available there officially so the vast majority of traffic is basically spam.\n\nIf you're from here, not interested in your complaints.",
     });
 
     expect(analyses[2]).toEqual({
       connector: CONTINUES,
-      quality: GOOD, // TODO: should be PROBLEM by association
+      quality: GOOD,
       reason: "Looks good",
       link: "/monetization_x/status/1911125224113811765",
+      text: "I hope you’re right they’re going after the spam accounts.",
     });
 
     expect(analyses[3]).toEqual({
-      connector: DISCONNECTED,
+      connector: STANDSALONE,
       quality: UNDEFINED,
       reason: "No article found",
       link: false,
+      text: "",
     });
 
     document.documentElement.innerHTML = "";
@@ -137,11 +143,12 @@ it("should find one problem and one potential problem post", () => {
       "   4 Good",
       "   1 Potential Problem",
       "   1 Problem",
-      "  10 Undefined",
+      "  10 Undefined Container",
       "",
       "Post Connections Totals:",
-      "  10 Disconnected",
-      "   3 Starting",
+      "   4 Invisibly Dividing",
+      "   7 Standing Alone",
+      "   2 Starting",
       "   2 Continuing",
       "   1 Dangling",
     ].join("\n")
@@ -155,10 +162,11 @@ it("should find one problem and one potential problem post", () => {
       link: "/ajweltytest/status/1901080866002014636",
     },
     {
-      connector: DISCONNECTED,
+      connector: DIVIDES,
       quality: UNDEFINED,
-      reason: "No article found",
+      reason: "Invisible Divider Between Post Collections",
       link: false,
+      text: "",
     },
     {
       connector: STARTS,
@@ -173,10 +181,11 @@ it("should find one problem and one potential problem post", () => {
       link: "/ajweltytest/status/1899820959197995180",
     },
     {
-      connector: DISCONNECTED,
+      connector: DIVIDES,
       quality: UNDEFINED,
-      reason: "No article found",
+      reason: "Invisible Divider Between Post Collections",
       link: false,
+      text: "",
     },
     {
       connector: DANGLES,
@@ -185,10 +194,11 @@ it("should find one problem and one potential problem post", () => {
       link: "/ajweltytest/status/1899820920266535120",
     },
     {
-      connector: DISCONNECTED,
+      connector: DIVIDES,
       quality: UNDEFINED,
-      reason: "No article found",
+      reason: "Invisible Divider Between Post Collections",
       link: false,
+      text: "",
     },
     {
       connector: STARTS,
@@ -203,46 +213,53 @@ it("should find one problem and one potential problem post", () => {
       link: "/ajweltytest/status/1895407388871798985",
     },
     {
-      connector: DISCONNECTED,
+      connector: DIVIDES,
       quality: UNDEFINED,
-      reason: "No article found",
+      reason: "Invisible Divider Between Post Collections",
       link: false,
+      text: "",
     },
     {
-      connector: DISCONNECTED,
+      connector: DIVIDES,
       quality: UNDEFINED,
-      reason: "No article found",
+      reason: "Invisible Divider Between Post Collections",
       link: false,
+      text: "",
     },
     {
-      connector: DISCONNECTED,
+      connector: DIVIDES,
       quality: UNDEFINED,
-      reason: "No article found",
+      reason: "Invisible Divider Between Post Collections",
       link: false,
+      text: "",
     },
     {
-      connector: DISCONNECTED,
+      connector: DIVIDES,
       quality: UNDEFINED,
-      reason: "No article found",
+      reason: "Invisible Divider Between Post Collections",
       link: false,
+      text: "",
     },
     {
-      connector: DISCONNECTED,
+      connector: DIVIDES,
       quality: UNDEFINED,
-      reason: "No article found",
+      reason: "Invisible Divider Between Post Collections",
       link: false,
+      text: "",
     },
     {
-      connector: DISCONNECTED,
+      connector: DIVIDES,
       quality: UNDEFINED,
-      reason: "No article found",
+      reason: "Invisible Divider Between Post Collections",
       link: false,
+      text: "",
     },
     {
-      connector: DISCONNECTED,
+      connector: DIVIDES,
       quality: UNDEFINED,
-      reason: "No article found",
+      reason: "Invisible Divider Between Post Collections",
       link: false,
+      text: "",
     },
   ]);
 });
@@ -263,31 +280,32 @@ describe("identifyPosts - Good", () => {
         "   8 Good",
         "   0 Potential Problem",
         "   0 Problem",
-        "   3 Undefined",
+        "   3 Undefined Container",
         "",
         "Post Connections Totals:",
-        "   5 Disconnected",
-        "   2 Starting",
-        "   4 Continuing",
+        "   2 Invisibly Dividing",
+        "   0 Standing Alone",
+        "   4 Starting",
+        "   5 Continuing",
         "   0 Dangling",
       ].join("\n")
     );
 
     expect(analyses).toEqual([
       {
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895111411140907450",
       },
       {
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895174358902956217",
       },
       {
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -305,7 +323,7 @@ describe("identifyPosts - Good", () => {
         link: "/ApostleJohnW/status/1895172905203589591",
       },
       {
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -335,7 +353,7 @@ describe("identifyPosts - Good", () => {
         link: "/ApostleJohnW/status/1895169898252509372",
       },
       {
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1895168899793994232",
@@ -360,11 +378,12 @@ describe("identifyPosts - Good", () => {
         "   3 Good",
         "   0 Potential Problem",
         "   0 Problem",
-        "   3 Undefined",
+        "   3 Undefined Container",
         "",
         "Post Connections Totals:",
-        "   2 Disconnected",
-        "   2 Starting",
+        "   1 Invisibly Dividing",
+        "   2 Standing Alone",
+        "   1 Starting",
         "   2 Continuing",
         "   0 Dangling",
       ].join("\n")
@@ -384,10 +403,11 @@ describe("identifyPosts - Good", () => {
       link: "/ApostleJohnW/status/1881841967291928947",
     });
     expect(analyses[2]).toEqual({
-      connector: DISCONNECTED,
+      connector: DIVIDES,
       quality: UNDEFINED,
-      reason: "No article found",
+      reason: "Invisible Divider Between Post Collections",
       link: false,
+      text: "",
     });
     expect(analyses[3]).toEqual({
       connector: STARTS,
@@ -402,7 +422,7 @@ describe("identifyPosts - Good", () => {
       link: false,
     });
     expect(analyses[5]).toEqual({
-      connector: DISCONNECTED, // Separator
+      connector: STANDSALONE, // Separator
       quality: UNDEFINED,
       reason: "No article found",
       link: false,
@@ -426,10 +446,11 @@ describe("identifyPosts - Good", () => {
         "   1 Good",
         "   0 Potential Problem",
         "   0 Problem",
-        "   0 Undefined",
+        "   0 Undefined Container",
         "",
         "Post Connections Totals:",
-        "   1 Disconnected",
+        "   0 Invisibly Dividing",
+        "   1 Standing Alone",
         "   0 Starting",
         "   0 Continuing",
         "   0 Dangling",
@@ -438,7 +459,7 @@ describe("identifyPosts - Good", () => {
 
     expect(analyses).toEqual([
       {
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1890787999731913068",
@@ -463,11 +484,12 @@ describe("identifyPosts - Good", () => {
         "   1 Good",
         "   0 Potential Problem",
         "   0 Problem",
-        "   0 Undefined",
+        "   0 Undefined Container",
         "",
         "Post Connections Totals:",
-        "   0 Disconnected",
-        "   1 Starting",
+        "   0 Invisibly Dividing",
+        "   1 Standing Alone",
+        "   0 Starting",
         "   0 Continuing",
         "   0 Dangling",
       ].join("\n")
@@ -500,19 +522,20 @@ describe("identifyPosts - Good", () => {
         "   1 Good",
         "   0 Potential Problem",
         "   0 Problem",
-        "   0 Undefined",
+        "   0 Undefined Container",
         "",
         "Post Connections Totals:",
-        "   1 Disconnected",
-        "   0 Starting",
-        "   0 Continuing",
+        "   0 Invisibly Dividing",
+        "   0 Standing Alone",
+        "   1 Starting",
+        "   0 Continuing", // feels wrong
         "   0 Dangling",
       ].join("\n")
     );
 
     expect(analyses).toEqual([
       {
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1898022285140758652",
@@ -540,10 +563,11 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   2 Undefined",
+          "   2 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   4 Disconnected",
+          "   1 Invisibly Dividing",
+          "   3 Standing Alone",
           "   0 Starting",
           "   0 Continuing",
           "   0 Dangling",
@@ -552,28 +576,32 @@ describe("identifyPosts - Problems", () => {
 
       expect(analyses).toEqual([
         {
-          connector: DISCONNECTED,
+          connector: STANDSALONE,
           quality: PROBLEM,
           reason: "Found community: 1889908654133911912",
           link: "/ApostleJohnW/status/1898022285140758652",
+          text: "ICYMI - Short Video Drop from Apostle Eric vonAnderseck",
         },
         {
-          connector: DISCONNECTED,
+          connector: DIVIDES,
           quality: UNDEFINED,
-          reason: "No article found",
+          reason: "Invisible Divider Between Post Collections",
           link: false,
+          text: "",
         },
         {
-          connector: DISCONNECTED,
+          connector: STANDSALONE,
           quality: GOOD,
           reason: "Looks good",
           link: "/Waqar_sahito01/status/1898023692958843033",
+          link: "Checking it out!",
         },
         {
-          connector: DISCONNECTED,
+          connector: STANDSALONE,
           quality: UNDEFINED,
           reason: "No article found",
           link: false,
+          text: "",
         },
       ]);
 
@@ -596,10 +624,11 @@ describe("identifyPosts - Problems", () => {
           "   4 Good",
           "   0 Potential Problem",
           "   0 Problem",
-          "   0 Undefined",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   4 Disconnected",
+          "   0 Invisibly Dividing",
+          "   4 Standing Alone",
           "   0 Starting",
           "   0 Continuing",
           "   0 Dangling",
@@ -608,28 +637,32 @@ describe("identifyPosts - Problems", () => {
 
       expect(analyses).toEqual([
         {
-          connector: DISCONNECTED,
+          connector: STANDSALONE,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1888719160592453713",
+          text: "What's the holdup Google? Hop to it! - Gulf of America day today!",
         },
         {
-          connector: DISCONNECTED,
+          connector: STANDSALONE,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1888717684822438329",
+          text: "Bravo",
         },
         {
-          connector: DISCONNECTED,
+          connector: STANDSALONE,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1888713602850320746",
+          text: "Did you know? Jesus wants to lead you by the hand of His restored apostolic stewardship into experiencing a cleansed conscience and purged soul by learning to keep covenant contact with Him at His altar of holy ordered knowledge. Lasting fellowship with God is found in the",
         },
         {
-          connector: DISCONNECTED,
+          connector: STANDSALONE,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1888712977848656024",
+          text: "",
         },
       ]);
 
@@ -653,12 +686,13 @@ describe("identifyPosts - Problems", () => {
           "   3 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   0 Undefined",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   0 Disconnected",
-          "   1 Starting",
-          "   3 Continuing",
+          "   0 Invisibly Dividing",
+          "   1 Standing Alone",
+          "   0 Starting",
+          "   3 Continuing", // This can't be right
           "   0 Dangling",
         ].join("\n")
       );
@@ -669,24 +703,28 @@ describe("identifyPosts - Problems", () => {
           quality: GOOD,
           reason: "Looks good",
           link: "/Breaking911/status/1884691881587523595",
+          text: "TRUMP: “Today, I'm also signing an executive order to instruct the Departments of Defense & Homeland Security to begin preparing the 30,000 person migrant facility at Guantanamo Bay.”",
         },
         {
           connector: CONTINUES,
           quality: PROBLEM,
           reason: "Found notice: this post was deleted by the post author",
           link: false,
+          text: "",
         },
         {
           connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/WarPumpkin22/status/1884794131643314464",
+          text: "It sounds more like a processing collection point or a brief stop to log in US illegal aliens information before sending them back to their homes. If they are collecting 1000+ illegals per day, a Guantanamo Bay facility would be full in less than 30 days.",
         },
         {
           connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1884794615716307143",
+          text: "Yeah, It sounded like a logistics play to me.",
         },
       ]);
 
@@ -708,10 +746,11 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   1 Undefined",
+          "   1 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   1 Disconnected",
+          "   0 Invisibly Dividing",
+          "   1 Standing Alone",
           "   1 Starting",
           "   1 Continuing",
           "   0 Dangling",
@@ -725,18 +764,21 @@ describe("identifyPosts - Problems", () => {
           reason:
             "Found notice: this post is from an account that no longer exists",
           link: false,
+          text: "",
         },
         {
           connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1880635863631344062",
+          text: "She's basically a carry-on",
         },
         {
-          connector: DISCONNECTED,
+          connector: STANDSALONE,
           quality: UNDEFINED,
           reason: "No article found",
           link: false,
+          text: "",
         },
       ]);
 
@@ -760,133 +802,135 @@ describe("identifyPosts - Problems", () => {
           "   9 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "  10 Undefined",
+          "  10 Undefined Container",
           "",
           "Post Connections Totals:",
-          "  19 Disconnected",
-          "   1 Starting",
+          "   9 Invisibly Dividing",
+          "  11 Standing Alone",
+          "   0 Starting",
           "   0 Continuing",
           "   0 Dangling",
         ].join("\n")
       );
 
       expect(analyses[0]).toEqual({
-        connector: STARTS,
+        connector: STANDSALONE,
         quality: PROBLEM,
         reason:
           "Found notice: this media has been disabled in response to a report by the copyright owner",
         link: "/awkwardgoogle/status/1894810490347409752",
+        text: "The infinity drawer!",
       });
       expect(analyses[1]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
       });
       expect(analyses[2]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1894812853124706554",
       });
       expect(analyses[3]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
       });
       expect(analyses[4]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/MyBasicFinance/status/1894819472562651293",
       });
       expect(analyses[5]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
       });
       expect(analyses[6]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/MattZeeMiller/status/1894849813050740802",
       });
       expect(analyses[7]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
       });
       expect(analyses[8]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/DaytonDan55/status/1894837596963951054",
       });
       expect(analyses[9]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
       });
       expect(analyses[10]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/YHfLNQEzT942049/status/1894948247187403259",
       });
       expect(analyses[11]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
       });
       expect(analyses[12]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/daz1985/status/1894834410198835673",
       });
       expect(analyses[13]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
       });
       expect(analyses[14]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/Harry_Bdict/status/1894810993449955580",
       });
       expect(analyses[15]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
       });
       expect(analyses[16]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/Harry_Bdict/status/1894810900009201975",
       });
       expect(analyses[17]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
       });
       expect(analyses[18]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/smokedandsalted/status/1894811105706271142",
       });
       expect(analyses[19]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "Nothing to measure",
         link: false,
@@ -910,12 +954,13 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   1 Undefined",
+          "   1 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   1 Disconnected",
-          "   1 Starting",
-          "   1 Continuing",
+          "   0 Invisibly Dividing",
+          "   2 Standing Alone",
+          "   0 Starting",
+          "   1 Continuing", // This can't be right
           "   0 Dangling",
         ].join("\n")
       );
@@ -925,6 +970,7 @@ describe("identifyPosts - Problems", () => {
         quality: PROBLEM,
         reason: "Found notice: you're unable to view this post",
         link: false,
+        text: "",
       });
 
       expect(analyses[1]).toEqual({
@@ -935,7 +981,7 @@ describe("identifyPosts - Problems", () => {
       });
 
       expect(analyses[2]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -959,12 +1005,13 @@ describe("identifyPosts - Problems", () => {
           "   2 Good",
           "   0 Potential Problem",
           "   2 Problem",
-          "   2 Undefined",
+          "   2 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   2 Disconnected",
+          "   0 Invisibly Dividing",
+          "   2 Standing Alone",
           "   2 Starting",
-          "   2 Continuing",
+          "   2 Continuing", // This can't be right
           "   0 Dangling",
         ].join("\n")
       );
@@ -974,6 +1021,7 @@ describe("identifyPosts - Problems", () => {
         quality: PROBLEM,
         reason: "Found notice: you're unable to view this post",
         link: false,
+        text: "",
       });
       expect(analyses[1]).toEqual({
         connector: CONTINUES,
@@ -982,7 +1030,7 @@ describe("identifyPosts - Problems", () => {
         link: "/ApostleJohnW/status/1883292681188917450",
       });
       expect(analyses[2]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1000,7 +1048,7 @@ describe("identifyPosts - Problems", () => {
         link: "/ApostleJohnW/status/1883293430052430332",
       });
       expect(analyses[5]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1024,10 +1072,11 @@ describe("identifyPosts - Problems", () => {
           "   3 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   0 Undefined",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   0 Disconnected",
+          "   0 Invisibly Dividing",
+          "   0 Standing Alone",
           "   1 Starting",
           "   3 Continuing",
           "   0 Dangling",
@@ -1040,24 +1089,28 @@ describe("identifyPosts - Problems", () => {
           quality: GOOD,
           reason: "Looks good",
           link: "/iam_smx/status/1883977770709258287",
+          text: 'To those who have been offended by Elon Musk in any way, shape, or form. "To anyone I have offended, I just want to say I reinvented electric cars and I am sending people to Mars on a Rocketship, did you think I was also gonna be a chill normal dude?"',
         },
         {
           connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1883978356900913165",
+          text: "That was a great episode of SNL",
         },
         {
           connector: CONTINUES,
           quality: PROBLEM,
           reason: "Found notice: this post is unavailable",
           link: false,
+          text: "",
         },
         {
           connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1884150859036254640",
+          text: "So tell me how that makes you feel",
         },
       ]);
 
@@ -1079,12 +1132,13 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   1 Undefined",
+          "   1 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   1 Disconnected",
+          "   1 Invisibly Dividing",
+          "   0 Standing Alone",
           "   1 Starting",
-          "   1 Continuing",
+          "   1 Continuing", // This can't be right
           "   0 Dangling",
         ].join("\n")
       );
@@ -1094,6 +1148,7 @@ describe("identifyPosts - Problems", () => {
         quality: PROBLEM,
         reason: "Found notice: this post is unavailable",
         link: "/RepNancyMace/status/1884565403483218235",
+        text: "Who hires these people? Government doesn't own our kids and neither do woke teachers harming them with this tr*ns bs. https:// /Libsofbluesky/status/1882183554127573421 …",
       });
       expect(analyses[1]).toEqual({
         connector: CONTINUES,
@@ -1102,10 +1157,11 @@ describe("identifyPosts - Problems", () => {
         link: "/ApostleJohnW/status/1884566696322592842",
       });
       expect(analyses[2]).toEqual({
-        connector: DISCONNECTED,
+        connector: DIVIDES,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
+        text: "",
       });
 
       document.documentElement.innerHTML = "";
@@ -1129,11 +1185,12 @@ describe("identifyPosts - Problems", () => {
           "   0 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   0 Undefined",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   0 Disconnected",
-          "   1 Starting",
+          "   0 Invisibly Dividing",
+          "   1 Standing Alone",
+          "   0 Starting",
           "   0 Continuing",
           "   0 Dangling",
         ].join("\n")
@@ -1145,10 +1202,11 @@ describe("identifyPosts - Problems", () => {
 
       expect(analyses).toEqual([
         {
-          connector: STARTS,
+          connector: STANDSALONE,
           quality: PROBLEM,
           reason: "Found notice: this post is unavailable",
           link: "/OwenGregorian/status/1896977661144260900",
+          text: "This seems like the right thing to do--stop poking the bear while trying to negotiate the end of a war. Of course Democrats will cry about Trump appeasing Putin. And Trump will ignore them, as he should. The failed foreign policy of decades past that led us to where we are https:// /OwenGregorian/status/1896894696787431820 …",
         },
       ]);
 
@@ -1173,11 +1231,12 @@ describe("identifyPosts - Problems", () => {
           "   0 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   0 Undefined",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   0 Disconnected",
-          "   1 Starting",
+          "   0 Invisibly Dividing",
+          "   1 Standing Alone",
+          "   0 Starting",
           "   0 Continuing",
           "   0 Dangling",
         ].join("\n")
@@ -1185,10 +1244,11 @@ describe("identifyPosts - Problems", () => {
 
       expect(analyses).toEqual([
         {
-          connector: STARTS,
+          connector: STANDSALONE,
           quality: PROBLEM,
           reason: "Found notice: this post is unavailable",
           link: "/OwenGregorian/status/1896977661144260900",
+          text: "This seems like the right thing to do--stop poking the bear while trying to negotiate the end of a war. Of course Democrats will cry about Trump appeasing Putin. And Trump will ignore them, as he should. The failed foreign policy of decades past that led us to where we are https:// /OwenGregorian/status/1896894696787431820 …",
         },
       ]);
 
@@ -1211,11 +1271,12 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   1 Undefined",
+          "   1 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   2 Disconnected",
-          "   1 Starting",
+          "   1 Invisibly Dividing",
+          "   2 Standing Alone",
+          "   0 Starting",
           "   0 Continuing",
           "   0 Dangling",
         ].join("\n")
@@ -1227,18 +1288,21 @@ describe("identifyPosts - Problems", () => {
           quality: PROBLEM,
           reason: "Found notice: this post is unavailable",
           link: "/catturd2/status/1886210678752518230",
+          text: "That was fast lol https:// /TiffanyFong_/status/1886209369295176046 …",
         },
         {
-          connector: DISCONNECTED,
+          connector: DIVIDES,
           quality: UNDEFINED,
-          reason: "No article found",
+          reason: "Invisible Divider Between Post Collections",
           link: false,
+          text: "",
         },
         {
-          connector: DISCONNECTED,
+          connector: STANDSALONE,
           quality: GOOD,
           reason: "Looks good",
           link: "/BarbieTrueBlue/status/1886211137961680919",
+          text: "B*tch stole my outfit.",
         },
       ]);
 
@@ -1260,11 +1324,12 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   1 Undefined",
+          "   1 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   2 Disconnected",
-          "   1 Starting",
+          "   1 Invisibly Dividing",
+          "   2 Standing Alone",
+          "   0 Starting",
           "   0 Continuing",
           "   0 Dangling",
         ].join("\n")
@@ -1273,22 +1338,25 @@ describe("identifyPosts - Problems", () => {
       // Extract analysis from each rated post
       expect(analyses).toEqual([
         {
-          connector: STARTS,
+          connector: STANDSALONE,
           quality: PROBLEM,
           reason: "Found notice: you're unable to view this post",
           link: "/catturd2/status/1886210678752518230",
+          text: "That was fast lol https:// /TiffanyFong_/status/1886209369295176046 …",
         },
         {
-          connector: DISCONNECTED,
+          connector: DIVIDES,
           quality: UNDEFINED,
-          reason: "No article found",
+          reason: "Invisible Divider Between Post Collections",
           link: false,
+          text: "",
         },
         {
-          connector: DISCONNECTED,
+          connector: STANDSALONE,
           quality: GOOD,
           reason: "Looks good",
           link: "/BarbieTrueBlue/status/1886211137961680919",
+          text: "B*tch stole my outfit.",
         },
       ]);
 
@@ -1310,11 +1378,12 @@ describe("identifyPosts - Problems", () => {
           "  19 Good",
           "   0 Potential Problem",
           "   1 Problem",
-          "   9 Undefined",
+          "   9 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   9 Disconnected",
-          "  10 Starting",
+          "   9 Invisibly Dividing",
+          "   1 Standing Alone",
+          "   9 Starting",
           "  10 Continuing",
           "   0 Dangling",
         ].join("\n")
@@ -1325,6 +1394,7 @@ describe("identifyPosts - Problems", () => {
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900446828958470577",
+        text: "That's wild!",
       });
       expect(analyses[1]).toEqual({
         connector: CONTINUES,
@@ -1339,7 +1409,7 @@ describe("identifyPosts - Problems", () => {
         link: "/ApostleJohnW/status/1900454996501475806",
       });
       expect(analyses[3]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1357,7 +1427,7 @@ describe("identifyPosts - Problems", () => {
         link: "/ApostleJohnW/status/1900454397697495122",
       });
       expect(analyses[6]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1375,7 +1445,7 @@ describe("identifyPosts - Problems", () => {
         link: "/ApostleJohnW/status/1900453954611232911",
       });
       expect(analyses[9]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1393,7 +1463,7 @@ describe("identifyPosts - Problems", () => {
         link: "/ApostleJohnW/status/1900453039971971160",
       });
       expect(analyses[12]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1406,14 +1476,14 @@ describe("identifyPosts - Problems", () => {
         link: "/_____USA___/status/1900433669036405235",
       });
       expect(analyses[14]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         connector: CONTINUES,
         quality: GOOD,
         reason: "Looks good",
         link: "/ApostleJohnW/status/1900452749206044700",
       });
       expect(analyses[15]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1431,7 +1501,7 @@ describe("identifyPosts - Problems", () => {
         link: "/ApostleJohnW/status/1900452224620179640",
       });
       expect(analyses[18]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1449,7 +1519,7 @@ describe("identifyPosts - Problems", () => {
         link: "/ApostleJohnW/status/1900451349776490691",
       });
       expect(analyses[21]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1467,7 +1537,7 @@ describe("identifyPosts - Problems", () => {
         link: "/ApostleJohnW/status/1900450032354025709",
       });
       expect(analyses[24]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1485,7 +1555,7 @@ describe("identifyPosts - Problems", () => {
         link: "/ApostleJohnW/status/1900449357188546773",
       });
       expect(analyses[27]).toEqual({
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: UNDEFINED,
         reason: "No article found",
         link: false,
@@ -1519,10 +1589,11 @@ describe("identifyPosts - Potential Problems", () => {
           "   0 Good",
           "   1 Potential Problem",
           "   0 Problem",
-          "   0 Undefined",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   0 Disconnected",
+          "   0 Invisibly Dividing",
+          "   0 Standing Alone",
           "   0 Starting",
           "   0 Continuing",
           "   1 Dangling",
@@ -1536,6 +1607,7 @@ describe("identifyPosts - Potential Problems", () => {
           reason:
             "Found: 'Replying to <a>@KanekoaTheGreat</a>' at a depth of 6",
           link: "/ApostleJohnW/status/1890213085878845626",
+          text: "I'm most disgusted by how much of this had been going on under our noses for so long.",
         },
       ]);
 
@@ -1557,157 +1629,200 @@ describe("identifyPosts - Potential Problems", () => {
           "  15 Good",
           "   1 Potential Problem",
           "   0 Problem",
-          "   7 Undefined",
+          "   7 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   9 Disconnected",
+          "   7 Invisibly Dividing",
+          "   2 Standing Alone",
           "   6 Starting",
           "   7 Continuing",
           "   1 Dangling",
         ].join("\n")
       );
 
-      expect(analyses).toEqual([
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/Polymarket/status/1890150272015692285",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1890268189273256429",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/joerogan/status/1890256988065747120",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1890267922888831056",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/elonmusk/status/1890267219021689066",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1890267836297408744",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/fasc1nate/status/1890159112966529049",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1890266335059538298",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1890226210656968925",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/KanekoaTheGreat/status/1890210084158103579",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1890213612868063403",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: DANGLES,
-          quality: POTENTIAL_PROBLEM,
-          reason:
-            "Found: 'Replying to <a>@KanekoaTheGreat</a>' at a depth of 6",
-          link: "/ApostleJohnW/status/1890213085878845626",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1890201310458216496",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/amuse/status/1890188509212021011",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1890197334828470528",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/GuntherEagleman/status/1890193877270737033",
-        },
-      ]);
+      expect(analyses[0]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/Polymarket/status/1890150272015692285",
+        text: "Perhaps because they’re funded by it?",
+      });
+
+      expect(analyses[1]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1890268189273256429",
+        text: "",
+      });
+
+      expect(analyses[2]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[3]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/joerogan/status/1890256988065747120",
+        text: "FACTS.",
+      });
+
+      expect(analyses[4]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1890267922888831056",
+        text: "No doubt",
+      });
+
+      expect(analyses[5]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[6]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/elonmusk/status/1890267219021689066",
+        text: "True",
+      });
+
+      expect(analyses[7]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1890267836297408744",
+        text: "One would think",
+      });
+
+      expect(analyses[8]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[9]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/fasc1nate/status/1890159112966529049",
+        text: "High School, 1998.",
+      });
+
+      expect(analyses[10]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1890266335059538298",
+        text: "Here's one from 1986",
+      });
+
+      expect(analyses[11]).toEqual({
+        connector: STANDSALONE,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1890226210656968925",
+        text: "Amen Holly. We overcome not by righting wrongs but by denying the expression of the flesh to reflect and reciprocate the image and likeness of God back to Him with increase by His multiplying factor of charity. Galatians 5:17 For the flesh lusteth against the Spirit, and the",
+      });
+
+      expect(analyses[12]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[13]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/KanekoaTheGreat/status/1890210084158103579",
+        text: 'Who knew "soft power" meant transgender job fairs in Bangladesh?',
+      });
+
+      expect(analyses[14]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1890213612868063403",
+        text: "Solar panels in Djibouti",
+      });
+
+      expect(analyses[15]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[16]).toEqual({
+        connector: DANGLES,
+        quality: POTENTIAL_PROBLEM,
+        reason: "Found: 'Replying to <a>@KanekoaTheGreat</a>' at a depth of 6",
+        link: "/ApostleJohnW/status/1890213085878845626",
+        text: "I'm most disgusted by how much of this had been going on under our noses for so long.",
+      });
+
+      expect(analyses[17]).toEqual({
+        connector: STANDSALONE,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1890201310458216496",
+        text: "Amen Apostle Catie. Thank you.",
+      });
+
+      expect(analyses[18]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[19]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/amuse/status/1890188509212021011",
+        text: "This isn’t suspicious, is it?",
+      });
+
+      expect(analyses[20]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1890197334828470528",
+        text: "Nah",
+      });
+
+      expect(analyses[21]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[22]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/GuntherEagleman/status/1890193877270737033",
+        text: 'BREAKING: RFK Jr. just announced he is going to bring RADICAL TRANSPARENCY to HHS! He was asked what the top three additives are that he wants to get removed, and his answer is exactly why he is the PERFECT person for this job: "I would say, first of all, you know, I believe',
+      });
 
       document.documentElement.innerHTML = "";
     });
@@ -1729,10 +1844,12 @@ describe("identifyPosts - Potential Problems", () => {
           "   4 Good",
           "   1 Potential Problem",
           "   0 Problem",
-          "   3 Undefined",
+          "   3 Invisible Divider",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   3 Disconnected",
+          "   3 Invisibly Dividing",
+          "   0 Standing Alone",
           "   2 Starting",
           "   2 Continuing",
           "   1 Dangling",
@@ -1741,52 +1858,60 @@ describe("identifyPosts - Potential Problems", () => {
 
       expect(analyses).toEqual([
         {
-          connector: CONTINUES,
+          connector: CONTINUES, // This is a reply
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890582770079928347",
+          text: "Follow the from",
         },
         {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
+          connector: DIVIDES,
+          quality: DIVIDER,
+          reason: "Invisible Divider Between Post Collections",
           link: false,
+          text: "",
         },
         {
           connector: STARTS,
           quality: GOOD,
           reason: "Looks good",
           link: "/realchrisrufo/status/1890461003453972704",
+          text: 'The Department of Education funded this training program for teachers, which claims that babies develop racial biases as infants and begin "attributing negative traits to non-dominant (non-white) races" by age 5. They want you to believe that babies are racist.',
         },
         {
           connector: CONTINUES,
           quality: GOOD,
           reason: "Looks good",
           link: "/ApostleJohnW/status/1890582075989737603",
+          text: "",
         },
         {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
+          connector: DIVIDES,
+          quality: DIVIDER,
+          reason: "Invisible Divider Between Post Collections",
           link: false,
+          text: "",
         },
         {
           connector: DANGLES,
           quality: POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@DOGE</a>' at a depth of 6",
           link: "/ApostleJohnW/status/1890581864882065729",
+          text: "I am getting this:",
         },
         {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
+          connector: DIVIDES,
+          quality: DIVIDER,
+          reason: "Invisible Divider Between Post Collections",
           link: false,
+          text: "",
         },
         {
           connector: STARTS,
           quality: GOOD,
           reason: "Looks good",
           link: "/Starlink/status/1890556777910981087",
+          text: "Starlink Mini enables high-speed internet on the go, even in the most remote and rural locations around the world",
         },
       ]);
 
@@ -1810,73 +1935,88 @@ describe("identifyPosts - Potential Problems", () => {
           "   6 Good",
           "   1 Potential Problem",
           "   0 Problem",
-          "   2 Undefined",
+          "   2 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   4 Disconnected",
+          "   2 Invisibly Dividing",
+          "   2 Standing Alone",
           "   2 Starting",
           "   2 Continuing",
           "   1 Dangling",
         ].join("\n")
       );
 
-      expect(analyses).toEqual([
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/TomHoman_/status/1890264842021531908",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1890492039311114515",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/TRHLofficial/status/1890488779200135602",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1890489017642127402",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: DANGLES,
-          quality: POTENTIAL_PROBLEM,
-          reason:
-            "Found: 'Replying to <a>@TheRabbitHole84</a>' at a depth of 6",
-          link: "/ApostleJohnW/status/1890483565499932926",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1890477786164318696",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1890477475659927947",
-        },
-      ]);
+      expect(analyses[0]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/TomHoman_/status/1890264842021531908",
+        text: "Update on Mississippi: The bounty hunter program has officially ended before it even began, unfortunately. Mississippi House Bill 1484 would have awarded certified bounty hunters $1,000 for apprehending people who are in the state illegally. It really would have been nice!",
+      });
+
+      expect(analyses[1]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1890492039311114515",
+        text: "Texas Takes Action",
+      });
+
+      expect(analyses[2]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[3]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/TRHLofficial/status/1890488779200135602",
+        text: "Happy Valentine’s Day. I thirst for you like the Tree of Liberty thirsts for the blood of tyrants",
+      });
+
+      expect(analyses[4]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1890489017642127402",
+        text: "Vivid",
+      });
+
+      expect(analyses[5]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[6]).toEqual({
+        connector: DANGLES,
+        quality: POTENTIAL_PROBLEM,
+        reason: "Found: 'Replying to <a>@TheRabbitHole84</a>' at a depth of 6",
+        link: "/ApostleJohnW/status/1890483565499932926",
+        text: "That's wild! Legacy media has been incredibly destructive in trying in vain to defeat Trump and protect the bureaucratic state they can't even comprehend.",
+      });
+
+      expect(analyses[7]).toEqual({
+        connector: STANDSALONE, // Community post
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1890477786164318696",
+        text: "",
+      });
+
+      expect(analyses[8]).toEqual({
+        connector: STANDSALONE, // Community post
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1890477475659927947",
+        text: "𝕏 Community selection list view is broken",
+      });
 
       document.documentElement.innerHTML = "";
     });
@@ -1896,187 +2036,244 @@ describe("identifyPosts - Potential Problems", () => {
           "  17 Good",
           "   1 Potential Problem",
           "   0 Problem",
-          "  10 Undefined",
+          "  10 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   9 Disconnected",
+          "   8 Invisibly Dividing",
+          "   1 Standing Alone",
           "   7 Starting",
           "  11 Continuing",
           "   1 Dangling",
         ].join("\n")
       );
 
-      expect(analyses).toEqual([
-        {
-          connector: DISCONNECTED,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1897284088387535306",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ArthurMacwaters/status/1897070572934439349",
-        },
-        {
-          connector: CONTINUES,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ArthurMacwaters/status/1897274644358693224",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1897277949675733193",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/cgallaty/status/1897270300171231704",
-        },
-        {
-          connector: CONTINUES,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/cgallaty/status/1897274689350729929",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1897274953936117962",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: DANGLES,
-          quality: POTENTIAL_PROBLEM,
-          reason: "Found: 'Replying to <a>@cgallaty</a>' at a depth of 6",
-          link: "/ApostleJohnW/status/1897274769164431494",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ArthurMacwaters/status/1897267322261528696",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1897274123841090000",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/BasedMikeLee/status/1897263908613971994",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1897267944742384013",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/BreannaMorello/status/1897264239783633229",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1897266164189040752",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/piersmorgan/status/1897261181653627162",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/DrEtiquette/status/1897264279868596522",
-        },
-        {
-          connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/ApostleJohnW/status/1897265836777513106",
-        },
-        {
-          connector: DISCONNECTED,
-          quality: UNDEFINED,
-          reason: "No article found",
-          link: false,
-        },
-        {
-          connector: STARTS,
-          quality: GOOD,
-          reason: "Looks good",
-          link: "/Gutfeldfox/status/1896996720460095926",
-        },
-      ]);
+      expect(analyses[0]).toEqual({
+        connector: STANDSALONE,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1897284088387535306",
+        text: "",
+      });
+
+      expect(analyses[1]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[2]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ArthurMacwaters/status/1897070572934439349",
+        text: "What’s stopping you from coding like this",
+      });
+
+      expect(analyses[3]).toEqual({
+        connector: CONTINUES,
+        quality: UNDEFINED,
+        reason: "No article found",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[4]).toEqual({
+        connector: CONTINUES, // Note: Duplicate 'connector' key in original, using the last one
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ArthurMacwaters/status/1897274644358693224",
+        text: "What did it do?",
+      });
+
+      expect(analyses[5]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1897277949675733193",
+        text: "I could find a better video, but it would first spray glue on the part as it moved through the line, then feed fiberglass insulation from a roll and lay it on the sticky part as it continued moving. The next machine would spot weld pins through the insulation to hold it to the",
+      });
+
+      expect(analyses[6]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[7]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/cgallaty/status/1897270300171231704",
+        text: `Reading driver code, I found that someone programming coms for an LCD created a macro that contains an empty while loop and is labeled as a 'wait' command...
+
+Yah I can't see that ever going south.`,
+      });
+
+      expect(analyses[8]).toEqual({
+        connector: CONTINUES,
+        quality: UNDEFINED,
+        reason: "No article found",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[9]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/cgallaty/status/1897274689350729929",
+        text: `Basically this thing says drop everything and just sit there. The result is anything that tries run the code locks up, or the device runs slow. If there is a legit issue, the device could just lock up indefinitely. 
+
+It's just generally annoying to go into something not knowing`,
+      });
+
+      expect(analyses[10]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1897274953936117962",
+        text: "Nice explanation!",
+      });
+
+      expect(analyses[11]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[12]).toEqual({
+        connector: DANGLES,
+        quality: POTENTIAL_PROBLEM,
+        reason: "Found: 'Replying to <a>@cgallaty</a>' at a depth of 6",
+        link: "/ApostleJohnW/status/1897274769164431494",
+        text: "That's quite a long while to wait.",
+      });
+
+      expect(analyses[13]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[14]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ArthurMacwaters/status/1897267322261528696",
+        text: "Skill issue ok?",
+      });
+
+      expect(analyses[15]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1897274123841090000",
+        text: "I've been there, done that, and don't want to repeat it. I once debugged an air logic \"program\" on my first encounter with such a machine control technology. After overcoming the shock, I laid face-up on the factory floor, diagramming the air logic circuits of the HVAC fiberglass",
+      });
+
+      expect(analyses[16]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[17]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/BasedMikeLee/status/1897263908613971994",
+        text: "Let’s freaking go!",
+      });
+
+      expect(analyses[18]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1897267944742384013",
+        text: "Winning 60 Senators in the midterms wouldn't surprise me after the Democrat's repulsive behavior at the SOTU. They openly displayed the very grotesque nature they accused Trump of concealing for a decade.",
+      });
+
+      expect(analyses[19]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[20]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/BreannaMorello/status/1897264239783633229",
+        text: "Democrats hate it when America is thriving.",
+      });
+
+      expect(analyses[21]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1897266164189040752",
+        text: "It really does seem that way since Bill Clinton.",
+      });
+
+      expect(analyses[22]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[23]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/piersmorgan/status/1897261181653627162",
+        text: "Important statement by Prime Minister Starmer. Britain’s been America’s most loyal ally, just as America has been to us. We must never jeopardise our special relationship.",
+      });
+
+      expect(analyses[24]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/DrEtiquette/status/1897264279868596522",
+        text: "As he locks up citizens of the UK over social media posts.",
+      });
+
+      expect(analyses[25]).toEqual({
+        connector: CONTINUES,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/ApostleJohnW/status/1897265836777513106",
+        text: "And then he tells our vice president, to his face, that the UK has a strong record of protecting free speech",
+      });
+
+      expect(analyses[26]).toEqual({
+        connector: DIVIDES,
+        quality: UNDEFINED,
+        reason: "Invisible Divider Between Post Collections",
+        link: false,
+        text: "",
+      });
+
+      expect(analyses[27]).toEqual({
+        connector: STARTS,
+        quality: GOOD,
+        reason: "Looks good",
+        link: "/Gutfeldfox/status/1896996720460095926",
+        text: "Got an idea for a great Gutfeld! guest? Let us know who you’d like to see on panel!",
+      });
 
       document.documentElement.innerHTML = "";
     });
@@ -2096,10 +2293,11 @@ describe("identifyPosts - Potential Problems", () => {
           "   0 Good",
           "   1 Potential Problem",
           "   0 Problem",
-          "   0 Undefined",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   0 Disconnected",
+          "   0 Invisibly Dividing",
+          "   0 Standing Alone",
           "   0 Starting",
           "   0 Continuing",
           "   1 Dangling",
@@ -2113,6 +2311,7 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/ApostleJohnW/status/1890483565499932926",
           reason:
             "Found: 'Replying to <a>@TheRabbitHole84</a>' at a depth of 6",
+          text: "That's wild! Legacy media has been incredibly destructive in trying in vain to defeat Trump and protect the bureaucratic state they can't even comprehend.",
         },
       ]);
 
@@ -2134,10 +2333,11 @@ describe("identifyPosts - Potential Problems", () => {
           "   0 Good",
           "   1 Potential Problem",
           "   0 Problem",
-          "   0 Undefined",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   0 Disconnected",
+          "   0 Invisibly Dividing",
+          "   0 Standing Alone",
           "   0 Starting",
           "   0 Continuing",
           "   1 Dangling",
@@ -2151,6 +2351,7 @@ describe("identifyPosts - Potential Problems", () => {
           reason:
             "Found: 'Replying to <a>@TheRabbitHole84</a>' at a depth of 6",
           link: "/ApostleJohnW/status/1890483565499932926",
+          text: "That's wild! Legacy media has been incredibly destructive in trying in vain to defeat Trump and protect the bureaucratic state they can't even comprehend.",
         },
       ]);
 
@@ -2172,10 +2373,11 @@ describe("identifyPosts - Potential Problems", () => {
           "   3 Good",
           "   4 Potential Problem",
           "   0 Problem",
-          "   0 Undefined",
+          "   0 Undefined Container",
           "",
           "Post Connections Totals:",
-          "   3 Disconnected",
+          "   0 Invisibly Dividing",
+          "   3 Standing Alone",
           "   0 Starting",
           "   0 Continuing",
           "   4 Dangling",
@@ -2188,24 +2390,28 @@ describe("identifyPosts - Potential Problems", () => {
           link: "/ApostleJohnW/status/1878550122281185320",
           quality: POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@Yelp</a>' at a depth of 6",
+          text: "Thank you! I tried out my new badge with some fresh seafood at Katie's in Galveston!",
         },
         {
           connector: DANGLES,
           link: "/ApostleJohnW/status/1878503220315566322",
           quality: POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@ApostleJohnW</a>' at a depth of 6",
+          text: "Here's a link to the help page:",
         },
         {
-          connector: DISCONNECTED,
+          connector: STANDSALONE,
           link: "/ApostleJohnW/status/1878503164703379943",
           quality: GOOD,
           reason: "Looks good",
+          text: 'If you already have 𝕏 Premium or Premium+, be sure to check out the benefits of 𝕏 Pro: From the Help Site on "How to use X Pro" X Pro offers a more convenient X experience by letting you view multiple timelines in one easy interface. It includes a host of advanced features to',
         },
         {
-          connector: DISCONNECTED,
+          connector: STANDSALONE,
           link: "/ApostleJohnW/status/1878492936129650980",
           quality: GOOD,
           reason: "Looks good",
+          text: '"While many still say that we received Jesus through repentance and faith, so we should walk in repentance and faith, this simply is not true. We received the testimony of Jesus to enter into covenant with God through grace, faith, righteousness, and the seal, so we should',
         },
         {
           connector: DANGLES,
@@ -2213,18 +2419,21 @@ describe("identifyPosts - Potential Problems", () => {
           quality: POTENTIAL_PROBLEM,
           reason:
             "Found: 'Replying to <a>@ApostleJohnW</a>@LorraineMarie71and<a>@ApostleEric</a>' at a depth of 6",
+          text: "For more information about the warning provided by God through Enoch concerning the independent ministries (fake church) of the 6th Week of Darkness:",
         },
         {
-          connector: DISCONNECTED,
+          connector: STANDSALONE,
           link: "/ApostleJohnW/status/1878432165748220160",
           quality: GOOD,
           reason: "Looks good",
+          text: 'Amen, Apostle Eric. Thank you for providing this necessary instruction to assist believers in setting order to faith according to the terms God set in the new covenant knowledge of Jesus Christ. From page 101 of the IDCCST Handbook, "To win the battle of the mind we need to know',
         },
         {
           connector: DANGLES,
           link: "/ApostleJohnW/status/1878371966513500444",
           quality: POTENTIAL_PROBLEM,
           reason: "Found: 'Replying to <a>@ApostleJohnW</a>' at a depth of 6",
+          text: "",
         },
       ]);
 
@@ -2249,11 +2458,12 @@ describe("identifyPosts - Problems and Potential Problems", () => {
         "   4 Good",
         "   1 Potential Problem",
         "   1 Problem",
-        "   0 Undefined",
+        "   0 Undefined Container",
         "",
         "Post Connections Totals:",
-        "   4 Disconnected",
-        "   1 Starting",
+        "   0 Invisibly Dividing",
+        "   5 Standing Alone",
+        "   0 Starting",
         "   0 Continuing",
         "   1 Dangling",
       ].join("\n")
@@ -2261,16 +2471,18 @@ describe("identifyPosts - Problems and Potential Problems", () => {
 
     expect(analyses).toEqual([
       {
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/catturd2/status/1886191961670893917",
+        text: "Sounds like a lineup of the losers who were paid to support Kamala but had zero influence.",
       },
       {
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/catturd2/status/1886191251562606816",
+        text: "Good question.",
       },
       {
         connector: DANGLES,
@@ -2278,24 +2490,28 @@ describe("identifyPosts - Problems and Potential Problems", () => {
         reason:
           "Found: 'Replying to <a>@GuntherEagleman</a>and<a>@LeaderJohnThune</a>' at a depth of 6",
         link: "/catturd2/status/1886189049674616930",
+        text: "Meanwhile, Thune takes a three day weekend off.",
       },
       {
-        connector: STARTS,
+        connector: STANDSALONE,
         quality: PROBLEM,
         reason: "Found notice: this post is unavailable",
         link: "/catturd2/status/1886188210524438792",
+        text: "They seem nice. https:// /ObjectLockdown/status/1884671499078164795 …",
       },
       {
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/catturd2/status/1886186665342849268",
+        text: "This is what I voted for.",
       },
       {
-        connector: DISCONNECTED,
+        connector: STANDSALONE,
         quality: GOOD,
         reason: "Looks good",
         link: "/catturd2/status/1886185480791744705",
+        text: "LOL!",
       },
     ]);
 

@@ -1,15 +1,16 @@
-import { postQuality } from './postQuality';
-import { identifyPosts } from './identifyPosts';
-import { describeSampleAnalyses } from './describeSampleAnalyses';
+import { postQuality } from "./postQuality";
+import { identifyPosts } from "./identifyPosts";
+import { describeSampleAnalyses } from "./describeSampleAnalyses";
 import { postConnector } from "./postConnector";
 import { test } from "vitest";
+import { summarizeConnectedPosts } from "./summarizeConnectedPosts";
 
 test("identifyPosts classifies posts", () => {
   // Same sample used in src/xGhosted.test.js
   loadHTML(
     "samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html"
   );
-  const { GOOD, PROBLEM, POTENTIAL_PROBLEM, UNDEFINED } = postQuality;
+  const { GOOD, PROBLEM, POTENTIAL_PROBLEM, DIVIDER, UNDEFINED } = postQuality;
   const { DIVIDES, STARTS, CONTINUES, DANGLES } = postConnector;
   const analyses = identifyPosts(document);
 
@@ -24,7 +25,8 @@ test("identifyPosts classifies posts", () => {
       "  21 Good", // Should be 20 (one bad by association)
       "   2 Potential Problem",
       "   1 Problem", // Should be 2 (one by association)
-      "  12 Undefined Container",
+      "  10 Invisible Divider",
+      "   2 Undefined Container",
       "",
       "Post Connections Totals:",
       "  10 Invisibly Dividing",
@@ -58,7 +60,7 @@ test("identifyPosts classifies posts", () => {
   });
   expect(analyses[3]).toEqual({
     connector: DIVIDES,
-    quality: UNDEFINED,
+    quality: DIVIDER,
     link: false,
     reason: "Invisible Divider Between Post Collections",
     text: "",
@@ -93,7 +95,7 @@ test("identifyPosts classifies posts", () => {
   });
   expect(analyses[8]).toEqual({
     connector: DIVIDES,
-    quality: UNDEFINED,
+    quality: DIVIDER,
     link: false,
     reason: "Invisible Divider Between Post Collections",
     text: "",
@@ -114,7 +116,7 @@ test("identifyPosts classifies posts", () => {
   });
   expect(analyses[11]).toEqual({
     connector: DIVIDES,
-    quality: UNDEFINED,
+    quality: DIVIDER,
     link: false,
     reason: "Invisible Divider Between Post Collections",
     text: "",
@@ -142,7 +144,7 @@ test("identifyPosts classifies posts", () => {
   });
   expect(analyses[15]).toEqual({
     connector: DIVIDES,
-    quality: UNDEFINED,
+    quality: DIVIDER,
     link: false,
     reason: "Invisible Divider Between Post Collections",
     text: "",
@@ -167,7 +169,7 @@ The failed foreign policy of decades past that led us to where we are https:// /
   });
   expect(analyses[18]).toEqual({
     connector: DIVIDES,
-    quality: UNDEFINED,
+    quality: DIVIDER,
     link: false,
     reason: "Invisible Divider Between Post Collections",
     text: "",
@@ -195,7 +197,7 @@ Update your app!`,
   });
   expect(analyses[21]).toEqual({
     connector: DIVIDES,
-    quality: UNDEFINED,
+    quality: DIVIDER,
     link: false,
     reason: "Invisible Divider Between Post Collections",
     text: "",
@@ -232,7 +234,7 @@ We never see them on our feed.`,
   });
   expect(analyses[26]).toEqual({
     connector: DIVIDES,
-    quality: UNDEFINED,
+    quality: DIVIDER,
     link: false,
     reason: "Invisible Divider Between Post Collections",
     text: "",
@@ -247,7 +249,7 @@ We never see them on our feed.`,
   });
   expect(analyses[28]).toEqual({
     connector: DIVIDES,
-    quality: UNDEFINED,
+    quality: DIVIDER,
     link: false,
     reason: "Invisible Divider Between Post Collections",
     text: "",
@@ -272,7 +274,7 @@ No one uses Articles, and the 'Reply Boost' seems non-existent.`,
   });
   expect(analyses[31]).toEqual({
     connector: DIVIDES,
-    quality: UNDEFINED,
+    quality: DIVIDER,
     link: false,
     reason: "Invisible Divider Between Post Collections",
     text: "",
@@ -293,7 +295,7 @@ No one uses Articles, and the 'Reply Boost' seems non-existent.`,
   });
   expect(analyses[34]).toEqual({
     connector: DIVIDES,
-    quality: UNDEFINED,
+    quality: DIVIDER,
     link: false,
     reason: "Invisible Divider Between Post Collections",
     text: "",

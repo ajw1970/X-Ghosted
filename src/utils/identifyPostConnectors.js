@@ -1,42 +1,38 @@
 import { postConnector } from "./postConnector";
+import { postQuality } from "./postQuality";
 
 function identifyPostConnectors(
   post,
-  isDivider,
+  quality,
   containsSystemNotice = false,
   previousPostConnector = false,
   logger = console.log
 ) {
   const { DIVIDES, STANDSALONE, STARTS, CONTINUES, DANGLES } = postConnector;
   logger(
-    `identifyPostConnectors received post and params: isDivider: ${isDivider}, containsSystemNotice: ${containsSystemNotice}, previousPostConnector: ${JSON.stringify(previousPostConnector)}`
+    `identifyPostConnectors received post and params: quality: ${quality.name}, containsSystemNotice: ${containsSystemNotice}, previousPostConnector: ${JSON.stringify(previousPostConnector)}`
   );
-  if (isDivider) {
+  if (quality === postQuality.DIVIDER) {
     return DIVIDES;
   }
 
   // Check for the presence of connecting lines
-  const lines = post.querySelectorAll(".r-m5arl1");
-  const hasLines = lines.length > 0;
-  if (hasLines) {
-    logger(`identifyPostConnectors found ${lines.length} connecting lines`);
-    if (previousPostConnector) {
+  const hasVerticalLine = post.querySelector(".r-m5arl1") !== null;
+  if (hasVerticalLine) {
+    logger(`identifyPostConnectors found vertical connecting lines`);
+
+    // Check if the post is a reply by looking for r-15zivkp in the thread structure
+    // Specifically, we look for r-15zivkp within the thread layout div (r-18kxxzh r-1wron08 r-onrtq4)
+    const isReply =
+      post.querySelector(".r-18kxxzh.r-1wron08.r-onrtq4.r-15zivkp") !== null;
+    if (isReply || quality === postQuality.UNDEFINED) {
       logger(
-        `identifyPostConnectors returning based on previous post connector ${previousPostConnector.name}`
-      );
-      if (previousPostConnector === DIVIDES) {
-        logger(
-          `identifyPostConnectors returning STARTS based on previous post connector`
-        );
-        return STARTS;
-      }
-      logger(
-        `identifyPostConnectors returning CONTINUES based on previous post connector`
+        "identifyPostConnector Returning CONTINUES: has vertical lines (r-m5arl1) with r-15zivkp"
       );
       return CONTINUES;
     }
     logger(
-      `identifyPostConnectors returning STARTS based on lines without previous post`
+      "identifyPostConnector Returning STARTS: has vertical lines (r-m5arl1) without r-15zivkp"
     );
     return STARTS;
   }
@@ -62,11 +58,11 @@ function identifyPostConnectors(
   const isPlaceholder = containsSystemNotice === true;
 
   // Check if the post is a reply by looking for the "Replying to" div
-  const isReply = post.querySelector(".r-4qtqp9.r-zl2h9q") !== null;
+  const isReplyingTo = post.querySelector(".r-4qtqp9.r-zl2h9q") !== null;
 
   // Check for nested posts (e.g., quote tweets)
-  const hasNestedPost =
-    post.querySelector('[data-testid="tweetText"] ~ [role="article"]') !== null;
+  // const hasNestedPost =
+  //   post.querySelector('[data-testid="tweetText"] ~ [role="article"]') !== null;
 
   // // Posts with community context and no reply start a conversation
   // if (hasCommunityContext && !isReply && !isPlaceholder) {
@@ -89,7 +85,7 @@ function identifyPostConnectors(
   // }
 
   // Handle placeholder posts that might be parents
-  if (!hasLines && isPlaceholder && !hasIndentation) {
+  if (isPlaceholder && !hasIndentation) {
     logger(
       "identifyPostConnectors returning STANDSALONE due to placeholder post"
     );
@@ -97,7 +93,7 @@ function identifyPostConnectors(
   }
 
   // Classify "dangling" replies: no lines, structurally a reply, not a placeholder
-  if (!hasLines && isReply && !isPlaceholder) {
+  if (isReplyingTo && !isPlaceholder) {
     logger("identifyPostConnectors returning DANGLES due to reply structure");
     return DANGLES;
   }

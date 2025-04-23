@@ -2,17 +2,14 @@ import { postHasProblemCommunity } from './postHasProblemCommunity';
 import { postHasProblemSystemNotice } from './postHasProblemSystemNotice';
 import { findReplyingToWithDepth } from './findReplyingToWithDepth';
 import { getRelativeLinkToPost } from "./getRelativeLinkToPost";
+import { isPostDivider } from "./isPostDivider";
 import { postQuality } from "./postQuality";
 
-function identifyPost(
-  post,
-  checkReplies = true,
-  isPostDivider = false,
-  logger = console.log
-) {
-  if (isPostDivider) {
+function identifyPost(post, checkReplies = true, logger = console.log) {
+  const isDivider = isPostDivider(post);
+  if (isDivider) {
     return {
-      quality: postQuality.UNDEFINED,
+      quality: postQuality.DIVIDER,
       reason: "Invisible Divider Between Post Collections",
       link: false,
     };

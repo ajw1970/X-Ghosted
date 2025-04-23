@@ -7,7 +7,7 @@ import { expect } from "vitest";
 test("identifyPosts classifies posts", () => {
   // Same sample used in src/xGhosted.test.js
   loadHTML("samples/ajweltytest-with-replies-april-21-2025.html");
-  const { GOOD, PROBLEM, POTENTIAL_PROBLEM, UNDEFINED } = postQuality;
+  const { GOOD, PROBLEM, POTENTIAL_PROBLEM, DIVIDER, UNDEFINED } = postQuality;
   const { DIVIDES, STANDSALONE, STARTS, CONTINUES, DANGLES } = postConnector;
   const analyses = identifyPosts(document);
 
@@ -20,10 +20,11 @@ test("identifyPosts classifies posts", () => {
       "   1 Nested Articles",
       "",
       "Rated Post Quality Totals:",
-      "   4 Good", 
+      "   4 Good",
       "   2 Potential Problem",
-      "   1 Problem", 
-      "   5 Undefined Container",
+      "   1 Problem",
+      "   5 Invisible Divider",
+      "   0 Undefined Container",
       "",
       "Post Connections Totals:",
       "   5 Invisibly Dividing",
@@ -37,7 +38,7 @@ test("identifyPosts classifies posts", () => {
   expect(analyses).toEqual([
     {
       connector: DIVIDES,
-      quality: UNDEFINED,
+      quality: DIVIDER,
       reason: "Invisible Divider Between Post Collections",
       link: false,
       text: "",
@@ -61,11 +62,11 @@ test("identifyPosts classifies posts", () => {
       quality: PROBLEM,
       reason: "Found notice: this post is unavailable",
       link: "/ajweltytest/status/1901080866002014636",
-      text: "Tested https:// /ApostleJohnW/status/1901080737941467534 …"
+      text: "Tested https:// /ApostleJohnW/status/1901080737941467534 …",
     },
     {
       connector: DIVIDES,
-      quality: UNDEFINED,
+      quality: DIVIDER,
       reason: "Invisible Divider Between Post Collections",
       link: false,
       text: "",
@@ -79,7 +80,7 @@ test("identifyPosts classifies posts", () => {
     },
     {
       connector: DIVIDES,
-      quality: UNDEFINED,
+      quality: DIVIDER,
       reason: "Invisible Divider Between Post Collections",
       link: false,
       text: "",
@@ -93,7 +94,7 @@ test("identifyPosts classifies posts", () => {
     },
     {
       connector: DIVIDES,
-      quality: UNDEFINED,
+      quality: DIVIDER,
       reason: "Invisible Divider Between Post Collections",
       link: false,
       text: "",
@@ -103,7 +104,7 @@ test("identifyPosts classifies posts", () => {
       quality: GOOD,
       reason: "Looks good",
       link: "/ApostleJohnW/status/1895367468908192087",
-      text:  "What do you think—good or bad? I had Grok-3 whip up an image of me styled as a Mandalorian, complete with my helmet beside me.",
+      text: "What do you think—good or bad? I had Grok-3 whip up an image of me styled as a Mandalorian, complete with my helmet beside me.",
     },
     {
       connector: CONTINUES, // Community Post reply
@@ -114,7 +115,7 @@ test("identifyPosts classifies posts", () => {
     },
     {
       connector: DIVIDES,
-      quality: UNDEFINED,
+      quality: DIVIDER,
       reason: "Invisible Divider Between Post Collections",
       link: false,
       text: "",
