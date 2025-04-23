@@ -85,13 +85,14 @@
 ** [x] Stop when no more scrolling available. Separate polling timer for scrolling. Maybe use smooth scrolling too?
 ** [x] Use separate polling. 
 * [x] Make sure we're not persisting processedPosts. 
-* [ \x] Make sure we clear processedPosts when the urlFullPath changes.
+* [x] Make sure we clear processedPosts when the urlFullPath changes.
 * [ ] Fix tests
 * [ ] Identify, isolate, and test critical behaviors to prevent regression
 
 * [ ] xGhosted should highlight posts just fine without panel working.
 * [ ] Fix resize panel
-
+* [ ] Introduce logging system like Winston: https://grok.com/share/bGVnYWN5_4903ae06-b1a5-4941-8dc9-028940cc7297
+* [ ] Consider usecase for using getPostEngagement.js
 * Clarify dom for post container and X.com behavior
 
 ** We can use a class to collapse when that is enabled.
