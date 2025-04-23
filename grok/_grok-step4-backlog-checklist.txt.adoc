@@ -59,6 +59,7 @@
 * [ ] Add disable button to clear highlighted posts from x.com dom (leave them on the list) and stop polling and scrolling.
 * [x] Make Splash panel draggable
 * [ ] Replace new windows post check with Puppeteer or something similar to avoid the need for a new window.
+** [ ] Grok suggested this solution with a netlify endpoint: https://grok.com/share/bGVnYWN5_27dfba9c-32bc-4638-af8a-6adc7f9f211f
 * [x] Have splash screen only open once for the user. Allow a way to show it again later from Tools.
 ** Implemented on April 18, 2025, with `hasSeenSplash` in `PanelManager.js` and "About" button in `Panel.jsx`.
 * [ ] Decouple xGhosted from ProcessedPostsManager but be careful.
