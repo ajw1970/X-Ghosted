@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         xGhosted-find-replies-to-problem-posts
+// @name         xGhosted-decoupling
 // @namespace    http://tampermonkey.net/
 // @version      0.6.1
 // @description  Highlight and manage problem posts on X.com with a resizable, draggable panel
@@ -772,6 +772,35 @@
       this.state.lastUrlFullPath = urlFullPath;
       return urlFullPath;
     };
+    XGhosted.prototype.waitForClearConfirmation = function () {
+      return new Promise((resolve) => {
+        const handler = () => {
+          this.document.removeEventListener(
+            'xghosted:posts-cleared-confirmed',
+            handler
+          );
+          resolve();
+        };
+        this.document.addEventListener(
+          'xghosted:posts-cleared-confirmed',
+          handler
+        );
+      });
+    };
+    XGhosted.prototype.waitForPostRetrieved = function (href) {
+      return new Promise((resolve) => {
+        const handler = (e) => {
+          if (e.detail.href === href) {
+            this.document.removeEventListener(
+              'xghosted:post-retrieved',
+              handler
+            );
+            resolve(e.detail.post);
+          }
+        };
+        this.document.addEventListener('xghosted:post-retrieved', handler);
+      });
+    };
     XGhosted.prototype.handleUrlChange = async function (urlFullPath) {
       const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
       this.state.isWithReplies = isWithReplies;
@@ -783,7 +812,8 @@
           })
         );
       }
-      await this.postsManager.clearPosts();
+      this.emit('xghosted:clear-posts', {});
+      await this.waitForClearConfirmation();
       this.state.isPollingEnabled = true;
       this.state.isAutoScrollingEnabled = false;
       this.handleStartPolling();
@@ -804,9 +834,9 @@
         })
       );
     };
-    XGhosted.prototype.checkPostInNewTab = function (href) {
+    XGhosted.prototype.checkPostInNewTab = async function (href) {
       this.log(`Checking post in new tab: ${href}`);
-      const fullUrl = `${this.postsManager.linkPrefix}${href}`;
+      const fullUrl = `https://x.com${href}`;
       const newWindow = this.document.defaultView.open(fullUrl, '_blank');
       let attempts = 0;
       const maxAttempts = 10;
@@ -857,9 +887,10 @@
         }, 500);
       });
     };
-    XGhosted.prototype.userRequestedPostCheck = function (href, post) {
+    XGhosted.prototype.userRequestedPostCheck = async function (href, post) {
       this.log(`User requested check for ${href}`);
-      const cached = this.postsManager.getPost(href);
+      this.emit('xghosted:post-requested', { href });
+      const cached = await this.waitForPostRetrieved(href);
       if (
         !cached ||
         cached.analysis.quality.name !== postQuality.POTENTIAL_PROBLEM.name
@@ -870,52 +901,49 @@
       if (!cached.checked) {
         this.handleStopPolling();
         this.log(`Manual check starting for ${href}`);
-        this.checkPostInNewTab(href).then((isProblem) => {
+        const isProblem = await this.checkPostInNewTab(href);
+        this.log(
+          `Manual check result for ${href}: ${isProblem ? 'problem' : 'good'}`
+        );
+        const currentPost = this.document.querySelector(
+          `[data-xghosted-id="${href}"]`
+        );
+        if (!currentPost) {
           this.log(
-            `Manual check result for ${href}: ${isProblem ? 'problem' : 'good'}`
+            `Post with href ${href} no longer exists in the DOM, skipping DOM update`
           );
-          const currentPost = this.document.querySelector(
-            `[data-xghosted-id="${href}"]`
+        } else {
+          currentPost.classList.remove(
+            'xghosted-potential_problem',
+            'xghosted-good',
+            'xghosted-problem'
           );
-          if (!currentPost) {
-            this.log(
-              `Post with href ${href} no longer exists in the DOM, skipping DOM update`
-            );
+          currentPost.classList.add(
+            isProblem ? 'xghosted-problem' : 'xghosted-good'
+          );
+          currentPost.setAttribute(
+            'data-xghosted',
+            `postquality.${isProblem ? 'problem' : 'good'}`
+          );
+          const eyeballContainer =
+            currentPost.querySelector('.xghosted-eyeball');
+          if (eyeballContainer) {
+            eyeballContainer.classList.remove('xghosted-eyeball');
           } else {
-            currentPost.classList.remove(
-              'xghosted-potential_problem',
-              'xghosted-good',
-              'xghosted-problem'
-            );
-            currentPost.classList.add(
-              isProblem ? 'xghosted-problem' : 'xghosted-good'
-            );
-            currentPost.setAttribute(
-              'data-xghosted',
-              `postquality.${isProblem ? 'problem' : 'good'}`
-            );
-            const eyeballContainer =
-              currentPost.querySelector('.xghosted-eyeball');
-            if (eyeballContainer) {
-              eyeballContainer.classList.remove('xghosted-eyeball');
-            } else {
-              this.log(
-                `Eyeball container not found for post with href: ${href}`
-              );
-            }
+            this.log(`Eyeball container not found for post with href: ${href}`);
           }
-          cached.analysis.quality = isProblem
-            ? postQuality.PROBLEM
-            : postQuality.GOOD;
-          cached.checked = true;
-          this.postsManager.registerPost(href, cached);
-          this.document.dispatchEvent(
-            new CustomEvent('xghosted:state-updated', {
-              detail: { ...this.state },
-            })
-          );
-          this.log(`User requested post check completed for ${href}`);
-        });
+        }
+        cached.analysis.quality = isProblem
+          ? postQuality.PROBLEM
+          : postQuality.GOOD;
+        cached.checked = true;
+        this.emit('xghosted:post-registered', { href, data: cached });
+        this.document.dispatchEvent(
+          new CustomEvent('xghosted:state-updated', {
+            detail: { ...this.state },
+          })
+        );
+        this.log(`User requested post check completed for ${href}`);
       } else {
         this.log(`Manual check skipped for ${href}: already checked`);
       }
@@ -1113,19 +1141,6 @@
             );
           }
         }
-        if (id) {
-          const cachedPost = this.postsManager.getPost(id);
-          if (
-            !cachedPost ||
-            cachedPost.analysis.quality.name !== analysis.quality.name ||
-            cachedPost.analysis.reason !== analysis.reason
-          ) {
-            this.postsManager.registerPost(id, {
-              analysis,
-              checked: cachedPost?.checked || false,
-            });
-          }
-        }
       };
       const checkReplies = this.state.isWithReplies;
       const results = [];
@@ -1133,21 +1148,18 @@
         posts ||
         this.document.querySelectorAll(XGhosted.UNPROCESSED_POSTS_SELECTOR);
       let postsProcessed = 0;
-      let cachedAnalysis = false;
       postsToProcess.forEach((post) => {
         const postId = getRelativeLinkToPost(post);
-        if (postId) {
-          const cachedPost = this.postsManager.getPost(postId);
-          cachedAnalysis = cachedPost?.analysis;
-        }
-        let analysis = cachedAnalysis
-          ? { ...cachedAnalysis }
-          : identifyPost(post, checkReplies);
+        let analysis = identifyPost(post, checkReplies);
         if (analysis?.quality === postQuality.PROBLEM) {
           this.handleStopPolling();
         }
-        if (!cachedAnalysis) postsProcessed++;
         processPostAnalysis(post, analysis);
+        this.emit('xghosted:post-registered', {
+          href: postId,
+          data: { analysis, checked: false },
+        });
+        postsProcessed++;
         results.push(analysis);
       });
       if (postsProcessed > 0) {
@@ -1734,7 +1746,7 @@
                           className: 'panel-button',
                           onClick: () => {
                             document.dispatchEvent(
-                              new CustomEvent('xghosted:clear-posts')
+                              new CustomEvent('xghosted:clear-posts-ui')
                             );
                           },
                           'aria-label': 'Clear Processed Posts',
@@ -2445,11 +2457,8 @@
       }
     };
     window.PanelManager.prototype.clearPosts = function () {
-      if (confirm('Clear all processed posts?')) {
-        this.postsManager.clearPosts();
-        this.renderPanel();
-        this.document.dispatchEvent(new CustomEvent('xghosted:posts-cleared'));
-      }
+      this.document.dispatchEvent(new CustomEvent('xghosted:clear-posts-ui'));
+      this.renderPanel();
     };
     window.PanelManager.prototype.showSplashPage = function () {
       try {
@@ -3210,9 +3219,6 @@
     document.addEventListener('xghosted:export-csv', () => {
       panelManager.exportProcessedPostsCSV();
     });
-    document.addEventListener('xghosted:clear-posts', () => {
-      panelManager.clearPosts();
-    });
     document.addEventListener(
       'xghosted:csv-import',
       ({ detail: { csvText } }) => {
@@ -3271,6 +3277,45 @@
       },
       { capture: true }
     );
+    document.addEventListener(
+      'xghosted:post-registered',
+      ({ detail: { href, data } }) => {
+        postsManager.registerPost(href, data);
+        log(`Registered post: ${href}`);
+      }
+    );
+    document.addEventListener(
+      'xghosted:post-requested',
+      ({ detail: { href } }) => {
+        const post = postsManager.getPost(href);
+        document.dispatchEvent(
+          new CustomEvent('xghosted:post-retrieved', {
+            detail: { href, post },
+          })
+        );
+        log(`Retrieved post: ${href}`);
+      }
+    );
+    document.addEventListener('xghosted:clear-posts', async () => {
+      await postsManager.clearPosts();
+      document.dispatchEvent(
+        new CustomEvent('xghosted:posts-cleared-confirmed', {
+          detail: {},
+        })
+      );
+      log('Cleared all posts');
+    });
+    document.addEventListener('xghosted:clear-posts-ui', async () => {
+      if (confirm('Clear all processed posts?')) {
+        await postsManager.clearPosts();
+        document.dispatchEvent(
+          new CustomEvent('xghosted:posts-cleared-confirmed', {
+            detail: {},
+          })
+        );
+        log('Cleared all posts via UI');
+      }
+    });
   } catch (error) {
     log(
       `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`

@@ -108,9 +108,6 @@
     document.addEventListener("xghosted:export-csv", () => {
       panelManager.exportProcessedPostsCSV();
     });
-    document.addEventListener("xghosted:clear-posts", () => {
-      panelManager.clearPosts();
-    });
     document.addEventListener(
       "xghosted:csv-import",
       ({ detail: { csvText } }) => {
@@ -169,6 +166,45 @@
       },
       { capture: true }
     );
+    document.addEventListener(
+      "xghosted:post-registered",
+      ({ detail: { href, data } }) => {
+        postsManager.registerPost(href, data);
+        log(`Registered post: ${href}`);
+      }
+    );
+    document.addEventListener(
+      "xghosted:post-requested",
+      ({ detail: { href } }) => {
+        const post = postsManager.getPost(href);
+        document.dispatchEvent(
+          new CustomEvent("xghosted:post-retrieved", {
+            detail: { href, post },
+          })
+        );
+        log(`Retrieved post: ${href}`);
+      }
+    );
+    document.addEventListener("xghosted:clear-posts", async () => {
+      await postsManager.clearPosts();
+      document.dispatchEvent(
+        new CustomEvent("xghosted:posts-cleared-confirmed", {
+          detail: {},
+        })
+      );
+      log("Cleared all posts");
+    });
+    document.addEventListener("xghosted:clear-posts-ui", async () => {
+      if (confirm("Clear all processed posts?")) {
+        await postsManager.clearPosts();
+        document.dispatchEvent(
+          new CustomEvent("xghosted:posts-cleared-confirmed", {
+            detail: {},
+          })
+        );
+        log("Cleared all posts via UI");
+      }
+    });
   } catch (error) {
     log(
       `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`

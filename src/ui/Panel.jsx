@@ -31,7 +31,6 @@ function Panel({
     state.userProfileName
   );
 
-  // Sync isVisible with state.isPanelVisible
   window.preactHooks.useEffect(() => {
     setIsVisible(state.isPanelVisible);
   }, [state.isPanelVisible]);
@@ -346,7 +345,7 @@ function Panel({
                       className: 'panel-button',
                       onClick: () => {
                         document.dispatchEvent(
-                          new CustomEvent('xghosted:clear-posts')
+                          new CustomEvent('xghosted:clear-posts-ui')
                         );
                       },
                       'aria-label': 'Clear Processed Posts',

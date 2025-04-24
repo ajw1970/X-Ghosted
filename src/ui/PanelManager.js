@@ -538,11 +538,8 @@ window.PanelManager.prototype.importProcessedPostsCSV = function (
 };
 
 window.PanelManager.prototype.clearPosts = function () {
-  if (confirm("Clear all processed posts?")) {
-    this.postsManager.clearPosts();
-    this.renderPanel();
-    this.document.dispatchEvent(new CustomEvent("xghosted:posts-cleared"));
-  }
+  this.document.dispatchEvent(new CustomEvent("xghosted:clear-posts-ui"));
+  this.renderPanel();
 };
 
 window.PanelManager.prototype.showSplashPage = function () {
