@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         xGhosted-decoupling
+// @name         xGhosted-find-replies-to-problem-posts
 // @namespace    http://tampermonkey.net/
 // @version      0.6.1
 // @description  Highlight and manage problem posts on X.com with a resizable, draggable panel
@@ -91,17 +91,24 @@
 
     // src/utils/postQuality.js
     var postQuality = Object.freeze({
-      UNDEFINED: Object.freeze({ name: 'Undefined', value: 0 }),
-      PROBLEM: Object.freeze({ name: 'Problem', value: 1 }),
-      POTENTIAL_PROBLEM: Object.freeze({ name: 'Potential Problem', value: 2 }),
-      GOOD: Object.freeze({ name: 'Good', value: 3 }),
+      UNDEFINED: Object.freeze({ name: 'Undefined Container', value: 0 }),
+      DIVIDER: Object.freeze({ name: 'Invisible Divider', value: 1 }),
+      PROBLEM: Object.freeze({ name: 'Problem', value: 2 }),
+      PROBLEM_ADJACENT: Object.freeze({
+        name: 'Problem by Association',
+        value: 3,
+      }),
+      POTENTIAL_PROBLEM: Object.freeze({ name: 'Potential Problem', value: 4 }),
+      GOOD: Object.freeze({ name: 'Good', value: 5 }),
     });
 
     // src/utils/summarizeRatedPosts.js
     function summarizeRatedPosts(analyses) {
       const summary = {
         [postQuality.UNDEFINED.name]: 0,
+        [postQuality.DIVIDER.name]: 0,
         [postQuality.PROBLEM.name]: 0,
+        [postQuality.PROBLEM_ADJACENT.name]: 0,
         [postQuality.POTENTIAL_PROBLEM.name]: 0,
         [postQuality.GOOD.name]: 0,
       };
@@ -116,35 +123,97 @@
       return summary;
     }
 
+    // src/utils/postConnector.js
+    var postConnector = Object.freeze({
+      DIVIDES: Object.freeze({ name: 'Invisibly Dividing', value: 0 }),
+      INDEPENDENT: Object.freeze({ name: 'Standing Alone', value: 1 }),
+      STARTS: Object.freeze({ name: 'Starting', value: 2 }),
+      CONTINUES: Object.freeze({ name: 'Continuing', value: 3 }),
+      DANGLES: Object.freeze({ name: 'Dangling', value: 4 }),
+    });
+
+    // src/utils/summarizeConnectedPosts.js
+    function summarizeConnectedPosts(analyses) {
+      const summary = {
+        [postConnector.DIVIDES.name]: 0,
+        [postConnector.INDEPENDENT.name]: 0,
+        [postConnector.STARTS.name]: 0,
+        [postConnector.CONTINUES.name]: 0,
+        [postConnector.DANGLES.name]: 0,
+      };
+      if (!Array.isArray(analyses)) {
+        return summary;
+      }
+      analyses.forEach((analysis) => {
+        if (analysis && analysis.connector && analysis.connector.name) {
+          summary[analysis.connector.name]++;
+        }
+      });
+      return summary;
+    }
+
     // src/utils/describeSampleAnalyses.js
-    function describeSampleAnalyses(document, analyses) {
-      const totalPosts = document.querySelectorAll(
+    function describeSampleAnalyses(document2, analyses) {
+      const {
+        GOOD,
+        PROBLEM,
+        PROBLEM_ADJACENT,
+        POTENTIAL_PROBLEM,
+        DIVIDER,
+        UNDEFINED,
+      } = postQuality;
+      const { DIVIDES, INDEPENDENT, STARTS, CONTINUES, DANGLES } =
+        postConnector;
+      const totalPosts = document2.querySelectorAll(
         'div[data-testid="cellInnerDiv"]'
       ).length;
-      const totalArticles = document.querySelectorAll(
+      const totalArticles = document2.querySelectorAll(
         'article:not(article article)'
       ).length;
       const totalNestedArticles =
-        document.querySelectorAll('article article').length;
+        document2.querySelectorAll('article article').length;
       const postQualitySummary = summarizeRatedPosts(analyses);
+      const postConnectorSummary = summarizeConnectedPosts(analyses);
       const $padding = 2;
-      const totalGood = postQualitySummary[postQuality.GOOD.name];
-      const totalPotentialProblems =
-        postQualitySummary[postQuality.POTENTIAL_PROBLEM.name];
-      const totalProblems = postQualitySummary[postQuality.PROBLEM.name];
-      const totalUndefined = postQualitySummary[postQuality.UNDEFINED.name];
+      const totalGood = postQualitySummary[GOOD.name];
+      const totalPotentialProblems = postQualitySummary[POTENTIAL_PROBLEM.name];
+      const totalProblems = postQualitySummary[PROBLEM.name];
+      const totalAdjacentProblems = postQualitySummary[PROBLEM_ADJACENT.name];
+      const totalDividers = postQualitySummary[DIVIDER.name];
+      const totalUndefined = postQualitySummary[UNDEFINED.name];
+      const totalDivides = postConnectorSummary[DIVIDES.name];
+      const totalINDEPENDENT = postConnectorSummary[INDEPENDENT.name];
+      const totalStarts = postConnectorSummary[STARTS.name];
+      const totalContinues = postConnectorSummary[CONTINUES.name];
+      const totalDangles = postConnectorSummary[DANGLES.name];
       return [
         `Structure Summary Totals:`,
         `  ${`${totalPosts}`.padStart($padding, ' ')} Posts`,
         `  ${`${totalArticles}`.padStart($padding, ' ')} Articles`,
         `  ${`${totalNestedArticles}`.padStart($padding, ' ')} Nested Articles`,
         ``,
-        `Rated Post Quality (${analyses ? analyses.length : 0} Total):`,
-        `  ${`${totalGood}`.padStart($padding, ' ')} ${postQuality.GOOD.name}`,
-        `  ${`${totalPotentialProblems}`.padStart($padding, ' ')} ${postQuality.POTENTIAL_PROBLEM.name}`,
-        `  ${`${totalProblems}`.padStart($padding, ' ')} ${postQuality.PROBLEM.name}`,
-        `  ${`${totalUndefined}`.padStart($padding, ' ')} ${postQuality.UNDEFINED.name}`,
+        `Rated Post Quality Totals:`,
+        `  ${`${totalGood}`.padStart($padding, ' ')} ${GOOD.name}`,
+        `  ${`${totalPotentialProblems}`.padStart($padding, ' ')} ${POTENTIAL_PROBLEM.name}`,
+        `  ${`${totalProblems}`.padStart($padding, ' ')} ${PROBLEM.name}`,
+        `  ${`${totalAdjacentProblems}`.padStart($padding, ' ')} ${PROBLEM_ADJACENT.name}`,
+        `  ${`${totalDividers}`.padStart($padding, ' ')} ${DIVIDER.name}`,
+        `  ${`${totalUndefined}`.padStart($padding, ' ')} ${UNDEFINED.name}`,
+        ``,
+        `Post Connections Totals:`,
+        `  ${`${totalDivides}`.padStart($padding, ' ')} ${DIVIDES.name}`,
+        `  ${`${totalINDEPENDENT}`.padStart($padding, ' ')} ${INDEPENDENT.name}`,
+        `  ${`${totalStarts}`.padStart($padding, ' ')} ${STARTS.name}`,
+        `  ${`${totalContinues}`.padStart($padding, ' ')} ${CONTINUES.name}`,
+        `  ${`${totalDangles}`.padStart($padding, ' ')} ${DANGLES.name}`,
       ].join('\n');
+    }
+
+    // src/utils/extractUserFromLink.js
+    function extractUserFromLink(link) {
+      if (!link) return null;
+      const match = link.match(/^\/([^/]+)/);
+      return match ? match[1] : null;
     }
 
     // src/utils/findReplyingToWithDepth.js
@@ -179,10 +248,85 @@
       return result;
     }
 
+    // src/utils/getPostEngagement.js
+    function getPostEngagement(post) {
+      const engagementContainer = post.querySelector('[role="group"]');
+      if (engagementContainer) {
+        const replyCount =
+          engagementContainer.querySelector('[data-testid="reply"] span')
+            ?.textContent || '0';
+        const likeCount =
+          engagementContainer.querySelector(
+            '[data-testid="like"] span, [data-testid="unlike"] span'
+          )?.textContent || '0';
+        const repostCount =
+          engagementContainer.querySelector('[data-testid="retweet"] span')
+            ?.textContent || '0';
+        const impressionElement = engagementContainer.querySelector(
+          '[href*="/analytics"] [data-testid="app-text-transition-container"] span'
+        );
+        let impressionCount = impressionElement?.textContent || '0';
+        impressionCount = parseImpressionCount(impressionCount);
+        return {
+          replyCount: parseInt(replyCount) || 0,
+          likeCount: parseInt(likeCount) || 0,
+          repostCount: parseInt(repostCount) || 0,
+          impressionCount,
+        };
+      }
+      return {
+        replyCount: 0,
+        likeCount: 0,
+        repostCount: 0,
+        impressionCount: 0,
+      };
+    }
+    function parseImpressionCount(impressionText) {
+      if (!impressionText || typeof impressionText !== 'string') return 0;
+      impressionText = impressionText.trim().toLowerCase();
+      if (impressionText.endsWith('k')) {
+        const num = parseFloat(impressionText.replace('k', ''));
+        return isNaN(num) ? 0 : Math.round(num * 1e3);
+      } else if (impressionText.endsWith('m')) {
+        const num = parseFloat(impressionText.replace('m', ''));
+        return isNaN(num) ? 0 : Math.round(num * 1e6);
+      } else {
+        const num = parseInt(impressionText);
+        return isNaN(num) ? 0 : num;
+      }
+    }
+
     // src/utils/getRelativeLinkToPost.js
     function getRelativeLinkToPost(element) {
       const link = element.querySelector('a:has(time)')?.getAttribute('href');
       return link || false;
+    }
+
+    // src/utils/getTweetText.js
+    function getTweetText(post) {
+      let visibleText = '';
+      if (post.matches('div[data-testid="cellInnerDiv"]')) {
+        const tweetDiv = post.querySelector('div[data-testid="tweetText"]');
+        if (tweetDiv) {
+          const walker = document.createTreeWalker(
+            tweetDiv,
+            NodeFilter.SHOW_TEXT,
+            {
+              acceptNode: (node2) => {
+                return node2.parentNode.tagName === 'A'
+                  ? NodeFilter.FILTER_REJECT
+                  : NodeFilter.FILTER_ACCEPT;
+              },
+            },
+            false
+          );
+          let node;
+          while ((node = walker.nextNode())) {
+            visibleText += node.textContent.trim() + ' ';
+          }
+        }
+      }
+      return visibleText.trim();
     }
 
     // src/utils/postHasProblemCommunity.js
@@ -227,8 +371,29 @@
       return false;
     }
 
+    // src/utils/isPostDivider.js
+    function isPostDivider(post) {
+      const children = post.children;
+      if (children.length !== 1) {
+        return false;
+      }
+      const child = children[0];
+      if (child.tagName !== 'DIV') {
+        return false;
+      }
+      return child.children.length === 0;
+    }
+
     // src/utils/identifyPost.js
     function identifyPost(post, checkReplies = true, logger = console.log) {
+      const isDivider = isPostDivider(post);
+      if (isDivider) {
+        return {
+          quality: postQuality.DIVIDER,
+          reason: 'Invisible Divider Between Post Collections',
+          link: false,
+        };
+      }
       const article = post.querySelector('article');
       if (!article) {
         return {
@@ -285,18 +450,160 @@
       };
     }
 
+    // src/utils/postConnectorNameGetter.js
+    function postConnectorNameGetter(connector) {
+      if (!connector) return 'none';
+      if (connector === postConnector.DIVIDES) return 'DIVIDES';
+      if (connector === postConnector.INDEPENDENT) return 'INDEPENDENT';
+      if (connector === postConnector.STARTS) return 'STARTS';
+      if (connector === postConnector.CONTINUES) return 'CONTINUES';
+      if (connector === postConnector.DANGLES) return 'DANGLES';
+      return 'unknown';
+    }
+
+    // src/utils/identifyPostConnectors.js
+    var SELECTORS = {
+      VERTICAL_LINE: '.r-m5arl1',
+      REPLY_INDICATOR: '.r-18kxxzh.r-1wron08.r-onrtq4.r-15zivkp',
+      COMMUNITY_CONTEXT: '.r-q3we1, a[href*="/i/communities/"]',
+      CONTAINER: '.r-18u37iz',
+      INDENTATION: '.r-15zivkp',
+      REPLYING_TO: '.r-4qtqp9.r-zl2h9q',
+    };
+    function identifyPostConnectors(
+      post,
+      quality,
+      containsSystemNotice = false,
+      previousPostConnector = false,
+      logger = console.log
+    ) {
+      logger(
+        `identifyPostConnectors received: quality=${quality.name}, containsSystemNotice=${containsSystemNotice}, previousPostConnector=${postConnectorNameGetter(previousPostConnector)}`
+      );
+      logger(JSON.stringify(previousPostConnector));
+      if (quality === postQuality.DIVIDER) {
+        logger('Returning DIVIDES: post is a divider');
+        return postConnector.DIVIDES;
+      }
+      if (hasVerticalLine(post)) {
+        return classifyVerticalLinePost(post, quality, logger);
+      }
+      const hasCommunityContext =
+        post.querySelector(SELECTORS.COMMUNITY_CONTEXT) !== null;
+      const hasIndent = hasIndentation(post, hasCommunityContext);
+      if (containsSystemNotice) {
+        return classifyPlaceholderPost(
+          previousPostConnector,
+          hasIndent,
+          logger
+        );
+      }
+      if (isReplyingTo(post)) {
+        logger('Returning DANGLES: post is a reply');
+        return postConnector.DANGLES;
+      }
+      logger('Returning INDEPENDENT: default case');
+      return postConnector.INDEPENDENT;
+    }
+    function hasVerticalLine(post) {
+      return post.querySelector(SELECTORS.VERTICAL_LINE) !== null;
+    }
+    function hasIndentation(post, hasCommunityContext) {
+      const container = post.querySelector(SELECTORS.CONTAINER);
+      return (
+        container?.querySelector(SELECTORS.INDENTATION) && !hasCommunityContext
+      );
+    }
+    function isReplyingTo(post) {
+      return post.querySelector(SELECTORS.REPLYING_TO) !== null;
+    }
+    function classifyVerticalLinePost(post, quality, logger) {
+      const isReply = post.querySelector(SELECTORS.REPLY_INDICATOR) !== null;
+      if (isReply || quality === postQuality.UNDEFINED) {
+        logger(
+          'Returning CONTINUES: has vertical lines with reply indicator or undefined quality'
+        );
+        return postConnector.CONTINUES;
+      }
+      logger('Returning STARTS: has vertical lines without reply indicator');
+      return postConnector.STARTS;
+    }
+    function classifyPlaceholderPost(previousPostConnector, hasIndent, logger) {
+      if (
+        !hasIndent &&
+        (!previousPostConnector ||
+          previousPostConnector === postConnector.DIVIDES)
+      ) {
+        logger(
+          'Returning STARTS: placeholder with no indent and no/divider previous connector'
+        );
+        return postConnector.STARTS;
+      }
+      logger('Returning INDEPENDENT: placeholder default');
+      return postConnector.INDEPENDENT;
+    }
+
+    // src/utils/postQualityNameGetter.js
+    function postQualityNameGetter(quality) {
+      if (!quality) return 'none';
+      if (quality === postQuality.UNDEFINED) return 'UNDEFINED';
+      if (quality === postQuality.DIVIDER) return 'DIVIDER';
+      if (quality === postQuality.PROBLEM) return 'PROBLEM';
+      if (quality === postQuality.PROBLEM_ADJACENT) return 'PROBLEM_ADJACENT';
+      if (quality === postQuality.POTENTIAL_PROBLEM) return 'POTENTIAL_PROBLEM';
+      if (quality === postQuality.GOOD) return 'GOOD';
+      return 'unknown';
+    }
+
     // src/utils/identifyPosts.js
     function identifyPosts(
-      document,
+      document2,
       selector = 'div[data-testid="cellInnerDiv"]',
-      checkReplies = true
+      checkReplies = true,
+      previousPostQuality = null,
+      previousPostConnector = null,
+      logger = () => {}
     ) {
-      const results = [];
-      document.querySelectorAll(selector).forEach((post) => {
-        const analysis = identifyPost(post, checkReplies);
-        results.push(analysis);
+      const connectedPostsAnalyses = [];
+      document2.querySelectorAll(selector).forEach((post) => {
+        const postAnalysis = identifyPost(post, checkReplies, logger);
+        const hasProblemSystemNotice =
+          postAnalysis.reason.startsWith('Found notice:');
+        const postText = getTweetText(post);
+        logger(`Calling identifyPostConnectors for: ${postAnalysis.link}`);
+        const connector = identifyPostConnectors(
+          post,
+          postAnalysis.quality,
+          hasProblemSystemNotice,
+          previousPostConnector,
+          logger
+        );
+        if (
+          postAnalysis.quality === postQuality.GOOD &&
+          connector === postConnector.CONTINUES &&
+          previousPostQuality &&
+          [postQuality.PROBLEM, postQuality.PROBLEM_ADJACENT].includes(
+            previousPostQuality
+          )
+        ) {
+          logger(
+            `Problem Adjacent Post Found: ${postQualityNameGetter(postAnalysis.quality)}`
+          );
+          postAnalysis.quality = postQuality.PROBLEM_ADJACENT;
+          postAnalysis.reason = 'Problem upstream in converation thread';
+          logger(`New Quality: ${postQualityNameGetter(postAnalysis.quality)}`);
+        }
+        previousPostConnector = connector;
+        previousPostQuality = postAnalysis.quality;
+        connectedPostsAnalyses.push({
+          connector,
+          quality: postAnalysis.quality,
+          reason: postAnalysis.reason,
+          link: postAnalysis.link,
+          text: postText,
+        });
       });
-      return results;
+      return connectedPostsAnalyses;
     }
 
     // src/dom/findPostContainer.js
@@ -367,15 +674,24 @@
       debounce,
       describeSampleAnalyses,
       exportToCSV,
+      extractUserFromLink,
       findPostContainer,
       findReplyingToWithDepth,
+      getPostEngagement,
       getRelativeLinkToPost,
+      getTweetText,
       identifyPost,
+      identifyPostConnectors,
       identifyPosts,
+      isPostDivider,
       parseUrl,
+      postConnector,
+      postConnectorNameGetter,
       postHasProblemCommunity,
       postHasProblemSystemNotice,
       postQuality,
+      postQualityNameGetter,
+      summarizeConnectedPosts,
       summarizeRatedPosts,
     };
   })();
