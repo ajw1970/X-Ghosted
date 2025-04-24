@@ -11,7 +11,7 @@ function identifyPosts(
   checkReplies = true,
   previousPostQuality = null,
   previousPostConnector = null,
-  logger = console.log
+  logger = () => {} // Silent by default
 ) {
   const connectedPostsAnalyses = [];
 
