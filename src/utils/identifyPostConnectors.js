@@ -31,6 +31,7 @@ function identifyPostConnectors(
   logger(
     `identifyPostConnectors received: quality=${quality.name}, containsSystemNotice=${containsSystemNotice}, previousPostConnector=${postConnectorNameGetter(previousPostConnector)}`
   );
+  logger(JSON.stringify(previousPostConnector));
 
   // Handle divider posts
   if (quality === postQuality.DIVIDER) {

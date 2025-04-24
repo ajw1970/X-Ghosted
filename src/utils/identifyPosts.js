@@ -46,7 +46,7 @@ function identifyPosts(
       logger(`New Quality: ${postQualityNameGetter(postAnalysis.quality)}`);
     }
 
-    previousPostConnector = postConnector;
+    previousPostConnector = connector;
     previousPostQuality = postAnalysis.quality;
 
     connectedPostsAnalyses.push({

@@ -5,7 +5,14 @@ import { describeSampleAnalyses } from "./describeSampleAnalyses";
 import { postHasProblemSystemNotice } from "./postHasProblemSystemNotice";
 import { describe, expect, it } from "vitest";
 
-const { PROBLEM, POTENTIAL_PROBLEM, GOOD, DIVIDER, UNDEFINED } = postQuality;
+const {
+  PROBLEM,
+  PROBLEM_ADJACENT,
+  POTENTIAL_PROBLEM,
+  GOOD,
+  DIVIDER,
+  UNDEFINED,
+} = postQuality;
 const { DIVIDES, INDEPENDENT, STARTS, CONTINUES, DANGLES } = postConnector;
 
 describe("identifyPosts - Conversation Threads", () => {
@@ -24,6 +31,7 @@ describe("identifyPosts - Conversation Threads", () => {
         "   3 Good",
         "   0 Potential Problem",
         "   0 Problem",
+        "   0 Problem by Association",
         "   0 Invisible Divider",
         "   1 Undefined Container",
         "",
@@ -83,17 +91,18 @@ describe("identifyPosts - Conversation Threads", () => {
         "   1 Nested Articles",
         "",
         "Rated Post Quality Totals:",
-        "   2 Good", // should be 0
+        "   0 Good",
         "   0 Potential Problem",
-        "   1 Problem", // should be 3
+        "   1 Problem",
+        "   2 Problem by Association",
         "   0 Invisible Divider",
         "   1 Undefined Container",
         "",
         "Post Connections Totals:",
         "   0 Invisibly Dividing",
         "   1 Standing Alone",
-        "   1 Starting", // Problem post
-        "   2 Continuing", // Problem by association
+        "   1 Starting",
+        "   2 Continuing",
         "   0 Dangling",
       ].join("\n")
     );
@@ -108,16 +117,16 @@ describe("identifyPosts - Conversation Threads", () => {
 
     expect(analyses[1]).toEqual({
       connector: CONTINUES,
-      quality: GOOD,
-      reason: "Looks good",
+      quality: PROBLEM_ADJACENT,
+      reason: "Problem upstream in converation thread",
       link: "/paulspivak_/status/1911067375199285395",
       text: "X is targeting spam accounts from India, Bangladesh and Pakistan which have become out of control. Especially Pakistan since X isn't even available there officially so the vast majority of traffic is basically spam.\n\nIf you're from here, not interested in your complaints.",
     });
 
     expect(analyses[2]).toEqual({
       connector: CONTINUES,
-      quality: GOOD,
-      reason: "Looks good",
+      quality: PROBLEM_ADJACENT,
+      reason: "Problem upstream in converation thread",
       link: "/monetization_x/status/1911125224113811765",
       text: "I hope you’re right they’re going after the spam accounts.",
     });
@@ -149,6 +158,7 @@ it("should find one problem and one potential problem post", () => {
       "   4 Good",
       "   1 Potential Problem",
       "   1 Problem",
+      "   0 Problem by Association",
       "   4 Invisible Divider",
       "   6 Undefined Container",
       "",
@@ -293,6 +303,7 @@ describe("identifyPosts - Good", () => {
         "   8 Good",
         "   0 Potential Problem",
         "   0 Problem",
+        "   0 Problem by Association",
         "   2 Invisible Divider",
         "   1 Undefined Container",
         "",
@@ -403,6 +414,7 @@ describe("identifyPosts - Good", () => {
         "   3 Good",
         "   0 Potential Problem",
         "   0 Problem",
+        "   0 Problem by Association",
         "   1 Invisible Divider",
         "   2 Undefined Container",
         "",
@@ -477,6 +489,7 @@ describe("identifyPosts - Good", () => {
         "   1 Good",
         "   0 Potential Problem",
         "   0 Problem",
+        "   0 Problem by Association",
         "   0 Invisible Divider",
         "   0 Undefined Container",
         "",
@@ -517,6 +530,7 @@ describe("identifyPosts - Good", () => {
         "   1 Good",
         "   0 Potential Problem",
         "   0 Problem",
+        "   0 Problem by Association",
         "   0 Invisible Divider",
         "   0 Undefined Container",
         "",
@@ -557,6 +571,7 @@ describe("identifyPosts - Good", () => {
         "   1 Good",
         "   0 Potential Problem",
         "   0 Problem",
+        "   0 Problem by Association",
         "   0 Invisible Divider",
         "   0 Undefined Container",
         "",
@@ -600,6 +615,7 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   0 Problem by Association",
           "   1 Invisible Divider",
           "   1 Undefined Container",
           "",
@@ -662,6 +678,7 @@ describe("identifyPosts - Problems", () => {
           "   4 Good",
           "   0 Potential Problem",
           "   0 Problem",
+          "   0 Problem by Association",
           "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -722,9 +739,10 @@ describe("identifyPosts - Problems", () => {
           "   0 Nested Articles",
           "",
           "Rated Post Quality Totals:",
-          "   3 Good",
+          "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   2 Problem by Association",
           "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -754,15 +772,15 @@ describe("identifyPosts - Problems", () => {
         },
         {
           connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
+          quality: PROBLEM_ADJACENT,
+          reason: "Problem upstream in converation thread",
           link: "/WarPumpkin22/status/1884794131643314464",
           text: "It sounds more like a processing collection point or a brief stop to log in US illegal aliens information before sending them back to their homes. If they are collecting 1000+ illegals per day, a Guantanamo Bay facility would be full in less than 30 days.",
         },
         {
           connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
+          quality: PROBLEM_ADJACENT,
+          reason: "Problem upstream in converation thread",
           link: "/ApostleJohnW/status/1884794615716307143",
           text: "Yeah, It sounded like a logistics play to me.",
         },
@@ -783,9 +801,10 @@ describe("identifyPosts - Problems", () => {
           "   0 Nested Articles",
           "",
           "Rated Post Quality Totals:",
-          "   1 Good",
+          "   0 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   1 Problem by Association",
           "   0 Invisible Divider",
           "   1 Undefined Container",
           "",
@@ -809,8 +828,8 @@ describe("identifyPosts - Problems", () => {
         },
         {
           connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
+          quality: PROBLEM_ADJACENT,
+          reason: "Problem upstream in converation thread",
           link: "/ApostleJohnW/status/1880635863631344062",
           text: "She's basically a carry-on",
         },
@@ -843,6 +862,7 @@ describe("identifyPosts - Problems", () => {
           "   9 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   0 Problem by Association",
           "   9 Invisible Divider",
           "   1 Undefined Container",
           "",
@@ -1012,9 +1032,10 @@ describe("identifyPosts - Problems", () => {
           "   0 Nested Articles",
           "",
           "Rated Post Quality Totals:",
-          "   1 Good",
+          "   0 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   1 Problem by Association",
           "   0 Invisible Divider",
           "   1 Undefined Container",
           "",
@@ -1037,8 +1058,8 @@ describe("identifyPosts - Problems", () => {
 
       expect(analyses[1]).toEqual({
         connector: CONTINUES,
-        quality: GOOD,
-        reason: "Looks good",
+        quality: PROBLEM_ADJACENT,
+        reason: "Problem upstream in converation thread",
         link: "/ApostleJohnW/status/1882615672984969338",
         text: "What happens when we repost subscription content? Teaser posts?",
       });
@@ -1057,6 +1078,15 @@ describe("identifyPosts - Problems", () => {
     it("should identify two unable to view post problems in this sample size of 6", () => {
       loadHTML("samples/Conversation-with-limited-visibility.html");
       const analyses = identifyPosts(document);
+      /*
+        const analyses = identifyPosts(
+        document,
+        'div[data-testid="cellInnerDiv"]',
+        true,
+        null,
+        null,
+        console.log
+      ); */
 
       expect(describeSampleAnalyses(document, analyses)).toBe(
         [
@@ -1066,9 +1096,10 @@ describe("identifyPosts - Problems", () => {
           "   0 Nested Articles",
           "",
           "Rated Post Quality Totals:",
-          "   2 Good",
+          "   0 Good",
           "   0 Potential Problem",
           "   2 Problem",
+          "   2 Problem by Association",
           "   1 Invisible Divider",
           "   1 Undefined Container",
           "",
@@ -1090,8 +1121,8 @@ describe("identifyPosts - Problems", () => {
       });
       expect(analyses[1]).toEqual({
         connector: CONTINUES,
-        quality: GOOD,
-        reason: "Looks good",
+        quality: PROBLEM_ADJACENT,
+        reason: "Problem upstream in converation thread",
         link: "/ApostleJohnW/status/1883292681188917450",
         text: "Kristi Noem already is DHS Secretary.",
       });
@@ -1111,8 +1142,8 @@ describe("identifyPosts - Problems", () => {
       });
       expect(analyses[4]).toEqual({
         connector: CONTINUES,
-        quality: GOOD,
-        reason: "Looks good",
+        quality: PROBLEM_ADJACENT,
+        reason: "Problem upstream in converation thread",
         link: "/ApostleJohnW/status/1883293430052430332",
         text: "Fair enough",
       });
@@ -1139,9 +1170,10 @@ describe("identifyPosts - Problems", () => {
           "   0 Nested Articles",
           "",
           "Rated Post Quality Totals:",
-          "   3 Good",
+          "   2 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   1 Problem by Association",
           "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -1178,8 +1210,8 @@ describe("identifyPosts - Problems", () => {
         },
         {
           connector: CONTINUES,
-          quality: GOOD,
-          reason: "Looks good",
+          quality: PROBLEM_ADJACENT,
+          reason: "Problem upstream in converation thread",
           link: "/ApostleJohnW/status/1884150859036254640",
           text: "So tell me how that makes you feel",
         },
@@ -1200,9 +1232,10 @@ describe("identifyPosts - Problems", () => {
           "   1 Nested Articles",
           "",
           "Rated Post Quality Totals:",
-          "   1 Good",
+          "   0 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   1 Problem by Association",
           "   0 Invisible Divider",
           "   1 Undefined Container",
           "",
@@ -1224,8 +1257,8 @@ describe("identifyPosts - Problems", () => {
       });
       expect(analyses[1]).toEqual({
         connector: CONTINUES,
-        quality: GOOD,
-        reason: "Looks good",
+        quality: PROBLEM_ADJACENT,
+        reason: "Problem upstream in converation thread",
         link: "/ApostleJohnW/status/1884566696322592842",
         text: "",
       });
@@ -1258,6 +1291,7 @@ describe("identifyPosts - Problems", () => {
           "   0 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   0 Problem by Association",
           "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -1305,6 +1339,7 @@ describe("identifyPosts - Problems", () => {
           "   0 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   0 Problem by Association",
           "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -1346,6 +1381,7 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   0 Problem by Association",
           "   1 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -1400,6 +1436,7 @@ describe("identifyPosts - Problems", () => {
           "   1 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   0 Problem by Association",
           "   1 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -1452,9 +1489,10 @@ describe("identifyPosts - Problems", () => {
           "   1 Nested Articles",
           "",
           "Rated Post Quality Totals:",
-          "  19 Good",
+          "  18 Good",
           "   0 Potential Problem",
           "   1 Problem",
+          "   1 Problem by Association",
           "   9 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -1568,8 +1606,8 @@ describe("identifyPosts - Problems", () => {
       });
       expect(analyses[14]).toEqual({
         connector: CONTINUES,
-        quality: GOOD,
-        reason: "Looks good",
+        quality: PROBLEM_ADJACENT,
+        reason: "Problem upstream in converation thread",
         link: "/ApostleJohnW/status/1900452749206044700",
         text: "That's also every county Kamala turned blue.",
       });
@@ -1694,6 +1732,7 @@ describe("identifyPosts - Potential Problems", () => {
           "   0 Good",
           "   1 Potential Problem",
           "   0 Problem",
+          "   0 Problem by Association",
           "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -1735,6 +1774,7 @@ describe("identifyPosts - Potential Problems", () => {
           "  15 Good",
           "   1 Potential Problem",
           "   0 Problem",
+          "   0 Problem by Association",
           "   7 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -1951,6 +1991,7 @@ describe("identifyPosts - Potential Problems", () => {
           "   4 Good",
           "   1 Potential Problem",
           "   0 Problem",
+          "   0 Problem by Association",
           "   3 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -2042,6 +2083,7 @@ describe("identifyPosts - Potential Problems", () => {
           "   6 Good",
           "   1 Potential Problem",
           "   0 Problem",
+          "   0 Problem by Association",
           "   2 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -2144,6 +2186,7 @@ describe("identifyPosts - Potential Problems", () => {
           "  17 Good",
           "   1 Potential Problem",
           "   0 Problem",
+          "   0 Problem by Association",
           "   8 Invisible Divider",
           "   2 Undefined Container",
           "",
@@ -2402,6 +2445,7 @@ It's just generally annoying to go into something not knowing`,
           "   0 Good",
           "   1 Potential Problem",
           "   0 Problem",
+          "   0 Problem by Association",
           "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -2443,6 +2487,7 @@ It's just generally annoying to go into something not knowing`,
           "   0 Good",
           "   1 Potential Problem",
           "   0 Problem",
+          "   0 Problem by Association",
           "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -2484,6 +2529,7 @@ It's just generally annoying to go into something not knowing`,
           "   3 Good",
           "   4 Potential Problem",
           "   0 Problem",
+          "   0 Problem by Association",
           "   0 Invisible Divider",
           "   0 Undefined Container",
           "",
@@ -2570,6 +2616,7 @@ describe("identifyPosts - Problems and Potential Problems", () => {
         "   4 Good",
         "   1 Potential Problem",
         "   1 Problem",
+        "   0 Problem by Association",
         "   0 Invisible Divider",
         "   0 Undefined Container",
         "",
