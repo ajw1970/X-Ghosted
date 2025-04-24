@@ -35,8 +35,9 @@ function identifyPosts(
       postAnalysis.quality === postQuality.GOOD &&
       connector === postConnector.CONTINUES &&
       previousPostQuality &&
-      (previousPostQuality === postQuality.PROBLEM ||
-        previousPostQuality === postQuality.PROBLEM_ADJACENT)
+      [postQuality.PROBLEM, postQuality.PROBLEM_ADJACENT].includes(
+        previousPostQuality
+      )
     ) {
       logger(
         `Problem Adjacent Post Found: ${postQualityNameGetter(postAnalysis.quality)}`
