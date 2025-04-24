@@ -9,7 +9,14 @@ test("identifyPosts classifies posts", () => {
   loadHTML(
     "samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html"
   );
-  const { GOOD, PROBLEM, POTENTIAL_PROBLEM, DIVIDER, UNDEFINED } = postQuality;
+  const {
+    GOOD,
+    PROBLEM,
+    PROBLEM_ADJACENT,
+    POTENTIAL_PROBLEM,
+    DIVIDER,
+    UNDEFINED,
+  } = postQuality;
   const { DIVIDES, STARTS, CONTINUES, DANGLES } = postConnector;
   const analyses = identifyPosts(document);
 
@@ -21,9 +28,10 @@ test("identifyPosts classifies posts", () => {
       "   1 Nested Articles",
       "",
       "Rated Post Quality Totals:",
-      "  21 Good", // Should be 20 (one bad by association)
+      "  20 Good",
       "   2 Potential Problem",
-      "   1 Problem", // Should be 2 (one by association)
+      "   1 Problem",
+      "   1 Problem by Association",
       "  10 Invisible Divider",
       "   2 Undefined Container",
       "",
@@ -161,9 +169,9 @@ The failed foreign policy of decades past that led us to where we are https:// /
   });
   expect(analyses[17]).toEqual({
     connector: CONTINUES,
-    quality: GOOD, // should be bad
+    quality: PROBLEM_ADJACENT,
     link: "/ApostleJohnW/status/1897011110072738182",
-    reason: "Looks good",
+    reason: "Problem upstream in converation thread",
     text: "I agree. Trying to create a foreign policy around virtue-signaling was always a recipe for instability as it starts on the wrong foot.",
   });
   expect(analyses[18]).toEqual({

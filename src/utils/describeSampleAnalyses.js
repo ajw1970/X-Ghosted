@@ -4,7 +4,14 @@ import { postConnector } from "./postConnector";
 import { postQuality } from "./postQuality";
 
 function describeSampleAnalyses(document, analyses) {
-  const { GOOD, PROBLEM, POTENTIAL_PROBLEM, DIVIDER, UNDEFINED } = postQuality;
+  const {
+    GOOD,
+    PROBLEM,
+    PROBLEM_ADJACENT,
+    POTENTIAL_PROBLEM,
+    DIVIDER,
+    UNDEFINED,
+  } = postQuality;
   const { DIVIDES, INDEPENDENT, STARTS, CONTINUES, DANGLES } = postConnector;
 
   const totalPosts = document.querySelectorAll(
@@ -22,6 +29,7 @@ function describeSampleAnalyses(document, analyses) {
   const totalGood = postQualitySummary[GOOD.name];
   const totalPotentialProblems = postQualitySummary[POTENTIAL_PROBLEM.name];
   const totalProblems = postQualitySummary[PROBLEM.name];
+  const totalAdjacentProblems = postQualitySummary[PROBLEM_ADJACENT.name];
   const totalDividers = postQualitySummary[DIVIDER.name];
   const totalUndefined = postQualitySummary[UNDEFINED.name];
 
@@ -41,6 +49,7 @@ function describeSampleAnalyses(document, analyses) {
     `  ${`${totalGood}`.padStart($padding, " ")} ${GOOD.name}`,
     `  ${`${totalPotentialProblems}`.padStart($padding, " ")} ${POTENTIAL_PROBLEM.name}`,
     `  ${`${totalProblems}`.padStart($padding, " ")} ${PROBLEM.name}`,
+    `  ${`${totalAdjacentProblems}`.padStart($padding, " ")} ${PROBLEM_ADJACENT.name}`,
     `  ${`${totalDividers}`.padStart($padding, " ")} ${DIVIDER.name}`,
     `  ${`${totalUndefined}`.padStart($padding, " ")} ${UNDEFINED.name}`,
     ``,

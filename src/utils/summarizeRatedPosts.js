@@ -6,6 +6,7 @@ function summarizeRatedPosts(analyses) {
     [postQuality.UNDEFINED.name]: 0,
     [postQuality.DIVIDER.name]: 0,
     [postQuality.PROBLEM.name]: 0,
+    [postQuality.PROBLEM_ADJACENT.name]: 0,
     [postQuality.POTENTIAL_PROBLEM.name]: 0,
     [postQuality.GOOD.name]: 0,
   };

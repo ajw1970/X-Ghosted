@@ -23,6 +23,7 @@ test("identifyPosts classifies posts", () => {
       "   4 Good",
       "   2 Potential Problem",
       "   1 Problem",
+      "   0 Problem by Association",
       "   5 Invisible Divider",
       "   0 Undefined Container",
       "",

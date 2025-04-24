@@ -1,15 +1,19 @@
 import { identifyPost } from "./identifyPost";
 import { identifyPostConnectors } from "./identifyPostConnectors";
 import { getTweetText } from "./getTweetText";
+import { postConnector } from "./postConnector";
+import { postQuality } from "./postQuality";
+import { postQualityNameGetter } from "./postQualityNameGetter";
 
 function identifyPosts(
   document,
   selector = 'div[data-testid="cellInnerDiv"]',
   checkReplies = true,
+  previousPostQuality = null,
+  previousPostConnector = null,
   logger = console.log
 ) {
-  const results = [];
-  let previousPostConnector = false;
+  const connectedPostsAnalyses = [];
 
   document.querySelectorAll(selector).forEach((post) => {
     const postAnalysis = identifyPost(post, checkReplies, logger);
@@ -18,18 +22,35 @@ function identifyPosts(
     const postText = getTweetText(post);
 
     logger(`Calling identifyPostConnectors for: ${postAnalysis.link}`);
-    const postConnector = identifyPostConnectors(
+    const connector = identifyPostConnectors(
       post,
       postAnalysis.quality,
       hasProblemSystemNotice,
       previousPostConnector,
       logger
     );
-    // logger(`postConnector ${postConnector.name}`);
-    previousPostConnector = postConnector;
 
-    results.push({
-      connector: postConnector,
+    // Replace postAnalysis.quality with PROBLEM_ADJACENT if was good but is now linked to problems
+    if (
+      postAnalysis.quality === postQuality.GOOD &&
+      connector === postConnector.CONTINUES &&
+      previousPostQuality &&
+      (previousPostQuality === postQuality.PROBLEM ||
+        previousPostQuality === postQuality.PROBLEM_ADJACENT)
+    ) {
+      logger(
+        `Problem Adjacent Post Found: ${postQualityNameGetter(postAnalysis.quality)}`
+      );
+      postAnalysis.quality = postQuality.PROBLEM_ADJACENT;
+      postAnalysis.reason = "Problem upstream in converation thread";
+      logger(`New Quality: ${postQualityNameGetter(postAnalysis.quality)}`);
+    }
+
+    previousPostConnector = postConnector;
+    previousPostQuality = postAnalysis.quality;
+
+    connectedPostsAnalyses.push({
+      connector,
       quality: postAnalysis.quality,
       reason: postAnalysis.reason,
       link: postAnalysis.link,
@@ -37,7 +58,7 @@ function identifyPosts(
     });
   });
 
-  return results;
+  return connectedPostsAnalyses;
 }
 
 export { identifyPosts };
