@@ -115,6 +115,18 @@
       }
     );
     document.addEventListener(
+      "xghosted:request-import-csv",
+      ({ detail: { csvText } }) => {
+        const importedCount = postsManager.importPosts(csvText);
+        document.dispatchEvent(
+          new CustomEvent("xghosted:csv-imported", {
+            detail: { importedCount },
+          })
+        );
+        log("Dispatched xghosted:csv-imported with count:", importedCount);
+      }
+    );
+    document.addEventListener(
       "xghosted:set-auto-scrolling",
       ({ detail: { enabled } }) => {
         xGhosted.setAutoScrolling(enabled);

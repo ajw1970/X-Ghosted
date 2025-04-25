@@ -276,11 +276,26 @@ window.PanelManager.prototype.init = function () {
     this.renderPanel();
   };
   const handleCsvImport = (e) => {
-    if (e.detail.importedCount > 0) {
-      this.log("PanelManager: CSV imported, refreshing posts");
+    const { importedCount } = e.detail || {};
+    if (importedCount > 0) {
+      this.log("PanelManager: CSV imported, processing posts");
       this.state.flagged = [];
       this.state.totalPosts = 0;
+      const posts = this.postsManager.getAllPosts();
+      posts.forEach(([href, data]) => {
+        const isProblem = ["Problem", "Potential Problem"].includes(
+          data.analysis.quality.name
+        );
+        if (isProblem) {
+          this.state.flagged.push([href, data]);
+        }
+        this.state.totalPosts += 1;
+      });
+      this.log(
+        `PanelManager: Processed imported posts, flagged=${this.state.flagged.length}, total=${this.state.totalPosts}`
+      );
       this.renderPanel();
+      alert(`Successfully imported ${importedCount} posts!`);
     }
   };
   const handlePostsRetrieved = (e) => {
@@ -323,6 +338,7 @@ window.PanelManager.prototype.init = function () {
   );
   this.document.addEventListener("xghosted:posts-cleared", handlePostsCleared);
   this.document.addEventListener("xghosted:csv-import", handleCsvImport);
+  this.document.addEventListener("xghosted:csv-imported", handleCsvImport);
   this.document.addEventListener(
     "xghosted:posts-retrieved",
     handlePostsRetrieved
@@ -359,6 +375,7 @@ window.PanelManager.prototype.init = function () {
       handlePostsCleared
     );
     this.document.removeEventListener("xghosted:csv-import", handleCsvImport);
+    this.document.removeEventListener("xghosted:csv-imported", handleCsvImport);
     this.document.removeEventListener(
       "xghosted:posts-retrieved",
       handlePostsRetrieved
@@ -703,17 +720,12 @@ window.PanelManager.prototype.importProcessedPostsCSV = function (
   onClose
 ) {
   this.log("Import CSV button clicked");
-  const count = this.postsManager.importPosts(csvText);
-  if (count > 0) {
-    this.renderPanel();
-    this.document.dispatchEvent(
-      new CustomEvent("xghosted:csv-import", {
-        detail: { importedCount: count },
-      })
-    );
-    alert(`Successfully imported ${count} posts!`);
-    onClose();
-  }
+  this.document.dispatchEvent(
+    new CustomEvent("xghosted:request-import-csv", {
+      detail: { csvText },
+    })
+  );
+  onClose();
 };
 
 window.PanelManager.prototype.clearPosts = function () {
