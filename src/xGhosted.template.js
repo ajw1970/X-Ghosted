@@ -161,6 +161,18 @@
       log("Dispatched xghosted:posts-retrieved with posts:", posts);
     });
     document.addEventListener(
+      "xghosted:request-post-register",
+      ({ detail: { href, data } }) => {
+        postsManager.registerPost(href, data);
+        document.dispatchEvent(
+          new CustomEvent("xghosted:post-registered-confirmed", {
+            detail: { href, data },
+          })
+        );
+        log("Dispatched xghosted:post-registered-confirmed for:", href);
+      }
+    );
+    document.addEventListener(
       "click",
       (e) => {
         const eyeball =

@@ -266,7 +266,33 @@ window.PanelManager.prototype.init = function () {
       const isProblem = ["Problem", "Potential Problem"].includes(
         data.analysis.quality.name
       );
-      this.updatePosts({ post: { href, data }, isProblem });
+      if (isProblem) {
+        this.state.flagged = [
+          ...this.state.flagged.filter(
+            ([existingHref]) => existingHref !== href
+          ),
+          [href, data],
+        ];
+      } else {
+        this.state.flagged = this.state.flagged.filter(
+          ([existingHref]) => existingHref !== href
+        );
+      }
+      this.state.totalPosts += 1;
+      this.log(
+        `PanelManager: Updated flagged posts, count=${this.state.flagged.length}, totalPosts=${this.state.totalPosts}`
+      );
+      this.renderPanel();
+    }
+  };
+  const handlePostRegisteredConfirmed = (e) => {
+    const { href, data } = e.detail || {};
+    if (href && data?.analysis?.quality?.name) {
+      this.log(
+        "PanelManager: Processing xghosted:post-registered-confirmed for:",
+        href
+      );
+      // No need to call updatePosts, as registration is handled externally
     }
   };
   const handlePostsCleared = () => {
@@ -336,6 +362,10 @@ window.PanelManager.prototype.init = function () {
     "xghosted:post-registered",
     handlePostRegistered
   );
+  this.document.addEventListener(
+    "xghosted:post-registered-confirmed",
+    handlePostRegisteredConfirmed
+  );
   this.document.addEventListener("xghosted:posts-cleared", handlePostsCleared);
   this.document.addEventListener("xghosted:csv-import", handleCsvImport);
   this.document.addEventListener("xghosted:csv-imported", handleCsvImport);
@@ -369,6 +399,10 @@ window.PanelManager.prototype.init = function () {
     this.document.removeEventListener(
       "xghosted:post-registered",
       handlePostRegistered
+    );
+    this.document.removeEventListener(
+      "xghosted:post-registered-confirmed",
+      handlePostRegisteredConfirmed
     );
     this.document.removeEventListener(
       "xghosted:posts-cleared",

@@ -2203,7 +2203,32 @@
           const isProblem = ['Problem', 'Potential Problem'].includes(
             data.analysis.quality.name
           );
-          this.updatePosts({ post: { href, data }, isProblem });
+          if (isProblem) {
+            this.state.flagged = [
+              ...this.state.flagged.filter(
+                ([existingHref]) => existingHref !== href
+              ),
+              [href, data],
+            ];
+          } else {
+            this.state.flagged = this.state.flagged.filter(
+              ([existingHref]) => existingHref !== href
+            );
+          }
+          this.state.totalPosts += 1;
+          this.log(
+            `PanelManager: Updated flagged posts, count=${this.state.flagged.length}, totalPosts=${this.state.totalPosts}`
+          );
+          this.renderPanel();
+        }
+      };
+      const handlePostRegisteredConfirmed = (e) => {
+        const { href, data } = e.detail || {};
+        if (href && data?.analysis?.quality?.name) {
+          this.log(
+            'PanelManager: Processing xghosted:post-registered-confirmed for:',
+            href
+          );
         }
       };
       const handlePostsCleared = () => {
@@ -2277,6 +2302,10 @@
         handlePostRegistered
       );
       this.document.addEventListener(
+        'xghosted:post-registered-confirmed',
+        handlePostRegisteredConfirmed
+      );
+      this.document.addEventListener(
         'xghosted:posts-cleared',
         handlePostsCleared
       );
@@ -2315,6 +2344,10 @@
         this.document.removeEventListener(
           'xghosted:post-registered',
           handlePostRegistered
+        );
+        this.document.removeEventListener(
+          'xghosted:post-registered-confirmed',
+          handlePostRegisteredConfirmed
         );
         this.document.removeEventListener(
           'xghosted:posts-cleared',
@@ -3520,6 +3553,18 @@
       );
       log('Dispatched xghosted:posts-retrieved with posts:', posts);
     });
+    document.addEventListener(
+      'xghosted:request-post-register',
+      ({ detail: { href, data } }) => {
+        postsManager.registerPost(href, data);
+        document.dispatchEvent(
+          new CustomEvent('xghosted:post-registered-confirmed', {
+            detail: { href, data },
+          })
+        );
+        log('Dispatched xghosted:post-registered-confirmed for:', href);
+      }
+    );
     document.addEventListener(
       'click',
       (e) => {
