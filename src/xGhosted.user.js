@@ -32,6 +32,8 @@
 
   // Configuration
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
+  const POLL_INTERVAL = 600; // Polling interval in milliseconds
+  const SCROLL_INTERVAL = 1250; // Scroll interval in milliseconds
   const config = {
     timing: {
       debounceDelay: 500,
@@ -39,8 +41,8 @@
       tabCheckThrottle: 5000,
       exportThrottle: 5000,
       rateLimitPause: RATE_LIMIT_PAUSE,
-      pollInterval: 1000,
-      scrollInterval: 1500,
+      pollInterval: POLL_INTERVAL,
+      scrollInterval: SCROLL_INTERVAL,
     },
     showSplash: true,
     log,
@@ -1503,7 +1505,7 @@
       state,
       config,
       currentMode,
-      postsManager,
+      linkPrefix,
       toggleThemeMode,
       onCopyLinks,
       startDrag,
@@ -1515,25 +1517,15 @@
       userProfileName,
       onToggleVisibility,
       onToggleTools,
-      // Added
       onTogglePolling,
-      // Added
       onToggleAutoScrolling,
-      // Added
       onExportCsv,
-      // Added
       onOpenModal,
-      // Added
       onCloseModal,
-      // Added
       onSubmitCsv,
-      // Added
       onClearPosts,
-      // Added
       onOpenAbout,
-      // Added
       onToggleDropdown,
-      // Added
     }) {
       const themeOptions = ['dark', 'dim', 'light'].filter(
         (option) => option !== currentMode
@@ -1875,7 +1867,7 @@
                             window.preact.h(
                               'a',
                               {
-                                href: `${postsManager.linkPrefix}${href}`,
+                                href: `${linkPrefix}${href}`,
                                 target: '_blank',
                                 rel: 'noopener noreferrer',
                                 'aria-label': `Open post ${href} in new tab`,
@@ -2027,12 +2019,12 @@
     window.PanelManager = function (
       doc,
       themeMode = 'light',
-      postsManager,
+      linkPrefix,
       storage,
       log
     ) {
       this.document = doc;
-      this.postsManager = postsManager;
+      this.linkPrefix = linkPrefix || 'https://x.com';
       this.storage = storage || { get: () => {}, set: () => {} };
       this.log = log;
       const validThemes = ['light', 'dim', 'dark'];
@@ -2051,11 +2043,9 @@
         flagged: [],
         totalPosts: 0,
         isToolsExpanded: false,
-        // Added
         isModalOpen: false,
-        // Added
         isDropdownOpen: false,
-        // Added
+        pendingImportCount: null,
       };
       this.log(
         `PanelManager initialized with themeMode: ${this.state.themeMode}`
@@ -2240,24 +2230,13 @@
       const handleCsvImport = (e) => {
         const { importedCount } = e.detail || {};
         if (importedCount > 0) {
-          this.log('PanelManager: CSV imported, processing posts');
+          this.log('PanelManager: CSV imported, requesting posts');
           this.state.flagged = [];
           this.state.totalPosts = 0;
-          const posts = this.postsManager.getAllPosts();
-          posts.forEach(([href, data]) => {
-            const isProblem = ['Problem', 'Potential Problem'].includes(
-              data.analysis.quality.name
-            );
-            if (isProblem) {
-              this.state.flagged.push([href, data]);
-            }
-            this.state.totalPosts += 1;
-          });
-          this.log(
-            `PanelManager: Processed imported posts, flagged=${this.state.flagged.length}, total=${this.state.totalPosts}`
+          this.state.pendingImportCount = importedCount;
+          this.document.dispatchEvent(
+            new CustomEvent('xghosted:request-posts')
           );
-          this.renderPanel();
-          alert(`Successfully imported ${importedCount} posts!`);
         }
       };
       const handlePostsRetrieved = (e) => {
@@ -2273,6 +2252,28 @@
         if (this.pendingExportCsv) {
           this.exportProcessedPostsCSV(posts);
           this.pendingExportCsv = false;
+        }
+        if (posts) {
+          posts.forEach(([href, data]) => {
+            const isProblem = ['Problem', 'Potential Problem'].includes(
+              data.analysis.quality.name
+            );
+            if (isProblem) {
+              this.state.flagged.push([href, data]);
+            }
+            this.state.totalPosts += 1;
+          });
+          this.log(
+            `PanelManager: Processed posts, flagged=${this.state.flagged.length}, total=${this.state.totalPosts}`
+          );
+          this.renderPanel();
+          if (this.state.pendingImportCount) {
+            alert(
+              `Successfully imported ${this.state.pendingImportCount} posts!`
+            );
+            this.state.pendingImportCount = null;
+            this.saveState();
+          }
         }
       };
       this.document.addEventListener(
@@ -2380,11 +2381,9 @@
           themeMode: this.state.themeMode,
           hasSeenSplash: this.state.hasSeenSplash,
           isToolsExpanded: this.state.isToolsExpanded,
-          // Added
           isModalOpen: this.state.isModalOpen,
-          // Added
           isDropdownOpen: this.state.isDropdownOpen,
-          // Added
+          pendingImportCount: this.state.pendingImportCount,
         },
       };
       this.log('Saving state with isPanelVisible:', this.state.isPanelVisible);
@@ -2404,6 +2403,7 @@
       this.state.isToolsExpanded = panelState.isToolsExpanded ?? false;
       this.state.isModalOpen = panelState.isModalOpen ?? false;
       this.state.isDropdownOpen = panelState.isDropdownOpen ?? false;
+      this.state.pendingImportCount = panelState.pendingImportCount ?? null;
       if (
         panelState.panelPosition &&
         panelState.panelPosition.right &&
@@ -2453,7 +2453,7 @@
         this.state.panelPosition.top = top;
       }
       this.log(
-        `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, hasSeenSplash=${this.state.hasSeenSplash}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}, isToolsExpanded=${this.state.isToolsExpanded}, isModalOpen=${this.state.isModalOpen}, isDropdownOpen=${this.state.isDropdownOpen}`
+        `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, hasSeenSplash=${this.state.hasSeenSplash}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}, isToolsExpanded=${this.state.isToolsExpanded}, isModalOpen=${this.state.isModalOpen}, isDropdownOpen=${this.state.isDropdownOpen}, pendingImportCount=${this.state.pendingImportCount}`
       );
     };
     window.PanelManager.prototype.applyPanelStyles = function () {
@@ -2520,7 +2520,7 @@
         window.preact.h(window.Panel, {
           state: this.state,
           config: this.uiElements.config,
-          postsManager: this.postsManager,
+          linkPrefix: this.linkPrefix,
           currentMode: this.state.themeMode,
           toggleThemeMode: (newMode) => this.handleModeChange(newMode),
           onCopyLinks: () => this.copyLinks(),
@@ -2534,25 +2534,15 @@
           userProfileName: this.state.userProfileName,
           onToggleVisibility: () => this.toggleVisibility(),
           onToggleTools: () => this.toggleTools(),
-          // Added
           onTogglePolling: () => this.togglePolling(),
-          // Added
           onToggleAutoScrolling: () => this.toggleAutoScrolling(),
-          // Added
           onExportCsv: () => this.exportCsv(),
-          // Added
           onOpenModal: () => this.openModal(),
-          // Added
           onCloseModal: () => this.closeModal(),
-          // Added
           onSubmitCsv: (csvText) => this.submitCsv(csvText),
-          // Added
           onClearPosts: () => this.clearPosts(),
-          // Added
           onOpenAbout: () => this.openAbout(),
-          // Added
           onToggleDropdown: () => this.toggleDropdown(),
-          // Added
         }),
         this.uiElements.panel
       );
@@ -2622,6 +2612,7 @@
           detail: { csvText },
         })
       );
+      this.closeModal();
       this.log('Dispatched CSV import event');
     };
     window.PanelManager.prototype.updateTheme = function (newMode) {
@@ -2654,7 +2645,7 @@
         return;
       }
       const linksText = this.state.flagged
-        .map(([href]) => `${this.postsManager.linkPrefix}${href}`)
+        .map(([href]) => `${this.linkPrefix}${href}`)
         .join('\n');
       navigator.clipboard
         .writeText(linksText)
@@ -2676,7 +2667,7 @@
       const headers = ['Link', 'Quality', 'Reason', 'Checked'];
       const rows = posts.map(([id, { analysis, checked }]) => {
         return [
-          `${this.postsManager.linkPrefix}${id}`,
+          `${this.linkPrefix}${id}`,
           analysis.quality.name,
           analysis.reason,
           checked ? 'true' : 'false',
@@ -2692,22 +2683,13 @@
       URL.revokeObjectURL(url);
       this.log(`Exported CSV: processed_posts.csv`);
     };
-    window.PanelManager.prototype.importProcessedPostsCSV = function (
-      csvText,
-      onClose
-    ) {
+    window.PanelManager.prototype.importProcessedPostsCSV = function (csvText) {
       this.log('Import CSV button clicked');
       this.document.dispatchEvent(
         new CustomEvent('xghosted:request-import-csv', {
           detail: { csvText },
         })
       );
-      onClose();
-    };
-    window.PanelManager.prototype.clearPosts = function () {
-      this.log('PanelManager: Emitting xghosted:clear-posts-ui');
-      this.document.dispatchEvent(new CustomEvent('xghosted:clear-posts-ui'));
-      this.renderPanel();
     };
     window.PanelManager.prototype.showSplashPage = function () {
       try {
@@ -3466,8 +3448,8 @@
   config.postsManager = postsManager;
   config.timingManager = new window.TimingManager({
     timing: {
-      pollInterval: 1000,
-      scrollInterval: 1500,
+      pollInterval: POLL_INTERVAL,
+      scrollInterval: SCROLL_INTERVAL,
     },
     log,
     storage: { get: GM_getValue, set: GM_setValue },
@@ -3482,12 +3464,12 @@
   try {
     const panelManager = new window.PanelManager(
       document,
-      'light', // Default theme
-      postsManager,
+      'dim',
+      'https://x.com',
       { get: GM_getValue, set: GM_setValue },
       log
     );
-    log('GUIVGUI Panel initialized successfully');
+    log('GUI Panel initialized successfully');
 
     document.addEventListener(
       'xghosted:toggle-panel-visibility',
@@ -3504,7 +3486,7 @@
     document.addEventListener(
       'xghosted:csv-import',
       ({ detail: { csvText } }) => {
-        panelManager.importProcessedPostsCSV(csvText, () => {});
+        panelManager.importProcessedPostsCSV(csvText);
       }
     );
     document.addEventListener(

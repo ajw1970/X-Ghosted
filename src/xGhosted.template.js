@@ -32,6 +32,8 @@
 
   // Configuration
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
+  const POLL_INTERVAL = 600; // Polling interval in milliseconds
+  const SCROLL_INTERVAL = 1250; // Scroll interval in milliseconds
   const config = {
     timing: {
       debounceDelay: 500,
@@ -39,8 +41,8 @@
       tabCheckThrottle: 5000,
       exportThrottle: 5000,
       rateLimitPause: RATE_LIMIT_PAUSE,
-      pollInterval: 1000,
-      scrollInterval: 1500,
+      pollInterval: POLL_INTERVAL,
+      scrollInterval: SCROLL_INTERVAL,
     },
     showSplash: true,
     log,
@@ -73,8 +75,8 @@
   config.postsManager = postsManager;
   config.timingManager = new window.TimingManager({
     timing: {
-      pollInterval: 1000,
-      scrollInterval: 1500,
+      pollInterval: POLL_INTERVAL,
+      scrollInterval: SCROLL_INTERVAL,
     },
     log,
     storage: { get: GM_getValue, set: GM_setValue },
@@ -89,12 +91,12 @@
   try {
     const panelManager = new window.PanelManager(
       document,
-      "light", // Default theme
-      postsManager,
+      "dim",
+      "https://x.com",
       { get: GM_getValue, set: GM_setValue },
       log
     );
-    log("GUIVGUI Panel initialized successfully");
+    log("GUI Panel initialized successfully");
 
     document.addEventListener(
       "xghosted:toggle-panel-visibility",
@@ -111,7 +113,7 @@
     document.addEventListener(
       "xghosted:csv-import",
       ({ detail: { csvText } }) => {
-        panelManager.importProcessedPostsCSV(csvText, () => {});
+        panelManager.importProcessedPostsCSV(csvText);
       }
     );
     document.addEventListener(

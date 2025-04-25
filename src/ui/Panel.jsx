@@ -2,7 +2,7 @@ function Panel({
   state,
   config,
   currentMode,
-  postsManager,
+  linkPrefix,
   toggleThemeMode,
   onCopyLinks,
   startDrag,
@@ -13,16 +13,16 @@ function Panel({
   isScrolling,
   userProfileName,
   onToggleVisibility,
-  onToggleTools, // Added
-  onTogglePolling, // Added
-  onToggleAutoScrolling, // Added
-  onExportCsv, // Added
-  onOpenModal, // Added
-  onCloseModal, // Added
-  onSubmitCsv, // Added
-  onClearPosts, // Added
-  onOpenAbout, // Added
-  onToggleDropdown, // Added
+  onToggleTools,
+  onTogglePolling,
+  onToggleAutoScrolling,
+  onExportCsv,
+  onOpenModal,
+  onCloseModal,
+  onSubmitCsv,
+  onClearPosts,
+  onOpenAbout,
+  onToggleDropdown,
 }) {
   const themeOptions = ['dark', 'dim', 'light'].filter(
     (option) => option !== currentMode
@@ -362,7 +362,7 @@ function Panel({
                     window.preact.h(
                       'a',
                       {
-                        href: `${postsManager.linkPrefix}${href}`,
+                        href: `${linkPrefix}${href}`,
                         target: '_blank',
                         rel: 'noopener noreferrer',
                         'aria-label': `Open post ${href} in new tab`,
