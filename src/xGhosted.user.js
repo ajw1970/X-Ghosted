@@ -722,10 +722,7 @@
       this.document = doc;
       this.log = config.log;
       this.timingManager = config.timingManager || null;
-      if (!config.postsManager) {
-        throw new Error('XGhosted requires a postsManager instance');
-      }
-      this.postsManager = config.postsManager;
+      this.linkPrefix = config.linkPrefix || 'https://x.com';
       const urlFullPath = doc.location.origin + doc.location.pathname;
       const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
       this.state = {
@@ -804,16 +801,13 @@
           }
         };
         this.document.addEventListener('xghosted:post-retrieved', handler);
+        this.emit('xghosted:post-requested', { href });
         setTimeout(() => {
           this.log(
-            `waitForPostRetrieved timed out for ${href}, falling back to getPost`
-          );
-          const directPost = this.postsManager.getPost(href);
-          this.log(
-            `Fallback getPost for ${href}: quality=${directPost?.analysis?.quality?.name || 'none'}`
+            `waitForPostRetrieved timed out for ${href}, resolving with null`
           );
           this.document.removeEventListener('xghosted:post-retrieved', handler);
-          resolve(directPost);
+          resolve(null);
         }, 1e3);
       });
     };
@@ -821,190 +815,11 @@
       this.log(
         `User requested check for ${href}, post=${post ? 'found' : 'null'}`
       );
-      const postPromise = this.waitForPostRetrieved(href);
-      this.emit('xghosted:post-requested', { href });
-      const cached = await postPromise;
+      const cached = await this.waitForPostRetrieved(href);
       this.log(
         `Cached post for ${href}: quality=${cached?.analysis?.quality?.name || 'none'}, checked=${cached?.checked || false}`
       );
       if (!cached || cached.analysis.quality.name !== 'Potential Problem') {
-        this.log(`Manual check skipped for ${href}: not a potential problem`);
-        return;
-      }
-      if (!cached.checked) {
-        this.handleStopPolling();
-        this.log(`Manual check starting for ${href}`);
-        const isProblem = await this.checkPostInNewTab(href);
-        this.log(
-          `Manual check result for ${href}: ${isProblem ? 'problem' : 'good'}`
-        );
-        const currentPost = this.document.querySelector(
-          `[data-xghosted-id="${href}"]`
-        );
-        if (!currentPost) {
-          this.log(
-            `Post with href ${href} no longer exists in the DOM, skipping DOM update`
-          );
-        } else {
-          currentPost.classList.remove(
-            'xghosted-potential_problem',
-            'xghosted-good',
-            'xghosted-problem'
-          );
-          currentPost.className.add(
-            isProblem ? 'xghosted-problem' : 'xghosted-good'
-          );
-          currentPost.setAttribute(
-            'data-xghosted',
-            `postquality.${isProblem ? 'problem' : 'good'}`
-          );
-          const eyeballContainer =
-            currentPost.querySelector('.xghosted-eyeball');
-          if (eyeballContainer) {
-            eyeballContainer.classList.remove('xghosted-eyeball');
-          } else {
-            this.log(`Eyeball container not found for post with href: ${href}`);
-          }
-        }
-        cached.analysis.quality = isProblem
-          ? this.postQuality.PROBLEM
-          : this.postQuality.GOOD;
-        cached.checked = true;
-        this.emit('xghosted:post-registered', { href, data: cached });
-        this.document.dispatchEvent(
-          new CustomEvent('xghosted:state-updated', {
-            detail: { ...this.state },
-          })
-        );
-        this.log(`User requested post check completed for ${href}`);
-      } else {
-        this.log(`Manual check skipped for ${href}: already checked`);
-      }
-    };
-    XGhosted.prototype.handleUrlChange = async function (urlFullPath) {
-      const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
-      this.state.isWithReplies = isWithReplies;
-      if (this.state.userProfileName !== userProfileName) {
-        this.state.userProfileName = userProfileName;
-        this.document.dispatchEvent(
-          new CustomEvent('xghosted:user-profile-updated', {
-            detail: { userProfileName: this.state.userProfileName },
-          })
-        );
-      }
-      this.emit('xghosted:clear-posts', {});
-      await this.waitForClearConfirmation();
-      this.state.isPollingEnabled = true;
-      this.state.isAutoScrollingEnabled = false;
-      this.handleStartPolling();
-      this.timingManager?.saveMetrics();
-      this.document.dispatchEvent(
-        new CustomEvent('xghosted:posts-cleared', {
-          detail: {},
-        })
-      );
-      this.document.dispatchEvent(
-        new CustomEvent('xghosted:polling-state-updated', {
-          detail: { isPollingEnabled: this.state.isPollingEnabled },
-        })
-      );
-      this.document.dispatchEvent(
-        new CustomEvent('xghosted:auto-scrolling-toggled', {
-          detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled },
-        })
-      );
-    };
-    XGhosted.prototype.checkPostInNewTab = async function (href) {
-      this.log(`Checking post in new tab: ${href}`);
-      const fullUrl = `https://x.com${href}`;
-      const newWindow = this.document.defaultView.open(fullUrl, '_blank');
-      let attempts = 0;
-      const maxAttempts = 10;
-      return new Promise((resolve) => {
-        const checkInterval = setInterval(() => {
-          attempts++;
-          if (newWindow && newWindow.document.readyState === 'complete') {
-            const doc = newWindow.document;
-            if (doc.body.textContent.includes('Rate limit exceeded')) {
-              clearInterval(checkInterval);
-              this.log('Rate limit detected, pausing operations');
-              this.state.isRateLimited = true;
-              newWindow.close();
-              setTimeout(() => {
-                this.log('Resuming after rate limit pause');
-                this.state.isRateLimited = false;
-                resolve(false);
-              }, this.timing.rateLimitPause);
-              return;
-            }
-            const targetPost = doc.querySelector(
-              `[data-xghosted-id="${href}"]`
-            );
-            if (targetPost) {
-              this.log(`Original post found in new tab: ${href}`);
-              clearInterval(checkInterval);
-              const hasProblem =
-                doc.querySelector('[data-xghosted="postquality.problem"]') !==
-                null;
-              if (hasProblem) {
-                newWindow.scrollTo(0, 0);
-                this.log(`Problem found in thread at ${href}`);
-              } else {
-                newWindow.close();
-                this.log(`No problem found in thread at ${href}`);
-              }
-              resolve(hasProblem);
-            }
-          }
-          if (attempts >= maxAttempts) {
-            clearInterval(checkInterval);
-            if (newWindow) newWindow.close();
-            this.log(
-              `Failed to process ${href} within ${maxAttempts} attempts`
-            );
-            resolve(false);
-          }
-        }, 500);
-      });
-    };
-    XGhosted.prototype.userRequestedPostCheck = async function (href, post) {
-      this.log(
-        `User requested check for ${href}, post=${post ? 'found' : 'null'}`
-      );
-      this.emit('xghosted:post-requested', { href });
-      let cached;
-      try {
-        const maxRetries = 3;
-        let attempts = 0;
-        while (!cached && attempts < maxRetries) {
-          cached = await this.waitForPostRetrieved(href);
-          this.log(
-            `waitForPostRetrieved attempt ${attempts + 1} for ${href}: cached=${cached ? 'found' : 'null'}`
-          );
-          if (!cached) {
-            this.log(`Retrying postsManager.getPost for ${href}`);
-            const directPost = this.postsManager.getPost(href);
-            this.log(
-              `Direct getPost for ${href}: quality=${directPost?.analysis?.quality?.name || 'none'}`
-            );
-            cached = directPost;
-            attempts++;
-            if (!cached && attempts < maxRetries) {
-              await new Promise((resolve) => setTimeout(resolve, 500));
-            }
-          }
-        }
-      } catch (error) {
-        this.log(`Error in waitForPostRetrieved for ${href}: ${error.message}`);
-        return;
-      }
-      this.log(
-        `Cached post for ${href}: quality=${cached?.analysis?.quality?.name || 'none'}, checked=${cached?.checked || false}`
-      );
-      if (
-        !cached ||
-        cached.analysis.quality.name !== postQuality.POTENTIAL_PROBLEM.name
-      ) {
         this.log(`Manual check skipped for ${href}: not a potential problem`);
         return;
       }
@@ -1057,6 +872,92 @@
       } else {
         this.log(`Manual check skipped for ${href}: already checked`);
       }
+    };
+    XGhosted.prototype.handleUrlChange = async function (urlFullPath) {
+      const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
+      this.state.isWithReplies = isWithReplies;
+      if (this.state.userProfileName !== userProfileName) {
+        this.state.userProfileName = userProfileName;
+        this.document.dispatchEvent(
+          new CustomEvent('xghosted:user-profile-updated', {
+            detail: { userProfileName: this.state.userProfileName },
+          })
+        );
+      }
+      this.emit('xghosted:clear-posts', {});
+      await this.waitForClearConfirmation();
+      this.state.isPollingEnabled = true;
+      this.state.isAutoScrollingEnabled = false;
+      this.handleStartPolling();
+      this.timingManager?.saveMetrics();
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:posts-cleared', {
+          detail: {},
+        })
+      );
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:polling-state-updated', {
+          detail: { isPollingEnabled: this.state.isPollingEnabled },
+        })
+      );
+      this.document.dispatchEvent(
+        new CustomEvent('xghosted:auto-scrolling-toggled', {
+          detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled },
+        })
+      );
+    };
+    XGhosted.prototype.checkPostInNewTab = async function (href) {
+      this.log(`Checking post in new tab: ${href}`);
+      const fullUrl = `${this.linkPrefix}${href}`;
+      const newWindow = this.document.defaultView.open(fullUrl, '_blank');
+      let attempts = 0;
+      const maxAttempts = 10;
+      return new Promise((resolve) => {
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (newWindow && newWindow.document.readyState === 'complete') {
+            const doc = newWindow.document;
+            if (doc.body.textContent.includes('Rate limit exceeded')) {
+              clearInterval(checkInterval);
+              this.log('Rate limit detected, pausing operations');
+              this.state.isRateLimited = true;
+              newWindow.close();
+              setTimeout(() => {
+                this.log('Resuming after rate limit pause');
+                this.state.isRateLimited = false;
+                resolve(false);
+              }, this.timing.rateLimitPause);
+              return;
+            }
+            const targetPost = doc.querySelector(
+              `[data-xghosted-id="${href}"]`
+            );
+            if (targetPost) {
+              this.log(`Original post found in new tab: ${href}`);
+              clearInterval(checkInterval);
+              const hasProblem =
+                doc.querySelector('[data-xghosted="postquality.problem"]') !==
+                null;
+              if (hasProblem) {
+                newWindow.scrollTo(0, 0);
+                this.log(`Problem found in thread at ${href}`);
+              } else {
+                newWindow.close();
+                this.log(`No problem found in thread at ${href}`);
+              }
+              resolve(hasProblem);
+            }
+          }
+          if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            if (newWindow) newWindow.close();
+            this.log(
+              `Failed to process ${href} within ${maxAttempts} attempts`
+            );
+            resolve(false);
+          }
+        }, 500);
+      });
     };
     XGhosted.prototype.handleStartPolling = function () {
       this.state.isPollingEnabled = true;
@@ -3445,7 +3346,6 @@
     linkPrefix: 'https://x.com',
     persistProcessedPosts: config.persistProcessedPosts,
   });
-  config.postsManager = postsManager;
   config.timingManager = new window.TimingManager({
     timing: {
       pollInterval: POLL_INTERVAL,
@@ -3454,6 +3354,7 @@
     log,
     storage: { get: GM_getValue, set: GM_setValue },
   });
+  config.linkPrefix = 'https://x.com';
   const xGhosted = new window.XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
 
@@ -3626,6 +3527,16 @@
         log('Cleared all posts via UI');
       }
     });
+    document.addEventListener(
+      'xghosted:request-post-highlight',
+      ({ detail: { href } }) => {
+        log(`Received xghosted:request-post-highlight for href=${href}`);
+        const post = postsManager.getPost(href);
+        if (!post) {
+          xGhosted.highlightPosts();
+        }
+      }
+    );
   } catch (error) {
     log(
       `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`

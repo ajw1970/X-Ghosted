@@ -72,7 +72,6 @@
     linkPrefix: "https://x.com",
     persistProcessedPosts: config.persistProcessedPosts,
   });
-  config.postsManager = postsManager;
   config.timingManager = new window.TimingManager({
     timing: {
       pollInterval: POLL_INTERVAL,
@@ -81,6 +80,7 @@
     log,
     storage: { get: GM_getValue, set: GM_setValue },
   });
+  config.linkPrefix = "https://x.com";
   const xGhosted = new window.XGhosted(document, config);
   xGhosted.state.isManualCheckEnabled = true;
 
@@ -253,6 +253,16 @@
         log("Cleared all posts via UI");
       }
     });
+    document.addEventListener(
+      "xghosted:request-post-highlight",
+      ({ detail: { href } }) => {
+        log(`Received xghosted:request-post-highlight for href=${href}`);
+        const post = postsManager.getPost(href);
+        if (!post) {
+          xGhosted.highlightPosts();
+        }
+      }
+    );
   } catch (error) {
     log(
       `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`
