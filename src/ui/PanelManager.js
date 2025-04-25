@@ -119,6 +119,8 @@ window.PanelManager = function (
     userProfileName: null,
     pollInterval: "Unknown",
     scrollInterval: "Unknown",
+    flagged: [],
+    totalPosts: 0,
   };
   this.log(`PanelManager initialized with themeMode: ${this.state.themeMode}`);
   this.uiElements = {
@@ -254,6 +256,30 @@ window.PanelManager.prototype.init = function () {
   const handleOpenAbout = () => {
     this.showSplashPage();
   };
+  const handlePostRegistered = (e) => {
+    const { href, data } = e.detail || {};
+    if (href && data?.analysis?.quality?.name) {
+      this.log("PanelManager: Processing xghosted:post-registered for:", href);
+      const isProblem = ["Problem", "Potential Problem"].includes(
+        data.analysis.quality.name
+      );
+      this.updatePosts({ post: { href, data }, isProblem });
+    }
+  };
+  const handlePostsCleared = () => {
+    this.log("PanelManager: Handling xghosted:posts-cleared");
+    this.state.flagged = [];
+    this.state.totalPosts = 0;
+    this.renderPanel();
+  };
+  const handleCsvImport = (e) => {
+    if (e.detail.importedCount > 0) {
+      this.log("PanelManager: CSV imported, refreshing posts");
+      this.state.flagged = [];
+      this.state.totalPosts = 0;
+      this.renderPanel();
+    }
+  };
   this.document.addEventListener("xghosted:state-updated", handleStateUpdated);
   this.document.addEventListener(
     "xghosted:polling-state-updated",
@@ -273,6 +299,12 @@ window.PanelManager.prototype.init = function () {
     handleToggleVisibility
   );
   this.document.addEventListener("xghosted:open-about", handleOpenAbout);
+  this.document.addEventListener(
+    "xghosted:post-registered",
+    handlePostRegistered
+  );
+  this.document.addEventListener("xghosted:posts-cleared", handlePostsCleared);
+  this.document.addEventListener("xghosted:csv-import", handleCsvImport);
   this.cleanup = () => {
     this.document.removeEventListener(
       "xghosted:state-updated",
@@ -296,6 +328,15 @@ window.PanelManager.prototype.init = function () {
       handleToggleVisibility
     );
     this.document.removeEventListener("xghosted:open-about", handleOpenAbout);
+    this.document.removeEventListener(
+      "xghosted:post-registered",
+      handlePostRegistered
+    );
+    this.document.removeEventListener(
+      "xghosted:posts-cleared",
+      handlePostsCleared
+    );
+    this.document.removeEventListener("xghosted:csv-import", handleCsvImport);
   };
   if (window.preact && window.preact.h) {
     this.renderPanel();
@@ -426,6 +467,15 @@ window.PanelManager.prototype.setPanelPosition = function (position) {
   );
 };
 
+window.PanelManager.prototype.onEyeballClick = function (href) {
+  this.log(`PanelManager: Eyeball clicked for href=${href}`);
+  this.document.dispatchEvent(
+    new CustomEvent("xghosted:request-post-check", {
+      detail: { href },
+    })
+  );
+};
+
 window.PanelManager.prototype.renderPanel = function () {
   if (!this.uiElements.panel) {
     this.log("renderPanel: panel element not initialized, skipping render");
@@ -445,6 +495,12 @@ window.PanelManager.prototype.renderPanel = function () {
       onCopyLinks: () => this.copyLinks(),
       setPanelPosition: (position) => this.setPanelPosition(position),
       startDrag: (e) => this.startDrag(e),
+      onEyeballClick: (href) => this.onEyeballClick(href),
+      flagged: this.state.flagged || [],
+      totalPosts: this.state.totalPosts || 0,
+      isPolling: this.state.isPollingEnabled,
+      isScrolling: this.state.isAutoScrollingEnabled,
+      userProfileName: this.state.userProfileName,
     }),
     this.uiElements.panel
   );
@@ -491,11 +547,10 @@ window.PanelManager.prototype.generateCSVData = function () {
 };
 
 window.PanelManager.prototype.copyLinks = function () {
-  const linksText = this.postsManager
-    .getProblemPosts()
-    .map(([link]) => `${this.postsManager.linkPrefix}${link}`)
+  const linksText = this.state.flagged
+    .map(([href]) => `${this.postsManager.linkPrefix}${href}`)
     .join("\n");
-  return navigator.clipboard
+  navigator.clipboard
     .writeText(linksText)
     .then(() => {
       this.log("Problem links copied to clipboard");
@@ -538,6 +593,7 @@ window.PanelManager.prototype.importProcessedPostsCSV = function (
 };
 
 window.PanelManager.prototype.clearPosts = function () {
+  this.log("PanelManager: Emitting xghosted:clear-posts-ui");
   this.document.dispatchEvent(new CustomEvent("xghosted:clear-posts-ui"));
   this.renderPanel();
 };
@@ -612,4 +668,25 @@ window.PanelManager.prototype.startDrag = function (e) {
   };
   document.addEventListener("mousemove", onMouseMove);
   document.addEventListener("mouseup", onMouseUp);
+};
+
+window.PanelManager.prototype.updatePosts = function ({ post, isProblem }) {
+  if (post) {
+    const { href, data } = post;
+    if (isProblem) {
+      this.state.flagged = [
+        ...this.state.flagged.filter(([existingHref]) => existingHref !== href),
+        [href, data],
+      ];
+    } else {
+      this.state.flagged = this.state.flagged.filter(
+        ([existingHref]) => existingHref !== href
+      );
+    }
+    this.state.totalPosts += 1;
+    this.log(
+      `PanelManager: Updated flagged posts, count=${this.state.flagged.length}, totalPosts=${this.state.totalPosts}`
+    );
+  }
+  this.renderPanel();
 };

@@ -43,10 +43,6 @@ class ProcessedPostsManager {
     this.log("Saved processed posts to storage");
   }
 
-  getPost(id) {
-    return this.posts[id] || null;
-  }
-
   registerPost(id, data) {
     if (!id || !data?.analysis) {
       this.log(`Invalid post data for id: ${id}`);
@@ -64,6 +60,21 @@ class ProcessedPostsManager {
       this.save();
     }
     return true;
+  }
+
+  getPost(id) {
+    this.log(
+      `Getting post ${id}: quality=${this.posts[id]?.analysis?.quality?.name || "none"}, exists=${!!this.posts[id]}`
+    );
+    if (!this.posts[id]) {
+      this.log(`Post ${id} not found, triggering highlightPosts`);
+      document.dispatchEvent(
+        new CustomEvent("xghosted:request-post-highlight", {
+          detail: { href: id },
+        })
+      );
+    }
+    return this.posts[id] || null;
   }
 
   getAllPosts() {

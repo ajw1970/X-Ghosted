@@ -6,13 +6,13 @@ function Panel({
   toggleThemeMode,
   onCopyLinks,
   startDrag,
+  onEyeballClick,
+  flagged,
+  totalPosts,
+  isPolling,
+  isScrolling,
+  userProfileName,
 }) {
-  const [refreshKey, setRefreshKey] = window.preactHooks.useState(0);
-  const flagged = window.preactHooks.useMemo(
-    () => postsManager.getProblemPosts(),
-    [postsManager.getAllPosts(), refreshKey]
-  );
-  const totalPosts = postsManager.getAllPosts().length;
   const [isVisible, setIsVisible] = window.preactHooks.useState(
     state.isPanelVisible
   );
@@ -21,61 +21,14 @@ function Panel({
   const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] =
     window.preactHooks.useState(false);
-  const [isPolling, setIsPolling] = window.preactHooks.useState(
-    state.isPollingEnabled
-  );
-  const [isScrolling, setIsScrolling] = window.preactHooks.useState(
-    state.isAutoScrollingEnabled
-  );
-  const [userProfileName, setUserProfileName] = window.preactHooks.useState(
-    state.userProfileName
-  );
 
   window.preactHooks.useEffect(() => {
     setIsVisible(state.isPanelVisible);
   }, [state.isPanelVisible]);
 
-  window.preactHooks.useEffect(() => {
-    setIsPolling(state.isPollingEnabled);
-    setIsScrolling(state.isAutoScrollingEnabled);
-  }, [state.isPollingEnabled, state.isAutoScrollingEnabled]);
-
-  window.preactHooks.useEffect(() => {
-    const handlePollingStateUpdated = (e) => {
-      setIsPolling(e.detail.isPollingEnabled);
-    };
-    const handleAutoScrollingToggled = (e) => {
-      setIsScrolling(e.detail.isAutoScrollingEnabled);
-    };
-    const handleUserProfileUpdated = (e) => {
-      setUserProfileName(e.detail.userProfileName);
-    };
-    const handlePostsCleared = () => {
-      setRefreshKey((prev) => prev + 1);
-    };
-    const handleCsvImport = (e) => {
-      if (e.detail.importedCount > 0) {
-        setIsModalOpen(false);
-        setRefreshKey((prev) => prev + 1);
-      }
-    };
-    document.addEventListener('xghosted:polling-state-updated', handlePollingStateUpdated);
-    document.addEventListener('xghosted:auto-scrolling-toggled', handleAutoScrollingToggled);
-    document.addEventListener('xghosted:user-profile-updated', handleUserProfileUpdated);
-    document.addEventListener('xghosted:posts-cleared', handlePostsCleared);
-    document.addEventListener('xghosted:csv-import', handleCsvImport);
-    return () => {
-      document.removeEventListener('xghosted:polling-state-updated', handlePollingStateUpdated);
-      document.removeEventListener('xghosted:auto-scrolling-toggled', handleAutoScrollingToggled);
-      document.removeEventListener('xghosted:user-profile-updated', handleUserProfileUpdated);
-      document.removeEventListener('xghosted:posts-cleared', handlePostsCleared);
-      document.removeEventListener('xghosted:csv-import', handleCsvImport);
-    };
-  }, []);
-
   const toggleVisibility = () => {
     const newVisibility = !isVisible;
-    console.log(`Panel.jsx toggleVisibility: newVisibility=${newVisibility}`);
+    window.xGhostedLog && window.xGhostedLog(`Panel.jsx toggleVisibility: newVisibility=${newVisibility}`);
     setIsVisible(newVisibility);
     document.dispatchEvent(
       new CustomEvent('xghosted:toggle-panel-visibility', {
@@ -119,94 +72,94 @@ function Panel({
             window.preact.h(
               'button',
               {
-                  key: isToolsExpanded
-                    ? 'tools-expanded'
-                    : 'tools-collapsed',
-                  className: 'panel-button',
-                  onClick: () => setIsToolsExpanded(!isToolsExpanded),
-                  'aria-label': 'Toggle Tools Section',
+                key: isToolsExpanded
+                  ? 'tools-expanded'
+                  : 'tools-collapsed',
+                className: 'panel-button',
+                onClick: () => setIsToolsExpanded(!isToolsExpanded),
+                'aria-label': 'Toggle Tools Section',
+              },
+              window.preact.h('i', {
+                className: isToolsExpanded
+                  ? 'fas fa-chevron-up'
+                  : 'fas fa-chevron-down',
+                style: { marginRight: '12px' },
+              }),
+              'Tools'
+            ),
+            window.preact.h(
+              'div',
+              {
+                style: {
+                  alignItems: 'center',
+                  display: 'flex',
+                  flex: 1,
+                  justifyContent: 'space-between',
+                },
+              },
+              window.preact.h(
+                'button',
+                {
+                  key: isPolling ? 'polling-stop' : 'polling-start',
+                  className: `panel-button ${isPolling ? '' : 'polling-stopped'}`,
+                  onClick: () => {
+                    document.dispatchEvent(
+                      new CustomEvent('xghosted:set-polling', {
+                        detail: { enabled: !isPolling },
+                      })
+                    );
+                  },
+                  'aria-label': isPolling
+                    ? 'Stop Polling'
+                    : 'Start Polling',
                 },
                 window.preact.h('i', {
-                  className: isToolsExpanded
-                    ? 'fas fa-chevron-up'
-                    : 'fas fa-chevron-down',
+                  className: isPolling
+                    ? 'fa-solid fa-stop'
+                    : 'fa-solid fa-play',
                   style: { marginRight: '12px' },
                 }),
-                'Tools'
+                'Polling'
               ),
               window.preact.h(
-                'div',
+                'button',
                 {
-                  style: {
-                    alignItems: 'center',
-                    display: 'flex',
-                    flex: 1,
-                    justifyContent: 'space-between',
+                  key: isScrolling ? 'scroll-stop' : 'scroll-start',
+                  className: 'panel-button',
+                  onClick: () => {
+                    document.dispatchEvent(
+                      new CustomEvent('xghosted:set-auto-scrolling', {
+                        detail: { enabled: !isScrolling },
+                      })
+                    );
                   },
+                  'aria-label': isScrolling
+                    ? 'Stop Auto-Scroll'
+                    : 'Start Auto-Scroll',
                 },
-                window.preact.h(
-                  'button',
-                  {
-                    key: isPolling ? 'polling-stop' : 'polling-start',
-                    className: `panel-button ${isPolling ? '' : 'polling-stopped'}`,
-                    onClick: () => {
-                      document.dispatchEvent(
-                        new CustomEvent('xghosted:set-polling', {
-                          detail: { enabled: !isPolling },
-                        })
-                      );
-                    },
-                    'aria-label': isPolling
-                      ? 'Stop Polling'
-                      : 'Start Polling',
-                  },
-                  window.preact.h('i', {
-                    className: isPolling
-                      ? 'fa-solid fa-stop'
-                      : 'fa-solid fa-play',
-                    style: { marginRight: '12px' },
-                  }),
-                  'Polling'
-                ),
-                window.preact.h(
-                  'button',
-                  {
-                    key: isScrolling ? 'scroll-stop' : 'scroll-start',
-                    className: 'panel-button',
-                    onClick: () => {
-                      document.dispatchEvent(
-                        new CustomEvent('xghosted:set-auto-scrolling', {
-                          detail: { enabled: !isScrolling },
-                        })
-                      );
-                    },
-                    'aria-label': isScrolling
-                      ? 'Stop Auto-Scroll'
-                      : 'Start Auto-Scroll',
-                  },
-                  window.preact.h('i', {
-                    className: isScrolling
-                      ? 'fa-solid fa-stop'
-                      : 'fa-solid fa-play',
-                    style: { marginRight: '12px' },
-                  }),
-                  'Scroll'
-                ),
-                window.preact.h(
-                  'button',
-                  {
-                    className: 'panel-button',
-                    onClick: toggleVisibility,
-                    'aria-label': 'Hide Panel',
-                  },
-                  window.preact.h('i', {
-                    className: 'fas fa-eye-slash',
-                    style: { marginRight: '12px' },
-                  }),
-                  'Hide'
-                )
+                window.preact.h('i', {
+                  className: isScrolling
+                    ? 'fa-solid fa-stop'
+                    : 'fa-solid fa-play',
+                  style: { marginRight: '12px' },
+                }),
+                'Scroll'
+              ),
+              window.preact.h(
+                'button',
+                {
+                  className: 'panel-button',
+                  onClick: toggleVisibility,
+                  'aria-label': 'Hide Panel',
+                },
+                window.preact.h('i', {
+                  className: 'fas fa-eye-slash',
+                  style: { marginRight: '12px' },
+                }),
+                'Hide'
               )
-            ),
+            )
+          ),
           window.preact.h(
             'div',
             {
@@ -250,178 +203,178 @@ function Panel({
                       'aria-expanded': isDropdownOpen,
                       'aria-label': 'Select Theme',
                     },
-                      currentMode.charAt(0).toUpperCase() +
-                      currentMode.slice(1),
-                      window.preact.h('i', {
-                        className: isDropdownOpen
-                          ? 'fas fa-chevron-up'
-                          : 'fas fa-chevron-down',
-                        style: { marginLeft: '8px' },
-                      })
-                    ),
-                    isDropdownOpen &&
-                    window.preact.h(
-                      'div',
-                      { className: 'dropdown-menu' },
-                      themeOptions.map((option) =>
-                        window.preact.h(
-                          'div',
-                          {
-                            key: option,
-                            className: 'dropdown-item',
-                            onClick: () => {
-                              toggleThemeMode(option);
-                              setIsDropdownOpen(false);
-                            },
-                            role: 'option',
-                            'aria-selected': currentMode === option,
+                    currentMode.charAt(0).toUpperCase() +
+                    currentMode.slice(1),
+                    window.preact.h('i', {
+                      className: isDropdownOpen
+                        ? 'fas fa-chevron-up'
+                        : 'fas fa-chevron-down',
+                      style: { marginLeft: '8px' },
+                    })
+                  ),
+                  isDropdownOpen &&
+                  window.preact.h(
+                    'div',
+                    { className: 'dropdown-menu' },
+                    themeOptions.map((option) =>
+                      window.preact.h(
+                        'div',
+                        {
+                          key: option,
+                          className: 'dropdown-item',
+                          onClick: () => {
+                            toggleThemeMode(option);
+                            setIsDropdownOpen(false);
                           },
-                          option.charAt(0).toUpperCase() + option.slice(1)
-                        )
+                          role: 'option',
+                          'aria-selected': currentMode === option,
+                        },
+                        option.charAt(0).toUpperCase() + option.slice(1)
                       )
                     )
                   )
-                ),
-                window.preact.h(
-                  'div',
-                  {
-                    style: {
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px',
-                      marginBottom: '8px',
-                    },
-                  },
-                  window.preact.h(
-                    'button',
-                    {
-                      className: 'panel-button',
-                      onClick: () => {
-                        document.dispatchEvent(
-                          new CustomEvent('xghosted:copy-links')
-                        );
-                      },
-                      'aria-label': 'Copy Problem Links',
-                    },
-                    window.preact.h('i', {
-                      className: 'fas fa-copy',
-                      style: { marginRight: '8px' },
-                    }),
-                    'Copy'
-                  ),
-                  window.preact.h(
-                    'button',
-                    {
-                      className: 'panel-button',
-                      onClick: () => {
-                        document.dispatchEvent(
-                          new CustomEvent('xghosted:export-csv')
-                        );
-                      },
-                      'aria-label': 'Export Posts to CSV',
-                    },
-                    window.preact.h('i', {
-                      className: 'fas fa-file-export',
-                      style: { marginRight: '8px' },
-                    }),
-                    'Export CSV'
-                  ),
-                  window.preact.h(
-                    'button',
-                    {
-                      className: 'panel-button',
-                      onClick: () => setIsModalOpen(true),
-                      'aria-label': 'Import Posts from CSV',
-                    },
-                    window.preact.h('i', {
-                      className: 'fas fa-file-import',
-                      style: { marginRight: '8px' },
-                    }),
-                    'Import CSV'
-                  ),
-                  window.preact.h(
-                    'button',
-                    {
-                      className: 'panel-button',
-                      onClick: () => {
-                        document.dispatchEvent(
-                          new CustomEvent('xghosted:clear-posts-ui')
-                        );
-                      },
-                      'aria-label': 'Clear Processed Posts',
-                    },
-                    window.preact.h('i', {
-                      className: 'fas fa-trash',
-                      style: { marginRight: '8px' },
-                    }),
-                    'Clear'
-                  ),
-                  window.preact.h(
-                    'button',
-                    {
-                      className: 'panel-button',
-                      onClick: () => {
-                        document.dispatchEvent(
-                          new CustomEvent('xghosted:open-about')
-                        );
-                      },
-                      'aria-label': 'Show About Screen',
-                    },
-                    window.preact.h('i', {
-                      className: 'fas fa-info-circle',
-                      style: { marginRight: '8px' },
-                    }),
-                    'About'
-                  )
-                )
-              )
-            ),
-          window.preact.h(
-            'div',
-              {
-                className: 'problem-posts-header',
-                style: {
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                },
-              },
-              window.preact.h(
-                'span',
-                { className: 'header-text-group' },
-                'Processed Posts (',
-                totalPosts,
-                ') Concerns (',
-                flagged.length,
-                '):',
-                window.preact.h(
-                  'span',
-                  {
-                    style: {
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      verticalAlign: 'middle',
-                    },
-                    onClick: onCopyLinks,
-                    'aria-label': 'Copy Concerns to Clipboard',
-                    title: 'Copy Concerns to Clipboard',
-                  },
-                  window.preact.h('i', { className: 'fas fa-copy' })
                 )
               ),
               window.preact.h(
+                'div',
+                {
+                  style: {
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    marginBottom: '8px',
+                  },
+                },
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => {
+                      document.dispatchEvent(
+                        new CustomEvent('xghosted:copy-links')
+                      );
+                    },
+                    'aria-label': 'Copy Problem Links',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-copy',
+                    style: { marginRight: '8px' },
+                  }),
+                  'Copy'
+                ),
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => {
+                      document.dispatchEvent(
+                        new CustomEvent('xghosted:export-csv')
+                      );
+                    },
+                    'aria-label': 'Export Posts to CSV',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-file-export',
+                    style: { marginRight: '8px' },
+                  }),
+                  'Export CSV'
+                ),
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => setIsModalOpen(true),
+                    'aria-label': 'Import Posts from CSV',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-file-import',
+                    style: { marginRight: '8px' },
+                  }),
+                  'Import CSV'
+                ),
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => {
+                      document.dispatchEvent(
+                        new CustomEvent('xghosted:clear-posts-ui')
+                      );
+                    },
+                    'aria-label': 'Clear Processed Posts',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-trash',
+                    style: { marginRight: '8px' },
+                  }),
+                  'Clear'
+                ),
+                window.preact.h(
+                  'button',
+                  {
+                    className: 'panel-button',
+                    onClick: () => {
+                      document.dispatchEvent(
+                        new CustomEvent('xghosted:open-about')
+                      );
+                    },
+                    'aria-label': 'Show About Screen',
+                  },
+                  window.preact.h('i', {
+                    className: 'fas fa-info-circle',
+                    style: { marginRight: '8px' },
+                  }),
+                  'About'
+                )
+              )
+            )
+          ),
+          window.preact.h(
+            'div',
+            {
+              className: 'problem-posts-header',
+              style: {
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              },
+            },
+            window.preact.h(
+              'span',
+              { className: 'header-text-group' },
+              'Processed Posts (',
+              totalPosts,
+              ') Concerns (',
+              flagged.length,
+              '):',
+              window.preact.h(
                 'span',
                 {
-                  className: 'drag-handle',
-                  onMouseDown: startDrag,
-                  'aria-label': 'Drag Panel',
-                  title: 'Drag Panel',
+                  style: {
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    verticalAlign: 'middle',
+                  },
+                  onClick: onCopyLinks,
+                  'aria-label': 'Copy Concerns to Clipboard',
+                  title: 'Copy Concerns to Clipboard',
                 },
-                window.preact.h('i', {
-                  className: 'fas fa-up-down-left-right',
-                })
+                window.preact.h('i', { className: 'fas fa-copy' })
               )
             ),
+            window.preact.h(
+              'span',
+              {
+                className: 'drag-handle',
+                onMouseDown: startDrag,
+                'aria-label': 'Drag Panel',
+                title: 'Drag Panel',
+              },
+              window.preact.h('i', {
+                className: 'fas fa-up-down-left-right',
+              })
+            )
+          ),
           window.preact.h(
             'div',
             { className: 'problem-links-wrapper' },
@@ -431,53 +384,41 @@ function Panel({
                   'div',
                   { className: 'link-row', key: href },
                   analysis.quality.name === 'Potential Problem'
-                        ? window.preact.h(
-                          'span',
-                          {
-                            className: 'status-eyeball',
-                            onClick: () => {
-                                const post = document.querySelector(
-                                  `[data-xghosted-id="${href}"]`
-                                );
-                                document.dispatchEvent(
-                                  new CustomEvent(
-                                    'xghosted:request-post-check',
-                                    {
-                                      detail: { href, post },
-                                    }
-                                  )
-                                );
-                              },
-                              'aria-label': 'Check post details',
-                          },
-                          '\u{1F440}'
-                        )
-                        : window.preact.h('span', {
-                          className: 'status-dot status-problem',
-                          'aria-label': 'Problem post',
-                        }),
-                      window.preact.h(
-                        'span',
-                        { className: 'link-item' },
-                        window.preact.h(
-                          'a',
-                          {
-                            href: `${postsManager.linkPrefix}${href}`,
-                            target: '_blank',
-                            rel: 'noopener noreferrer',
-                            'aria-label': `Open post ${href} in new tab`,
-                          },
-                          href
-                        )
-                      )
+                    ? window.preact.h(
+                      'span',
+                      {
+                        className: 'status-eyeball',
+                        onClick: () => onEyeballClick && onEyeballClick(href),
+                        'aria-label': 'Check post details',
+                      },
+                      '\u{1F440}'
                     )
+                    : window.preact.h('span', {
+                      className: 'status-dot status-problem',
+                      'aria-label': 'Problem post',
+                    }),
+                  window.preact.h(
+                    'span',
+                    { className: 'link-item' },
+                    window.preact.h(
+                      'a',
+                      {
+                        href: `${postsManager.linkPrefix}${href}`,
+                        target: '_blank',
+                        rel: 'noopener noreferrer',
+                        'aria-label': `Open post ${href} in new tab`,
+                      },
+                      href
+                    )
+                  )
                 )
-                : window.preact.h(
-                  'span',
-                  { className: 'status-label' },
-                  'No concerns found.'
-                )
-            )
+              )
+              : window.preact.h(
+                'span',
+                { className: 'status-label' },
+                'No concerns found.'
+              )
+          )
         )
         : window.preact.h(
           'div',

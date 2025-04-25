@@ -91,12 +91,90 @@ XGhosted.prototype.waitForPostRetrieved = function (href) {
   return new Promise((resolve) => {
     const handler = (e) => {
       if (e.detail.href === href) {
+        this.log(
+          `Received xghosted:post-retrieved for ${href}: post=${e.detail.post ? "found" : "null"}`
+        );
         this.document.removeEventListener("xghosted:post-retrieved", handler);
         resolve(e.detail.post);
       }
     };
     this.document.addEventListener("xghosted:post-retrieved", handler);
+    // Fallback after 1 second if event doesn't arrive
+    setTimeout(() => {
+      this.log(
+        `waitForPostRetrieved timed out for ${href}, falling back to getPost`
+      );
+      const directPost = this.postsManager.getPost(href);
+      this.log(
+        `Fallback getPost for ${href}: quality=${directPost?.analysis?.quality?.name || "none"}`
+      );
+      this.document.removeEventListener("xghosted:post-retrieved", handler);
+      resolve(directPost);
+    }, 1000);
   });
+};
+
+XGhosted.prototype.userRequestedPostCheck = async function (href, post) {
+  this.log(`User requested check for ${href}, post=${post ? "found" : "null"}`);
+  // Start waiting for the post-retrieved event immediately
+  const postPromise = this.waitForPostRetrieved(href);
+  // Request the post after setting up the listener
+  this.emit("xghosted:post-requested", { href });
+  const cached = await postPromise;
+  this.log(
+    `Cached post for ${href}: quality=${cached?.analysis?.quality?.name || "none"}, checked=${cached?.checked || false}`
+  );
+
+  if (!cached || cached.analysis.quality.name !== "Potential Problem") {
+    this.log(`Manual check skipped for ${href}: not a potential problem`);
+    return;
+  }
+  if (!cached.checked) {
+    this.handleStopPolling();
+    this.log(`Manual check starting for ${href}`);
+    const isProblem = await this.checkPostInNewTab(href);
+    this.log(
+      `Manual check result for ${href}: ${isProblem ? "problem" : "good"}`
+    );
+    const currentPost = this.document.querySelector(
+      `[data-xghosted-id="${href}"]`
+    );
+    if (!currentPost) {
+      this.log(
+        `Post with href ${href} no longer exists in the DOM, skipping DOM update`
+      );
+    } else {
+      currentPost.classList.remove(
+        "xghosted-potential_problem",
+        "xghosted-good",
+        "xghosted-problem"
+      );
+      currentPost.className.add(
+        isProblem ? "xghosted-problem" : "xghosted-good"
+      );
+      currentPost.setAttribute(
+        "data-xghosted",
+        `postquality.${isProblem ? "problem" : "good"}`
+      );
+      const eyeballContainer = currentPost.querySelector(".xghosted-eyeball");
+      if (eyeballContainer) {
+        eyeballContainer.classList.remove("xghosted-eyeball");
+      } else {
+        this.log(`Eyeball container not found for post with href: ${href}`);
+      }
+    }
+    cached.analysis.quality = isProblem
+      ? this.postQuality.PROBLEM
+      : this.postQuality.GOOD;
+    cached.checked = true;
+    this.emit("xghosted:post-registered", { href, data: cached });
+    this.document.dispatchEvent(
+      new CustomEvent("xghosted:state-updated", { detail: { ...this.state } })
+    );
+    this.log(`User requested post check completed for ${href}`);
+  } else {
+    this.log(`Manual check skipped for ${href}: already checked`);
+  }
 };
 
 XGhosted.prototype.handleUrlChange = async function (urlFullPath) {
@@ -183,9 +261,37 @@ XGhosted.prototype.checkPostInNewTab = async function (href) {
 };
 
 XGhosted.prototype.userRequestedPostCheck = async function (href, post) {
-  this.log(`User requested check for ${href}`);
+  this.log(`User requested check for ${href}, post=${post ? "found" : "null"}`);
   this.emit("xghosted:post-requested", { href });
-  const cached = await this.waitForPostRetrieved(href);
+  let cached;
+  try {
+    const maxRetries = 3;
+    let attempts = 0;
+    while (!cached && attempts < maxRetries) {
+      cached = await this.waitForPostRetrieved(href);
+      this.log(
+        `waitForPostRetrieved attempt ${attempts + 1} for ${href}: cached=${cached ? "found" : "null"}`
+      );
+      if (!cached) {
+        this.log(`Retrying postsManager.getPost for ${href}`);
+        const directPost = this.postsManager.getPost(href);
+        this.log(
+          `Direct getPost for ${href}: quality=${directPost?.analysis?.quality?.name || "none"}`
+        );
+        cached = directPost;
+        attempts++;
+        if (!cached && attempts < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+    }
+  } catch (error) {
+    this.log(`Error in waitForPostRetrieved for ${href}: ${error.message}`);
+    return;
+  }
+  this.log(
+    `Cached post for ${href}: quality=${cached?.analysis?.quality?.name || "none"}, checked=${cached?.checked || false}`
+  );
   if (
     !cached ||
     cached.analysis.quality.name !== postQuality.POTENTIAL_PROBLEM.name
@@ -432,6 +538,7 @@ XGhosted.prototype.highlightPosts = function (posts) {
         this.log(`No share button container found for post with href: ${id}`);
       }
     }
+    this.log(`Highlighted post ${id}: quality=${analysis.quality.name}`);
   };
   const checkReplies = this.state.isWithReplies;
   const results = [];
@@ -510,6 +617,14 @@ XGhosted.prototype.init = function () {
     }
   `;
   this.document.head.appendChild(styleSheet);
+  const handleHighlightRequest = ({ detail: { href } }) => {
+    this.log(`Received xghosted:request-post-highlight for href=${href}`);
+    this.highlightPosts();
+  };
+  this.document.addEventListener(
+    "xghosted:request-post-highlight",
+    handleHighlightRequest
+  );
   const checkDomInterval = setInterval(() => {
     if (
       this.document.body &&
@@ -534,7 +649,7 @@ XGhosted.prototype.init = function () {
         this.startAutoScrolling();
       }
     }
-  }, 5000);
+  }, 5e3);
 };
 
 export { XGhosted };

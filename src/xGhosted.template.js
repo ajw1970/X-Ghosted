@@ -133,6 +133,9 @@
     document.addEventListener(
       "xghosted:request-post-check",
       ({ detail: { href, post } }) => {
+        log(
+          `Received xghosted:request-post-check for href=${href}, post=${post ? "found" : "null"}`
+        );
         xGhosted.userRequestedPostCheck(href, post);
       }
     );
@@ -192,6 +195,11 @@
           detail: {},
         })
       );
+      document.dispatchEvent(
+        new CustomEvent("xghosted:posts-cleared", {
+          detail: {},
+        })
+      );
       log("Cleared all posts");
     });
     document.addEventListener("xghosted:clear-posts-ui", async () => {
@@ -199,6 +207,11 @@
         await postsManager.clearPosts();
         document.dispatchEvent(
           new CustomEvent("xghosted:posts-cleared-confirmed", {
+            detail: {},
+          })
+        );
+        document.dispatchEvent(
+          new CustomEvent("xghosted:posts-cleared", {
             detail: {},
           })
         );
