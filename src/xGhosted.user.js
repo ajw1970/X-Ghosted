@@ -2220,6 +2220,21 @@
           this.renderPanel();
         }
       };
+      const handlePostsRetrieved = (e) => {
+        const { posts } = e.detail || {};
+        this.log(
+          'PanelManager: Received xghosted:posts-retrieved with posts:',
+          posts
+        );
+        if (this.pendingCopyLinks) {
+          this.copyLinks(posts);
+          this.pendingCopyLinks = false;
+        }
+        if (this.pendingExportCsv) {
+          this.exportProcessedPostsCSV(posts);
+          this.pendingExportCsv = false;
+        }
+      };
       this.document.addEventListener(
         'xghosted:state-updated',
         handleStateUpdated
@@ -2251,6 +2266,10 @@
         handlePostsCleared
       );
       this.document.addEventListener('xghosted:csv-import', handleCsvImport);
+      this.document.addEventListener(
+        'xghosted:posts-retrieved',
+        handlePostsRetrieved
+      );
       this.cleanup = () => {
         this.document.removeEventListener(
           'xghosted:state-updated',
@@ -2288,6 +2307,10 @@
         this.document.removeEventListener(
           'xghosted:csv-import',
           handleCsvImport
+        );
+        this.document.removeEventListener(
+          'xghosted:posts-retrieved',
+          handlePostsRetrieved
         );
       };
       if (window.preact && window.preact.h) {
@@ -2571,21 +2594,12 @@
       );
       this.renderPanel();
     };
-    window.PanelManager.prototype.generateCSVData = function () {
-      const headers = ['Link', 'Quality', 'Reason', 'Checked'];
-      const rows = this.postsManager
-        .getAllPosts()
-        .map(([id, { analysis, checked }]) => {
-          return [
-            `${this.postsManager.linkPrefix}${id}`,
-            analysis.quality.name,
-            analysis.reason,
-            checked ? 'true' : 'false',
-          ].join(',');
-        });
-      return [headers.join(','), ...rows].join('\n');
-    };
-    window.PanelManager.prototype.copyLinks = function () {
+    window.PanelManager.prototype.copyLinks = function (posts) {
+      if (!posts) {
+        this.pendingCopyLinks = true;
+        this.document.dispatchEvent(new CustomEvent('xghosted:request-posts'));
+        return;
+      }
       const linksText = this.state.flagged
         .map(([href]) => `${this.postsManager.linkPrefix}${href}`)
         .join('\n');
@@ -2600,8 +2614,22 @@
           alert('Failed to copy problem links.');
         });
     };
-    window.PanelManager.prototype.exportProcessedPostsCSV = function () {
-      const csvData = this.generateCSVData();
+    window.PanelManager.prototype.exportProcessedPostsCSV = function (posts) {
+      if (!posts) {
+        this.pendingExportCsv = true;
+        this.document.dispatchEvent(new CustomEvent('xghosted:request-posts'));
+        return;
+      }
+      const headers = ['Link', 'Quality', 'Reason', 'Checked'];
+      const rows = posts.map(([id, { analysis, checked }]) => {
+        return [
+          `${this.postsManager.linkPrefix}${id}`,
+          analysis.quality.name,
+          analysis.reason,
+          checked ? 'true' : 'false',
+        ].join(',');
+      });
+      const csvData = [headers.join(','), ...rows].join('\n');
       const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = this.document.createElement('a');
@@ -3456,6 +3484,15 @@
         xGhosted.userRequestedPostCheck(href, post);
       }
     );
+    document.addEventListener('xghosted:request-posts', () => {
+      const posts = postsManager.getAllPosts();
+      document.dispatchEvent(
+        new CustomEvent('xghosted:posts-retrieved', {
+          detail: { posts },
+        })
+      );
+      log('Dispatched xghosted:posts-retrieved with posts:', posts);
+    });
     document.addEventListener(
       'click',
       (e) => {

@@ -139,6 +139,15 @@
         xGhosted.userRequestedPostCheck(href, post);
       }
     );
+    document.addEventListener("xghosted:request-posts", () => {
+      const posts = postsManager.getAllPosts();
+      document.dispatchEvent(
+        new CustomEvent("xghosted:posts-retrieved", {
+          detail: { posts },
+        })
+      );
+      log("Dispatched xghosted:posts-retrieved with posts:", posts);
+    });
     document.addEventListener(
       "click",
       (e) => {
