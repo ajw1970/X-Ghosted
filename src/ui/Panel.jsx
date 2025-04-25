@@ -12,30 +12,13 @@ function Panel({
   isPolling,
   isScrolling,
   userProfileName,
+  onToggleVisibility, // Added prop
 }) {
-  const [isVisible, setIsVisible] = window.preactHooks.useState(
-    state.isPanelVisible
-  );
   const [isToolsExpanded, setIsToolsExpanded] =
     window.preactHooks.useState(false);
   const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] =
     window.preactHooks.useState(false);
-
-  window.preactHooks.useEffect(() => {
-    setIsVisible(state.isPanelVisible);
-  }, [state.isPanelVisible]);
-
-  const toggleVisibility = () => {
-    const newVisibility = !isVisible;
-    window.xGhostedLog && window.xGhostedLog(`Panel.jsx toggleVisibility: newVisibility=${newVisibility}`);
-    setIsVisible(newVisibility);
-    document.dispatchEvent(
-      new CustomEvent('xghosted:toggle-panel-visibility', {
-        detail: { isPanelVisible: newVisibility },
-      })
-    );
-  };
 
   const themeOptions = ['dark', 'dim', 'light'].filter(
     (option) => option !== currentMode
@@ -55,14 +38,14 @@ function Panel({
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
           color: config.THEMES[currentMode].text,
           fontFamily: config.PANEL.FONT,
-          maxHeight: isVisible ? config.PANEL.MAX_HEIGHT : '48px',
-          minWidth: isVisible ? '250px' : '60px',
-          padding: isVisible ? '8px 8px 12px 8px' : '4px',
+          maxHeight: state.isPanelVisible ? config.PANEL.MAX_HEIGHT : '48px',
+          minWidth: state.isPanelVisible ? '250px' : '60px',
+          padding: state.isPanelVisible ? '8px 8px 12px 8px' : '4px',
           transition: 'width 0.2s ease, max-height 0.2s ease',
-          width: isVisible ? config.PANEL.WIDTH : 'auto',
+          width: state.isPanelVisible ? config.PANEL.WIDTH : 'auto',
         },
       },
-      isVisible
+      state.isPanelVisible
         ? window.preact.h(
           window.preact.Fragment,
           null,
@@ -149,7 +132,7 @@ function Panel({
                 'button',
                 {
                   className: 'panel-button',
-                  onClick: toggleVisibility,
+                  onClick: onToggleVisibility, // Use prop
                   'aria-label': 'Hide Panel',
                 },
                 window.preact.h('i', {
@@ -434,7 +417,7 @@ function Panel({
             'button',
             {
               className: 'panel-button',
-              onClick: toggleVisibility,
+              onClick: onToggleVisibility, // Use prop
               'aria-label': 'Show Panel',
             },
             window.preact.h('i', {

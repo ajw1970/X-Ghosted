@@ -501,6 +501,7 @@ window.PanelManager.prototype.renderPanel = function () {
       isPolling: this.state.isPollingEnabled,
       isScrolling: this.state.isAutoScrollingEnabled,
       userProfileName: this.state.userProfileName,
+      onToggleVisibility: () => this.toggleVisibility(), // Added prop
     }),
     this.uiElements.panel
   );
