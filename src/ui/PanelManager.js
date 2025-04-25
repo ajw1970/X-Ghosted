@@ -121,6 +121,9 @@ window.PanelManager = function (
     scrollInterval: "Unknown",
     flagged: [],
     totalPosts: 0,
+    isToolsExpanded: false, // Added
+    isModalOpen: false, // Added
+    isDropdownOpen: false, // Added
   };
   this.log(`PanelManager initialized with themeMode: ${this.state.themeMode}`);
   this.uiElements = {
@@ -352,6 +355,9 @@ window.PanelManager.prototype.saveState = function () {
       panelPosition: { ...this.state.panelPosition },
       themeMode: this.state.themeMode,
       hasSeenSplash: this.state.hasSeenSplash,
+      isToolsExpanded: this.state.isToolsExpanded, // Added
+      isModalOpen: this.state.isModalOpen, // Added
+      isDropdownOpen: this.state.isDropdownOpen, // Added
     },
   };
   this.log("Saving state with isPanelVisible:", this.state.isPanelVisible);
@@ -367,6 +373,9 @@ window.PanelManager.prototype.loadState = function () {
     ? panelState.themeMode
     : this.state.themeMode;
   this.state.hasSeenSplash = panelState.hasSeenSplash ?? false;
+  this.state.isToolsExpanded = panelState.isToolsExpanded ?? false; // Added
+  this.state.isModalOpen = panelState.isModalOpen ?? false; // Added
+  this.state.isDropdownOpen = panelState.isDropdownOpen ?? false; // Added
   if (
     panelState.panelPosition &&
     panelState.panelPosition.right &&
@@ -416,7 +425,7 @@ window.PanelManager.prototype.loadState = function () {
     this.state.panelPosition.top = top;
   }
   this.log(
-    `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, hasSeenSplash=${this.state.hasSeenSplash}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}`
+    `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, hasSeenSplash=${this.state.hasSeenSplash}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}, isToolsExpanded=${this.state.isToolsExpanded}, isModalOpen=${this.state.isModalOpen}, isDropdownOpen=${this.state.isDropdownOpen}`
   );
 };
 
@@ -501,10 +510,97 @@ window.PanelManager.prototype.renderPanel = function () {
       isPolling: this.state.isPollingEnabled,
       isScrolling: this.state.isAutoScrollingEnabled,
       userProfileName: this.state.userProfileName,
-      onToggleVisibility: () => this.toggleVisibility(), // Added prop
+      onToggleVisibility: () => this.toggleVisibility(),
+      onToggleTools: () => this.toggleTools(), // Added
+      onTogglePolling: () => this.togglePolling(), // Added
+      onToggleAutoScrolling: () => this.toggleAutoScrolling(), // Added
+      onExportCsv: () => this.exportCsv(), // Added
+      onOpenModal: () => this.openModal(), // Added
+      onCloseModal: () => this.closeModal(), // Added
+      onSubmitCsv: (csvText) => this.submitCsv(csvText), // Added
+      onClearPosts: () => this.clearPosts(), // Added
+      onOpenAbout: () => this.openAbout(), // Added
+      onToggleDropdown: () => this.toggleDropdown(), // Added
     }),
     this.uiElements.panel
   );
+};
+
+window.PanelManager.prototype.toggleTools = function () {
+  this.state.isToolsExpanded = !this.state.isToolsExpanded;
+  this.saveState();
+  this.renderPanel();
+  this.log(`Toggled tools section: ${this.state.isToolsExpanded}`);
+};
+
+window.PanelManager.prototype.openModal = function () {
+  this.state.isModalOpen = true;
+  this.saveState();
+  this.renderPanel();
+  this.log("Opened CSV import modal");
+};
+
+window.PanelManager.prototype.closeModal = function () {
+  this.state.isModalOpen = false;
+  this.saveState();
+  this.renderPanel();
+  this.log("Closed CSV import modal");
+};
+
+window.PanelManager.prototype.toggleDropdown = function () {
+  this.state.isDropdownOpen = !this.state.isDropdownOpen;
+  this.saveState();
+  this.renderPanel();
+  this.log(`Toggled theme dropdown: ${this.state.isDropdownOpen}`);
+};
+
+window.PanelManager.prototype.togglePolling = function () {
+  this.state.isPollingEnabled = !this.state.isPollingEnabled;
+  this.document.dispatchEvent(
+    new CustomEvent("xghosted:set-polling", {
+      detail: { enabled: this.state.isPollingEnabled },
+    })
+  );
+  this.saveState();
+  this.renderPanel();
+  this.log(`Toggled polling: ${this.state.isPollingEnabled}`);
+};
+
+window.PanelManager.prototype.toggleAutoScrolling = function () {
+  this.state.isAutoScrollingEnabled = !this.state.isAutoScrollingEnabled;
+  this.document.dispatchEvent(
+    new CustomEvent("xghosted:set-auto-scrolling", {
+      detail: { enabled: this.state.isAutoScrollingEnabled },
+    })
+  );
+  this.saveState();
+  this.renderPanel();
+  this.log(`Toggled auto-scrolling: ${this.state.isAutoScrollingEnabled}`);
+};
+
+window.PanelManager.prototype.exportCsv = function () {
+  this.document.dispatchEvent(new CustomEvent("xghosted:export-csv"));
+  this.log("Dispatched export CSV event");
+};
+
+window.PanelManager.prototype.clearPosts = function () {
+  this.document.dispatchEvent(new CustomEvent("xghosted:clear-posts-ui"));
+  this.renderPanel();
+  this.log("Dispatched clear posts event");
+};
+
+window.PanelManager.prototype.openAbout = function () {
+  this.document.dispatchEvent(new CustomEvent("xghosted:open-about"));
+  this.log("Dispatched open about event");
+};
+
+window.PanelManager.prototype.submitCsv = function (csvText) {
+  this.document.dispatchEvent(
+    new CustomEvent("xghosted:csv-import", {
+      detail: { csvText },
+    })
+  );
+  this.log("Dispatched CSV import event");
 };
 
 window.PanelManager.prototype.updateTheme = function (newMode) {

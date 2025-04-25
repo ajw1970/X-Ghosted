@@ -12,14 +12,18 @@ function Panel({
   isPolling,
   isScrolling,
   userProfileName,
-  onToggleVisibility, // Added prop
+  onToggleVisibility,
+  onToggleTools, // Added
+  onTogglePolling, // Added
+  onToggleAutoScrolling, // Added
+  onExportCsv, // Added
+  onOpenModal, // Added
+  onCloseModal, // Added
+  onSubmitCsv, // Added
+  onClearPosts, // Added
+  onOpenAbout, // Added
+  onToggleDropdown, // Added
 }) {
-  const [isToolsExpanded, setIsToolsExpanded] =
-    window.preactHooks.useState(false);
-  const [isModalOpen, setIsModalOpen] = window.preactHooks.useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] =
-    window.preactHooks.useState(false);
-
   const themeOptions = ['dark', 'dim', 'light'].filter(
     (option) => option !== currentMode
   );
@@ -55,15 +59,15 @@ function Panel({
             window.preact.h(
               'button',
               {
-                key: isToolsExpanded
+                key: state.isToolsExpanded
                   ? 'tools-expanded'
                   : 'tools-collapsed',
                 className: 'panel-button',
-                onClick: () => setIsToolsExpanded(!isToolsExpanded),
+                onClick: onToggleTools,
                 'aria-label': 'Toggle Tools Section',
               },
               window.preact.h('i', {
-                className: isToolsExpanded
+                className: state.isToolsExpanded
                   ? 'fas fa-chevron-up'
                   : 'fas fa-chevron-down',
                 style: { marginRight: '12px' },
@@ -85,13 +89,7 @@ function Panel({
                 {
                   key: isPolling ? 'polling-stop' : 'polling-start',
                   className: `panel-button ${isPolling ? '' : 'polling-stopped'}`,
-                  onClick: () => {
-                    document.dispatchEvent(
-                      new CustomEvent('xghosted:set-polling', {
-                        detail: { enabled: !isPolling },
-                      })
-                    );
-                  },
+                  onClick: onTogglePolling,
                   'aria-label': isPolling
                     ? 'Stop Polling'
                     : 'Start Polling',
@@ -109,13 +107,7 @@ function Panel({
                 {
                   key: isScrolling ? 'scroll-stop' : 'scroll-start',
                   className: 'panel-button',
-                  onClick: () => {
-                    document.dispatchEvent(
-                      new CustomEvent('xghosted:set-auto-scrolling', {
-                        detail: { enabled: !isScrolling },
-                      })
-                    );
-                  },
+                  onClick: onToggleAutoScrolling,
                   'aria-label': isScrolling
                     ? 'Stop Auto-Scroll'
                     : 'Start Auto-Scroll',
@@ -132,7 +124,7 @@ function Panel({
                 'button',
                 {
                   className: 'panel-button',
-                  onClick: onToggleVisibility, // Use prop
+                  onClick: onToggleVisibility,
                   'aria-label': 'Hide Panel',
                 },
                 window.preact.h('i', {
@@ -152,7 +144,7 @@ function Panel({
                 borderBottom: `1px solid ${config.THEMES[currentMode].border}`,
                 borderRadius: '8px',
                 boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
-                display: isToolsExpanded ? 'block' : 'none',
+                display: state.isToolsExpanded ? 'block' : 'none',
                 marginBottom: '8px',
                 padding: '12px',
               },
@@ -182,20 +174,20 @@ function Panel({
                     'button',
                     {
                       className: 'panel-button dropdown-button',
-                      onClick: () => setIsDropdownOpen(!isDropdownOpen),
-                      'aria-expanded': isDropdownOpen,
+                      onClick: onToggleDropdown,
+                      'aria-expanded': state.isDropdownOpen,
                       'aria-label': 'Select Theme',
                     },
                     currentMode.charAt(0).toUpperCase() +
                     currentMode.slice(1),
                     window.preact.h('i', {
-                      className: isDropdownOpen
+                      className: state.isDropdownOpen
                         ? 'fas fa-chevron-up'
                         : 'fas fa-chevron-down',
                       style: { marginLeft: '8px' },
                     })
                   ),
-                  isDropdownOpen &&
+                  state.isDropdownOpen &&
                   window.preact.h(
                     'div',
                     { className: 'dropdown-menu' },
@@ -207,7 +199,7 @@ function Panel({
                           className: 'dropdown-item',
                           onClick: () => {
                             toggleThemeMode(option);
-                            setIsDropdownOpen(false);
+                            onToggleDropdown();
                           },
                           role: 'option',
                           'aria-selected': currentMode === option,
@@ -232,11 +224,7 @@ function Panel({
                   'button',
                   {
                     className: 'panel-button',
-                    onClick: () => {
-                      document.dispatchEvent(
-                        new CustomEvent('xghosted:copy-links')
-                      );
-                    },
+                    onClick: onCopyLinks,
                     'aria-label': 'Copy Problem Links',
                   },
                   window.preact.h('i', {
@@ -249,11 +237,7 @@ function Panel({
                   'button',
                   {
                     className: 'panel-button',
-                    onClick: () => {
-                      document.dispatchEvent(
-                        new CustomEvent('xghosted:export-csv')
-                      );
-                    },
+                    onClick: onExportCsv,
                     'aria-label': 'Export Posts to CSV',
                   },
                   window.preact.h('i', {
@@ -266,7 +250,7 @@ function Panel({
                   'button',
                   {
                     className: 'panel-button',
-                    onClick: () => setIsModalOpen(true),
+                    onClick: onOpenModal,
                     'aria-label': 'Import Posts from CSV',
                   },
                   window.preact.h('i', {
@@ -279,11 +263,7 @@ function Panel({
                   'button',
                   {
                     className: 'panel-button',
-                    onClick: () => {
-                      document.dispatchEvent(
-                        new CustomEvent('xghosted:clear-posts-ui')
-                      );
-                    },
+                    onClick: onClearPosts,
                     'aria-label': 'Clear Processed Posts',
                   },
                   window.preact.h('i', {
@@ -296,11 +276,7 @@ function Panel({
                   'button',
                   {
                     className: 'panel-button',
-                    onClick: () => {
-                      document.dispatchEvent(
-                        new CustomEvent('xghosted:open-about')
-                      );
-                    },
+                    onClick: onOpenAbout,
                     'aria-label': 'Show About Screen',
                   },
                   window.preact.h('i', {
@@ -417,7 +393,7 @@ function Panel({
             'button',
             {
               className: 'panel-button',
-              onClick: onToggleVisibility, // Use prop
+              onClick: onToggleVisibility,
               'aria-label': 'Show Panel',
             },
             window.preact.h('i', {
@@ -428,17 +404,11 @@ function Panel({
           )
         )
     ),
-    isModalOpen &&
+    state.isModalOpen &&
     window.preact.h(window.Modal, {
-      isOpen: isModalOpen,
-      onClose: () => setIsModalOpen(false),
-      onSubmit: (csvText) => {
-        document.dispatchEvent(
-          new CustomEvent('xghosted:csv-import', {
-            detail: { csvText },
-          })
-        );
-      },
+      isOpen: state.isModalOpen,
+      onClose: onCloseModal,
+      onSubmit: onSubmitCsv,
       mode: currentMode,
       config,
     })
