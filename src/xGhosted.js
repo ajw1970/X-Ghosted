@@ -52,7 +52,6 @@ XGhosted.POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
 XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
 
 XGhosted.prototype.emit = function (eventName, data) {
-  this.log(`Emitting event: ${eventName} with data:`, data);
   this.document.dispatchEvent(
     new CustomEvent(eventName, {
       detail: data,
@@ -137,7 +136,7 @@ XGhosted.prototype.userRequestedPostCheck = async function (href, post) {
         "xghosted-good",
         "xghosted-problem"
       );
-      currentPost.classList.add(
+      currentPost.className.add(
         isProblem ? "xghosted-problem" : "xghosted-good"
       );
       currentPost.setAttribute(
@@ -220,7 +219,7 @@ XGhosted.prototype.checkPostInNewTab = async function (href) {
             this.log("Resuming after rate limit pause");
             this.state.isRateLimited = false;
             resolve(false);
-          }, 300000); // Pause for 5 minutes
+          }, 300000);
           return;
         }
         const targetPost = doc.querySelector(`[data-xghosted-id="${href}"]`);
@@ -372,7 +371,7 @@ XGhosted.prototype.startAutoScrolling = function () {
   const scrollInterval = this.timing.scrollInterval || 1250;
   this.log("Starting auto-scrolling timer...");
   let retryAttempts = 0;
-  const maxRetries = 3;
+  const maxRetries = 10; // Increased to extend short runs
   this.scrollTimer = setInterval(() => {
     if (!this.state.isPollingEnabled || !this.state.isAutoScrollingEnabled) {
       return;
@@ -413,7 +412,7 @@ XGhosted.prototype.startAutoScrolling = function () {
       }
       this.emit("xghosted:set-auto-scrolling", { enabled: false });
     } else {
-      retryAttempts = 0; // Reset retries if new posts loaded
+      retryAttempts = 0;
     }
     this.emit("xghosted:record-scroll", { bottomReached });
   }, scrollInterval);
@@ -563,7 +562,7 @@ XGhosted.prototype.init = function () {
     ) {
       clearInterval(checkDomInterval);
       const waitTime = performance.now() - startTime;
-      this.log(`Emitting xghosted:set-initial-wait-time with time=${waitTime}`);
+      this.log(`Initial wait time set: ${waitTime}ms`);
       this.emit("xghosted:set-initial-wait-time", { time: waitTime });
       this.startPolling();
       this.startAutoScrolling();
@@ -574,16 +573,14 @@ XGhosted.prototype.init = function () {
       clearInterval(checkDomInterval);
       if (!this.pollTimer) {
         const waitTime = performance.now() - startTime;
-        this.log(
-          `Timeout: Emitting xghosted:set-initial-wait-time with time=${waitTime}`
-        );
+        this.log(`Timeout: Initial wait time set: ${waitTime}ms`);
         this.emit("xghosted:set-initial-wait-time", { time: waitTime });
         this.log("DOM readiness timeout reached, starting polling");
         this.startPolling();
         this.startAutoScrolling();
       }
     }
-  }, 5e3);
+  }, 5000);
 };
 
 export { XGhosted };

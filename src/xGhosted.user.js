@@ -18,22 +18,10 @@
 (function () {
   'use strict';
 
-  // Safety check: Ensure we're on X.com with a valid document
-  const log = GM_log;
-  if (!window.location.href.startsWith('https://x.com/') || !document.body) {
-    log('xGhosted: Aborting - invalid environment');
-    return;
-  }
-
-  // Log startup with safety focus
-  log(
-    'xGhosted v0.6.1 starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds'
-  );
-
   // Configuration
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
-  const POLL_INTERVAL = 600; // Polling interval in milliseconds
-  const SCROLL_INTERVAL = 1250; // Scroll interval in milliseconds
+  const POLL_INTERVAL = 400; // Faster polling interval in milliseconds
+  const SCROLL_INTERVAL = 1000; // Faster scroll interval in milliseconds
   const config = {
     timing: {
       debounceDelay: 500,
@@ -45,12 +33,27 @@
       scrollInterval: SCROLL_INTERVAL,
     },
     showSplash: true,
-    log,
+    logTarget: 'tampermonkey',
     persistProcessedPosts: false,
   };
 
   // --- Inject Shared Utilities ---
   window.XGhostedUtils = (function () {
+    // src/utils/Logger.js
+    var Logger = class {
+      constructor({ logTarget = 'tampermonkey' }) {
+        this.logTarget = logTarget;
+      }
+      log(...args) {
+        if (this.logTarget === 'console') {
+          console.log(...args);
+        } else {
+          GM_log(...args);
+        }
+      }
+    };
+    window.Logger = Logger;
+
     // src/utils/clipboardUtils.js
     function copyTextToClipboard(text, log) {
       return navigator.clipboard
@@ -672,6 +675,7 @@
       };
     }
     return {
+      Logger,
       copyTextToClipboard,
       debounce,
       describeSampleAnalyses,
@@ -697,6 +701,27 @@
       summarizeRatedPosts,
     };
   })();
+
+  // Safety check: Ensure Logger is defined
+  if (!window.Logger || typeof window.Logger !== 'function') {
+    console.error('xGhosted: Logger utility not found or not a constructor');
+    return;
+  }
+
+  // Safety check: Ensure we're on X.com with a valid document
+  const log = new window.Logger({ logTarget: config.logTarget }).log.bind(
+    window.Logger
+  );
+  config.log = log;
+  if (!window.location.href.startsWith('https://x.com/') || !document.body) {
+    log('xGhosted: Aborting - invalid environment');
+    return;
+  }
+
+  // Log startup with safety focus
+  log(
+    'xGhosted v0.6.1 starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds'
+  );
 
   // --- Inject Modules ---
   window.XGhosted = (function () {
@@ -754,7 +779,6 @@
     XGhosted.POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
     XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
     XGhosted.prototype.emit = function (eventName, data) {
-      this.log(`Emitting event: ${eventName} with data:`, data);
       this.document.dispatchEvent(
         new CustomEvent(eventName, {
           detail: data,
@@ -842,7 +866,7 @@
             'xghosted-good',
             'xghosted-problem'
           );
-          currentPost.classList.add(
+          currentPost.className.add(
             isProblem ? 'xghosted-problem' : 'xghosted-good'
           );
           currentPost.setAttribute(
@@ -1081,7 +1105,7 @@
       const scrollInterval = this.timing.scrollInterval || 1250;
       this.log('Starting auto-scrolling timer...');
       let retryAttempts = 0;
-      const maxRetries = 3;
+      const maxRetries = 10;
       this.scrollTimer = setInterval(() => {
         if (
           !this.state.isPollingEnabled ||
@@ -1279,9 +1303,7 @@
         ) {
           clearInterval(checkDomInterval);
           const waitTime = performance.now() - startTime;
-          this.log(
-            `Emitting xghosted:set-initial-wait-time with time=${waitTime}`
-          );
+          this.log(`Initial wait time set: ${waitTime}ms`);
           this.emit('xghosted:set-initial-wait-time', { time: waitTime });
           this.startPolling();
           this.startAutoScrolling();
@@ -1292,9 +1314,7 @@
           clearInterval(checkDomInterval);
           if (!this.pollTimer) {
             const waitTime = performance.now() - startTime;
-            this.log(
-              `Timeout: Emitting xghosted:set-initial-wait-time with time=${waitTime}`
-            );
+            this.log(`Timeout: Initial wait time set: ${waitTime}ms`);
             this.emit('xghosted:set-initial-wait-time', { time: waitTime });
             this.log('DOM readiness timeout reached, starting polling');
             this.startPolling();
@@ -2087,12 +2107,12 @@
       this.applyPanelStyles();
       const handleStateUpdated = (e) => {
         this.state.isRateLimited = e.detail.isRateLimited;
-        this.renderPanel();
+        this.renderPanelDebounced();
       };
       const handlePollingStateUpdated = (e) => {
         this.state.isPollingEnabled = e.detail.isPollingEnabled;
-        this.renderPanel();
         this.applyPanelStyles();
+        this.renderPanel();
       };
       const handleAutoScrollingToggled = (e) => {
         this.state.isAutoScrollingEnabled = e.detail.isAutoScrollingEnabled;
@@ -2103,7 +2123,7 @@
         this.state.pollInterval = config.pollInterval || 'Unknown';
         this.state.scrollInterval = config.scrollInterval || 'Unknown';
         this.log('Received xghosted:init with config:', config);
-        this.renderPanel();
+        this.renderPanelDebounced();
       };
       const handleUserProfileUpdated = (e) => {
         const { userProfileName } = e.detail || {};
@@ -2112,22 +2132,20 @@
           'Received xghosted:user-profile-updated with userProfileName:',
           userProfileName
         );
-        this.renderPanel();
+        this.renderPanelDebounced();
       };
       const handleToggleVisibility = (e) => {
         const { isPanelVisible } = e.detail;
         this.setVisibility(isPanelVisible);
+        this.renderPanel();
       };
       const handleOpenAbout = () => {
         this.showSplashPage();
+        this.renderPanel();
       };
       const handlePostRegistered = (e) => {
         const { href, data } = e.detail || {};
         if (href && data?.analysis?.quality?.name) {
-          this.log(
-            'PanelManager: Processing xghosted:post-registered for:',
-            href
-          );
           const isProblem = ['Problem', 'Potential Problem'].includes(
             data.analysis.quality.name
           );
@@ -2144,10 +2162,9 @@
             );
           }
           this.state.totalPosts += 1;
-          this.log(
-            `PanelManager: Updated flagged posts, count=${this.state.flagged.length}, totalPosts=${this.state.totalPosts}`
-          );
-          this.renderPanel();
+          if (isProblem) {
+            this.renderPanelDebounced();
+          }
         }
       };
       const handlePostRegisteredConfirmed = (e) => {
@@ -2157,6 +2174,7 @@
             'PanelManager: Processing xghosted:post-registered-confirmed for:',
             href
           );
+          this.renderPanelDebounced();
         }
       };
       const handlePostsCleared = () => {
@@ -2175,6 +2193,7 @@
           this.document.dispatchEvent(
             new CustomEvent('xghosted:request-posts')
           );
+          this.renderPanel();
         }
       };
       const handlePostsRetrieved = (e) => {
@@ -2204,7 +2223,7 @@
           this.log(
             `PanelManager: Processed posts, flagged=${this.state.flagged.length}, total=${this.state.totalPosts}`
           );
-          this.renderPanel();
+          this.renderPanelDebounced();
           if (this.state.pendingImportCount) {
             alert(
               `Successfully imported ${this.state.pendingImportCount} posts!`
@@ -2305,11 +2324,19 @@
           handlePostsRetrieved
         );
       };
+      this.renderPanelDebounced = this.debounce(() => this.renderPanel(), 1e3);
       if (window.preact && window.preact.h) {
         this.renderPanel();
       } else {
         this.log('Preact h not available, skipping panel render');
       }
+    };
+    window.PanelManager.prototype.debounce = function (func, wait) {
+      let timeout;
+      return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+      };
     };
     window.PanelManager.prototype.saveState = function () {
       const updatedState = {
@@ -2414,7 +2441,6 @@
       this.state.isPanelVisible =
         typeof isVisible === 'boolean' ? isVisible : this.state.isPanelVisible;
       this.saveState();
-      this.renderPanel();
       this.log(`Set panel visibility: ${this.state.isPanelVisible}`);
     };
     window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
@@ -2423,7 +2449,6 @@
           ? newVisibility
           : !this.state.isPanelVisible;
       this.saveState();
-      this.renderPanel();
       this.document.dispatchEvent(
         new CustomEvent('xghosted:toggle-panel-visibility', {
           detail: { isPanelVisible: this.state.isPanelVisible },
@@ -2533,6 +2558,7 @@
     };
     window.PanelManager.prototype.exportCsv = function () {
       this.document.dispatchEvent(new CustomEvent('xghosted:export-csv'));
+      this.renderPanel();
       this.log('Dispatched export CSV event');
     };
     window.PanelManager.prototype.clearPosts = function () {
@@ -2542,6 +2568,7 @@
     };
     window.PanelManager.prototype.openAbout = function () {
       this.document.dispatchEvent(new CustomEvent('xghosted:open-about'));
+      this.renderPanel();
       this.log('Dispatched open about event');
     };
     window.PanelManager.prototype.submitCsv = function (csvText) {
@@ -2551,6 +2578,7 @@
         })
       );
       this.closeModal();
+      this.renderPanel();
       this.log('Dispatched CSV import event');
     };
     window.PanelManager.prototype.updateTheme = function (newMode) {
@@ -2595,6 +2623,7 @@
           this.log(`Failed to copy problem links: ${err}`);
           alert('Failed to copy problem links.');
         });
+      this.renderPanel();
     };
     window.PanelManager.prototype.exportProcessedPostsCSV = function (posts) {
       if (!posts) {
@@ -2715,11 +2744,10 @@
           );
         }
         this.state.totalPosts += 1;
-        this.log(
-          `PanelManager: Updated flagged posts, count=${this.state.flagged.length}, totalPosts=${this.state.totalPosts}`
-        );
+        if (isProblem) {
+          this.renderPanelDebounced();
+        }
       }
-      this.renderPanel();
     };
     return PanelManager;
   })();
@@ -2764,132 +2792,80 @@
           state.processedPosts[id] = { analysis: { ...analysis }, checked };
         }
         this.storage.set('xGhostedState', state);
-        this.log('Saved processed posts to storage');
+        this.log('Saved posts to storage');
       }
       registerPost(id, data) {
-        if (!id || !data?.analysis) {
-          this.log(`Invalid post data for id: ${id}`);
-          return false;
+        if (!id || !data?.analysis?.quality) {
+          this.log(
+            `Skipping post registration: invalid id or data for id=${id}`
+          );
+          return;
         }
         this.posts[id] = {
           analysis: { ...data.analysis },
           checked: data.checked || false,
         };
-        this.log(
-          `Registered post: ${id} with quality: ${this.posts[id].analysis.quality.name}`,
-          this.posts[id].analysis
-        );
+        this.log(`Registered post: ${id}`);
         if (this.persistProcessedPosts) {
           this.save();
         }
-        return true;
       }
       getPost(id) {
-        this.log(
-          `Getting post ${id}: quality=${this.posts[id]?.analysis?.quality?.name || 'none'}, exists=${!!this.posts[id]}`
-        );
-        if (!this.posts[id]) {
-          this.log(`Post ${id} not found, triggering highlightPosts`);
-          document.dispatchEvent(
-            new CustomEvent('xghosted:request-post-highlight', {
-              detail: { href: id },
-            })
-          );
-        }
         return this.posts[id] || null;
       }
       getAllPosts() {
         return Object.entries(this.posts);
       }
-      getProblemPosts() {
-        const allPosts = Object.entries(this.posts);
-        const problemPosts = allPosts.filter(
-          ([_, { analysis }]) =>
-            analysis.quality.name === postQuality.PROBLEM.name ||
-            analysis.quality.name === postQuality.POTENTIAL_PROBLEM.name
-        );
-        this.log(
-          `getProblemPosts: Found ${problemPosts.length} posts`,
-          problemPosts.map(([id, { analysis }]) => ({
-            id,
-            quality: analysis.quality.name,
-          })),
-          `All posts:`,
-          allPosts.map(([id, { analysis }]) => ({
-            id,
-            quality: analysis.quality.name,
-          }))
-        );
-        return problemPosts;
-      }
-      async clearPosts() {
+      clearPosts() {
         this.posts = {};
         if (this.persistProcessedPosts) {
           this.save();
         }
-        this.log('Cleared all processed posts');
-        return Promise.resolve();
+        this.log('Cleared all posts');
       }
       importPosts(csvText) {
-        if (typeof csvText !== 'string' || !csvText.trim()) {
-          this.log('Invalid CSV text provided');
+        if (!csvText) {
+          this.log('No CSV text provided, skipping import');
           return 0;
         }
-        const lines = csvText
-          .trim()
-          .split('\n')
-          .map((line) =>
-            line
-              .split(',')
-              .map((cell) => cell.replace(/^"|"$/g, '').replace(/""/g, '"'))
-          );
-        if (lines.length < 2) {
-          this.log('CSV must have at least one data row');
-          return 0;
-        }
-        const headers = lines[0];
+        const lines = csvText.trim().split('\n');
+        const headers = lines[0].split(',');
         const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
-        if (!expectedHeaders.every((header, i) => header === headers[i])) {
-          this.log('CSV header mismatch');
+        if (!expectedHeaders.every((h, i) => headers[i] === h)) {
+          this.log(
+            'Invalid CSV format, expected headers: ' + expectedHeaders.join(',')
+          );
           return 0;
         }
-        const qualityMap = {
-          [postQuality.UNDEFINED.name]: postQuality.UNDEFINED,
-          [postQuality.PROBLEM.name]: postQuality.PROBLEM,
-          [postQuality.POTENTIAL_PROBLEM.name]: postQuality.POTENTIAL_PROBLEM,
-          [postQuality.GOOD.name]: postQuality.GOOD,
-        };
         let importedCount = 0;
-        lines.slice(1).forEach((row) => {
-          const [link, qualityName, reason, checkedStr] = row;
-          const quality = qualityMap[qualityName];
-          if (!quality) return;
-          const id = link.replace(this.linkPrefix, '');
+        for (let i = 1; i < lines.length; i++) {
+          const [link, quality, reason, checked] = lines[i].split(',');
+          const id = link.startsWith(this.linkPrefix)
+            ? link.slice(this.linkPrefix.length)
+            : link;
+          const qualityObj = Object.values(postQuality).find(
+            (q) => q.name === quality
+          );
+          if (!qualityObj) {
+            this.log(`Skipping invalid quality for post: ${link}`);
+            continue;
+          }
           this.posts[id] = {
-            analysis: { quality, reason, link: id },
-            checked: checkedStr === 'true',
+            analysis: {
+              quality: qualityObj,
+              reason: reason || '',
+            },
+            checked: checked === 'true',
           };
           importedCount++;
-        });
-        if (this.persistProcessedPosts) {
-          this.save();
         }
-        this.log(`Imported ${importedCount} posts from CSV`);
-        return importedCount;
-      }
-      exportPosts() {
-        const headers = ['Link', 'Quality', 'Reason', 'Checked'];
-        const rows = Object.entries(this.posts).map(
-          ([id, { analysis, checked }]) => {
-            return [
-              `${this.linkPrefix}${id}`,
-              analysis.quality.name,
-              analysis.reason,
-              checked ? 'true' : 'false',
-            ].join(',');
+        if (importedCount > 0) {
+          this.log(`Imported ${importedCount} posts from CSV`);
+          if (this.persistProcessedPosts) {
+            this.save();
           }
-        );
-        return [headers.join(','), ...rows].join('\n');
+        }
+        return importedCount;
       }
     };
     return ProcessedPostsManager;
@@ -3389,7 +3365,7 @@
       scrollInterval: SCROLL_INTERVAL,
     },
     log,
-    storage: { get: GM_getValue, set: GM_setValue },
+    storage: { get: GM_getValue, set: GM_getValue },
   });
   config.linkPrefix = 'https://x.com';
   const xGhosted = new window.XGhosted(document, config);
@@ -3578,43 +3554,6 @@
         log('Cleared all posts via UI');
       }
     });
-    document.addEventListener('xghosted:record-poll', ({ detail }) => {
-      log('Received xghosted:record-poll', detail);
-      config.timingManager.recordPoll(detail);
-    });
-    document.addEventListener('xghosted:record-scroll', ({ detail }) => {
-      log('Received xghosted:record-scroll', detail);
-      config.timingManager.recordScroll(detail);
-    });
-    document.addEventListener('xghosted:record-highlight', ({ detail }) => {
-      log('Received xghosted:record-highlight', detail);
-      config.timingManager.recordHighlighting(detail.duration);
-    });
-    document.addEventListener('xghosted:save-metrics', () => {
-      log('Received xghosted:save-metrics');
-      config.timingManager.saveMetrics();
-    });
-    document.addEventListener(
-      'xghosted:set-initial-wait-time',
-      ({ detail }) => {
-        log('Received xghosted:set-initial-wait-time', detail);
-        config.timingManager.setInitialWaitTime(detail.time);
-      }
-    );
-    document.addEventListener('xghosted:set-post-density', ({ detail }) => {
-      log('Received xghosted:set-post-density', detail);
-      config.timingManager.setPostDensity(detail.count);
-    });
-    document.addEventListener(
-      'xghosted:request-post-highlight',
-      ({ detail: { href } }) => {
-        log(`Received xghosted:request-post-highlight for href=${href}`);
-        const post = postsManager.getPost(href);
-        if (!post) {
-          xGhosted.highlightPosts();
-        }
-      }
-    );
     document.addEventListener('xghosted:rate-limit-detected', ({ detail }) => {
       log(`Rate limit detected, pausing polling for ${detail.pauseDuration}ms`);
       xGhosted.handleStopPolling();

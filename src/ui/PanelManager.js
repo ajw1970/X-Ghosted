@@ -226,23 +226,23 @@ window.PanelManager.prototype.init = function () {
   this.applyPanelStyles();
   const handleStateUpdated = (e) => {
     this.state.isRateLimited = e.detail.isRateLimited;
-    this.renderPanel();
+    this.renderPanelDebounced(); // Debounced for background updates
   };
   const handlePollingStateUpdated = (e) => {
     this.state.isPollingEnabled = e.detail.isPollingEnabled;
-    this.renderPanel();
     this.applyPanelStyles();
+    this.renderPanel(); // Immediate for user interaction
   };
   const handleAutoScrollingToggled = (e) => {
     this.state.isAutoScrollingEnabled = e.detail.isAutoScrollingEnabled;
-    this.renderPanel();
+    this.renderPanel(); // Immediate for user interaction
   };
   const handleInit = (e) => {
     const config = e.detail?.config || {};
     this.state.pollInterval = config.pollInterval || "Unknown";
     this.state.scrollInterval = config.scrollInterval || "Unknown";
     this.log("Received xghosted:init with config:", config);
-    this.renderPanel();
+    this.renderPanelDebounced();
   };
   const handleUserProfileUpdated = (e) => {
     const { userProfileName } = e.detail || {};
@@ -251,19 +251,20 @@ window.PanelManager.prototype.init = function () {
       "Received xghosted:user-profile-updated with userProfileName:",
       userProfileName
     );
-    this.renderPanel();
+    this.renderPanelDebounced();
   };
   const handleToggleVisibility = (e) => {
     const { isPanelVisible } = e.detail;
     this.setVisibility(isPanelVisible);
+    this.renderPanel(); // Immediate for user interaction
   };
   const handleOpenAbout = () => {
     this.showSplashPage();
+    this.renderPanel(); // Immediate for user interaction
   };
   const handlePostRegistered = (e) => {
     const { href, data } = e.detail || {};
     if (href && data?.analysis?.quality?.name) {
-      this.log("PanelManager: Processing xghosted:post-registered for:", href);
       const isProblem = ["Problem", "Potential Problem"].includes(
         data.analysis.quality.name
       );
@@ -280,10 +281,9 @@ window.PanelManager.prototype.init = function () {
         );
       }
       this.state.totalPosts += 1;
-      this.log(
-        `PanelManager: Updated flagged posts, count=${this.state.flagged.length}, totalPosts=${this.state.totalPosts}`
-      );
-      this.renderPanel();
+      if (isProblem) {
+        this.renderPanelDebounced(); // Debounced, only for Problem/Potential Problem
+      }
     }
   };
   const handlePostRegisteredConfirmed = (e) => {
@@ -293,13 +293,14 @@ window.PanelManager.prototype.init = function () {
         "PanelManager: Processing xghosted:post-registered-confirmed for:",
         href
       );
+      this.renderPanelDebounced(); // Debounced for confirmed registrations
     }
   };
   const handlePostsCleared = () => {
     this.log("PanelManager: Handling xghosted:posts-cleared");
     this.state.flagged = [];
     this.state.totalPosts = 0;
-    this.renderPanel();
+    this.renderPanel(); // Immediate for user interaction
   };
   const handleCsvImport = (e) => {
     const { importedCount } = e.detail || {};
@@ -309,6 +310,7 @@ window.PanelManager.prototype.init = function () {
       this.state.totalPosts = 0;
       this.state.pendingImportCount = importedCount;
       this.document.dispatchEvent(new CustomEvent("xghosted:request-posts"));
+      this.renderPanel(); // Immediate for user interaction
     }
   };
   const handlePostsRetrieved = (e) => {
@@ -338,7 +340,7 @@ window.PanelManager.prototype.init = function () {
       this.log(
         `PanelManager: Processed posts, flagged=${this.state.flagged.length}, total=${this.state.totalPosts}`
       );
-      this.renderPanel();
+      this.renderPanelDebounced();
       if (this.state.pendingImportCount) {
         alert(`Successfully imported ${this.state.pendingImportCount} posts!`);
         this.state.pendingImportCount = null;
@@ -422,11 +424,20 @@ window.PanelManager.prototype.init = function () {
       handlePostsRetrieved
     );
   };
+  this.renderPanelDebounced = this.debounce(() => this.renderPanel(), 1000); // Debounce for background updates
   if (window.preact && window.preact.h) {
-    this.renderPanel();
+    this.renderPanel(); // Initial render
   } else {
     this.log("Preact h not available, skipping panel render");
   }
+};
+
+window.PanelManager.prototype.debounce = function (func, wait) {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
 };
 
 window.PanelManager.prototype.saveState = function () {
@@ -533,7 +544,6 @@ window.PanelManager.prototype.setVisibility = function (isVisible) {
   this.state.isPanelVisible =
     typeof isVisible === "boolean" ? isVisible : this.state.isPanelVisible;
   this.saveState();
-  this.renderPanel();
   this.log(`Set panel visibility: ${this.state.isPanelVisible}`);
 };
 
@@ -543,7 +553,6 @@ window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
       ? newVisibility
       : !this.state.isPanelVisible;
   this.saveState();
-  this.renderPanel();
   this.document.dispatchEvent(
     new CustomEvent("xghosted:toggle-panel-visibility", {
       detail: { isPanelVisible: this.state.isPanelVisible },
@@ -612,28 +621,28 @@ window.PanelManager.prototype.renderPanel = function () {
 window.PanelManager.prototype.toggleTools = function () {
   this.state.isToolsExpanded = !this.state.isToolsExpanded;
   this.saveState();
-  this.renderPanel();
+  this.renderPanel(); // Immediate for user interaction
   this.log(`Toggled tools section: ${this.state.isToolsExpanded}`);
 };
 
 window.PanelManager.prototype.openModal = function () {
   this.state.isModalOpen = true;
   this.saveState();
-  this.renderPanel();
+  this.renderPanel(); // Immediate for user interaction
   this.log("Opened CSV import modal");
 };
 
 window.PanelManager.prototype.closeModal = function () {
   this.state.isModalOpen = false;
   this.saveState();
-  this.renderPanel();
+  this.renderPanel(); // Immediate for user interaction
   this.log("Closed CSV import modal");
 };
 
 window.PanelManager.prototype.toggleDropdown = function () {
   this.state.isDropdownOpen = !this.state.isDropdownOpen;
   this.saveState();
-  this.renderPanel();
+  this.renderPanel(); // Immediate for user interaction
   this.log(`Toggled theme dropdown: ${this.state.isDropdownOpen}`);
 };
 
@@ -645,7 +654,7 @@ window.PanelManager.prototype.togglePolling = function () {
     })
   );
   this.saveState();
-  this.renderPanel();
+  this.renderPanel(); // Immediate for user interaction
   this.log(`Toggled polling: ${this.state.isPollingEnabled}`);
 };
 
@@ -657,23 +666,25 @@ window.PanelManager.prototype.toggleAutoScrolling = function () {
     })
   );
   this.saveState();
-  this.renderPanel();
+  this.renderPanel(); // Immediate for user interaction
   this.log(`Toggled auto-scrolling: ${this.state.isAutoScrollingEnabled}`);
 };
 
 window.PanelManager.prototype.exportCsv = function () {
   this.document.dispatchEvent(new CustomEvent("xghosted:export-csv"));
+  this.renderPanel(); // Immediate for user interaction
   this.log("Dispatched export CSV event");
 };
 
 window.PanelManager.prototype.clearPosts = function () {
   this.document.dispatchEvent(new CustomEvent("xghosted:clear-posts-ui"));
-  this.renderPanel();
+  this.renderPanel(); // Immediate for user interaction
   this.log("Dispatched clear posts event");
 };
 
 window.PanelManager.prototype.openAbout = function () {
   this.document.dispatchEvent(new CustomEvent("xghosted:open-about"));
+  this.renderPanel(); // Immediate for user interaction
   this.log("Dispatched open about event");
 };
 
@@ -684,12 +695,13 @@ window.PanelManager.prototype.submitCsv = function (csvText) {
     })
   );
   this.closeModal();
+  this.renderPanel(); // Immediate for user interaction
   this.log("Dispatched CSV import event");
 };
 
 window.PanelManager.prototype.updateTheme = function (newMode) {
   this.state.themeMode = newMode;
-  this.renderPanel();
+  this.renderPanel(); // Immediate for user interaction
 };
 
 window.PanelManager.prototype.handleModeChange = function (newMode) {
@@ -709,7 +721,7 @@ window.PanelManager.prototype.handleModeChange = function (newMode) {
       detail: { themeMode: newMode },
     })
   );
-  this.renderPanel();
+  this.renderPanel(); // Immediate for user interaction
 };
 
 window.PanelManager.prototype.copyLinks = function (posts) {
@@ -731,6 +743,7 @@ window.PanelManager.prototype.copyLinks = function (posts) {
       this.log(`Failed to copy problem links: ${err}`);
       alert("Failed to copy problem links.");
     });
+  this.renderPanel(); // Immediate for user interaction
 };
 
 window.PanelManager.prototype.exportProcessedPostsCSV = function (posts) {
@@ -854,9 +867,8 @@ window.PanelManager.prototype.updatePosts = function ({ post, isProblem }) {
       );
     }
     this.state.totalPosts += 1;
-    this.log(
-      `PanelManager: Updated flagged posts, count=${this.state.flagged.length}, totalPosts=${this.state.totalPosts}`
-    );
+    if (isProblem) {
+      this.renderPanelDebounced(); // Debounced for Problem posts
+    }
   }
-  this.renderPanel();
 };

@@ -40,40 +40,25 @@ class ProcessedPostsManager {
       state.processedPosts[id] = { analysis: { ...analysis }, checked };
     }
     this.storage.set("xGhostedState", state);
-    this.log("Saved processed posts to storage");
+    this.log("Saved posts to storage");
   }
 
   registerPost(id, data) {
-    if (!id || !data?.analysis) {
-      this.log(`Invalid post data for id: ${id}`);
-      return false;
+    if (!id || !data?.analysis?.quality) {
+      this.log(`Skipping post registration: invalid id or data for id=${id}`);
+      return;
     }
     this.posts[id] = {
       analysis: { ...data.analysis },
       checked: data.checked || false,
     };
-    this.log(
-      `Registered post: ${id} with quality: ${this.posts[id].analysis.quality.name}`,
-      this.posts[id].analysis
-    );
+    this.log(`Registered post: ${id}`);
     if (this.persistProcessedPosts) {
       this.save();
     }
-    return true;
   }
 
   getPost(id) {
-    this.log(
-      `Getting post ${id}: quality=${this.posts[id]?.analysis?.quality?.name || "none"}, exists=${!!this.posts[id]}`
-    );
-    if (!this.posts[id]) {
-      this.log(`Post ${id} not found, triggering highlightPosts`);
-      document.dispatchEvent(
-        new CustomEvent("xghosted:request-post-highlight", {
-          detail: { href: id },
-        })
-      );
-    }
     return this.posts[id] || null;
   }
 
@@ -81,98 +66,57 @@ class ProcessedPostsManager {
     return Object.entries(this.posts);
   }
 
-  getProblemPosts() {
-    const allPosts = Object.entries(this.posts);
-    const problemPosts = allPosts.filter(
-      ([_, { analysis }]) =>
-        analysis.quality.name === postQuality.PROBLEM.name ||
-        analysis.quality.name === postQuality.POTENTIAL_PROBLEM.name
-    );
-    this.log(
-      `getProblemPosts: Found ${problemPosts.length} posts`,
-      problemPosts.map(([id, { analysis }]) => ({
-        id,
-        quality: analysis.quality.name,
-      })),
-      `All posts:`,
-      allPosts.map(([id, { analysis }]) => ({
-        id,
-        quality: analysis.quality.name,
-      }))
-    );
-    return problemPosts;
-  }
-
-  async clearPosts() {
+  clearPosts() {
     this.posts = {};
     if (this.persistProcessedPosts) {
       this.save();
     }
-    this.log("Cleared all processed posts");
-    return Promise.resolve();
+    this.log("Cleared all posts");
   }
 
   importPosts(csvText) {
-    if (typeof csvText !== "string" || !csvText.trim()) {
-      this.log("Invalid CSV text provided");
+    if (!csvText) {
+      this.log("No CSV text provided, skipping import");
       return 0;
     }
-    const lines = csvText
-      .trim()
-      .split("\n")
-      .map((line) =>
-        line
-          .split(",")
-          .map((cell) => cell.replace(/^"|"$/g, "").replace(/""/g, '"'))
-      );
-    if (lines.length < 2) {
-      this.log("CSV must have at least one data row");
-      return 0;
-    }
-    const headers = lines[0];
+    const lines = csvText.trim().split("\n");
+    const headers = lines[0].split(",");
     const expectedHeaders = ["Link", "Quality", "Reason", "Checked"];
-    if (!expectedHeaders.every((header, i) => header === headers[i])) {
-      this.log("CSV header mismatch");
+    if (!expectedHeaders.every((h, i) => headers[i] === h)) {
+      this.log(
+        "Invalid CSV format, expected headers: " + expectedHeaders.join(",")
+      );
       return 0;
     }
-    const qualityMap = {
-      [postQuality.UNDEFINED.name]: postQuality.UNDEFINED,
-      [postQuality.PROBLEM.name]: postQuality.PROBLEM,
-      [postQuality.POTENTIAL_PROBLEM.name]: postQuality.POTENTIAL_PROBLEM,
-      [postQuality.GOOD.name]: postQuality.GOOD,
-    };
     let importedCount = 0;
-    lines.slice(1).forEach((row) => {
-      const [link, qualityName, reason, checkedStr] = row;
-      const quality = qualityMap[qualityName];
-      if (!quality) return;
-      const id = link.replace(this.linkPrefix, "");
+    for (let i = 1; i < lines.length; i++) {
+      const [link, quality, reason, checked] = lines[i].split(",");
+      const id = link.startsWith(this.linkPrefix)
+        ? link.slice(this.linkPrefix.length)
+        : link;
+      const qualityObj = Object.values(postQuality).find(
+        (q) => q.name === quality
+      );
+      if (!qualityObj) {
+        this.log(`Skipping invalid quality for post: ${link}`);
+        continue;
+      }
       this.posts[id] = {
-        analysis: { quality, reason, link: id },
-        checked: checkedStr === "true",
+        analysis: {
+          quality: qualityObj,
+          reason: reason || "",
+        },
+        checked: checked === "true",
       };
       importedCount++;
-    });
-    if (this.persistProcessedPosts) {
-      this.save();
     }
-    this.log(`Imported ${importedCount} posts from CSV`);
-    return importedCount;
-  }
-
-  exportPosts() {
-    const headers = ["Link", "Quality", "Reason", "Checked"];
-    const rows = Object.entries(this.posts).map(
-      ([id, { analysis, checked }]) => {
-        return [
-          `${this.linkPrefix}${id}`,
-          analysis.quality.name,
-          analysis.reason,
-          checked ? "true" : "false",
-        ].join(",");
+    if (importedCount > 0) {
+      this.log(`Imported ${importedCount} posts from CSV`);
+      if (this.persistProcessedPosts) {
+        this.save();
       }
-    );
-    return [headers.join(","), ...rows].join("\n");
+    }
+    return importedCount;
   }
 }
 

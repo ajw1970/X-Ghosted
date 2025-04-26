@@ -18,22 +18,10 @@
 (function () {
   "use strict";
 
-  // Safety check: Ensure we're on X.com with a valid document
-  const log = GM_log;
-  if (!window.location.href.startsWith("https://x.com/") || !document.body) {
-    log("xGhosted: Aborting - invalid environment");
-    return;
-  }
-
-  // Log startup with safety focus
-  log(
-    "xGhosted v{{VERSION}} starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds"
-  );
-
   // Configuration
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
-  const POLL_INTERVAL = 600; // Polling interval in milliseconds
-  const SCROLL_INTERVAL = 1250; // Scroll interval in milliseconds
+  const POLL_INTERVAL = 400; // Faster polling interval in milliseconds
+  const SCROLL_INTERVAL = 1000; // Faster scroll interval in milliseconds
   const config = {
     timing: {
       debounceDelay: 500,
@@ -45,12 +33,33 @@
       scrollInterval: SCROLL_INTERVAL,
     },
     showSplash: true,
-    log,
+    logTarget: "tampermonkey",
     persistProcessedPosts: false,
   };
 
   // --- Inject Shared Utilities ---
   // INJECT: Utils
+
+  // Safety check: Ensure Logger is defined
+  if (!window.Logger || typeof window.Logger !== "function") {
+    console.error("xGhosted: Logger utility not found or not a constructor");
+    return;
+  }
+
+  // Safety check: Ensure we're on X.com with a valid document
+  const log = new window.Logger({ logTarget: config.logTarget }).log.bind(
+    window.Logger
+  );
+  config.log = log;
+  if (!window.location.href.startsWith("https://x.com/") || !document.body) {
+    log("xGhosted: Aborting - invalid environment");
+    return;
+  }
+
+  // Log startup with safety focus
+  log(
+    "xGhosted v{{VERSION}} starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds"
+  );
 
   // --- Inject Modules ---
   // INJECT: xGhosted
@@ -78,7 +87,7 @@
       scrollInterval: SCROLL_INTERVAL,
     },
     log,
-    storage: { get: GM_getValue, set: GM_setValue },
+    storage: { get: GM_getValue, set: GM_getValue },
   });
   config.linkPrefix = "https://x.com";
   const xGhosted = new window.XGhosted(document, config);
@@ -267,43 +276,6 @@
         log("Cleared all posts via UI");
       }
     });
-    document.addEventListener("xghosted:record-poll", ({ detail }) => {
-      log("Received xghosted:record-poll", detail);
-      config.timingManager.recordPoll(detail);
-    });
-    document.addEventListener("xghosted:record-scroll", ({ detail }) => {
-      log("Received xghosted:record-scroll", detail);
-      config.timingManager.recordScroll(detail);
-    });
-    document.addEventListener("xghosted:record-highlight", ({ detail }) => {
-      log("Received xghosted:record-highlight", detail);
-      config.timingManager.recordHighlighting(detail.duration);
-    });
-    document.addEventListener("xghosted:save-metrics", () => {
-      log("Received xghosted:save-metrics");
-      config.timingManager.saveMetrics();
-    });
-    document.addEventListener(
-      "xghosted:set-initial-wait-time",
-      ({ detail }) => {
-        log("Received xghosted:set-initial-wait-time", detail);
-        config.timingManager.setInitialWaitTime(detail.time);
-      }
-    );
-    document.addEventListener("xghosted:set-post-density", ({ detail }) => {
-      log("Received xghosted:set-post-density", detail);
-      config.timingManager.setPostDensity(detail.count);
-    });
-    document.addEventListener(
-      "xghosted:request-post-highlight",
-      ({ detail: { href } }) => {
-        log(`Received xghosted:request-post-highlight for href=${href}`);
-        const post = postsManager.getPost(href);
-        if (!post) {
-          xGhosted.highlightPosts();
-        }
-      }
-    );
     document.addEventListener("xghosted:rate-limit-detected", ({ detail }) => {
       log(`Rate limit detected, pausing polling for ${detail.pauseDuration}ms`);
       xGhosted.handleStopPolling();
