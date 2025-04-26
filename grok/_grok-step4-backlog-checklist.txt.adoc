@@ -77,6 +77,10 @@
 * [ ] Identify reply to without <a> tag.
 * [ ] Display reason in Panel problems list.
 * [ ] Stop leaving confirmed problem tab open. 
+* [ ] Max height on panel 
+* [ ] Vertical scroll
+* [ ] Show live counts when panel hidden (use bubbles or something simple so that you can tell if it's still finding things)
+* [ ] processed posts needs to stay in sequence found even after checkPostInNewTab returns and updates a potential probem. As it is now, the udates go to the bottom of the list. We don't want that. 
 * [x] Stop persisting auto scroll
 * [x] Fix panel layout and margins.
 * [x] Fix panel width when collapsed.
