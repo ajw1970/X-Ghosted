@@ -20,8 +20,8 @@
 
   // Configuration
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
-  const POLL_INTERVAL = 400; // Faster polling interval in milliseconds
-  const SCROLL_INTERVAL = 1000; // Faster scroll interval in milliseconds
+  const POLL_INTERVAL = 600; // Polling interval in milliseconds
+  const SCROLL_INTERVAL = 1250; // Scroll interval in milliseconds
   const config = {
     timing: {
       debounceDelay: 500,
@@ -56,10 +56,8 @@
     return;
   }
 
-  // Log startup with safety focus
-  log(
-    "xGhosted v{{VERSION}} starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds"
-  );
+  // Log startup
+  log("xGhosted v{{VERSION}} starting - Manual mode on");
 
   // --- Inject Modules ---
   // INJECT: xGhosted
@@ -135,7 +133,7 @@
       scrollInterval: SCROLL_INTERVAL,
     },
     log,
-    storage: { get: GM_getValue, set: GM_getValue },
+    storage: { get: GM_getValue, set: GM_setValue },
   });
   config.linkPrefix = "https://x.com";
   const xGhosted = new window.XGhosted(document, config);
