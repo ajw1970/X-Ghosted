@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-  'use strict';
+  ('use strict');
 
   // Configuration
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
@@ -1295,33 +1295,43 @@
         'xghosted:request-post-highlight',
         handleHighlightRequest
       );
-      const checkDomInterval = setInterval(() => {
-        if (
-          this.document.body &&
-          this.document.querySelectorAll('div[data-testid="cellInnerDiv"]')
-            .length > 0
-        ) {
-          clearInterval(checkDomInterval);
-          const waitTime = performance.now() - startTime;
-          this.log(`Initial wait time set: ${waitTime}ms`);
-          this.emit('xghosted:set-initial-wait-time', { time: waitTime });
-          this.startPolling();
-          this.startAutoScrolling();
-        }
-      }, 500);
-      setTimeout(() => {
-        if (checkDomInterval) {
-          clearInterval(checkDomInterval);
-          if (!this.pollTimer) {
+      const startContainerCheck = () => {
+        const checkDomInterval = setInterval(() => {
+          if (
+            this.document.body &&
+            this.document.querySelectorAll('div[data-testid="cellInnerDiv"]')
+              .length > 0
+          ) {
+            clearInterval(checkDomInterval);
             const waitTime = performance.now() - startTime;
-            this.log(`Timeout: Initial wait time set: ${waitTime}ms`);
+            this.log(`Initial wait time set: ${waitTime}ms`);
             this.emit('xghosted:set-initial-wait-time', { time: waitTime });
-            this.log('DOM readiness timeout reached, starting polling');
             this.startPolling();
-            this.startAutoScrolling();
           }
-        }
-      }, 5e3);
+        }, 500);
+        setTimeout(() => {
+          if (checkDomInterval) {
+            clearInterval(checkDomInterval);
+            if (!this.pollTimer) {
+              const waitTime = performance.now() - startTime;
+              this.log(`Timeout: Initial wait time set: ${waitTime}ms`);
+              this.emit('xghosted:set-initial-wait-time', { time: waitTime });
+              this.log('DOM readiness timeout reached, starting polling');
+              this.startPolling();
+            }
+          }
+        }, 5e3);
+      };
+      if (
+        document.readyState === 'complete' ||
+        document.readyState === 'interactive'
+      ) {
+        startContainerCheck();
+      } else {
+        document.addEventListener('DOMContentLoaded', startContainerCheck, {
+          once: true,
+        });
+      }
     };
     return XGhosted;
   })();
@@ -1733,6 +1743,23 @@
                           style: { marginRight: '8px' },
                         }),
                         'Clear'
+                      ),
+                      window.preact.h(
+                        'button',
+                        {
+                          className: 'panel-button',
+                          onClick: () => {
+                            document.dispatchEvent(
+                              new CustomEvent('xghosted:export-metrics')
+                            );
+                          },
+                          'aria-label': 'Export Timing Metrics',
+                        },
+                        window.preact.h('i', {
+                          className: 'fas fa-download',
+                          style: { marginRight: '8px' },
+                        }),
+                        'Export Metrics'
                       ),
                       window.preact.h(
                         'button',
@@ -2233,6 +2260,19 @@
           }
         }
       };
+      const handleExportMetrics = () => {
+        this.log('PanelManager: Export metrics requested');
+        this.document.dispatchEvent(
+          new CustomEvent('xghosted:request-metrics')
+        );
+        this.renderPanel();
+      };
+      const handleMetricsRetrieved = ({ detail: { timingHistory } }) => {
+        this.log(
+          'PanelManager: Received xghosted:metrics-retrieved with entries:',
+          timingHistory.length
+        );
+      };
       this.document.addEventListener(
         'xghosted:state-updated',
         handleStateUpdated
@@ -2272,6 +2312,14 @@
       this.document.addEventListener(
         'xghosted:posts-retrieved',
         handlePostsRetrieved
+      );
+      this.document.addEventListener(
+        'xghosted:export-metrics',
+        handleExportMetrics
+      );
+      this.document.addEventListener(
+        'xghosted:metrics-retrieved',
+        handleMetricsRetrieved
       );
       this.cleanup = () => {
         this.document.removeEventListener(
@@ -2323,8 +2371,16 @@
           'xghosted:posts-retrieved',
           handlePostsRetrieved
         );
+        this.document.removeEventListener(
+          'xghosted:export-metrics',
+          handleExportMetrics
+        );
+        this.document.removeEventListener(
+          'xghosted:metrics-retrieved',
+          handleMetricsRetrieved
+        );
       };
-      this.renderPanelDebounced = this.debounce(() => this.renderPanel(), 1e3);
+      this.renderPanelDebounced = this.debounce(() => this.renderPanel(), 500);
       if (window.preact && window.preact.h) {
         this.renderPanel();
       } else {
@@ -2898,6 +2954,7 @@
         };
         this.initialWaitTimeSet = false;
         this.hasSetDensity = false;
+        this.metricsHistory = [];
         this.log('TimingManager initialized');
       }
       recordPoll({
@@ -2941,6 +2998,19 @@
             this.metrics.currentSessionStart = null;
           }
         }
+        this.metricsHistory.push({
+          ...this.metrics,
+          timestamp: performance.now(),
+        });
+        this.log(
+          'Emitting xghosted:metrics-updated with polls:',
+          this.metrics.polls
+        );
+        document.dispatchEvent(
+          new CustomEvent('xghosted:metrics-updated', {
+            detail: { metrics: this.metrics },
+          })
+        );
         this.logMetrics();
       }
       recordScroll({ bottomReached }) {
@@ -2966,53 +3036,22 @@
       }
       logMetrics() {
         if (this.metrics.polls % 50 === 0 && this.metrics.polls > 0) {
-          this.log('Timing Metrics:', {
+          const postContainerMetrics = this.metricsHistory.filter(
+            (entry) => entry.containerFinds > 0
+          );
+          const postContainerPostsProcessed = postContainerMetrics.flatMap(
+            (entry) => entry.postsProcessed
+          );
+          const avgPostsProcessed =
+            postContainerPostsProcessed.length > 0
+              ? (
+                  postContainerPostsProcessed.reduce((sum, n) => sum + n, 0) /
+                  postContainerPostsProcessed.length
+                ).toFixed(2)
+              : 0;
+          this.log('Timing Metrics Summary:', {
             polls: this.metrics.polls,
-            avgPostsProcessed:
-              this.metrics.postsProcessed.length > 0
-                ? (
-                    this.metrics.postsProcessed.reduce((sum, n) => sum + n, 0) /
-                    this.metrics.postsProcessed.length
-                  ).toFixed(2)
-                : 0,
-            pollSkipRate: (this.metrics.pollSkips / this.metrics.polls).toFixed(
-              2
-            ),
-            containerFinds: this.metrics.containerFinds,
-            containerDetectionAttempts: this.metrics.containerDetectionAttempts,
-            containerDetectionTime: this.metrics.containerFoundTimestamp
-              ? `${this.metrics.containerFoundTimestamp.toFixed(2)}ms`
-              : 'Not found',
-            initialWaitTime: this.metrics.initialWaitTime
-              ? `${this.metrics.initialWaitTime.toFixed(2)}ms`
-              : 'Not set',
-            scrolls: this.metrics.scrolls,
-            bottomReachedRate:
-              this.metrics.scrolls > 0
-                ? (this.metrics.bottomReached / this.metrics.scrolls).toFixed(2)
-                : 0,
-            avgHighlightingDuration:
-              this.metrics.highlightingDurations.length > 0
-                ? (
-                    this.metrics.highlightingDurations.reduce(
-                      (sum, n) => sum + n,
-                      0
-                    ) / this.metrics.highlightingDurations.length
-                  ).toFixed(2)
-                : 0,
-            postDensity: this.metrics.postDensity,
-            pageType: this.metrics.pageType,
-            sessionStarts: this.metrics.sessionStarts,
-            sessionStops: this.metrics.sessionStops,
-            avgSessionDuration:
-              this.metrics.sessionDurations.length > 0
-                ? (
-                    this.metrics.sessionDurations.reduce(
-                      (sum, n) => sum + n,
-                      0
-                    ) / this.metrics.sessionDurations.length
-                  ).toFixed(2)
-                : 0,
+            avgPostsProcessedAfterContainer: avgPostsProcessed,
           });
         }
       }
@@ -3348,6 +3387,54 @@
   align-items: center;
   gap: 12px;
 }`;
+
+  // Metrics history management
+  let metricsHistory = GM_getValue('xGhostedState', {}).timingHistory || [];
+
+  document.addEventListener(
+    'xghosted:metrics-updated',
+    ({ detail: { metrics } }) => {
+      log('Received xghosted:metrics-updated with polls:', metrics.polls);
+      metricsHistory.push({ ...metrics, timestamp: performance.now() });
+      const state = GM_getValue('xGhostedState', {});
+      state.timingHistory = metricsHistory;
+      GM_setValue('xGhostedState', state);
+      log(
+        'Updated metrics history in storage, entries:',
+        metricsHistory.length
+      );
+    }
+  );
+
+  document.addEventListener('xghosted:request-metrics', () => {
+    document.dispatchEvent(
+      new CustomEvent('xghosted:metrics-retrieved', {
+        detail: { timingHistory: metricsHistory },
+      })
+    );
+    log(
+      'Dispatched xghosted:metrics-retrieved with entries:',
+      metricsHistory.length
+    );
+  });
+
+  document.addEventListener('xghosted:export-metrics', () => {
+    const blob = new Blob([JSON.stringify(metricsHistory, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'xGhosted_timing_history.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    log('Exported timing history as JSON');
+  });
+
+  document.addEventListener('xghosted:record-poll', (event) => {
+    log('Received xghosted:record-poll with event:', event.detail);
+    config.timingManager.recordPoll(event.detail);
+  });
 
   // Initialize core components
   const postsManager = new window.ProcessedPostsManager({

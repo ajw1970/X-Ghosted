@@ -226,16 +226,16 @@ window.PanelManager.prototype.init = function () {
   this.applyPanelStyles();
   const handleStateUpdated = (e) => {
     this.state.isRateLimited = e.detail.isRateLimited;
-    this.renderPanelDebounced(); // Debounced for background updates
+    this.renderPanelDebounced();
   };
   const handlePollingStateUpdated = (e) => {
     this.state.isPollingEnabled = e.detail.isPollingEnabled;
     this.applyPanelStyles();
-    this.renderPanel(); // Immediate for user interaction
+    this.renderPanel();
   };
   const handleAutoScrollingToggled = (e) => {
     this.state.isAutoScrollingEnabled = e.detail.isAutoScrollingEnabled;
-    this.renderPanel(); // Immediate for user interaction
+    this.renderPanel();
   };
   const handleInit = (e) => {
     const config = e.detail?.config || {};
@@ -256,11 +256,11 @@ window.PanelManager.prototype.init = function () {
   const handleToggleVisibility = (e) => {
     const { isPanelVisible } = e.detail;
     this.setVisibility(isPanelVisible);
-    this.renderPanel(); // Immediate for user interaction
+    this.renderPanel();
   };
   const handleOpenAbout = () => {
     this.showSplashPage();
-    this.renderPanel(); // Immediate for user interaction
+    this.renderPanel();
   };
   const handlePostRegistered = (e) => {
     const { href, data } = e.detail || {};
@@ -282,7 +282,7 @@ window.PanelManager.prototype.init = function () {
       }
       this.state.totalPosts += 1;
       if (isProblem) {
-        this.renderPanelDebounced(); // Debounced, only for Problem/Potential Problem
+        this.renderPanelDebounced();
       }
     }
   };
@@ -293,14 +293,14 @@ window.PanelManager.prototype.init = function () {
         "PanelManager: Processing xghosted:post-registered-confirmed for:",
         href
       );
-      this.renderPanelDebounced(); // Debounced for confirmed registrations
+      this.renderPanelDebounced();
     }
   };
   const handlePostsCleared = () => {
     this.log("PanelManager: Handling xghosted:posts-cleared");
     this.state.flagged = [];
     this.state.totalPosts = 0;
-    this.renderPanel(); // Immediate for user interaction
+    this.renderPanel();
   };
   const handleCsvImport = (e) => {
     const { importedCount } = e.detail || {};
@@ -310,7 +310,7 @@ window.PanelManager.prototype.init = function () {
       this.state.totalPosts = 0;
       this.state.pendingImportCount = importedCount;
       this.document.dispatchEvent(new CustomEvent("xghosted:request-posts"));
-      this.renderPanel(); // Immediate for user interaction
+      this.renderPanel();
     }
   };
   const handlePostsRetrieved = (e) => {
@@ -348,6 +348,17 @@ window.PanelManager.prototype.init = function () {
       }
     }
   };
+  const handleExportMetrics = () => {
+    this.log("PanelManager: Export metrics requested");
+    this.document.dispatchEvent(new CustomEvent("xghosted:request-metrics"));
+    this.renderPanel();
+  };
+  const handleMetricsRetrieved = ({ detail: { timingHistory } }) => {
+    this.log(
+      "PanelManager: Received xghosted:metrics-retrieved with entries:",
+      timingHistory.length
+    );
+  };
   this.document.addEventListener("xghosted:state-updated", handleStateUpdated);
   this.document.addEventListener(
     "xghosted:polling-state-updated",
@@ -381,6 +392,14 @@ window.PanelManager.prototype.init = function () {
   this.document.addEventListener(
     "xghosted:posts-retrieved",
     handlePostsRetrieved
+  );
+  this.document.addEventListener(
+    "xghosted:export-metrics",
+    handleExportMetrics
+  );
+  this.document.addEventListener(
+    "xghosted:metrics-retrieved",
+    handleMetricsRetrieved
   );
   this.cleanup = () => {
     this.document.removeEventListener(
@@ -423,14 +442,22 @@ window.PanelManager.prototype.init = function () {
       "xghosted:posts-retrieved",
       handlePostsRetrieved
     );
+    this.document.removeEventListener(
+      "xghosted:export-metrics",
+      handleExportMetrics
+    );
+    this.document.removeEventListener(
+      "xghosted:metrics-retrieved",
+      handleMetricsRetrieved
+    );
   };
-  this.renderPanelDebounced = this.debounce(() => this.renderPanel(), 1000); // Debounce for background updates
+  this.renderPanelDebounced = this.debounce(() => this.renderPanel(), 500);
   if (window.preact && window.preact.h) {
-    this.renderPanel(); // Initial render
+    this.renderPanel();
   } else {
     this.log("Preact h not available, skipping panel render");
   }
-};
+}
 
 window.PanelManager.prototype.debounce = function (func, wait) {
   let timeout;

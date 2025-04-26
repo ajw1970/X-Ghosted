@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-  "use strict";
+  ("use strict");
 
   // Configuration
   const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
@@ -70,6 +70,54 @@
 
   // --- Inject Styles ---
   // INJECT: Styles
+
+  // Metrics history management
+  let metricsHistory = GM_getValue("xGhostedState", {}).timingHistory || [];
+
+  document.addEventListener(
+    "xghosted:metrics-updated",
+    ({ detail: { metrics } }) => {
+      log("Received xghosted:metrics-updated with polls:", metrics.polls);
+      metricsHistory.push({ ...metrics, timestamp: performance.now() });
+      const state = GM_getValue("xGhostedState", {});
+      state.timingHistory = metricsHistory;
+      GM_setValue("xGhostedState", state);
+      log(
+        "Updated metrics history in storage, entries:",
+        metricsHistory.length
+      );
+    }
+  );
+
+  document.addEventListener("xghosted:request-metrics", () => {
+    document.dispatchEvent(
+      new CustomEvent("xghosted:metrics-retrieved", {
+        detail: { timingHistory: metricsHistory },
+      })
+    );
+    log(
+      "Dispatched xghosted:metrics-retrieved with entries:",
+      metricsHistory.length
+    );
+  });
+
+  document.addEventListener("xghosted:export-metrics", () => {
+    const blob = new Blob([JSON.stringify(metricsHistory, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "xGhosted_timing_history.json";
+    a.click();
+    URL.revokeObjectURL(url);
+    log("Exported timing history as JSON");
+  });
+
+  document.addEventListener("xghosted:record-poll", (event) => {
+    log("Received xghosted:record-poll with event:", event.detail);
+    config.timingManager.recordPoll(event.detail);
+  });
 
   // Initialize core components
   const postsManager = new window.ProcessedPostsManager({

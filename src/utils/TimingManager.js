@@ -24,6 +24,7 @@ var TimingManager = class {
     };
     this.initialWaitTimeSet = false;
     this.hasSetDensity = false;
+    this.metricsHistory = [];
     this.log("TimingManager initialized");
   }
 
@@ -69,6 +70,19 @@ var TimingManager = class {
       }
     }
 
+    this.metricsHistory.push({ ...this.metrics, timestamp: performance.now() });
+
+    this.log(
+      "Emitting xghosted:metrics-updated with polls:",
+      this.metrics.polls
+    );
+
+    document.dispatchEvent(
+      new CustomEvent("xghosted:metrics-updated", {
+        detail: { metrics: this.metrics },
+      })
+    );
+
     this.logMetrics();
   }
 
@@ -99,49 +113,23 @@ var TimingManager = class {
 
   logMetrics() {
     if (this.metrics.polls % 50 === 0 && this.metrics.polls > 0) {
-      this.log("Timing Metrics:", {
+      const postContainerMetrics = this.metricsHistory.filter(
+        (entry) => entry.containerFinds > 0
+      );
+      const postContainerPostsProcessed = postContainerMetrics.flatMap(
+        (entry) => entry.postsProcessed
+      );
+      const avgPostsProcessed =
+        postContainerPostsProcessed.length > 0
+          ? (
+              postContainerPostsProcessed.reduce((sum, n) => sum + n, 0) /
+              postContainerPostsProcessed.length
+            ).toFixed(2)
+          : 0;
+
+      this.log("Timing Metrics Summary:", {
         polls: this.metrics.polls,
-        avgPostsProcessed:
-          this.metrics.postsProcessed.length > 0
-            ? (
-                this.metrics.postsProcessed.reduce((sum, n) => sum + n, 0) /
-                this.metrics.postsProcessed.length
-              ).toFixed(2)
-            : 0,
-        pollSkipRate: (this.metrics.pollSkips / this.metrics.polls).toFixed(2),
-        containerFinds: this.metrics.containerFinds,
-        containerDetectionAttempts: this.metrics.containerDetectionAttempts,
-        containerDetectionTime: this.metrics.containerFoundTimestamp
-          ? `${this.metrics.containerFoundTimestamp.toFixed(2)}ms`
-          : "Not found",
-        initialWaitTime: this.metrics.initialWaitTime
-          ? `${this.metrics.initialWaitTime.toFixed(2)}ms`
-          : "Not set",
-        scrolls: this.metrics.scrolls,
-        bottomReachedRate:
-          this.metrics.scrolls > 0
-            ? (this.metrics.bottomReached / this.metrics.scrolls).toFixed(2)
-            : 0,
-        avgHighlightingDuration:
-          this.metrics.highlightingDurations.length > 0
-            ? (
-                this.metrics.highlightingDurations.reduce(
-                  (sum, n) => sum + n,
-                  0
-                ) / this.metrics.highlightingDurations.length
-              ).toFixed(2)
-            : 0,
-        postDensity: this.metrics.postDensity,
-        pageType: this.metrics.pageType,
-        sessionStarts: this.metrics.sessionStarts,
-        sessionStops: this.metrics.sessionStops,
-        avgSessionDuration:
-          this.metrics.sessionDurations.length > 0
-            ? (
-                this.metrics.sessionDurations.reduce((sum, n) => sum + n, 0) /
-                this.metrics.sessionDurations.length
-              ).toFixed(2)
-            : 0,
+        avgPostsProcessedAfterContainer: avgPostsProcessed,
       });
     }
   }

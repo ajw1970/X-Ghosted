@@ -506,11 +506,13 @@ XGhosted.prototype.highlightPosts = function (posts) {
 XGhosted.prototype.init = function () {
   this.log("Initializing XGhosted...");
   const startTime = performance.now();
+
   this.document.dispatchEvent(
     new CustomEvent("xghosted:user-profile-updated", {
       detail: { userProfileName: this.state.userProfileName },
     })
   );
+
   this.document.dispatchEvent(
     new CustomEvent("xghosted:init", {
       detail: {
@@ -521,15 +523,19 @@ XGhosted.prototype.init = function () {
       },
     })
   );
+
   this.emit("xghosted:state-updated", {
     isRateLimited: this.state.isRateLimited,
   });
+
   this.emit("xghosted:polling-state-updated", {
     isPollingEnabled: this.state.isPollingEnabled,
   });
+
   this.emit("xghosted:auto-scrolling-toggled", {
     isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
   });
+
   const styleSheet = this.document.createElement("style");
   styleSheet.textContent = `
     .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
@@ -545,42 +551,56 @@ XGhosted.prototype.init = function () {
       text-decoration: none;
     }
   `;
+
   this.document.head.appendChild(styleSheet);
   const handleHighlightRequest = ({ detail: { href } }) => {
     this.log(`Received xghosted:request-post-highlight for href=${href}`);
     this.highlightPosts();
   };
+
   this.document.addEventListener(
     "xghosted:request-post-highlight",
     handleHighlightRequest
   );
-  const checkDomInterval = setInterval(() => {
-    if (
-      this.document.body &&
-      this.document.querySelectorAll('div[data-testid="cellInnerDiv"]').length >
-        0
-    ) {
-      clearInterval(checkDomInterval);
-      const waitTime = performance.now() - startTime;
-      this.log(`Initial wait time set: ${waitTime}ms`);
-      this.emit("xghosted:set-initial-wait-time", { time: waitTime });
-      this.startPolling();
-      this.startAutoScrolling();
-    }
-  }, 500);
-  setTimeout(() => {
-    if (checkDomInterval) {
-      clearInterval(checkDomInterval);
-      if (!this.pollTimer) {
+
+  const startContainerCheck = () => {
+    const checkDomInterval = setInterval(() => {
+      if (
+        this.document.body &&
+        this.document.querySelectorAll('div[data-testid="cellInnerDiv"]')
+          .length > 0
+      ) {
+        clearInterval(checkDomInterval);
         const waitTime = performance.now() - startTime;
-        this.log(`Timeout: Initial wait time set: ${waitTime}ms`);
+        this.log(`Initial wait time set: ${waitTime}ms`);
         this.emit("xghosted:set-initial-wait-time", { time: waitTime });
-        this.log("DOM readiness timeout reached, starting polling");
         this.startPolling();
-        this.startAutoScrolling();
       }
-    }
-  }, 5000);
+    }, 500);
+    setTimeout(() => {
+      if (checkDomInterval) {
+        clearInterval(checkDomInterval);
+        if (!this.pollTimer) {
+          const waitTime = performance.now() - startTime;
+          this.log(`Timeout: Initial wait time set: ${waitTime}ms`);
+          this.emit("xghosted:set-initial-wait-time", { time: waitTime });
+          this.log("DOM readiness timeout reached, starting polling");
+          this.startPolling();
+        }
+      }
+    }, 5000);
+  };
+
+  if (
+    document.readyState === "complete" ||
+    document.readyState === "interactive"
+  ) {
+    startContainerCheck();
+  } else {
+    document.addEventListener("DOMContentLoaded", startContainerCheck, {
+      once: true,
+    });
+  }
 };
 
 export { XGhosted };

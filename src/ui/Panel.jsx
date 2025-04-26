@@ -273,6 +273,21 @@ function Panel({
                   'Clear'
                 ),
                 window.preact.h(
+                  "button",
+                  {
+                    className: "panel-button",
+                    onClick: () => {
+                      document.dispatchEvent(new CustomEvent("xghosted:export-metrics"));
+                    },
+                    "aria-label": "Export Timing Metrics",
+                  },
+                  window.preact.h("i", {
+                    className: "fas fa-download",
+                    style: { marginRight: "8px" },
+                  }),
+                  "Export Metrics"
+                ),
+                window.preact.h(
                   'button',
                   {
                     className: 'panel-button',
