@@ -207,6 +207,20 @@
     document.addEventListener(
       "xghosted:post-registered",
       ({ detail: { href, data } }) => {
+        if (!data?.analysis?.quality) {
+          log(`Skipping post registration: no quality data for href=${href}`);
+          return;
+        }
+        if (!href || href === "false") {
+          if (data.analysis.quality.name === "Problem") {
+            const fallbackId = `problem-post-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+            postsManager.registerPost(fallbackId, data);
+            log(`Registered problem post with fallback ID: ${fallbackId}`);
+          } else {
+            log(`Skipping non-problem post with invalid href: ${href}`);
+          }
+          return;
+        }
         postsManager.registerPost(href, data);
         log(`Registered post: ${href}`);
       }
@@ -253,6 +267,33 @@
         log("Cleared all posts via UI");
       }
     });
+    document.addEventListener("xghosted:record-poll", ({ detail }) => {
+      log("Received xghosted:record-poll", detail);
+      config.timingManager.recordPoll(detail);
+    });
+    document.addEventListener("xghosted:record-scroll", ({ detail }) => {
+      log("Received xghosted:record-scroll", detail);
+      config.timingManager.recordScroll(detail);
+    });
+    document.addEventListener("xghosted:record-highlight", ({ detail }) => {
+      log("Received xghosted:record-highlight", detail);
+      config.timingManager.recordHighlighting(detail.duration);
+    });
+    document.addEventListener("xghosted:save-metrics", () => {
+      log("Received xghosted:save-metrics");
+      config.timingManager.saveMetrics();
+    });
+    document.addEventListener(
+      "xghosted:set-initial-wait-time",
+      ({ detail }) => {
+        log("Received xghosted:set-initial-wait-time", detail);
+        config.timingManager.setInitialWaitTime(detail.time);
+      }
+    );
+    document.addEventListener("xghosted:set-post-density", ({ detail }) => {
+      log("Received xghosted:set-post-density", detail);
+      config.timingManager.setPostDensity(detail.count);
+    });
     document.addEventListener(
       "xghosted:request-post-highlight",
       ({ detail: { href } }) => {
@@ -263,6 +304,14 @@
         }
       }
     );
+    document.addEventListener("xghosted:rate-limit-detected", ({ detail }) => {
+      log(`Rate limit detected, pausing polling for ${detail.pauseDuration}ms`);
+      xGhosted.handleStopPolling();
+      setTimeout(() => {
+        log("Resuming polling after rate limit pause");
+        xGhosted.handleStartPolling();
+      }, detail.pauseDuration);
+    });
   } catch (error) {
     log(
       `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`

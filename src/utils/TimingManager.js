@@ -50,7 +50,7 @@ var TimingManager = class {
       this.metrics.postsProcessed.push(postsProcessed);
     this.metrics.pageType = pageType;
 
-        // Track polling session start/stop
+    // Track polling session start/stop
     if (isPollingStarted) {
       this.metrics.sessionStarts++;
       this.metrics.currentSessionStart = performance.now();
@@ -99,7 +99,7 @@ var TimingManager = class {
   }
 
   logMetrics() {
-    if (this.metrics.polls % 100 === 0 && this.metrics.polls > 0) {
+    if (this.metrics.polls % 50 === 0 && this.metrics.polls > 0) {
       this.log("Timing Metrics:", {
         polls: this.metrics.polls,
         avgPostsProcessed:
@@ -169,7 +169,7 @@ var TimingManager = class {
   }
 
   adjustIntervals() {
-        // Placeholder for auto-tuning
+    // Placeholder for auto-tuning
     return this.timing;
   }
 };

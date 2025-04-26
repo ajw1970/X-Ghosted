@@ -721,7 +721,6 @@
       this.timing = { ...defaultTiming, ...config.timing };
       this.document = doc;
       this.log = config.log;
-      this.timingManager = config.timingManager || null;
       this.linkPrefix = config.linkPrefix || 'https://x.com';
       const urlFullPath = doc.location.origin + doc.location.pathname;
       const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
@@ -889,7 +888,7 @@
       this.state.isPollingEnabled = true;
       this.state.isAutoScrollingEnabled = false;
       this.handleStartPolling();
-      this.timingManager?.saveMetrics();
+      this.emit('xghosted:save-metrics', {});
       this.document.dispatchEvent(
         new CustomEvent('xghosted:posts-cleared', {
           detail: {},
@@ -919,14 +918,15 @@
             const doc = newWindow.document;
             if (doc.body.textContent.includes('Rate limit exceeded')) {
               clearInterval(checkInterval);
-              this.log('Rate limit detected, pausing operations');
+              this.log('Rate limit detected, pausing operations for 5 minutes');
               this.state.isRateLimited = true;
               newWindow.close();
+              this.emit('xghosted:rate-limit-detected', { pauseDuration: 3e5 });
               setTimeout(() => {
                 this.log('Resuming after rate limit pause');
                 this.state.isRateLimited = false;
                 resolve(false);
-              }, this.timing.rateLimitPause);
+              }, 3e5);
               return;
             }
             const targetPost = doc.querySelector(
@@ -974,7 +974,8 @@
       if (this.pollTimer) {
         clearInterval(this.pollTimer);
         this.pollTimer = null;
-        this.timingManager?.recordPoll({
+        this.log('Polling stopped');
+        this.emit('xghosted:record-poll', {
           postsProcessed: 0,
           wasSkipped: false,
           containerFound: false,
@@ -999,12 +1000,18 @@
       );
     };
     XGhosted.prototype.startPolling = function () {
-      const pollInterval = this.timing.pollInterval || 1e3;
-      this.log('Starting polling for post changes...');
+      if (this.pollTimer) {
+        this.log('Polling already active, clearing existing timer');
+        clearInterval(this.pollTimer);
+      }
+      const pollInterval = this.timing.pollInterval || 600;
+      this.log(
+        `Starting polling for post changes with interval ${pollInterval}ms...`
+      );
       this.pollTimer = setInterval(() => {
         if (this.state.isHighlighting) {
           this.log('Polling skipped\u2014highlighting in progress');
-          this.timingManager?.recordPoll({
+          this.emit('xghosted:record-poll', {
             postsProcessed: 0,
             wasSkipped: true,
             containerFound: false,
@@ -1039,16 +1046,12 @@
           containerFound = !!foundContainer;
           if (containerFound) {
             this.log('Container found, setting post density');
-            if (
-              !this.state.containerFound &&
-              this.timingManager &&
-              !this.timingManager.hasSetDensity
-            ) {
-              this.timingManager.setPostDensity(
-                this.document.querySelectorAll(
+            if (!this.state.containerFound) {
+              this.emit('xghosted:set-post-density', {
+                count: this.document.querySelectorAll(
                   'div[data-testid="cellInnerDiv"]'
-                ).length
-              );
+                ).length,
+              });
               this.state.containerFound = true;
             }
             this.highlightPosts();
@@ -1056,7 +1059,7 @@
             this.log('Container still not found, skipping highlighting');
           }
         }
-        this.timingManager?.recordPoll({
+        this.emit('xghosted:record-poll', {
           postsProcessed: unprocessedPosts.length,
           wasSkipped: false,
           containerFound,
@@ -1066,7 +1069,7 @@
             : this.state.userProfileName
               ? 'profile'
               : 'timeline',
-          isPollingStarted: !this.pollTimer,
+          isPollingStarted: false,
           isPollingStopped: false,
         });
       }, pollInterval);
@@ -1077,6 +1080,8 @@
       }
       const scrollInterval = this.timing.scrollInterval || 1250;
       this.log('Starting auto-scrolling timer...');
+      let retryAttempts = 0;
+      const maxRetries = 3;
       this.scrollTimer = setInterval(() => {
         if (
           !this.state.isPollingEnabled ||
@@ -1085,22 +1090,46 @@
           return;
         }
         this.log('Performing smooth scroll down...');
+        const previousPostCount = this.document.querySelectorAll(
+          'div[data-testid="cellInnerDiv"]'
+        ).length;
         window.scrollBy({
           top: window.innerHeight * 0.8,
           behavior: 'smooth',
         });
         const bottomReached =
           window.innerHeight + window.scrollY >= document.body.scrollHeight;
-        if (bottomReached) {
-          this.log('Reached page bottom, stopping auto-scrolling');
+        const newPostCount = this.document.querySelectorAll(
+          'div[data-testid="cellInnerDiv"]'
+        ).length;
+        if (
+          bottomReached &&
+          newPostCount === previousPostCount &&
+          retryAttempts < maxRetries
+        ) {
+          this.log(
+            `No new posts loaded, retrying (${retryAttempts + 1}/${maxRetries})`
+          );
+          retryAttempts++;
+          return;
+        }
+        if (
+          bottomReached &&
+          (newPostCount === previousPostCount || retryAttempts >= maxRetries)
+        ) {
+          this.log(
+            'Reached page bottom or no new posts, stopping auto-scrolling'
+          );
           this.state.isAutoScrollingEnabled = false;
           if (this.scrollTimer) {
             clearInterval(this.scrollTimer);
             this.scrollTimer = null;
           }
-          this.emit('xghosted:set-auto-scrolling', false);
+          this.emit('xghosted:set-auto-scrolling', { enabled: false });
+        } else {
+          retryAttempts = 0;
         }
-        this.timingManager?.recordScroll({ bottomReached });
+        this.emit('xghosted:record-scroll', { bottomReached });
       }, scrollInterval);
     };
     XGhosted.prototype.setAutoScrolling = function (enabled) {
@@ -1175,7 +1204,7 @@
         results.push(analysis);
       });
       if (postsProcessed > 0) {
-        this.timingManager?.saveMetrics();
+        this.emit('xghosted:save-metrics', {});
         this.document.dispatchEvent(
           new CustomEvent('xghosted:state-updated', {
             detail: { ...this.state },
@@ -1186,7 +1215,9 @@
         );
       }
       this.state.isHighlighting = false;
-      this.timingManager?.recordHighlighting(performance.now() - start);
+      this.emit('xghosted:record-highlight', {
+        duration: performance.now() - start,
+      });
       return results;
     };
     XGhosted.prototype.init = function () {
@@ -1248,7 +1279,10 @@
         ) {
           clearInterval(checkDomInterval);
           const waitTime = performance.now() - startTime;
-          this.timingManager?.setInitialWaitTime(waitTime);
+          this.log(
+            `Emitting xghosted:set-initial-wait-time with time=${waitTime}`
+          );
+          this.emit('xghosted:set-initial-wait-time', { time: waitTime });
           this.startPolling();
           this.startAutoScrolling();
         }
@@ -1258,7 +1292,10 @@
           clearInterval(checkDomInterval);
           if (!this.pollTimer) {
             const waitTime = performance.now() - startTime;
-            this.timingManager?.setInitialWaitTime(waitTime);
+            this.log(
+              `Timeout: Emitting xghosted:set-initial-wait-time with time=${waitTime}`
+            );
+            this.emit('xghosted:set-initial-wait-time', { time: waitTime });
             this.log('DOM readiness timeout reached, starting polling');
             this.startPolling();
             this.startAutoScrolling();
@@ -2952,7 +2989,7 @@
         }
       }
       logMetrics() {
-        if (this.metrics.polls % 100 === 0 && this.metrics.polls > 0) {
+        if (this.metrics.polls % 50 === 0 && this.metrics.polls > 0) {
           this.log('Timing Metrics:', {
             polls: this.metrics.polls,
             avgPostsProcessed:
@@ -3481,6 +3518,20 @@
     document.addEventListener(
       'xghosted:post-registered',
       ({ detail: { href, data } }) => {
+        if (!data?.analysis?.quality) {
+          log(`Skipping post registration: no quality data for href=${href}`);
+          return;
+        }
+        if (!href || href === 'false') {
+          if (data.analysis.quality.name === 'Problem') {
+            const fallbackId = `problem-post-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+            postsManager.registerPost(fallbackId, data);
+            log(`Registered problem post with fallback ID: ${fallbackId}`);
+          } else {
+            log(`Skipping non-problem post with invalid href: ${href}`);
+          }
+          return;
+        }
         postsManager.registerPost(href, data);
         log(`Registered post: ${href}`);
       }
@@ -3527,6 +3578,33 @@
         log('Cleared all posts via UI');
       }
     });
+    document.addEventListener('xghosted:record-poll', ({ detail }) => {
+      log('Received xghosted:record-poll', detail);
+      config.timingManager.recordPoll(detail);
+    });
+    document.addEventListener('xghosted:record-scroll', ({ detail }) => {
+      log('Received xghosted:record-scroll', detail);
+      config.timingManager.recordScroll(detail);
+    });
+    document.addEventListener('xghosted:record-highlight', ({ detail }) => {
+      log('Received xghosted:record-highlight', detail);
+      config.timingManager.recordHighlighting(detail.duration);
+    });
+    document.addEventListener('xghosted:save-metrics', () => {
+      log('Received xghosted:save-metrics');
+      config.timingManager.saveMetrics();
+    });
+    document.addEventListener(
+      'xghosted:set-initial-wait-time',
+      ({ detail }) => {
+        log('Received xghosted:set-initial-wait-time', detail);
+        config.timingManager.setInitialWaitTime(detail.time);
+      }
+    );
+    document.addEventListener('xghosted:set-post-density', ({ detail }) => {
+      log('Received xghosted:set-post-density', detail);
+      config.timingManager.setPostDensity(detail.count);
+    });
     document.addEventListener(
       'xghosted:request-post-highlight',
       ({ detail: { href } }) => {
@@ -3537,6 +3615,14 @@
         }
       }
     );
+    document.addEventListener('xghosted:rate-limit-detected', ({ detail }) => {
+      log(`Rate limit detected, pausing polling for ${detail.pauseDuration}ms`);
+      xGhosted.handleStopPolling();
+      setTimeout(() => {
+        log('Resuming polling after rate limit pause');
+        xGhosted.handleStartPolling();
+      }, detail.pauseDuration);
+    });
   } catch (error) {
     log(
       `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`
