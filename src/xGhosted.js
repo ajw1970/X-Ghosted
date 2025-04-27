@@ -4,20 +4,14 @@ import { debounce } from "./utils/debounce.js";
 import { findPostContainer } from "./dom/findPostContainer.js";
 import { getRelativeLinkToPost } from "./utils/getRelativeLinkToPost.js";
 import { parseUrl } from "./dom/parseUrl.js";
+import { CONFIG } from "./config.js";
+import { EVENTS } from "./events.js";
 
 function XGhosted(doc, config = {}) {
-  const defaultTiming = {
-    debounceDelay: 500,
-    throttleDelay: 1000,
-    tabCheckThrottle: 5000,
-    exportThrottle: 5000,
-    pollInterval: 625,
-    scrollInterval: 1250,
-  };
-  this.timing = { ...defaultTiming, ...config.timing };
+  this.timing = { ...CONFIG.timing, ...config.timing };
   this.document = doc;
   this.log = config.log;
-  this.linkPrefix = config.linkPrefix || "https://x.com";
+  this.linkPrefix = config.linkPrefix || CONFIG.linkPrefix;
   const urlFullPath = doc.location.origin + doc.location.pathname;
   const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
   this.state = {
@@ -75,12 +69,12 @@ XGhosted.prototype.waitForClearConfirmation = function () {
   return new Promise((resolve) => {
     const handler = () => {
       this.document.removeEventListener(
-        "xghosted:posts-cleared-confirmed",
+        EVENTS.POSTS_CLEARED_CONFIRMED,
         handler
       );
       resolve();
     };
-    this.document.addEventListener("xghosted:posts-cleared-confirmed", handler);
+    this.document.addEventListener(EVENTS.POSTS_CLEARED_CONFIRMED, handler);
   });
 };
 
@@ -89,19 +83,19 @@ XGhosted.prototype.waitForPostRetrieved = function (href) {
     const handler = (e) => {
       if (e.detail.href === href) {
         this.log(
-          `Received xghosted:post-retrieved for ${href}: post=${e.detail.post ? "found" : "null"}`
+          `Received ${EVENTS.POST_RETRIEVED} for ${href}: post=${e.detail.post ? "found" : "null"}`
         );
-        this.document.removeEventListener("xghosted:post-retrieved", handler);
+        this.document.removeEventListener(EVENTS.POST_RETRIEVED, handler);
         resolve(e.detail.post);
       }
     };
-    this.document.addEventListener("xghosted:post-retrieved", handler);
-    this.emit("xghosted:post-requested", { href });
+    this.document.addEventListener(EVENTS.POST_RETRIEVED, handler);
+    this.emit(EVENTS.POST_REQUESTED, { href });
     setTimeout(() => {
       this.log(
         `waitForPostRetrieved timed out for ${href}, resolving with null`
       );
-      this.document.removeEventListener("xghosted:post-retrieved", handler);
+      this.document.removeEventListener(EVENTS.POST_RETRIEVED, handler);
       resolve(null);
     }, 1000);
   });
@@ -138,7 +132,7 @@ XGhosted.prototype.userRequestedPostCheck = async function (href, post) {
         "xghosted-good",
         "xghosted-problem"
       );
-      currentPost.className.add(
+      currentPost.classList.add(
         isProblem ? "xghosted-problem" : "xghosted-good"
       );
       currentPost.setAttribute(
@@ -156,9 +150,9 @@ XGhosted.prototype.userRequestedPostCheck = async function (href, post) {
       ? postQuality.PROBLEM
       : postQuality.GOOD;
     cached.checked = true;
-    this.emit("xghosted:post-registered", { href, data: cached });
+    this.emit(EVENTS.POST_REGISTERED, { href, data: cached });
     this.document.dispatchEvent(
-      new CustomEvent("xghosted:state-updated", { detail: { ...this.state } })
+      new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
     );
     this.log(`User requested post check completed for ${href}`);
   } else {
@@ -172,16 +166,16 @@ XGhosted.prototype.handleUrlChange = async function (urlFullPath) {
   if (this.state.userProfileName !== userProfileName) {
     this.state.userProfileName = userProfileName;
     this.document.dispatchEvent(
-      new CustomEvent("xghosted:user-profile-updated", {
+      new CustomEvent(EVENTS.USER_PROFILE_UPDATED, {
         detail: { userProfileName: this.state.userProfileName },
       })
     );
   }
-  this.emit("xghosted:clear-posts", {});
+  this.emit(EVENTS.CLEAR_POSTS, {});
   await this.waitForClearConfirmation();
   this.state.noPostsFoundCount = 0;
   this.document.dispatchEvent(
-    new CustomEvent("xghosted:posts-cleared", {
+    new CustomEvent(EVENTS.POSTS_CLEARED, {
       detail: {},
     })
   );
@@ -207,9 +201,9 @@ XGhosted.prototype.checkPostInNewTab = async function (href) {
           this.state.isRateLimited = true;
           this.state.isPollingEnabled = false;
           newWindow.close();
-          this.emit("xghosted:rate-limit-detected", { pauseDuration: 300000 });
+          this.emit(EVENTS.RATE_LIMIT_DETECTED, { pauseDuration: 300000 });
           this.document.dispatchEvent(
-            new CustomEvent("xghosted:polling-state-updated", {
+            new CustomEvent(EVENTS.POLLING_STATE_UPDATED, {
               detail: { isPollingEnabled: this.state.isPollingEnabled },
             })
           );
@@ -250,7 +244,7 @@ XGhosted.prototype.handleStartPolling = function () {
   this.state.isPollingEnabled = true;
   this.log("Polling enabled");
   this.document.dispatchEvent(
-    new CustomEvent("xghosted:polling-state-updated", {
+    new CustomEvent(EVENTS.POLLING_STATE_UPDATED, {
       detail: { isPollingEnabled: this.state.isPollingEnabled },
     })
   );
@@ -259,7 +253,7 @@ XGhosted.prototype.handleStartPolling = function () {
 XGhosted.prototype.handleStopPolling = function () {
   this.state.isPollingEnabled = false;
   this.log("Polling disabled");
-  this.emit("xghosted:record-poll", {
+  this.emit(EVENTS.RECORD_POLL, {
     postsProcessed: 0,
     wasSkipped: false,
     containerFound: false,
@@ -273,7 +267,7 @@ XGhosted.prototype.handleStopPolling = function () {
     isPollingStopped: true,
   });
   this.document.dispatchEvent(
-    new CustomEvent("xghosted:polling-state-updated", {
+    new CustomEvent(EVENTS.POLLING_STATE_UPDATED, {
       detail: { isPollingEnabled: this.state.isPollingEnabled },
     })
   );
@@ -320,7 +314,7 @@ XGhosted.prototype.startPolling = function () {
     );
 
     if (this.state.isHighlighting) {
-      this.emit("xghosted:record-poll", {
+      this.emit(EVENTS.RECORD_POLL, {
         postsProcessed: 0,
         wasSkipped: true,
         containerFound: false,
@@ -363,7 +357,7 @@ XGhosted.prototype.startPolling = function () {
         if (containerFound) {
           this.state.noPostsFoundCount = 0;
           if (!this.state.containerFound) {
-            this.emit("xghosted:set-post-density", {
+            this.emit(EVENTS.SET_POST_DENSITY, {
               count: this.document.querySelectorAll(
                 'div[data-testid="cellInnerDiv"]'
               ).length,
@@ -373,7 +367,7 @@ XGhosted.prototype.startPolling = function () {
           this.highlightPosts();
         }
       }
-      this.emit("xghosted:record-poll", {
+      this.emit(EVENTS.RECORD_POLL, {
         postsProcessed: unprocessedPosts.length,
         wasSkipped: false,
         containerFound,
@@ -396,17 +390,17 @@ XGhosted.prototype.startPolling = function () {
         const newPostCount = this.document.querySelectorAll(
           'div[data-testid="cellInnerDiv"]'
         ).length;
-        this.emit("xghosted:record-scroll", { bottomReached });
+        this.emit(EVENTS.RECORD_SCROLL, { bottomReached });
         if (bottomReached && newPostCount === previousPostCount) {
           this.log(
             "Reached page bottom or no new posts, stopping auto-scrolling"
           );
           this.state.isAutoScrollingEnabled = false;
-          this.emit("xghosted:set-auto-scrolling", { enabled: false });
+          this.emit(EVENTS.SET_AUTO_SCROLLING, { enabled: false });
         }
       }
     } else {
-      this.emit("xghosted:record-poll", {
+      this.emit(EVENTS.RECORD_POLL, {
         postsProcessed: 0,
         wasSkipped: false,
         containerFound: false,
@@ -442,7 +436,7 @@ XGhosted.prototype.setAutoScrolling = function (enabled) {
   this.state.isAutoScrollingEnabled = enabled;
   this.log(`Auto-scrolling set to: ${enabled}`);
   this.document.dispatchEvent(
-    new CustomEvent("xghosted:auto-scrolling-toggled", {
+    new CustomEvent(EVENTS.AUTO_SCROLLING_TOGGLED, {
       detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled },
     })
   );
@@ -495,7 +489,7 @@ XGhosted.prototype.highlightPosts = function (posts) {
       this.handleStopPolling();
     }
     processPostAnalysis(post, analysis);
-    this.emit("xghosted:post-registered", {
+    this.emit(EVENTS.POST_REGISTERED, {
       href: postId,
       data: { analysis, checked: false },
     });
@@ -503,19 +497,49 @@ XGhosted.prototype.highlightPosts = function (posts) {
     results.push(analysis);
   });
   if (postsProcessed > 0) {
-    this.emit("xghosted:save-metrics", {});
+    this.emit(EVENTS.SAVE_METRICS, {});
     this.document.dispatchEvent(
-      new CustomEvent("xghosted:state-updated", {
+      new CustomEvent(EVENTS.STATE_UPDATED, {
         detail: { ...this.state },
       })
     );
     this.log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
   }
   this.state.isHighlighting = false;
-  this.emit("xghosted:record-highlight", {
+  this.emit(EVENTS.RECORD_HIGHLIGHT, {
     duration: performance.now() - start,
   });
   return results;
+};
+
+XGhosted.prototype.initEventListeners = function () {
+  this.document.addEventListener(
+    EVENTS.SET_POLLING,
+    ({ detail: { enabled } }) => {
+      if (enabled) {
+        this.handleStartPolling();
+      } else {
+        this.handleStopPolling();
+      }
+    }
+  );
+
+  this.document.addEventListener(
+    EVENTS.SET_AUTO_SCROLLING,
+    ({ detail: { enabled } }) => {
+      this.setAutoScrolling(enabled);
+    }
+  );
+
+  this.document.addEventListener(
+    EVENTS.REQUEST_POST_CHECK,
+    ({ detail: { href, post } }) => {
+      this.log(
+        `Received ${EVENTS.REQUEST_POST_CHECK} for href=${href}, post=${post ? "found" : "null"}`
+      );
+      this.userRequestedPostCheck(href, post);
+    }
+  );
 };
 
 XGhosted.prototype.init = function () {
@@ -526,14 +550,16 @@ XGhosted.prototype.init = function () {
   this.log("Initializing XGhosted...");
   const startTime = performance.now();
 
+  this.initEventListeners();
+
   this.document.dispatchEvent(
-    new CustomEvent("xghosted:user-profile-updated", {
+    new CustomEvent(EVENTS.USER_PROFILE_UPDATED, {
       detail: { userProfileName: this.state.userProfileName },
     })
   );
 
   this.document.dispatchEvent(
-    new CustomEvent("xghosted:init", {
+    new CustomEvent(EVENTS.INIT, {
       detail: {
         config: {
           pollInterval: this.timing.pollInterval,
@@ -543,15 +569,15 @@ XGhosted.prototype.init = function () {
     })
   );
 
-  this.emit("xghosted:state-updated", {
+  this.emit(EVENTS.STATE_UPDATED, {
     isRateLimited: this.state.isRateLimited,
   });
 
-  this.emit("xghosted:polling-state-updated", {
+  this.emit(EVENTS.POLLING_STATE_UPDATED, {
     isPollingEnabled: this.state.isPollingEnabled,
   });
 
-  this.emit("xghosted:auto-scrolling-toggled", {
+  this.emit(EVENTS.AUTO_SCROLLING_TOGGLED, {
     isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
   });
 
@@ -572,16 +598,6 @@ XGhosted.prototype.init = function () {
   `;
 
   this.document.head.appendChild(styleSheet);
-  const handleHighlightRequest = ({ detail: { href } }) => {
-    this.log(`Received xghosted:request-post-highlight for href=${href}`);
-    this.highlightPosts();
-  };
-
-  this.document.addEventListener(
-    "xghosted:request-post-highlight",
-    handleHighlightRequest
-  );
-
   const startContainerCheck = () => {
     const checkDomInterval = setInterval(() => {
       if (
@@ -594,7 +610,7 @@ XGhosted.prototype.init = function () {
           clearInterval(checkDomInterval);
           const waitTime = performance.now() - startTime;
           this.log(`Initial wait time set: ${waitTime}ms`);
-          this.emit("xghosted:set-initial-wait-time", { time: waitTime });
+          this.emit(EVENTS.SET_INITIAL_WAIT_TIME, { time: waitTime });
           this.state.containerFound = true;
           this.startPolling();
         }
@@ -605,7 +621,7 @@ XGhosted.prototype.init = function () {
         clearInterval(checkDomInterval);
         const waitTime = performance.now() - startTime;
         this.log(`Timeout: Initial wait time set: ${waitTime}ms`);
-        this.emit("xghosted:set-initial-wait-time", { time: waitTime });
+        this.emit(EVENTS.SET_INITIAL_WAIT_TIME, { time: waitTime });
         this.log("DOM readiness timeout reached, starting polling");
         this.startPolling();
       }

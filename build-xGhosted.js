@@ -53,26 +53,31 @@ const modules = [
     entryPoint: path.resolve(SRC_DIR, "xGhosted.js"),
     placeholder: "// INJECT: xGhosted",
     globalName: "XGhosted",
+    requiresPreact: false,
   },
   {
     entryPoint: path.resolve(SRC_DIR, "ui/SplashPanel.js"),
     placeholder: "// INJECT: SplashPanel",
     globalName: "SplashPanel",
+    requiresPreact: false,
   },
   {
     entryPoint: path.resolve(SRC_DIR, "ui/PanelManager.js"),
     placeholder: "// INJECT: PanelManager",
     globalName: "PanelManager",
+    requiresPreact: true,
   },
   {
     entryPoint: path.resolve(SRC_DIR, "utils/ProcessedPostsManager.js"),
     placeholder: "// INJECT: ProcessedPostsManager",
     globalName: "ProcessedPostsManager",
+    requiresPreact: false,
   },
   {
     entryPoint: path.resolve(SRC_DIR, "utils/TimingManager.js"),
     placeholder: "// INJECT: TimingManager",
     globalName: "TimingManager",
+    requiresPreact: false,
   },
 ];
 
@@ -216,6 +221,22 @@ const modules = [
     console.log("External paths for module bundling:", externalPaths);
 
     for (const mod of modules) {
+      // Skip PanelManager if Preact is not required or file is missing
+      if (
+        mod.requiresPreact &&
+        (!fs.existsSync(mod.entryPoint) ||
+          !templateContent.includes("@require      https://unpkg.com/preact"))
+      ) {
+        console.log(
+          `Skipping ${path.relative(
+            SRC_DIR,
+            mod.entryPoint
+          )}: Preact not available or module missing`
+        );
+        finalContent = finalContent.replace(mod.placeholder, "");
+        continue;
+      }
+
       console.log(`Bundling ${path.relative(SRC_DIR, mod.entryPoint)}`);
       const result = await esbuild.build({
         entryPoints: [mod.entryPoint],
@@ -227,9 +248,11 @@ const modules = [
         write: false,
         format: "esm",
         loader: { ".jsx": "jsx", ".js": "js", ".css": "text" },
-        jsxFactory: "window.preact.h",
-        jsxFragment: "window.preact.Fragment",
-        external: ["window.preact", "window.preactHooks", ...externalPaths],
+        jsxFactory: mod.requiresPreact ? "window.preact.h" : undefined,
+        jsxFragment: mod.requiresPreact ? "window.preact.Fragment" : undefined,
+        external: mod.requiresPreact
+          ? ["window.preact", "window.preactHooks", ...externalPaths]
+          : externalPaths,
       });
 
       let code = result.outputFiles[0].text.trim();
@@ -263,7 +286,10 @@ const modules = [
               const cleaned = imp.trim().replace(/\s+as\s+\w+/g, "");
               if (cleaned) {
                 console.log(
-                  `Adding import: ${cleaned} from ${path.relative(SRC_DIR, sourcePath)}`
+                  `Adding import: ${cleaned} from ${path.relative(
+                    SRC_DIR,
+                    sourcePath
+                  )}`
                 );
                 importMap.add(cleaned);
               }
@@ -277,9 +303,14 @@ const modules = [
 
       // Prepend a single const statement for all shared imports
       if (importMap.size > 0) {
-        const constStatement = `const { ${Array.from(importMap).join(", ")} } = window.XGhostedUtils;`;
+        const constStatement = `const { ${Array.from(importMap).join(
+          ", "
+        )} } = window.XGhostedUtils;`;
         console.log(
-          `Generated const statement for ${path.relative(SRC_DIR, mod.entryPoint)}: ${constStatement}`
+          `Generated const statement for ${path.relative(
+            SRC_DIR,
+            mod.entryPoint
+          )}: ${constStatement}`
         );
         code = `${constStatement}\n${code}`;
       } else {

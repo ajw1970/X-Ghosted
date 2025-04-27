@@ -1,4 +1,6 @@
 import "./Panel.jsx";
+import { CONFIG } from "../config.js";
+import { EVENTS } from "../events.js";
 
 function Modal({ isOpen, onClose, onSubmit, mode, config }) {
   const [csvText, setCsvText] = window.preactHooks.useState("");
@@ -103,7 +105,7 @@ window.PanelManager = function (
   log
 ) {
   this.document = doc;
-  this.linkPrefix = linkPrefix || "https://x.com";
+  this.linkPrefix = linkPrefix || CONFIG.linkPrefix;
   this.storage = storage || { get: () => {}, set: () => {} };
   this.log = log;
   const validThemes = ["light", "dim", "dark"];
@@ -302,14 +304,14 @@ window.PanelManager.prototype.init = function () {
     this.state.totalPosts = 0;
     this.renderPanel();
   };
-  const handleCsvImport = (e) => {
+  const handleCsvImported = (e) => {
     const { importedCount } = e.detail || {};
     if (importedCount > 0) {
       this.log("PanelManager: CSV imported, requesting posts");
       this.state.flagged = [];
       this.state.totalPosts = 0;
       this.state.pendingImportCount = importedCount;
-      this.document.dispatchEvent(new CustomEvent("xghosted:request-posts"));
+      this.document.dispatchEvent(new CustomEvent(EVENTS.REQUEST_POSTS));
       this.renderPanel();
     }
   };
@@ -324,7 +326,7 @@ window.PanelManager.prototype.init = function () {
       this.pendingCopyLinks = false;
     }
     if (this.pendingExportCsv) {
-      this.exportProcessedPostsCSV(posts);
+      this.handleCsvExported({ detail: { csvData: posts } });
       this.pendingExportCsv = false;
     }
     if (posts) {
@@ -350,7 +352,7 @@ window.PanelManager.prototype.init = function () {
   };
   const handleExportMetrics = () => {
     this.log("PanelManager: Export metrics requested");
-    this.document.dispatchEvent(new CustomEvent("xghosted:request-metrics"));
+    this.document.dispatchEvent(new CustomEvent(EVENTS.REQUEST_METRICS));
     this.renderPanel();
   };
   const handleMetricsRetrieved = ({ detail: { timingHistory } }) => {
@@ -359,97 +361,99 @@ window.PanelManager.prototype.init = function () {
       timingHistory.length
     );
   };
-  this.document.addEventListener("xghosted:state-updated", handleStateUpdated);
+  const handleCsvExported = ({ detail: { csvData } }) => {
+    const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = this.document.createElement("a");
+    a.href = url;
+    a.download = "processed_posts.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    this.log(`Exported CSV: processed_posts.csv`);
+  };
   this.document.addEventListener(
-    "xghosted:polling-state-updated",
+    EVENTS.INIT_COMPONENTS,
+    ({ detail: { config } }) => {
+      this.linkPrefix = config.linkPrefix || this.linkPrefix;
+      this.log("PanelManager initialized with config:", config);
+    }
+  );
+  this.document.addEventListener(EVENTS.STATE_UPDATED, handleStateUpdated);
+  this.document.addEventListener(
+    EVENTS.POLLING_STATE_UPDATED,
     handlePollingStateUpdated
   );
   this.document.addEventListener(
-    "xghosted:auto-scrolling-toggled",
+    EVENTS.AUTO_SCROLLING_TOGGLED,
     handleAutoScrollingToggled
   );
-  this.document.addEventListener("xghosted:init", handleInit);
+  this.document.addEventListener(EVENTS.INIT, handleInit);
   this.document.addEventListener(
-    "xghosted:user-profile-updated",
+    EVENTS.USER_PROFILE_UPDATED,
     handleUserProfileUpdated
   );
   this.document.addEventListener(
-    "xghosted:toggle-panel-visibility",
+    EVENTS.TOGGLE_PANEL_VISIBILITY,
     handleToggleVisibility
   );
-  this.document.addEventListener("xghosted:open-about", handleOpenAbout);
+  this.document.addEventListener(EVENTS.OPEN_ABOUT, handleOpenAbout);
+  this.document.addEventListener(EVENTS.POST_REGISTERED, handlePostRegistered);
   this.document.addEventListener(
-    "xghosted:post-registered",
-    handlePostRegistered
-  );
-  this.document.addEventListener(
-    "xghosted:post-registered-confirmed",
+    EVENTS.POST_REGISTERED_CONFIRMED,
     handlePostRegisteredConfirmed
   );
-  this.document.addEventListener("xghosted:posts-cleared", handlePostsCleared);
-  this.document.addEventListener("xghosted:csv-import", handleCsvImport);
-  this.document.addEventListener("xghosted:csv-imported", handleCsvImport);
+  this.document.addEventListener(EVENTS.POSTS_CLEARED, handlePostsCleared);
+  this.document.addEventListener(EVENTS.CSV_IMPORTED, handleCsvImported);
+  this.document.addEventListener(EVENTS.POSTS_RETRIEVED, handlePostsRetrieved);
+  this.document.addEventListener(EVENTS.EXPORT_METRICS, handleExportMetrics);
   this.document.addEventListener(
-    "xghosted:posts-retrieved",
-    handlePostsRetrieved
-  );
-  this.document.addEventListener(
-    "xghosted:export-metrics",
-    handleExportMetrics
-  );
-  this.document.addEventListener(
-    "xghosted:metrics-retrieved",
+    EVENTS.METRICS_RETRIEVED,
     handleMetricsRetrieved
   );
+  this.document.addEventListener(EVENTS.CSV_EXPORTED, handleCsvExported);
   this.cleanup = () => {
+    this.document.removeEventListener(EVENTS.STATE_UPDATED, handleStateUpdated);
     this.document.removeEventListener(
-      "xghosted:state-updated",
-      handleStateUpdated
-    );
-    this.document.removeEventListener(
-      "xghosted:polling-state-updated",
+      EVENTS.POLLING_STATE_UPDATED,
       handlePollingStateUpdated
     );
     this.document.removeEventListener(
-      "xghosted:auto-scrolling-toggled",
+      EVENTS.AUTO_SCROLLING_TOGGLED,
       handleAutoScrollingToggled
     );
-    this.document.removeEventListener("xghosted:init", handleInit);
+    this.document.removeEventListener(EVENTS.INIT, handleInit);
     this.document.removeEventListener(
-      "xghosted:user-profile-updated",
+      EVENTS.USER_PROFILE_UPDATED,
       handleUserProfileUpdated
     );
     this.document.removeEventListener(
-      "xghosted:toggle-panel-visibility",
+      EVENTS.TOGGLE_PANEL_VISIBILITY,
       handleToggleVisibility
     );
-    this.document.removeEventListener("xghosted:open-about", handleOpenAbout);
+    this.document.removeEventListener(EVENTS.OPEN_ABOUT, handleOpenAbout);
     this.document.removeEventListener(
-      "xghosted:post-registered",
+      EVENTS.POST_REGISTERED,
       handlePostRegistered
     );
     this.document.removeEventListener(
-      "xghosted:post-registered-confirmed",
+      EVENTS.POST_REGISTERED_CONFIRMED,
       handlePostRegisteredConfirmed
     );
+    this.document.removeEventListener(EVENTS.POSTS_CLEARED, handlePostsCleared);
+    this.document.removeEventListener(EVENTS.CSV_IMPORTED, handleCsvImported);
     this.document.removeEventListener(
-      "xghosted:posts-cleared",
-      handlePostsCleared
-    );
-    this.document.removeEventListener("xghosted:csv-import", handleCsvImport);
-    this.document.removeEventListener("xghosted:csv-imported", handleCsvImport);
-    this.document.removeEventListener(
-      "xghosted:posts-retrieved",
+      EVENTS.POSTS_RETRIEVED,
       handlePostsRetrieved
     );
     this.document.removeEventListener(
-      "xghosted:export-metrics",
+      EVENTS.EXPORT_METRICS,
       handleExportMetrics
     );
     this.document.removeEventListener(
-      "xghosted:metrics-retrieved",
+      EVENTS.METRICS_RETRIEVED,
       handleMetricsRetrieved
     );
+    this.document.removeEventListener(EVENTS.CSV_EXPORTED, handleCsvExported);
   };
   this.renderPanelDebounced = this.debounce(() => this.renderPanel(), 500);
   if (window.preact && window.preact.h) {
@@ -457,7 +461,7 @@ window.PanelManager.prototype.init = function () {
   } else {
     this.log("Preact h not available, skipping panel render");
   }
-}
+};
 
 window.PanelManager.prototype.debounce = function (func, wait) {
   let timeout;
@@ -581,7 +585,7 @@ window.PanelManager.prototype.toggleVisibility = function (newVisibility) {
       : !this.state.isPanelVisible;
   this.saveState();
   this.document.dispatchEvent(
-    new CustomEvent("xghosted:toggle-panel-visibility", {
+    new CustomEvent(EVENTS.TOGGLE_PANEL_VISIBILITY, {
       detail: { isPanelVisible: this.state.isPanelVisible },
     })
   );
@@ -598,7 +602,7 @@ window.PanelManager.prototype.setPanelPosition = function (position) {
 window.PanelManager.prototype.onEyeballClick = function (href) {
   this.log(`PanelManager: Eyeball clicked for href=${href}`);
   this.document.dispatchEvent(
-    new CustomEvent("xghosted:request-post-check", {
+    new CustomEvent(EVENTS.REQUEST_POST_CHECK, {
       detail: { href },
     })
   );
@@ -674,50 +678,49 @@ window.PanelManager.prototype.toggleDropdown = function () {
 };
 
 window.PanelManager.prototype.togglePolling = function () {
-  this.state.isPollingEnabled = !this.state.isPollingEnabled;
   this.document.dispatchEvent(
-    new CustomEvent("xghosted:set-polling", {
-      detail: { enabled: this.state.isPollingEnabled },
+    new CustomEvent(EVENTS.SET_POLLING, {
+      detail: { enabled: !this.state.isPollingEnabled },
     })
   );
   this.saveState();
   this.renderPanel(); // Immediate for user interaction
-  this.log(`Toggled polling: ${this.state.isPollingEnabled}`);
+  this.log(`Toggled polling: ${!this.state.isPollingEnabled}`);
 };
 
 window.PanelManager.prototype.toggleAutoScrolling = function () {
-  this.state.isAutoScrollingEnabled = !this.state.isAutoScrollingEnabled;
   this.document.dispatchEvent(
-    new CustomEvent("xghosted:set-auto-scrolling", {
-      detail: { enabled: this.state.isAutoScrollingEnabled },
+    new CustomEvent(EVENTS.SET_AUTO_SCROLLING, {
+      detail: { enabled: !this.state.isAutoScrollingEnabled },
     })
   );
   this.saveState();
   this.renderPanel(); // Immediate for user interaction
-  this.log(`Toggled auto-scrolling: ${this.state.isAutoScrollingEnabled}`);
+  this.log(`Toggled auto-scrolling: ${!this.state.isAutoScrollingEnabled}`);
 };
 
 window.PanelManager.prototype.exportCsv = function () {
-  this.document.dispatchEvent(new CustomEvent("xghosted:export-csv"));
+  this.pendingExportCsv = true;
+  this.document.dispatchEvent(new CustomEvent(EVENTS.EXPORT_CSV));
   this.renderPanel(); // Immediate for user interaction
   this.log("Dispatched export CSV event");
 };
 
 window.PanelManager.prototype.clearPosts = function () {
-  this.document.dispatchEvent(new CustomEvent("xghosted:clear-posts-ui"));
+  this.document.dispatchEvent(new CustomEvent(EVENTS.CLEAR_POSTS_UI));
   this.renderPanel(); // Immediate for user interaction
   this.log("Dispatched clear posts event");
 };
 
 window.PanelManager.prototype.openAbout = function () {
-  this.document.dispatchEvent(new CustomEvent("xghosted:open-about"));
+  this.document.dispatchEvent(new CustomEvent(EVENTS.OPEN_ABOUT));
   this.renderPanel(); // Immediate for user interaction
   this.log("Dispatched open about event");
 };
 
 window.PanelManager.prototype.submitCsv = function (csvText) {
   this.document.dispatchEvent(
-    new CustomEvent("xghosted:csv-import", {
+    new CustomEvent(EVENTS.CSV_IMPORT, {
       detail: { csvText },
     })
   );
@@ -743,18 +746,13 @@ window.PanelManager.prototype.handleModeChange = function (newMode) {
   };
   this.storage.set("xGhostedState", updatedState);
   this.log(`Saved themeMode: ${newMode}`);
-  this.document.dispatchEvent(
-    new CustomEvent("xghosted:theme-mode-changed", {
-      detail: { themeMode: newMode },
-    })
-  );
   this.renderPanel(); // Immediate for user interaction
 };
 
 window.PanelManager.prototype.copyLinks = function (posts) {
   if (!posts) {
     this.pendingCopyLinks = true;
-    this.document.dispatchEvent(new CustomEvent("xghosted:request-posts"));
+    this.document.dispatchEvent(new CustomEvent(EVENTS.REQUEST_POSTS));
     return;
   }
   const linksText = this.state.flagged
@@ -771,41 +769,6 @@ window.PanelManager.prototype.copyLinks = function (posts) {
       alert("Failed to copy problem links.");
     });
   this.renderPanel(); // Immediate for user interaction
-};
-
-window.PanelManager.prototype.exportProcessedPostsCSV = function (posts) {
-  if (!posts) {
-    this.pendingExportCsv = true;
-    this.document.dispatchEvent(new CustomEvent("xghosted:request-posts"));
-    return;
-  }
-  const headers = ["Link", "Quality", "Reason", "Checked"];
-  const rows = posts.map(([id, { analysis, checked }]) => {
-    return [
-      `${this.linkPrefix}${id}`,
-      analysis.quality.name,
-      analysis.reason,
-      checked ? "true" : "false",
-    ].join(",");
-  });
-  const csvData = [headers.join(","), ...rows].join("\n");
-  const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = this.document.createElement("a");
-  a.href = url;
-  a.download = "processed_posts.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-  this.log(`Exported CSV: processed_posts.csv`);
-};
-
-window.PanelManager.prototype.importProcessedPostsCSV = function (csvText) {
-  this.log("Import CSV button clicked");
-  this.document.dispatchEvent(
-    new CustomEvent("xghosted:request-import-csv", {
-      detail: { csvText },
-    })
-  );
 };
 
 window.PanelManager.prototype.showSplashPage = function () {

@@ -1,15 +1,141 @@
 import { postQuality } from "./postQuality.js";
+import { CONFIG } from "../config.js";
+import { EVENTS } from "../events.js";
 
 class ProcessedPostsManager {
-  constructor({ storage, log, linkPrefix, persistProcessedPosts = false }) {
+  constructor({ storage, log, linkPrefix, persistProcessedPosts, document }) {
     this.storage = storage || { get: () => {}, set: () => {} };
     this.log = log || console.log.bind(console);
-    this.linkPrefix = linkPrefix || "";
-    this.persistProcessedPosts = persistProcessedPosts;
+    this.linkPrefix = linkPrefix || CONFIG.linkPrefix;
+    this.persistProcessedPosts =
+      persistProcessedPosts ?? CONFIG.persistProcessedPosts;
     this.posts = {};
+    this.document = document;
     if (this.persistProcessedPosts) {
       this.load();
     }
+    this.initEventListeners();
+  }
+
+  initEventListeners() {
+    this.document.addEventListener(
+      EVENTS.INIT_COMPONENTS,
+      ({ detail: { config } }) => {
+        this.linkPrefix = config.linkPrefix || this.linkPrefix;
+        this.persistProcessedPosts =
+          config.persistProcessedPosts ?? this.persistProcessedPosts;
+        if (this.persistProcessedPosts) {
+          this.load();
+        }
+      }
+    );
+
+    this.document.addEventListener(
+      EVENTS.POST_REGISTERED,
+      ({ detail: { href, data } }) => {
+        if (!data?.analysis?.quality) {
+          this.log(
+            `Skipping post registration: no quality data for href=${href}`
+          );
+          return;
+        }
+        if (!href || href === "false") {
+          if (data.analysis.quality.name === "Problem") {
+            const fallbackId = `problem-post-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+            this.registerPost(fallbackId, data);
+            this.log(`Registered problem post with fallback ID: ${fallbackId}`);
+          } else {
+            this.log(`Skipping non-problem post with invalid href: ${href}`);
+          }
+          return;
+        }
+        this.registerPost(href, data);
+        this.log(`Registered post: ${href}`);
+        this.document.dispatchEvent(
+          new CustomEvent(EVENTS.POST_REGISTERED_CONFIRMED, {
+            detail: { href, data },
+          })
+        );
+      }
+    );
+
+    this.document.addEventListener(
+      EVENTS.POST_REQUESTED,
+      ({ detail: { href } }) => {
+        const post = this.getPost(href);
+        this.document.dispatchEvent(
+          new CustomEvent(EVENTS.POST_RETRIEVED, {
+            detail: { href, post },
+          })
+        );
+        this.log(`Retrieved post: ${href}`);
+      }
+    );
+
+    this.document.addEventListener(EVENTS.CLEAR_POSTS, async () => {
+      await this.clearPosts();
+      this.document.dispatchEvent(
+        new CustomEvent(EVENTS.POSTS_CLEARED_CONFIRMED, {
+          detail: {},
+        })
+      );
+      this.document.dispatchEvent(
+        new CustomEvent(EVENTS.POSTS_CLEARED, {
+          detail: {},
+        })
+      );
+      this.log("Cleared all posts");
+    });
+
+    this.document.addEventListener(EVENTS.CLEAR_POSTS_UI, async () => {
+      if (confirm("Clear all processed posts?")) {
+        await this.clearPosts();
+        this.document.dispatchEvent(
+          new CustomEvent(EVENTS.POSTS_CLEARED_CONFIRMED, {
+            detail: {},
+          })
+        );
+        this.document.dispatchEvent(
+          new CustomEvent(EVENTS.POSTS_CLEARED, {
+            detail: {},
+          })
+        );
+        this.log("Cleared all posts via UI");
+      }
+    });
+
+    this.document.addEventListener(EVENTS.REQUEST_POSTS, () => {
+      const posts = this.getAllPosts();
+      this.document.dispatchEvent(
+        new CustomEvent(EVENTS.POSTS_RETRIEVED, {
+          detail: { posts },
+        })
+      );
+      this.log("Dispatched xghosted:posts-retrieved with posts:", posts);
+    });
+
+    this.document.addEventListener(
+      EVENTS.REQUEST_IMPORT_CSV,
+      ({ detail: { csvText } }) => {
+        const importedCount = this.importPosts(csvText);
+        this.document.dispatchEvent(
+          new CustomEvent(EVENTS.CSV_IMPORTED, {
+            detail: { importedCount },
+          })
+        );
+        this.log("Dispatched xghosted:csv-imported with count:", importedCount);
+      }
+    );
+
+    this.document.addEventListener(EVENTS.EXPORT_CSV, () => {
+      const csvData = this.exportPostsToCSV();
+      this.document.dispatchEvent(
+        new CustomEvent(EVENTS.CSV_EXPORTED, {
+          detail: { csvData },
+        })
+      );
+      this.log("Dispatched xghosted:csv-exported");
+    });
   }
 
   load() {
@@ -117,6 +243,21 @@ class ProcessedPostsManager {
       }
     }
     return importedCount;
+  }
+
+  exportPostsToCSV() {
+    const headers = ["Link", "Quality", "Reason", "Checked"];
+    const rows = Object.entries(this.posts).map(
+      ([id, { analysis, checked }]) => {
+        return [
+          `${this.linkPrefix}${id}`,
+          analysis.quality.name,
+          analysis.reason,
+          checked ? "true" : "false",
+        ].join(",");
+      }
+    );
+    return [headers.join(","), ...rows].join("\n");
   }
 }
 

@@ -1,8 +1,12 @@
+import { CONFIG } from "../config.js";
+import { EVENTS } from "../events.js";
+
 var TimingManager = class {
-  constructor({ timing, log, storage }) {
-    this.timing = { ...timing };
+  constructor({ timing, log, storage, document }) {
+    this.timing = { ...CONFIG.timing, ...timing };
     this.log = log || console.log.bind(console);
     this.storage = storage || { get: () => {}, set: () => {} };
+    this.document = document;
     this.startTime = performance.now();
     this.metrics = {
       polls: 0,
@@ -26,6 +30,69 @@ var TimingManager = class {
     this.hasSetDensity = false;
     this.metricsHistory = [];
     this.log("TimingManager initialized");
+    this.initEventListeners();
+  }
+
+  initEventListeners() {
+    this.document.addEventListener(
+      EVENTS.INIT_COMPONENTS,
+      ({ detail: { config } }) => {
+        this.timing = { ...this.timing, ...config.timing };
+        this.loadMetrics();
+      }
+    );
+
+    this.document.addEventListener(EVENTS.RECORD_POLL, ({ detail }) => {
+      this.recordPoll(detail);
+    });
+
+    this.document.addEventListener(EVENTS.RECORD_SCROLL, ({ detail }) => {
+      this.recordScroll(detail);
+    });
+
+    this.document.addEventListener(EVENTS.RECORD_HIGHLIGHT, ({ detail }) => {
+      this.recordHighlighting(detail.duration);
+    });
+
+    this.document.addEventListener(
+      EVENTS.SET_INITIAL_WAIT_TIME,
+      ({ detail }) => {
+        this.setInitialWaitTime(detail.time);
+      }
+    );
+
+    this.document.addEventListener(EVENTS.SET_POST_DENSITY, ({ detail }) => {
+      this.setPostDensity(detail.count);
+    });
+
+    this.document.addEventListener(EVENTS.SAVE_METRICS, () => {
+      this.saveMetrics();
+    });
+
+    this.document.addEventListener(EVENTS.REQUEST_METRICS, () => {
+      this.document.dispatchEvent(
+        new CustomEvent(EVENTS.METRICS_RETRIEVED, {
+          detail: { timingHistory: this.metricsHistory },
+        })
+      );
+      this.log(
+        "Dispatched xghosted:metrics-retrieved with entries:",
+        this.metricsHistory.length
+      );
+    });
+
+    this.document.addEventListener(EVENTS.EXPORT_METRICS, () => {
+      const blob = new Blob([JSON.stringify(this.metricsHistory, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = this.document.createElement("a");
+      a.href = url;
+      a.download = "xGhosted_timing_history.json";
+      a.click();
+      URL.revokeObjectURL(url);
+      this.log("Exported timing history as JSON");
+    });
   }
 
   recordPoll({
@@ -77,8 +144,8 @@ var TimingManager = class {
       this.metrics.polls
     );
 
-    document.dispatchEvent(
-      new CustomEvent("xghosted:metrics-updated", {
+    this.document.dispatchEvent(
+      new CustomEvent(EVENTS.METRICS_UPDATED, {
         detail: { metrics: this.metrics },
       })
     );

@@ -18,23 +18,62 @@
 (function () {
   ('use strict');
 
-  // Configuration
-  const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
-  const POLL_INTERVAL = 600; // Polling interval in milliseconds
-  const SCROLL_INTERVAL = 1250; // Scroll interval in milliseconds
-  const config = {
+  // Centralized configuration object
+  const CONFIG = {
     timing: {
       debounceDelay: 500,
       throttleDelay: 1000,
       tabCheckThrottle: 5000,
       exportThrottle: 5000,
-      rateLimitPause: RATE_LIMIT_PAUSE,
-      pollInterval: POLL_INTERVAL,
-      scrollInterval: SCROLL_INTERVAL,
+      rateLimitPause: 20 * 1000,
+      pollInterval: 600,
+      scrollInterval: 1250,
     },
     showSplash: true,
     logTarget: 'tampermonkey',
     persistProcessedPosts: false,
+    linkPrefix: 'https://x.com',
+  };
+
+  // Event constants for consistent event naming across components
+  const EVENTS = {
+    INIT_COMPONENTS: 'xghosted:init-components',
+    POST_REGISTERED: 'xghosted:post-registered',
+    POST_REQUESTED: 'xghosted:post-requested',
+    POST_RETRIEVED: 'xghosted:post-retrieved',
+    REQUEST_POST_CHECK: 'xghosted:request-post-check',
+    CLEAR_POSTS: 'xghosted:clear-posts',
+    CLEAR_POSTS_UI: 'xghosted:clear-posts-ui',
+    POSTS_CLEARED: 'xghosted:posts-cleared',
+    POSTS_CLEARED_CONFIRMED: 'xghosted:posts-cleared-confirmed',
+    REQUEST_POSTS: 'xghosted:request-posts',
+    POSTS_RETRIEVED: 'xghosted:posts-retrieved',
+    CSV_IMPORT: 'xghosted:csv-import',
+    CSV_IMPORTED: 'xghosted:csv-imported',
+    REQUEST_IMPORT_CSV: 'xghosted:request-import-csv',
+    EXPORT_CSV: 'xghosted:export-csv',
+    CSV_EXPORTED: 'xghosted:csv-exported',
+    SET_POLLING: 'xghosted:set-polling',
+    POLLING_STATE_UPDATED: 'xghosted:polling-state-updated',
+    SET_AUTO_SCROLLING: 'xghosted:set-auto-scrolling',
+    AUTO_SCROLLING_TOGGLED: 'xghosted:auto-scrolling-toggled',
+    RATE_LIMIT_DETECTED: 'xghosted:rate-limit-detected',
+    USER_PROFILE_UPDATED: 'xghosted:user-profile-updated',
+    INIT: 'xghosted:init',
+    STATE_UPDATED: 'xghosted:state-updated',
+    OPEN_ABOUT: 'xghosted:open-about',
+    TOGGLE_PANEL_VISIBILITY: 'xghosted:toggle-panel-visibility',
+    COPY_LINKS: 'xghosted:copy-links',
+    REQUEST_METRICS: 'xghosted:request-metrics',
+    METRICS_RETRIEVED: 'xghosted:metrics-retrieved',
+    EXPORT_METRICS: 'xghosted:export-metrics',
+    METRICS_UPDATED: 'xghosted:metrics-updated',
+    RECORD_POLL: 'xghosted:record-poll',
+    RECORD_SCROLL: 'xghosted:record-scroll',
+    RECORD_HIGHLIGHT: 'xghosted:record-highlight',
+    SET_INITIAL_WAIT_TIME: 'xghosted:set-initial-wait-time',
+    SET_POST_DENSITY: 'xghosted:set-post-density',
+    SAVE_METRICS: 'xghosted:save-metrics',
   };
 
   // --- Inject Shared Utilities ---
@@ -674,7 +713,115 @@
         userProfileName: null,
       };
     }
+
+    // src/config.js
+    var CONFIG = {
+      timing: {
+        debounceDelay: 500,
+        throttleDelay: 1e3,
+        tabCheckThrottle: 5e3,
+        exportThrottle: 5e3,
+        rateLimitPause: 20 * 1e3,
+        pollInterval: 600,
+        scrollInterval: 1250,
+      },
+      showSplash: true,
+      logTarget: 'tampermonkey',
+      persistProcessedPosts: false,
+      linkPrefix: 'https://x.com',
+    };
+
+    // src/events.js
+    var EVENTS = {
+      INIT_COMPONENTS: 'xghosted:init-components',
+      POST_REGISTERED: 'xghosted:post-registered',
+      POST_REQUESTED: 'xghosted:post-requested',
+      POST_RETRIEVED: 'xghosted:post-retrieved',
+      REQUEST_POST_CHECK: 'xghosted:request-post-check',
+      CLEAR_POSTS: 'xghosted:clear-posts',
+      CLEAR_POSTS_UI: 'xghosted:clear-posts-ui',
+      POSTS_CLEARED: 'xghosted:posts-cleared',
+      POSTS_CLEARED_CONFIRMED: 'xghosted:posts-cleared-confirmed',
+      REQUEST_POSTS: 'xghosted:request-posts',
+      POSTS_RETRIEVED: 'xghosted:posts-retrieved',
+      CSV_IMPORT: 'xghosted:csv-import',
+      CSV_IMPORTED: 'xghosted:csv-imported',
+      REQUEST_IMPORT_CSV: 'xghosted:request-import-csv',
+      EXPORT_CSV: 'xghosted:export-csv',
+      CSV_EXPORTED: 'xghosted:csv-exported',
+      SET_POLLING: 'xghosted:set-polling',
+      POLLING_STATE_UPDATED: 'xghosted:polling-state-updated',
+      SET_AUTO_SCROLLING: 'xghosted:set-auto-scrolling',
+      AUTO_SCROLLING_TOGGLED: 'xghosted:auto-scrolling-toggled',
+      RATE_LIMIT_DETECTED: 'xghosted:rate-limit-detected',
+      USER_PROFILE_UPDATED: 'xghosted:user-profile-updated',
+      INIT: 'xghosted:init',
+      STATE_UPDATED: 'xghosted:state-updated',
+      OPEN_ABOUT: 'xghosted:open-about',
+      TOGGLE_PANEL_VISIBILITY: 'xghosted:toggle-panel-visibility',
+      COPY_LINKS: 'xghosted:copy-links',
+      REQUEST_METRICS: 'xghosted:request-metrics',
+      METRICS_RETRIEVED: 'xghosted:metrics-retrieved',
+      EXPORT_METRICS: 'xghosted:export-metrics',
+      METRICS_UPDATED: 'xghosted:metrics-updated',
+      RECORD_POLL: 'xghosted:record-poll',
+      RECORD_SCROLL: 'xghosted:record-scroll',
+      RECORD_HIGHLIGHT: 'xghosted:record-highlight',
+      SET_INITIAL_WAIT_TIME: 'xghosted:set-initial-wait-time',
+      SET_POST_DENSITY: 'xghosted:set-post-density',
+      SAVE_METRICS: 'xghosted:save-metrics',
+    };
+    var EVENT_CONTRACTS = {
+      [EVENTS.INIT_COMPONENTS]: { config: 'object' },
+      [EVENTS.POST_REGISTERED]: { href: 'string', data: 'object' },
+      [EVENTS.POST_REQUESTED]: { href: 'string' },
+      [EVENTS.POST_RETRIEVED]: { href: 'string', post: 'object|null' },
+      [EVENTS.REQUEST_POST_CHECK]: { href: 'string', post: 'object|null' },
+      [EVENTS.CLEAR_POSTS]: {},
+      [EVENTS.CLEAR_POSTS_UI]: {},
+      [EVENTS.POSTS_CLEARED]: {},
+      [EVENTS.POSTS_CLEARED_CONFIRMED]: {},
+      [EVENTS.REQUEST_POSTS]: {},
+      [EVENTS.POSTS_RETRIEVED]: { posts: 'array' },
+      [EVENTS.CSV_IMPORT]: { csvText: 'string' },
+      [EVENTS.CSV_IMPORTED]: { importedCount: 'number' },
+      [EVENTS.REQUEST_IMPORT_CSV]: { csvText: 'string' },
+      [EVENTS.EXPORT_CSV]: {},
+      [EVENTS.CSV_EXPORTED]: { csvData: 'string' },
+      [EVENTS.SET_POLLING]: { enabled: 'boolean' },
+      [EVENTS.POLLING_STATE_UPDATED]: { isPollingEnabled: 'boolean' },
+      [EVENTS.SET_AUTO_SCROLLING]: { enabled: 'boolean' },
+      [EVENTS.AUTO_SCROLLING_TOGGLED]: { isAutoScrollingEnabled: 'boolean' },
+      [EVENTS.RATE_LIMIT_DETECTED]: { pauseDuration: 'number' },
+      [EVENTS.USER_PROFILE_UPDATED]: { userProfileName: 'string|null' },
+      [EVENTS.INIT]: { config: 'object' },
+      [EVENTS.STATE_UPDATED]: { isRateLimited: 'boolean' },
+      [EVENTS.OPEN_ABOUT]: {},
+      [EVENTS.TOGGLE_PANEL_VISIBILITY]: { isPanelVisible: 'boolean' },
+      [EVENTS.COPY_LINKS]: {},
+      [EVENTS.REQUEST_METRICS]: {},
+      [EVENTS.METRICS_RETRIEVED]: { timingHistory: 'array' },
+      [EVENTS.EXPORT_METRICS]: {},
+      [EVENTS.METRICS_UPDATED]: { metrics: 'object' },
+      [EVENTS.RECORD_POLL]: {
+        postsProcessed: 'number',
+        wasSkipped: 'boolean',
+        containerFound: 'boolean',
+        containerAttempted: 'boolean',
+        pageType: 'string',
+        isPollingStarted: 'boolean',
+        isPollingStopped: 'boolean',
+      },
+      [EVENTS.RECORD_SCROLL]: { bottomReached: 'boolean' },
+      [EVENTS.RECORD_HIGHLIGHT]: { duration: 'number' },
+      [EVENTS.SET_INITIAL_WAIT_TIME]: { time: 'number' },
+      [EVENTS.SET_POST_DENSITY]: { count: 'number' },
+      [EVENTS.SAVE_METRICS]: {},
+    };
     return {
+      CONFIG,
+      EVENTS,
+      EVENT_CONTRACTS,
       Logger,
       copyTextToClipboard,
       debounce,
@@ -709,10 +856,10 @@
   }
 
   // Safety check: Ensure we're on X.com with a valid document
-  const log = new window.Logger({ logTarget: config.logTarget }).log.bind(
+  const log = new window.Logger({ logTarget: CONFIG.logTarget }).log.bind(
     window.Logger
   );
-  config.log = log;
+  CONFIG.log = log;
   if (!window.location.href.startsWith('https://x.com/') || !document.body) {
     log('xGhosted: Aborting - invalid environment');
     return;
@@ -730,21 +877,15 @@
       findPostContainer,
       getRelativeLinkToPost,
       parseUrl,
+      CONFIG,
+      EVENTS,
     } = window.XGhostedUtils;
     // src/xGhosted.js
     function XGhosted(doc, config = {}) {
-      const defaultTiming = {
-        debounceDelay: 500,
-        throttleDelay: 1e3,
-        tabCheckThrottle: 5e3,
-        exportThrottle: 5e3,
-        pollInterval: 625,
-        scrollInterval: 1250,
-      };
-      this.timing = { ...defaultTiming, ...config.timing };
+      this.timing = { ...CONFIG.timing, ...config.timing };
       this.document = doc;
       this.log = config.log;
-      this.linkPrefix = config.linkPrefix || 'https://x.com';
+      this.linkPrefix = config.linkPrefix || CONFIG.linkPrefix;
       const urlFullPath = doc.location.origin + doc.location.pathname;
       const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
       this.state = {
@@ -801,15 +942,12 @@
       return new Promise((resolve) => {
         const handler = () => {
           this.document.removeEventListener(
-            'xghosted:posts-cleared-confirmed',
+            EVENTS.POSTS_CLEARED_CONFIRMED,
             handler
           );
           resolve();
         };
-        this.document.addEventListener(
-          'xghosted:posts-cleared-confirmed',
-          handler
-        );
+        this.document.addEventListener(EVENTS.POSTS_CLEARED_CONFIRMED, handler);
       });
     };
     XGhosted.prototype.waitForPostRetrieved = function (href) {
@@ -817,22 +955,19 @@
         const handler = (e) => {
           if (e.detail.href === href) {
             this.log(
-              `Received xghosted:post-retrieved for ${href}: post=${e.detail.post ? 'found' : 'null'}`
+              `Received ${EVENTS.POST_RETRIEVED} for ${href}: post=${e.detail.post ? 'found' : 'null'}`
             );
-            this.document.removeEventListener(
-              'xghosted:post-retrieved',
-              handler
-            );
+            this.document.removeEventListener(EVENTS.POST_RETRIEVED, handler);
             resolve(e.detail.post);
           }
         };
-        this.document.addEventListener('xghosted:post-retrieved', handler);
-        this.emit('xghosted:post-requested', { href });
+        this.document.addEventListener(EVENTS.POST_RETRIEVED, handler);
+        this.emit(EVENTS.POST_REQUESTED, { href });
         setTimeout(() => {
           this.log(
             `waitForPostRetrieved timed out for ${href}, resolving with null`
           );
-          this.document.removeEventListener('xghosted:post-retrieved', handler);
+          this.document.removeEventListener(EVENTS.POST_RETRIEVED, handler);
           resolve(null);
         }, 1e3);
       });
@@ -869,7 +1004,7 @@
             'xghosted-good',
             'xghosted-problem'
           );
-          currentPost.className.add(
+          currentPost.classList.add(
             isProblem ? 'xghosted-problem' : 'xghosted-good'
           );
           currentPost.setAttribute(
@@ -888,11 +1023,9 @@
           ? postQuality.PROBLEM
           : postQuality.GOOD;
         cached.checked = true;
-        this.emit('xghosted:post-registered', { href, data: cached });
+        this.emit(EVENTS.POST_REGISTERED, { href, data: cached });
         this.document.dispatchEvent(
-          new CustomEvent('xghosted:state-updated', {
-            detail: { ...this.state },
-          })
+          new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
         );
         this.log(`User requested post check completed for ${href}`);
       } else {
@@ -905,16 +1038,16 @@
       if (this.state.userProfileName !== userProfileName) {
         this.state.userProfileName = userProfileName;
         this.document.dispatchEvent(
-          new CustomEvent('xghosted:user-profile-updated', {
+          new CustomEvent(EVENTS.USER_PROFILE_UPDATED, {
             detail: { userProfileName: this.state.userProfileName },
           })
         );
       }
-      this.emit('xghosted:clear-posts', {});
+      this.emit(EVENTS.CLEAR_POSTS, {});
       await this.waitForClearConfirmation();
       this.state.noPostsFoundCount = 0;
       this.document.dispatchEvent(
-        new CustomEvent('xghosted:posts-cleared', {
+        new CustomEvent(EVENTS.POSTS_CLEARED, {
           detail: {},
         })
       );
@@ -939,9 +1072,9 @@
               this.state.isRateLimited = true;
               this.state.isPollingEnabled = false;
               newWindow.close();
-              this.emit('xghosted:rate-limit-detected', { pauseDuration: 3e5 });
+              this.emit(EVENTS.RATE_LIMIT_DETECTED, { pauseDuration: 3e5 });
               this.document.dispatchEvent(
-                new CustomEvent('xghosted:polling-state-updated', {
+                new CustomEvent(EVENTS.POLLING_STATE_UPDATED, {
                   detail: { isPollingEnabled: this.state.isPollingEnabled },
                 })
               );
@@ -986,7 +1119,7 @@
       this.state.isPollingEnabled = true;
       this.log('Polling enabled');
       this.document.dispatchEvent(
-        new CustomEvent('xghosted:polling-state-updated', {
+        new CustomEvent(EVENTS.POLLING_STATE_UPDATED, {
           detail: { isPollingEnabled: this.state.isPollingEnabled },
         })
       );
@@ -994,7 +1127,7 @@
     XGhosted.prototype.handleStopPolling = function () {
       this.state.isPollingEnabled = false;
       this.log('Polling disabled');
-      this.emit('xghosted:record-poll', {
+      this.emit(EVENTS.RECORD_POLL, {
         postsProcessed: 0,
         wasSkipped: false,
         containerFound: false,
@@ -1008,7 +1141,7 @@
         isPollingStopped: true,
       });
       this.document.dispatchEvent(
-        new CustomEvent('xghosted:polling-state-updated', {
+        new CustomEvent(EVENTS.POLLING_STATE_UPDATED, {
           detail: { isPollingEnabled: this.state.isPollingEnabled },
         })
       );
@@ -1055,7 +1188,7 @@
           `Polling in ${cycleMode ? 'auto-scrolling' : 'user-paced'} mode, interval: ${interval}ms`
         );
         if (this.state.isHighlighting) {
-          this.emit('xghosted:record-poll', {
+          this.emit(EVENTS.RECORD_POLL, {
             postsProcessed: 0,
             wasSkipped: true,
             containerFound: false,
@@ -1098,7 +1231,7 @@
             if (containerFound) {
               this.state.noPostsFoundCount = 0;
               if (!this.state.containerFound) {
-                this.emit('xghosted:set-post-density', {
+                this.emit(EVENTS.SET_POST_DENSITY, {
                   count: this.document.querySelectorAll(
                     'div[data-testid="cellInnerDiv"]'
                   ).length,
@@ -1108,7 +1241,7 @@
               this.highlightPosts();
             }
           }
-          this.emit('xghosted:record-poll', {
+          this.emit(EVENTS.RECORD_POLL, {
             postsProcessed: unprocessedPosts.length,
             wasSkipped: false,
             containerFound,
@@ -1131,17 +1264,17 @@
             const newPostCount = this.document.querySelectorAll(
               'div[data-testid="cellInnerDiv"]'
             ).length;
-            this.emit('xghosted:record-scroll', { bottomReached });
+            this.emit(EVENTS.RECORD_SCROLL, { bottomReached });
             if (bottomReached && newPostCount === previousPostCount) {
               this.log(
                 'Reached page bottom or no new posts, stopping auto-scrolling'
               );
               this.state.isAutoScrollingEnabled = false;
-              this.emit('xghosted:set-auto-scrolling', { enabled: false });
+              this.emit(EVENTS.SET_AUTO_SCROLLING, { enabled: false });
             }
           }
         } else {
-          this.emit('xghosted:record-poll', {
+          this.emit(EVENTS.RECORD_POLL, {
             postsProcessed: 0,
             wasSkipped: false,
             containerFound: false,
@@ -1174,7 +1307,7 @@
       this.state.isAutoScrollingEnabled = enabled;
       this.log(`Auto-scrolling set to: ${enabled}`);
       this.document.dispatchEvent(
-        new CustomEvent('xghosted:auto-scrolling-toggled', {
+        new CustomEvent(EVENTS.AUTO_SCROLLING_TOGGLED, {
           detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled },
         })
       );
@@ -1229,7 +1362,7 @@
           this.handleStopPolling();
         }
         processPostAnalysis(post, analysis);
-        this.emit('xghosted:post-registered', {
+        this.emit(EVENTS.POST_REGISTERED, {
           href: postId,
           data: { analysis, checked: false },
         });
@@ -1237,9 +1370,9 @@
         results.push(analysis);
       });
       if (postsProcessed > 0) {
-        this.emit('xghosted:save-metrics', {});
+        this.emit(EVENTS.SAVE_METRICS, {});
         this.document.dispatchEvent(
-          new CustomEvent('xghosted:state-updated', {
+          new CustomEvent(EVENTS.STATE_UPDATED, {
             detail: { ...this.state },
           })
         );
@@ -1248,10 +1381,37 @@
         );
       }
       this.state.isHighlighting = false;
-      this.emit('xghosted:record-highlight', {
+      this.emit(EVENTS.RECORD_HIGHLIGHT, {
         duration: performance.now() - start,
       });
       return results;
+    };
+    XGhosted.prototype.initEventListeners = function () {
+      this.document.addEventListener(
+        EVENTS.SET_POLLING,
+        ({ detail: { enabled } }) => {
+          if (enabled) {
+            this.handleStartPolling();
+          } else {
+            this.handleStopPolling();
+          }
+        }
+      );
+      this.document.addEventListener(
+        EVENTS.SET_AUTO_SCROLLING,
+        ({ detail: { enabled } }) => {
+          this.setAutoScrolling(enabled);
+        }
+      );
+      this.document.addEventListener(
+        EVENTS.REQUEST_POST_CHECK,
+        ({ detail: { href, post } }) => {
+          this.log(
+            `Received ${EVENTS.REQUEST_POST_CHECK} for href=${href}, post=${post ? 'found' : 'null'}`
+          );
+          this.userRequestedPostCheck(href, post);
+        }
+      );
     };
     XGhosted.prototype.init = function () {
       if (this.pollTimer) {
@@ -1260,13 +1420,14 @@
       }
       this.log('Initializing XGhosted...');
       const startTime = performance.now();
+      this.initEventListeners();
       this.document.dispatchEvent(
-        new CustomEvent('xghosted:user-profile-updated', {
+        new CustomEvent(EVENTS.USER_PROFILE_UPDATED, {
           detail: { userProfileName: this.state.userProfileName },
         })
       );
       this.document.dispatchEvent(
-        new CustomEvent('xghosted:init', {
+        new CustomEvent(EVENTS.INIT, {
           detail: {
             config: {
               pollInterval: this.timing.pollInterval,
@@ -1275,13 +1436,13 @@
           },
         })
       );
-      this.emit('xghosted:state-updated', {
+      this.emit(EVENTS.STATE_UPDATED, {
         isRateLimited: this.state.isRateLimited,
       });
-      this.emit('xghosted:polling-state-updated', {
+      this.emit(EVENTS.POLLING_STATE_UPDATED, {
         isPollingEnabled: this.state.isPollingEnabled,
       });
-      this.emit('xghosted:auto-scrolling-toggled', {
+      this.emit(EVENTS.AUTO_SCROLLING_TOGGLED, {
         isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
       });
       const styleSheet = this.document.createElement('style');
@@ -1300,14 +1461,6 @@
     }
   `;
       this.document.head.appendChild(styleSheet);
-      const handleHighlightRequest = ({ detail: { href } }) => {
-        this.log(`Received xghosted:request-post-highlight for href=${href}`);
-        this.highlightPosts();
-      };
-      this.document.addEventListener(
-        'xghosted:request-post-highlight',
-        handleHighlightRequest
-      );
       const startContainerCheck = () => {
         const checkDomInterval = setInterval(() => {
           if (
@@ -1320,7 +1473,7 @@
               clearInterval(checkDomInterval);
               const waitTime = performance.now() - startTime;
               this.log(`Initial wait time set: ${waitTime}ms`);
-              this.emit('xghosted:set-initial-wait-time', { time: waitTime });
+              this.emit(EVENTS.SET_INITIAL_WAIT_TIME, { time: waitTime });
               this.state.containerFound = true;
               this.startPolling();
             }
@@ -1331,7 +1484,7 @@
             clearInterval(checkDomInterval);
             const waitTime = performance.now() - startTime;
             this.log(`Timeout: Initial wait time set: ${waitTime}ms`);
-            this.emit('xghosted:set-initial-wait-time', { time: waitTime });
+            this.emit(EVENTS.SET_INITIAL_WAIT_TIME, { time: waitTime });
             this.log('DOM readiness timeout reached, starting polling');
             this.startPolling();
           }
@@ -1483,6 +1636,7 @@
     return SplashPanel;
   })();
   window.PanelManager = (function () {
+    const { CONFIG, EVENTS } = window.XGhostedUtils;
     // src/ui/Panel.jsx
     function Panel({
       state,
@@ -2024,7 +2178,7 @@
       log
     ) {
       this.document = doc;
-      this.linkPrefix = linkPrefix || 'https://x.com';
+      this.linkPrefix = linkPrefix || CONFIG.linkPrefix;
       this.storage = storage || { get: () => {}, set: () => {} };
       this.log = log;
       const validThemes = ['light', 'dim', 'dark'];
@@ -2225,16 +2379,14 @@
         this.state.totalPosts = 0;
         this.renderPanel();
       };
-      const handleCsvImport = (e) => {
+      const handleCsvImported = (e) => {
         const { importedCount } = e.detail || {};
         if (importedCount > 0) {
           this.log('PanelManager: CSV imported, requesting posts');
           this.state.flagged = [];
           this.state.totalPosts = 0;
           this.state.pendingImportCount = importedCount;
-          this.document.dispatchEvent(
-            new CustomEvent('xghosted:request-posts')
-          );
+          this.document.dispatchEvent(new CustomEvent(EVENTS.REQUEST_POSTS));
           this.renderPanel();
         }
       };
@@ -2249,7 +2401,7 @@
           this.pendingCopyLinks = false;
         }
         if (this.pendingExportCsv) {
-          this.exportProcessedPostsCSV(posts);
+          this.handleCsvExported({ detail: { csvData: posts } });
           this.pendingExportCsv = false;
         }
         if (posts) {
@@ -2277,9 +2429,7 @@
       };
       const handleExportMetrics = () => {
         this.log('PanelManager: Export metrics requested');
-        this.document.dispatchEvent(
-          new CustomEvent('xghosted:request-metrics')
-        );
+        this.document.dispatchEvent(new CustomEvent(EVENTS.REQUEST_METRICS));
         this.renderPanel();
       };
       const handleMetricsRetrieved = ({ detail: { timingHistory } }) => {
@@ -2288,111 +2438,119 @@
           timingHistory.length
         );
       };
+      const handleCsvExported = ({ detail: { csvData } }) => {
+        const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = this.document.createElement('a');
+        a.href = url;
+        a.download = 'processed_posts.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+        this.log(`Exported CSV: processed_posts.csv`);
+      };
       this.document.addEventListener(
-        'xghosted:state-updated',
-        handleStateUpdated
+        EVENTS.INIT_COMPONENTS,
+        ({ detail: { config } }) => {
+          this.linkPrefix = config.linkPrefix || this.linkPrefix;
+          this.log('PanelManager initialized with config:', config);
+        }
       );
+      this.document.addEventListener(EVENTS.STATE_UPDATED, handleStateUpdated);
       this.document.addEventListener(
-        'xghosted:polling-state-updated',
+        EVENTS.POLLING_STATE_UPDATED,
         handlePollingStateUpdated
       );
       this.document.addEventListener(
-        'xghosted:auto-scrolling-toggled',
+        EVENTS.AUTO_SCROLLING_TOGGLED,
         handleAutoScrollingToggled
       );
-      this.document.addEventListener('xghosted:init', handleInit);
+      this.document.addEventListener(EVENTS.INIT, handleInit);
       this.document.addEventListener(
-        'xghosted:user-profile-updated',
+        EVENTS.USER_PROFILE_UPDATED,
         handleUserProfileUpdated
       );
       this.document.addEventListener(
-        'xghosted:toggle-panel-visibility',
+        EVENTS.TOGGLE_PANEL_VISIBILITY,
         handleToggleVisibility
       );
-      this.document.addEventListener('xghosted:open-about', handleOpenAbout);
+      this.document.addEventListener(EVENTS.OPEN_ABOUT, handleOpenAbout);
       this.document.addEventListener(
-        'xghosted:post-registered',
+        EVENTS.POST_REGISTERED,
         handlePostRegistered
       );
       this.document.addEventListener(
-        'xghosted:post-registered-confirmed',
+        EVENTS.POST_REGISTERED_CONFIRMED,
         handlePostRegisteredConfirmed
       );
+      this.document.addEventListener(EVENTS.POSTS_CLEARED, handlePostsCleared);
+      this.document.addEventListener(EVENTS.CSV_IMPORTED, handleCsvImported);
       this.document.addEventListener(
-        'xghosted:posts-cleared',
-        handlePostsCleared
-      );
-      this.document.addEventListener('xghosted:csv-import', handleCsvImport);
-      this.document.addEventListener('xghosted:csv-imported', handleCsvImport);
-      this.document.addEventListener(
-        'xghosted:posts-retrieved',
+        EVENTS.POSTS_RETRIEVED,
         handlePostsRetrieved
       );
       this.document.addEventListener(
-        'xghosted:export-metrics',
+        EVENTS.EXPORT_METRICS,
         handleExportMetrics
       );
       this.document.addEventListener(
-        'xghosted:metrics-retrieved',
+        EVENTS.METRICS_RETRIEVED,
         handleMetricsRetrieved
       );
+      this.document.addEventListener(EVENTS.CSV_EXPORTED, handleCsvExported);
       this.cleanup = () => {
         this.document.removeEventListener(
-          'xghosted:state-updated',
+          EVENTS.STATE_UPDATED,
           handleStateUpdated
         );
         this.document.removeEventListener(
-          'xghosted:polling-state-updated',
+          EVENTS.POLLING_STATE_UPDATED,
           handlePollingStateUpdated
         );
         this.document.removeEventListener(
-          'xghosted:auto-scrolling-toggled',
+          EVENTS.AUTO_SCROLLING_TOGGLED,
           handleAutoScrollingToggled
         );
-        this.document.removeEventListener('xghosted:init', handleInit);
+        this.document.removeEventListener(EVENTS.INIT, handleInit);
         this.document.removeEventListener(
-          'xghosted:user-profile-updated',
+          EVENTS.USER_PROFILE_UPDATED,
           handleUserProfileUpdated
         );
         this.document.removeEventListener(
-          'xghosted:toggle-panel-visibility',
+          EVENTS.TOGGLE_PANEL_VISIBILITY,
           handleToggleVisibility
         );
+        this.document.removeEventListener(EVENTS.OPEN_ABOUT, handleOpenAbout);
         this.document.removeEventListener(
-          'xghosted:open-about',
-          handleOpenAbout
-        );
-        this.document.removeEventListener(
-          'xghosted:post-registered',
+          EVENTS.POST_REGISTERED,
           handlePostRegistered
         );
         this.document.removeEventListener(
-          'xghosted:post-registered-confirmed',
+          EVENTS.POST_REGISTERED_CONFIRMED,
           handlePostRegisteredConfirmed
         );
         this.document.removeEventListener(
-          'xghosted:posts-cleared',
+          EVENTS.POSTS_CLEARED,
           handlePostsCleared
         );
         this.document.removeEventListener(
-          'xghosted:csv-import',
-          handleCsvImport
+          EVENTS.CSV_IMPORTED,
+          handleCsvImported
         );
         this.document.removeEventListener(
-          'xghosted:csv-imported',
-          handleCsvImport
-        );
-        this.document.removeEventListener(
-          'xghosted:posts-retrieved',
+          EVENTS.POSTS_RETRIEVED,
           handlePostsRetrieved
         );
         this.document.removeEventListener(
-          'xghosted:export-metrics',
+          EVENTS.EXPORT_METRICS,
           handleExportMetrics
         );
         this.document.removeEventListener(
-          'xghosted:metrics-retrieved',
+          EVENTS.METRICS_RETRIEVED,
           handleMetricsRetrieved
+        );
+        this.document.removeEventListener(
+          EVENTS.CSV_EXPORTED,
+          handleCsvExported
         );
       };
       this.renderPanelDebounced = this.debounce(() => this.renderPanel(), 500);
@@ -2521,7 +2679,7 @@
           : !this.state.isPanelVisible;
       this.saveState();
       this.document.dispatchEvent(
-        new CustomEvent('xghosted:toggle-panel-visibility', {
+        new CustomEvent(EVENTS.TOGGLE_PANEL_VISIBILITY, {
           detail: { isPanelVisible: this.state.isPanelVisible },
         })
       );
@@ -2536,7 +2694,7 @@
     window.PanelManager.prototype.onEyeballClick = function (href) {
       this.log(`PanelManager: Eyeball clicked for href=${href}`);
       this.document.dispatchEvent(
-        new CustomEvent('xghosted:request-post-check', {
+        new CustomEvent(EVENTS.REQUEST_POST_CHECK, {
           detail: { href },
         })
       );
@@ -2606,45 +2764,44 @@
       this.log(`Toggled theme dropdown: ${this.state.isDropdownOpen}`);
     };
     window.PanelManager.prototype.togglePolling = function () {
-      this.state.isPollingEnabled = !this.state.isPollingEnabled;
       this.document.dispatchEvent(
-        new CustomEvent('xghosted:set-polling', {
-          detail: { enabled: this.state.isPollingEnabled },
+        new CustomEvent(EVENTS.SET_POLLING, {
+          detail: { enabled: !this.state.isPollingEnabled },
         })
       );
       this.saveState();
       this.renderPanel();
-      this.log(`Toggled polling: ${this.state.isPollingEnabled}`);
+      this.log(`Toggled polling: ${!this.state.isPollingEnabled}`);
     };
     window.PanelManager.prototype.toggleAutoScrolling = function () {
-      this.state.isAutoScrollingEnabled = !this.state.isAutoScrollingEnabled;
       this.document.dispatchEvent(
-        new CustomEvent('xghosted:set-auto-scrolling', {
-          detail: { enabled: this.state.isAutoScrollingEnabled },
+        new CustomEvent(EVENTS.SET_AUTO_SCROLLING, {
+          detail: { enabled: !this.state.isAutoScrollingEnabled },
         })
       );
       this.saveState();
       this.renderPanel();
-      this.log(`Toggled auto-scrolling: ${this.state.isAutoScrollingEnabled}`);
+      this.log(`Toggled auto-scrolling: ${!this.state.isAutoScrollingEnabled}`);
     };
     window.PanelManager.prototype.exportCsv = function () {
-      this.document.dispatchEvent(new CustomEvent('xghosted:export-csv'));
+      this.pendingExportCsv = true;
+      this.document.dispatchEvent(new CustomEvent(EVENTS.EXPORT_CSV));
       this.renderPanel();
       this.log('Dispatched export CSV event');
     };
     window.PanelManager.prototype.clearPosts = function () {
-      this.document.dispatchEvent(new CustomEvent('xghosted:clear-posts-ui'));
+      this.document.dispatchEvent(new CustomEvent(EVENTS.CLEAR_POSTS_UI));
       this.renderPanel();
       this.log('Dispatched clear posts event');
     };
     window.PanelManager.prototype.openAbout = function () {
-      this.document.dispatchEvent(new CustomEvent('xghosted:open-about'));
+      this.document.dispatchEvent(new CustomEvent(EVENTS.OPEN_ABOUT));
       this.renderPanel();
       this.log('Dispatched open about event');
     };
     window.PanelManager.prototype.submitCsv = function (csvText) {
       this.document.dispatchEvent(
-        new CustomEvent('xghosted:csv-import', {
+        new CustomEvent(EVENTS.CSV_IMPORT, {
           detail: { csvText },
         })
       );
@@ -2668,17 +2825,12 @@
       };
       this.storage.set('xGhostedState', updatedState);
       this.log(`Saved themeMode: ${newMode}`);
-      this.document.dispatchEvent(
-        new CustomEvent('xghosted:theme-mode-changed', {
-          detail: { themeMode: newMode },
-        })
-      );
       this.renderPanel();
     };
     window.PanelManager.prototype.copyLinks = function (posts) {
       if (!posts) {
         this.pendingCopyLinks = true;
-        this.document.dispatchEvent(new CustomEvent('xghosted:request-posts'));
+        this.document.dispatchEvent(new CustomEvent(EVENTS.REQUEST_POSTS));
         return;
       }
       const linksText = this.state.flagged
@@ -2695,39 +2847,6 @@
           alert('Failed to copy problem links.');
         });
       this.renderPanel();
-    };
-    window.PanelManager.prototype.exportProcessedPostsCSV = function (posts) {
-      if (!posts) {
-        this.pendingExportCsv = true;
-        this.document.dispatchEvent(new CustomEvent('xghosted:request-posts'));
-        return;
-      }
-      const headers = ['Link', 'Quality', 'Reason', 'Checked'];
-      const rows = posts.map(([id, { analysis, checked }]) => {
-        return [
-          `${this.linkPrefix}${id}`,
-          analysis.quality.name,
-          analysis.reason,
-          checked ? 'true' : 'false',
-        ].join(',');
-      });
-      const csvData = [headers.join(','), ...rows].join('\n');
-      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = this.document.createElement('a');
-      a.href = url;
-      a.download = 'processed_posts.csv';
-      a.click();
-      URL.revokeObjectURL(url);
-      this.log(`Exported CSV: processed_posts.csv`);
-    };
-    window.PanelManager.prototype.importProcessedPostsCSV = function (csvText) {
-      this.log('Import CSV button clicked');
-      this.document.dispatchEvent(
-        new CustomEvent('xghosted:request-import-csv', {
-          detail: { csvText },
-        })
-      );
     };
     window.PanelManager.prototype.showSplashPage = function () {
       try {
@@ -2823,18 +2942,147 @@
     return PanelManager;
   })();
   window.ProcessedPostsManager = (function () {
-    const { postQuality } = window.XGhostedUtils;
+    const { postQuality, CONFIG, EVENTS } = window.XGhostedUtils;
     // src/utils/ProcessedPostsManager.js
     var ProcessedPostsManager = class {
-      constructor({ storage, log, linkPrefix, persistProcessedPosts = false }) {
+      constructor({
+        storage,
+        log,
+        linkPrefix,
+        persistProcessedPosts,
+        document,
+      }) {
         this.storage = storage || { get: () => {}, set: () => {} };
         this.log = log || console.log.bind(console);
-        this.linkPrefix = linkPrefix || '';
-        this.persistProcessedPosts = persistProcessedPosts;
+        this.linkPrefix = linkPrefix || CONFIG.linkPrefix;
+        this.persistProcessedPosts =
+          persistProcessedPosts ?? CONFIG.persistProcessedPosts;
         this.posts = {};
+        this.document = document;
         if (this.persistProcessedPosts) {
           this.load();
         }
+        this.initEventListeners();
+      }
+      initEventListeners() {
+        this.document.addEventListener(
+          EVENTS.INIT_COMPONENTS,
+          ({ detail: { config } }) => {
+            this.linkPrefix = config.linkPrefix || this.linkPrefix;
+            this.persistProcessedPosts =
+              config.persistProcessedPosts ?? this.persistProcessedPosts;
+            if (this.persistProcessedPosts) {
+              this.load();
+            }
+          }
+        );
+        this.document.addEventListener(
+          EVENTS.POST_REGISTERED,
+          ({ detail: { href, data } }) => {
+            if (!data?.analysis?.quality) {
+              this.log(
+                `Skipping post registration: no quality data for href=${href}`
+              );
+              return;
+            }
+            if (!href || href === 'false') {
+              if (data.analysis.quality.name === 'Problem') {
+                const fallbackId = `problem-post-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+                this.registerPost(fallbackId, data);
+                this.log(
+                  `Registered problem post with fallback ID: ${fallbackId}`
+                );
+              } else {
+                this.log(
+                  `Skipping non-problem post with invalid href: ${href}`
+                );
+              }
+              return;
+            }
+            this.registerPost(href, data);
+            this.log(`Registered post: ${href}`);
+            this.document.dispatchEvent(
+              new CustomEvent(EVENTS.POST_REGISTERED_CONFIRMED, {
+                detail: { href, data },
+              })
+            );
+          }
+        );
+        this.document.addEventListener(
+          EVENTS.POST_REQUESTED,
+          ({ detail: { href } }) => {
+            const post = this.getPost(href);
+            this.document.dispatchEvent(
+              new CustomEvent(EVENTS.POST_RETRIEVED, {
+                detail: { href, post },
+              })
+            );
+            this.log(`Retrieved post: ${href}`);
+          }
+        );
+        this.document.addEventListener(EVENTS.CLEAR_POSTS, async () => {
+          await this.clearPosts();
+          this.document.dispatchEvent(
+            new CustomEvent(EVENTS.POSTS_CLEARED_CONFIRMED, {
+              detail: {},
+            })
+          );
+          this.document.dispatchEvent(
+            new CustomEvent(EVENTS.POSTS_CLEARED, {
+              detail: {},
+            })
+          );
+          this.log('Cleared all posts');
+        });
+        this.document.addEventListener(EVENTS.CLEAR_POSTS_UI, async () => {
+          if (confirm('Clear all processed posts?')) {
+            await this.clearPosts();
+            this.document.dispatchEvent(
+              new CustomEvent(EVENTS.POSTS_CLEARED_CONFIRMED, {
+                detail: {},
+              })
+            );
+            this.document.dispatchEvent(
+              new CustomEvent(EVENTS.POSTS_CLEARED, {
+                detail: {},
+              })
+            );
+            this.log('Cleared all posts via UI');
+          }
+        });
+        this.document.addEventListener(EVENTS.REQUEST_POSTS, () => {
+          const posts = this.getAllPosts();
+          this.document.dispatchEvent(
+            new CustomEvent(EVENTS.POSTS_RETRIEVED, {
+              detail: { posts },
+            })
+          );
+          this.log('Dispatched xghosted:posts-retrieved with posts:', posts);
+        });
+        this.document.addEventListener(
+          EVENTS.REQUEST_IMPORT_CSV,
+          ({ detail: { csvText } }) => {
+            const importedCount = this.importPosts(csvText);
+            this.document.dispatchEvent(
+              new CustomEvent(EVENTS.CSV_IMPORTED, {
+                detail: { importedCount },
+              })
+            );
+            this.log(
+              'Dispatched xghosted:csv-imported with count:',
+              importedCount
+            );
+          }
+        );
+        this.document.addEventListener(EVENTS.EXPORT_CSV, () => {
+          const csvData = this.exportPostsToCSV();
+          this.document.dispatchEvent(
+            new CustomEvent(EVENTS.CSV_EXPORTED, {
+              detail: { csvData },
+            })
+          );
+          this.log('Dispatched xghosted:csv-exported');
+        });
       }
       load() {
         if (!this.persistProcessedPosts) {
@@ -2938,16 +3186,32 @@
         }
         return importedCount;
       }
+      exportPostsToCSV() {
+        const headers = ['Link', 'Quality', 'Reason', 'Checked'];
+        const rows = Object.entries(this.posts).map(
+          ([id, { analysis, checked }]) => {
+            return [
+              `${this.linkPrefix}${id}`,
+              analysis.quality.name,
+              analysis.reason,
+              checked ? 'true' : 'false',
+            ].join(',');
+          }
+        );
+        return [headers.join(','), ...rows].join('\n');
+      }
     };
     return ProcessedPostsManager;
   })();
   window.TimingManager = (function () {
+    const { CONFIG, EVENTS } = window.XGhostedUtils;
     // src/utils/TimingManager.js
     var TimingManager = class {
-      constructor({ timing, log, storage }) {
-        this.timing = { ...timing };
+      constructor({ timing, log, storage, document }) {
+        this.timing = { ...CONFIG.timing, ...timing };
         this.log = log || console.log.bind(console);
         this.storage = storage || { get: () => {}, set: () => {} };
+        this.document = document;
         this.startTime = performance.now();
         this.metrics = {
           polls: 0,
@@ -2971,6 +3235,69 @@
         this.hasSetDensity = false;
         this.metricsHistory = [];
         this.log('TimingManager initialized');
+        this.initEventListeners();
+      }
+      initEventListeners() {
+        this.document.addEventListener(
+          EVENTS.INIT_COMPONENTS,
+          ({ detail: { config } }) => {
+            this.timing = { ...this.timing, ...config.timing };
+            this.loadMetrics();
+          }
+        );
+        this.document.addEventListener(EVENTS.RECORD_POLL, ({ detail }) => {
+          this.recordPoll(detail);
+        });
+        this.document.addEventListener(EVENTS.RECORD_SCROLL, ({ detail }) => {
+          this.recordScroll(detail);
+        });
+        this.document.addEventListener(
+          EVENTS.RECORD_HIGHLIGHT,
+          ({ detail }) => {
+            this.recordHighlighting(detail.duration);
+          }
+        );
+        this.document.addEventListener(
+          EVENTS.SET_INITIAL_WAIT_TIME,
+          ({ detail }) => {
+            this.setInitialWaitTime(detail.time);
+          }
+        );
+        this.document.addEventListener(
+          EVENTS.SET_POST_DENSITY,
+          ({ detail }) => {
+            this.setPostDensity(detail.count);
+          }
+        );
+        this.document.addEventListener(EVENTS.SAVE_METRICS, () => {
+          this.saveMetrics();
+        });
+        this.document.addEventListener(EVENTS.REQUEST_METRICS, () => {
+          this.document.dispatchEvent(
+            new CustomEvent(EVENTS.METRICS_RETRIEVED, {
+              detail: { timingHistory: this.metricsHistory },
+            })
+          );
+          this.log(
+            'Dispatched xghosted:metrics-retrieved with entries:',
+            this.metricsHistory.length
+          );
+        });
+        this.document.addEventListener(EVENTS.EXPORT_METRICS, () => {
+          const blob = new Blob(
+            [JSON.stringify(this.metricsHistory, null, 2)],
+            {
+              type: 'application/json',
+            }
+          );
+          const url = URL.createObjectURL(blob);
+          const a = this.document.createElement('a');
+          a.href = url;
+          a.download = 'xGhosted_timing_history.json';
+          a.click();
+          URL.revokeObjectURL(url);
+          this.log('Exported timing history as JSON');
+        });
       }
       recordPoll({
         postsProcessed,
@@ -3021,8 +3348,8 @@
           'Emitting xghosted:metrics-updated with polls:',
           this.metrics.polls
         );
-        document.dispatchEvent(
-          new CustomEvent('xghosted:metrics-updated', {
+        this.document.dispatchEvent(
+          new CustomEvent(EVENTS.METRICS_UPDATED, {
             detail: { metrics: this.metrics },
           })
         );
@@ -3403,267 +3730,42 @@
   gap: 12px;
 }`;
 
-  // Metrics history management
-  let metricsHistory = GM_getValue('xGhostedState', {}).timingHistory || [];
-
-  document.addEventListener(
-    'xghosted:metrics-updated',
-    ({ detail: { metrics } }) => {
-      log('Received xghosted:metrics-updated with polls:', metrics.polls);
-      metricsHistory.push({ ...metrics, timestamp: performance.now() });
-      const state = GM_getValue('xGhostedState', {});
-      state.timingHistory = metricsHistory;
-      GM_setValue('xGhostedState', state);
-      log(
-        'Updated metrics history in storage, entries:',
-        metricsHistory.length
-      );
-    }
-  );
-
-  document.addEventListener('xghosted:request-metrics', () => {
-    document.dispatchEvent(
-      new CustomEvent('xghosted:metrics-retrieved', {
-        detail: { timingHistory: metricsHistory },
-      })
-    );
-    log(
-      'Dispatched xghosted:metrics-retrieved with entries:',
-      metricsHistory.length
-    );
-  });
-
-  document.addEventListener('xghosted:export-metrics', () => {
-    const blob = new Blob([JSON.stringify(metricsHistory, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'xGhosted_timing_history.json';
-    a.click();
-    URL.revokeObjectURL(url);
-    log('Exported timing history as JSON');
-  });
-
-  document.addEventListener('xghosted:record-poll', (event) => {
-    log('Received xghosted:record-poll with event:', event.detail);
-    config.timingManager.recordPoll(event.detail);
-  });
-
-  // Initialize core components
+  // Initialize core components with document and configuration
   const postsManager = new window.ProcessedPostsManager({
-    storage: {
-      get: GM_getValue,
-      set: GM_setValue,
-    },
+    document,
+    storage: { get: GM_getValue, set: GM_setValue },
     log,
-    linkPrefix: 'https://x.com',
-    persistProcessedPosts: config.persistProcessedPosts,
+    linkPrefix: CONFIG.linkPrefix,
+    persistProcessedPosts: CONFIG.persistProcessedPosts,
   });
-  config.timingManager = new window.TimingManager({
-    timing: {
-      pollInterval: POLL_INTERVAL,
-      scrollInterval: SCROLL_INTERVAL,
-    },
+  const timingManager = new window.TimingManager({
+    document,
+    timing: CONFIG.timing,
     log,
     storage: { get: GM_getValue, set: GM_setValue },
   });
-  config.linkPrefix = 'https://x.com';
-  const xGhosted = new window.XGhosted(document, config);
-  xGhosted.state.isManualCheckEnabled = true;
+  const xGhosted = new window.XGhosted(document, { ...CONFIG, log });
 
-  let splashPanel = null;
-  // SplashPanel instantiation handled by PanelManager.js based on hasSeenSplash
+  // Emit INIT_COMPONENTS event for loose coupling
+  document.dispatchEvent(
+    new CustomEvent(EVENTS.INIT_COMPONENTS, { detail: { config: CONFIG } })
+  );
 
-  // Initialize UI panel
+  // Optionally initialize PanelManager if Preact is available
+  let panelManager;
   try {
-    const panelManager = new window.PanelManager(
-      document,
-      'dim',
-      'https://x.com',
-      { get: GM_getValue, set: GM_setValue },
-      log
-    );
-    log('GUI Panel initialized successfully');
-
-    document.addEventListener(
-      'xghosted:toggle-panel-visibility',
-      ({ detail: { isPanelVisible } }) => {
-        panelManager.setVisibility(isPanelVisible);
-      }
-    );
-    document.addEventListener('xghosted:copy-links', () => {
-      panelManager.copyLinks();
-    });
-    document.addEventListener('xghosted:export-csv', () => {
-      panelManager.exportProcessedPostsCSV();
-    });
-    document.addEventListener(
-      'xghosted:csv-import',
-      ({ detail: { csvText } }) => {
-        panelManager.importProcessedPostsCSV(csvText);
-      }
-    );
-    document.addEventListener(
-      'xghosted:request-import-csv',
-      ({ detail: { csvText } }) => {
-        const importedCount = postsManager.importPosts(csvText);
-        document.dispatchEvent(
-          new CustomEvent('xghosted:csv-imported', {
-            detail: { importedCount },
-          })
-        );
-        log('Dispatched xghosted:csv-imported with count:', importedCount);
-      }
-    );
-    document.addEventListener(
-      'xghosted:set-auto-scrolling',
-      ({ detail: { enabled } }) => {
-        xGhosted.setAutoScrolling(enabled);
-      }
-    );
-    document.addEventListener(
-      'xghosted:set-polling',
-      ({ detail: { enabled } }) => {
-        if (enabled) {
-          xGhosted.handleStartPolling();
-        } else {
-          xGhosted.handleStopPolling();
-        }
-      }
-    );
-    document.addEventListener(
-      'xghosted:request-post-check',
-      ({ detail: { href, post } }) => {
-        log(
-          `Received xghosted:request-post-check for href=${href}, post=${post ? 'found' : 'null'}`
-        );
-        xGhosted.userRequestedPostCheck(href, post);
-      }
-    );
-    document.addEventListener('xghosted:request-posts', () => {
-      const posts = postsManager.getAllPosts();
-      document.dispatchEvent(
-        new CustomEvent('xghosted:posts-retrieved', {
-          detail: { posts },
-        })
+    if (window.preact && window.preact.h) {
+      panelManager = new window.PanelManager(
+        document,
+        'dim',
+        CONFIG.linkPrefix,
+        { get: GM_getValue, set: GM_setValue },
+        log
       );
-      log('Dispatched xghosted:posts-retrieved with posts:', posts);
-    });
-    document.addEventListener(
-      'xghosted:request-post-register',
-      ({ detail: { href, data } }) => {
-        postsManager.registerPost(href, data);
-        document.dispatchEvent(
-          new CustomEvent('xghosted:post-registered-confirmed', {
-            detail: { href, data },
-          })
-        );
-        log('Dispatched xghosted:post-registered-confirmed for:', href);
-      }
-    );
-    document.addEventListener(
-      'click',
-      (e) => {
-        const eyeball =
-          e.target.closest('.xghosted-eyeball') ||
-          (e.target.classList.contains('xghosted-eyeball') ? e.target : null);
-        if (eyeball) {
-          e.preventDefault();
-          e.stopPropagation();
-          log('Eyeball clicked! Digging in...');
-          const clickedPost = eyeball.closest('div[data-xghosted-id]');
-          const href = clickedPost?.getAttribute('data-xghosted-id');
-          if (!href) {
-            log('No href found for clicked eyeball');
-            return;
-          }
-          log(`Processing eyeball click for: ${href}`);
-          if (xGhosted.state.isRateLimited) {
-            log(`Eyeball click skipped for ${href} due to rate limit`);
-            return;
-          }
-          document.dispatchEvent(
-            new CustomEvent('xghosted:request-post-check', {
-              detail: { href, post: clickedPost },
-            })
-          );
-        }
-      },
-      { capture: true }
-    );
-    document.addEventListener(
-      'xghosted:post-registered',
-      ({ detail: { href, data } }) => {
-        if (!data?.analysis?.quality) {
-          log(`Skipping post registration: no quality data for href=${href}`);
-          return;
-        }
-        if (!href || href === 'false') {
-          if (data.analysis.quality.name === 'Problem') {
-            const fallbackId = `problem-post-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-            postsManager.registerPost(fallbackId, data);
-            log(`Registered problem post with fallback ID: ${fallbackId}`);
-          } else {
-            log(`Skipping non-problem post with invalid href: ${href}`);
-          }
-          return;
-        }
-        postsManager.registerPost(href, data);
-        log(`Registered post: ${href}`);
-      }
-    );
-    document.addEventListener(
-      'xghosted:post-requested',
-      ({ detail: { href } }) => {
-        const post = postsManager.getPost(href);
-        document.dispatchEvent(
-          new CustomEvent('xghosted:post-retrieved', {
-            detail: { href, post },
-          })
-        );
-        log(`Retrieved post: ${href}`);
-      }
-    );
-    document.addEventListener('xghosted:clear-posts', async () => {
-      await postsManager.clearPosts();
-      document.dispatchEvent(
-        new CustomEvent('xghosted:posts-cleared-confirmed', {
-          detail: {},
-        })
-      );
-      document.dispatchEvent(
-        new CustomEvent('xghosted:posts-cleared', {
-          detail: {},
-        })
-      );
-      log('Cleared all posts');
-    });
-    document.addEventListener('xghosted:clear-posts-ui', async () => {
-      if (confirm('Clear all processed posts?')) {
-        await postsManager.clearPosts();
-        document.dispatchEvent(
-          new CustomEvent('xghosted:posts-cleared-confirmed', {
-            detail: {},
-          })
-        );
-        document.dispatchEvent(
-          new CustomEvent('xghosted:posts-cleared', {
-            detail: {},
-          })
-        );
-        log('Cleared all posts via UI');
-      }
-    });
-    document.addEventListener('xghosted:rate-limit-detected', ({ detail }) => {
-      log(`Rate limit detected, pausing polling for ${detail.pauseDuration}ms`);
-      xGhosted.handleStopPolling();
-      setTimeout(() => {
-        log('Resuming polling after rate limit pause');
-        xGhosted.handleStartPolling();
-      }, detail.pauseDuration);
-    });
+      log('GUI Panel initialized successfully');
+    } else {
+      log('Preact not available, running without UI');
+    }
   } catch (error) {
     log(
       `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`
@@ -3677,5 +3779,6 @@
     );
   }
 
+  // Start the core functionality
   xGhosted.init();
 })();

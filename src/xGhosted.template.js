@@ -18,23 +18,62 @@
 (function () {
   ("use strict");
 
-  // Configuration
-  const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
-  const POLL_INTERVAL = 600; // Polling interval in milliseconds
-  const SCROLL_INTERVAL = 1250; // Scroll interval in milliseconds
-  const config = {
+  // Centralized configuration object
+  const CONFIG = {
     timing: {
       debounceDelay: 500,
       throttleDelay: 1000,
       tabCheckThrottle: 5000,
       exportThrottle: 5000,
-      rateLimitPause: RATE_LIMIT_PAUSE,
-      pollInterval: POLL_INTERVAL,
-      scrollInterval: SCROLL_INTERVAL,
+      rateLimitPause: 20 * 1000,
+      pollInterval: 600,
+      scrollInterval: 1250,
     },
     showSplash: true,
     logTarget: "tampermonkey",
     persistProcessedPosts: false,
+    linkPrefix: "https://x.com",
+  };
+
+  // Event constants for consistent event naming across components
+  const EVENTS = {
+    INIT_COMPONENTS: "xghosted:init-components",
+    POST_REGISTERED: "xghosted:post-registered",
+    POST_REQUESTED: "xghosted:post-requested",
+    POST_RETRIEVED: "xghosted:post-retrieved",
+    REQUEST_POST_CHECK: "xghosted:request-post-check",
+    CLEAR_POSTS: "xghosted:clear-posts",
+    CLEAR_POSTS_UI: "xghosted:clear-posts-ui",
+    POSTS_CLEARED: "xghosted:posts-cleared",
+    POSTS_CLEARED_CONFIRMED: "xghosted:posts-cleared-confirmed",
+    REQUEST_POSTS: "xghosted:request-posts",
+    POSTS_RETRIEVED: "xghosted:posts-retrieved",
+    CSV_IMPORT: "xghosted:csv-import",
+    CSV_IMPORTED: "xghosted:csv-imported",
+    REQUEST_IMPORT_CSV: "xghosted:request-import-csv",
+    EXPORT_CSV: "xghosted:export-csv",
+    CSV_EXPORTED: "xghosted:csv-exported",
+    SET_POLLING: "xghosted:set-polling",
+    POLLING_STATE_UPDATED: "xghosted:polling-state-updated",
+    SET_AUTO_SCROLLING: "xghosted:set-auto-scrolling",
+    AUTO_SCROLLING_TOGGLED: "xghosted:auto-scrolling-toggled",
+    RATE_LIMIT_DETECTED: "xghosted:rate-limit-detected",
+    USER_PROFILE_UPDATED: "xghosted:user-profile-updated",
+    INIT: "xghosted:init",
+    STATE_UPDATED: "xghosted:state-updated",
+    OPEN_ABOUT: "xghosted:open-about",
+    TOGGLE_PANEL_VISIBILITY: "xghosted:toggle-panel-visibility",
+    COPY_LINKS: "xghosted:copy-links",
+    REQUEST_METRICS: "xghosted:request-metrics",
+    METRICS_RETRIEVED: "xghosted:metrics-retrieved",
+    EXPORT_METRICS: "xghosted:export-metrics",
+    METRICS_UPDATED: "xghosted:metrics-updated",
+    RECORD_POLL: "xghosted:record-poll",
+    RECORD_SCROLL: "xghosted:record-scroll",
+    RECORD_HIGHLIGHT: "xghosted:record-highlight",
+    SET_INITIAL_WAIT_TIME: "xghosted:set-initial-wait-time",
+    SET_POST_DENSITY: "xghosted:set-post-density",
+    SAVE_METRICS: "xghosted:save-metrics",
   };
 
   // --- Inject Shared Utilities ---
@@ -47,10 +86,10 @@
   }
 
   // Safety check: Ensure we're on X.com with a valid document
-  const log = new window.Logger({ logTarget: config.logTarget }).log.bind(
+  const log = new window.Logger({ logTarget: CONFIG.logTarget }).log.bind(
     window.Logger
   );
-  config.log = log;
+  CONFIG.log = log;
   if (!window.location.href.startsWith("https://x.com/") || !document.body) {
     log("xGhosted: Aborting - invalid environment");
     return;
@@ -69,267 +108,42 @@
   // --- Inject Styles ---
   // INJECT: Styles
 
-  // Metrics history management
-  let metricsHistory = GM_getValue("xGhostedState", {}).timingHistory || [];
-
-  document.addEventListener(
-    "xghosted:metrics-updated",
-    ({ detail: { metrics } }) => {
-      log("Received xghosted:metrics-updated with polls:", metrics.polls);
-      metricsHistory.push({ ...metrics, timestamp: performance.now() });
-      const state = GM_getValue("xGhostedState", {});
-      state.timingHistory = metricsHistory;
-      GM_setValue("xGhostedState", state);
-      log(
-        "Updated metrics history in storage, entries:",
-        metricsHistory.length
-      );
-    }
-  );
-
-  document.addEventListener("xghosted:request-metrics", () => {
-    document.dispatchEvent(
-      new CustomEvent("xghosted:metrics-retrieved", {
-        detail: { timingHistory: metricsHistory },
-      })
-    );
-    log(
-      "Dispatched xghosted:metrics-retrieved with entries:",
-      metricsHistory.length
-    );
-  });
-
-  document.addEventListener("xghosted:export-metrics", () => {
-    const blob = new Blob([JSON.stringify(metricsHistory, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "xGhosted_timing_history.json";
-    a.click();
-    URL.revokeObjectURL(url);
-    log("Exported timing history as JSON");
-  });
-
-  document.addEventListener("xghosted:record-poll", (event) => {
-    log("Received xghosted:record-poll with event:", event.detail);
-    config.timingManager.recordPoll(event.detail);
-  });
-
-  // Initialize core components
+  // Initialize core components with document and configuration
   const postsManager = new window.ProcessedPostsManager({
-    storage: {
-      get: GM_getValue,
-      set: GM_setValue,
-    },
+    document,
+    storage: { get: GM_getValue, set: GM_setValue },
     log,
-    linkPrefix: "https://x.com",
-    persistProcessedPosts: config.persistProcessedPosts,
+    linkPrefix: CONFIG.linkPrefix,
+    persistProcessedPosts: CONFIG.persistProcessedPosts,
   });
-  config.timingManager = new window.TimingManager({
-    timing: {
-      pollInterval: POLL_INTERVAL,
-      scrollInterval: SCROLL_INTERVAL,
-    },
+  const timingManager = new window.TimingManager({
+    document,
+    timing: CONFIG.timing,
     log,
     storage: { get: GM_getValue, set: GM_setValue },
   });
-  config.linkPrefix = "https://x.com";
-  const xGhosted = new window.XGhosted(document, config);
-  xGhosted.state.isManualCheckEnabled = true;
+  const xGhosted = new window.XGhosted(document, { ...CONFIG, log });
 
-  let splashPanel = null;
-  // SplashPanel instantiation handled by PanelManager.js based on hasSeenSplash
+  // Emit INIT_COMPONENTS event for loose coupling
+  document.dispatchEvent(
+    new CustomEvent(EVENTS.INIT_COMPONENTS, { detail: { config: CONFIG } })
+  );
 
-  // Initialize UI panel
+  // Optionally initialize PanelManager if Preact is available
+  let panelManager;
   try {
-    const panelManager = new window.PanelManager(
-      document,
-      "dim",
-      "https://x.com",
-      { get: GM_getValue, set: GM_setValue },
-      log
-    );
-    log("GUI Panel initialized successfully");
-
-    document.addEventListener(
-      "xghosted:toggle-panel-visibility",
-      ({ detail: { isPanelVisible } }) => {
-        panelManager.setVisibility(isPanelVisible);
-      }
-    );
-    document.addEventListener("xghosted:copy-links", () => {
-      panelManager.copyLinks();
-    });
-    document.addEventListener("xghosted:export-csv", () => {
-      panelManager.exportProcessedPostsCSV();
-    });
-    document.addEventListener(
-      "xghosted:csv-import",
-      ({ detail: { csvText } }) => {
-        panelManager.importProcessedPostsCSV(csvText);
-      }
-    );
-    document.addEventListener(
-      "xghosted:request-import-csv",
-      ({ detail: { csvText } }) => {
-        const importedCount = postsManager.importPosts(csvText);
-        document.dispatchEvent(
-          new CustomEvent("xghosted:csv-imported", {
-            detail: { importedCount },
-          })
-        );
-        log("Dispatched xghosted:csv-imported with count:", importedCount);
-      }
-    );
-    document.addEventListener(
-      "xghosted:set-auto-scrolling",
-      ({ detail: { enabled } }) => {
-        xGhosted.setAutoScrolling(enabled);
-      }
-    );
-    document.addEventListener(
-      "xghosted:set-polling",
-      ({ detail: { enabled } }) => {
-        if (enabled) {
-          xGhosted.handleStartPolling();
-        } else {
-          xGhosted.handleStopPolling();
-        }
-      }
-    );
-    document.addEventListener(
-      "xghosted:request-post-check",
-      ({ detail: { href, post } }) => {
-        log(
-          `Received xghosted:request-post-check for href=${href}, post=${post ? "found" : "null"}`
-        );
-        xGhosted.userRequestedPostCheck(href, post);
-      }
-    );
-    document.addEventListener("xghosted:request-posts", () => {
-      const posts = postsManager.getAllPosts();
-      document.dispatchEvent(
-        new CustomEvent("xghosted:posts-retrieved", {
-          detail: { posts },
-        })
+    if (window.preact && window.preact.h) {
+      panelManager = new window.PanelManager(
+        document,
+        "dim",
+        CONFIG.linkPrefix,
+        { get: GM_getValue, set: GM_setValue },
+        log
       );
-      log("Dispatched xghosted:posts-retrieved with posts:", posts);
-    });
-    document.addEventListener(
-      "xghosted:request-post-register",
-      ({ detail: { href, data } }) => {
-        postsManager.registerPost(href, data);
-        document.dispatchEvent(
-          new CustomEvent("xghosted:post-registered-confirmed", {
-            detail: { href, data },
-          })
-        );
-        log("Dispatched xghosted:post-registered-confirmed for:", href);
-      }
-    );
-    document.addEventListener(
-      "click",
-      (e) => {
-        const eyeball =
-          e.target.closest(".xghosted-eyeball") ||
-          (e.target.classList.contains("xghosted-eyeball") ? e.target : null);
-        if (eyeball) {
-          e.preventDefault();
-          e.stopPropagation();
-          log("Eyeball clicked! Digging in...");
-          const clickedPost = eyeball.closest("div[data-xghosted-id]");
-          const href = clickedPost?.getAttribute("data-xghosted-id");
-          if (!href) {
-            log("No href found for clicked eyeball");
-            return;
-          }
-          log(`Processing eyeball click for: ${href}`);
-          if (xGhosted.state.isRateLimited) {
-            log(`Eyeball click skipped for ${href} due to rate limit`);
-            return;
-          }
-          document.dispatchEvent(
-            new CustomEvent("xghosted:request-post-check", {
-              detail: { href, post: clickedPost },
-            })
-          );
-        }
-      },
-      { capture: true }
-    );
-    document.addEventListener(
-      "xghosted:post-registered",
-      ({ detail: { href, data } }) => {
-        if (!data?.analysis?.quality) {
-          log(`Skipping post registration: no quality data for href=${href}`);
-          return;
-        }
-        if (!href || href === "false") {
-          if (data.analysis.quality.name === "Problem") {
-            const fallbackId = `problem-post-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-            postsManager.registerPost(fallbackId, data);
-            log(`Registered problem post with fallback ID: ${fallbackId}`);
-          } else {
-            log(`Skipping non-problem post with invalid href: ${href}`);
-          }
-          return;
-        }
-        postsManager.registerPost(href, data);
-        log(`Registered post: ${href}`);
-      }
-    );
-    document.addEventListener(
-      "xghosted:post-requested",
-      ({ detail: { href } }) => {
-        const post = postsManager.getPost(href);
-        document.dispatchEvent(
-          new CustomEvent("xghosted:post-retrieved", {
-            detail: { href, post },
-          })
-        );
-        log(`Retrieved post: ${href}`);
-      }
-    );
-    document.addEventListener("xghosted:clear-posts", async () => {
-      await postsManager.clearPosts();
-      document.dispatchEvent(
-        new CustomEvent("xghosted:posts-cleared-confirmed", {
-          detail: {},
-        })
-      );
-      document.dispatchEvent(
-        new CustomEvent("xghosted:posts-cleared", {
-          detail: {},
-        })
-      );
-      log("Cleared all posts");
-    });
-    document.addEventListener("xghosted:clear-posts-ui", async () => {
-      if (confirm("Clear all processed posts?")) {
-        await postsManager.clearPosts();
-        document.dispatchEvent(
-          new CustomEvent("xghosted:posts-cleared-confirmed", {
-            detail: {},
-          })
-        );
-        document.dispatchEvent(
-          new CustomEvent("xghosted:posts-cleared", {
-            detail: {},
-          })
-        );
-        log("Cleared all posts via UI");
-      }
-    });
-    document.addEventListener("xghosted:rate-limit-detected", ({ detail }) => {
-      log(`Rate limit detected, pausing polling for ${detail.pauseDuration}ms`);
-      xGhosted.handleStopPolling();
-      setTimeout(() => {
-        log("Resuming polling after rate limit pause");
-        xGhosted.handleStartPolling();
-      }, detail.pauseDuration);
-    });
+      log("GUI Panel initialized successfully");
+    } else {
+      log("Preact not available, running without UI");
+    }
   } catch (error) {
     log(
       `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`
@@ -343,5 +157,6 @@
     );
   }
 
+  // Start the core functionality
   xGhosted.init();
 })();
