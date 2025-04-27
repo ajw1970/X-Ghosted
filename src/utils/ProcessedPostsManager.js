@@ -40,13 +40,9 @@ class ProcessedPostsManager {
           return;
         }
         if (!href || href === "false") {
-          if (data.analysis.quality.name === "Problem") {
-            const fallbackId = `problem-post-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-            this.registerPost(fallbackId, data);
-            this.log(`Registered problem post with fallback ID: ${fallbackId}`);
-          } else {
-            this.log(`Skipping non-problem post with invalid href: ${href}`);
-          }
+          this.log(
+            `Skipping post with invalid href: ${href}${data.analysis.quality.name === "Problem" ? " (PROBLEM)" : ""}`
+          );
           return;
         }
         this.registerPost(href, data);
