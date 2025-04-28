@@ -115,7 +115,7 @@ window.PanelManager = function (
     isRateLimited: false,
     isManualCheckEnabled: false,
     isPollingEnabled: true,
-    isAutoScrollingEnabled: false,
+    userRequestedAutoScrolling: false,
     themeMode: validThemes.includes(themeMode) ? themeMode : "light",
     hasSeenSplash: false,
     userProfileName: null,
@@ -236,7 +236,7 @@ window.PanelManager.prototype.init = function () {
     this.renderPanel();
   };
   const handleAutoScrollingToggled = (e) => {
-    this.state.isAutoScrollingEnabled = e.detail.isAutoScrollingEnabled;
+    this.state.userRequestedAutoScrolling = e.detail.userRequestedAutoScrolling;
     this.renderPanel();
   };
   const handleInit = (e) => {
@@ -639,7 +639,7 @@ window.PanelManager.prototype.renderPanel = function () {
       flagged: this.state.flagged || [],
       totalPosts: this.state.totalPosts || 0,
       isPolling: this.state.isPollingEnabled,
-      isScrolling: this.state.isAutoScrollingEnabled,
+      isScrolling: this.state.userRequestedAutoScrolling,
       userProfileName: this.state.userProfileName,
       onToggleVisibility: () => this.toggleVisibility(),
       onToggleTools: () => this.toggleTools(),
@@ -699,12 +699,12 @@ window.PanelManager.prototype.togglePolling = function () {
 window.PanelManager.prototype.toggleAutoScrolling = function () {
   this.document.dispatchEvent(
     new CustomEvent(EVENTS.SET_AUTO_SCROLLING, {
-      detail: { enabled: !this.state.isAutoScrollingEnabled },
+      detail: { enabled: !this.state.userRequestedAutoScrolling },
     })
   );
   this.saveState();
   this.renderPanel(); // Immediate for user interaction
-  this.log(`Toggled auto-scrolling: ${!this.state.isAutoScrollingEnabled}`);
+  this.log(`Toggled auto-scrolling: ${!this.state.userRequestedAutoScrolling}`);
 };
 
 window.PanelManager.prototype.exportCsv = function () {

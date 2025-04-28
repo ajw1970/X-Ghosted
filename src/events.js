@@ -59,7 +59,7 @@ export const EVENTS = {
     [EVENTS.SET_POLLING]: { enabled: "boolean" },
     [EVENTS.POLLING_STATE_UPDATED]: { isPollingEnabled: "boolean" },
     [EVENTS.SET_AUTO_SCROLLING]: { enabled: "boolean" },
-    [EVENTS.AUTO_SCROLLING_TOGGLED]: { isAutoScrollingEnabled: "boolean" },
+    [EVENTS.AUTO_SCROLLING_TOGGLED]: { userRequestedAutoScrolling: "boolean" },
     [EVENTS.RATE_LIMIT_DETECTED]: { pauseDuration: "number" },
     [EVENTS.USER_PROFILE_UPDATED]: { userProfileName: "string|null" },
     [EVENTS.INIT]: { config: "object" },

@@ -127,7 +127,7 @@
       enabled: 'boolean',
     },
     'xghosted:auto-scrolling-toggled': {
-      isAutoScrollingEnabled: 'boolean',
+      userRequestedAutoScrolling: 'boolean',
     },
     'xghosted:rate-limit-detected': {
       pauseDuration: 'number',
@@ -897,7 +897,9 @@
       [EVENTS.SET_POLLING]: { enabled: 'boolean' },
       [EVENTS.POLLING_STATE_UPDATED]: { isPollingEnabled: 'boolean' },
       [EVENTS.SET_AUTO_SCROLLING]: { enabled: 'boolean' },
-      [EVENTS.AUTO_SCROLLING_TOGGLED]: { isAutoScrollingEnabled: 'boolean' },
+      [EVENTS.AUTO_SCROLLING_TOGGLED]: {
+        userRequestedAutoScrolling: 'boolean',
+      },
       [EVENTS.RATE_LIMIT_DETECTED]: { pauseDuration: 'number' },
       [EVENTS.USER_PROFILE_UPDATED]: { userProfileName: 'string|null' },
       [EVENTS.INIT]: { config: 'object' },
@@ -999,21 +1001,24 @@
         lastUrlFullPath: urlFullPath,
         isWithReplies,
         isRateLimited: false,
-        isAutoScrollingEnabled: false,
+        userRequestedAutoScrolling: false,
         isHighlighting: false,
         isPollingEnabled: true,
         userProfileName,
         containerFound: false,
         noPostsFoundCount: 0,
         scrolls: 0,
+        idleCycleCount: 0,
+        lastScrollY: 0,
+        lastCellInnerDivCount: 0,
       };
       this.pollTimer = null;
       this.checkPostInNewTabThrottled = debounce((href) => {
         return this.checkPostInNewTab(href);
       }, this.timing.tabCheckThrottle);
-      this.highlightPostsDebounced = debounce(() => {
-        this.highlightPosts();
-      }, this.timing.debounceDelay);
+      this.highlightPostsDebounced = debounce((posts) => {
+        this.highlightPosts(posts);
+      }, 500);
       this.checkUrlDebounced = debounce((url) => {
         const { urlFullPath: urlFullPath2, oldUrlFullPath } =
           this.getUrlFullPathIfChanged(url);
@@ -1080,7 +1085,7 @@
             this.document.removeEventListener(EVENTS.POST_RETRIEVED, handler);
             resolve(null);
           }
-        }, 2e3);
+        }, 1e3);
       });
     };
     XGhosted.prototype.userRequestedPostCheck = async function (href, post) {
@@ -1140,6 +1145,9 @@
       this.log(`User requested post check completed for ${href}`);
     };
     XGhosted.prototype.handleUrlChange = async function (urlFullPath) {
+      if (CONFIG.debug) {
+        this.log(`Handling URL change to ${urlFullPath}`);
+      }
       const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
       this.state.isWithReplies = isWithReplies;
       if (this.state.userProfileName !== userProfileName) {
@@ -1153,13 +1161,15 @@
       this.emit(EVENTS.CLEAR_POSTS, {});
       await this.waitForClearConfirmation();
       this.state.noPostsFoundCount = 0;
+      this.state.containerFound = false;
+      this.state.lastCellInnerDivCount = 0;
       this.document.dispatchEvent(
         new CustomEvent(EVENTS.POSTS_CLEARED, {
           detail: {},
         })
       );
       this.log(
-        `URL change completed, states: isPollingEnabled=${this.state.isPollingEnabled}, isAutoScrollingEnabled=${this.state.isAutoScrollingEnabled}`
+        `URL change completed, states: isPollingEnabled=${this.state.isPollingEnabled}, userRequestedAutoScrolling=${this.state.userRequestedAutoScrolling}`
       );
     };
     XGhosted.prototype.checkPostInNewTab = async function (href) {
@@ -1210,21 +1220,41 @@
               }
               resolve(hasProblem);
             }
+            if (attempts >= maxAttempts) {
+              clearInterval(checkInterval);
+              if (newWindow) newWindow.close();
+              this.log(
+                `Failed to process ${href} within ${maxAttempts} attempts`
+              );
+              resolve(false);
+            }
           }
-          if (attempts >= maxAttempts) {
-            clearInterval(checkInterval);
-            if (newWindow) newWindow.close();
-            this.log(
-              `Failed to process ${href} within ${maxAttempts} attempts`
-            );
-            resolve(false);
-          }
-        }, 500);
+        }, 250);
       });
     };
     XGhosted.prototype.handleStartPolling = function () {
+      if (
+        CONFIG.debug &&
+        Math.abs(window.scrollY - this.state.lastScrollY) > window.innerHeight
+      ) {
+        this.log(
+          `Warning: Significant scrolling detected (${window.scrollY}px), posts may have been missed`
+        );
+        this.document.dispatchEvent(
+          new CustomEvent(EVENTS.TOGGLE_PANEL_VISIBILITY, {
+            detail: {
+              isPanelVisible: true,
+              warning:
+                'Significant scrolling detected, some posts may have been missed. Scroll to top or refresh.',
+            },
+          })
+        );
+      }
       this.state.isPollingEnabled = true;
-      this.log('Polling enabled');
+      this.state.idleCycleCount = 0;
+      this.log(
+        `Polling enabled, state: isPollingEnabled=${this.state.isPollingEnabled}`
+      );
       this.document.dispatchEvent(
         new CustomEvent(EVENTS.POLLING_STATE_UPDATED, {
           detail: { isPollingEnabled: this.state.isPollingEnabled },
@@ -1233,7 +1263,9 @@
     };
     XGhosted.prototype.handleStopPolling = function () {
       this.state.isPollingEnabled = false;
-      this.log('Polling disabled');
+      this.log(
+        `Polling disabled, state: isPollingEnabled=${this.state.isPollingEnabled}, userRequestedAutoScrolling=${this.state.userRequestedAutoScrolling}`
+      );
       this.emit(EVENTS.RECORD_POLL, {
         postsProcessed: 0,
         wasSkipped: false,
@@ -1246,6 +1278,7 @@
             : 'timeline',
         isPollingStarted: false,
         isPollingStopped: true,
+        cellInnerDivCount: 0,
       });
       this.document.dispatchEvent(
         new CustomEvent(EVENTS.POLLING_STATE_UPDATED, {
@@ -1254,6 +1287,7 @@
       );
     };
     XGhosted.prototype.performSmoothScroll = function () {
+      const beforeScrollY = window.scrollY;
       this.log('Performing smooth scroll down...');
       this.state.scrolls++;
       this.log('Scroll count: ' + this.state.scrolls);
@@ -1263,8 +1297,16 @@
           : window.innerHeight * 0.75;
       window.scrollBy({
         top: scrollAmount,
-        behavior: 'smooth',
+        behavior: CONFIG.smoothScrolling ? 'smooth' : 'auto',
       });
+      if (CONFIG.debug) {
+        const afterScrollY = window.scrollY;
+        if (afterScrollY === beforeScrollY) {
+          this.log('Scroll attempt failed: scrollY unchanged');
+        } else {
+          this.log(`Scrolled from ${beforeScrollY}px to ${afterScrollY}px`);
+        }
+      }
     };
     XGhosted.prototype.startPolling = function () {
       if (this.pollTimer) {
@@ -1272,17 +1314,19 @@
         return;
       }
       const pollCycle = async () => {
-        if (
-          !this.state.isPollingEnabled &&
-          !this.state.isAutoScrollingEnabled
-        ) {
-          this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
-          return;
-        }
         const currentUrl = this.document.location.href;
-        this.log(
-          `Checking URL: current=${currentUrl}, last=${this.state.lastUrlFullPath}`
-        );
+        if (CONFIG.debug) {
+          this.log(
+            `Checking URL: current=${currentUrl}, last=${this.state.lastUrlFullPath}`
+          );
+          const currentScrollY = window.scrollY;
+          if (currentScrollY !== this.state.lastScrollY) {
+            this.log(
+              `Scroll position changed: ${this.state.lastScrollY}px to ${currentScrollY}px`
+            );
+            this.state.lastScrollY = currentScrollY;
+          }
+        }
         const { urlFullPath, oldUrlFullPath } =
           this.getUrlFullPathIfChanged(currentUrl);
         if (urlFullPath) {
@@ -1290,37 +1334,32 @@
             `URL has changed from (${oldUrlFullPath}) to (${urlFullPath})`
           );
           await this.handleUrlChange(urlFullPath);
+          if (!this.state.isPollingEnabled) {
+            this.emit(EVENTS.CLEAR_POSTS, {});
+          }
         }
-        const cycleMode = this.state.isAutoScrollingEnabled;
-        const interval = cycleMode
-          ? this.timing.scrollInterval
-          : this.timing.pollInterval;
-        this.log(
-          `Polling in ${cycleMode ? 'auto-scrolling' : 'user-paced'} mode, interval: ${interval}ms`
-        );
-        if (this.state.isHighlighting) {
-          this.emit(EVENTS.RECORD_POLL, {
-            postsProcessed: 0,
-            wasSkipped: true,
-            containerFound: false,
-            containerAttempted: false,
-            pageType: this.state.isWithReplies
-              ? 'with_replies'
-              : this.state.userProfileName
-                ? 'profile'
-                : 'timeline',
-            isPollingStarted: false,
-            isPollingStopped: false,
-          });
-        } else if (this.state.isPollingEnabled) {
+        const cellInnerDivCount = this.document.querySelectorAll(
+          'div[data-testid="cellInnerDiv"]'
+        ).length;
+        if (CONFIG.debug) {
+          this.log(`cellInnerDiv count: ${cellInnerDivCount}`);
+        }
+        let containerFound = false;
+        let containerAttempted = false;
+        let postsProcessed = 0;
+        const shouldHighlight =
+          this.state.isPollingEnabled ||
+          cellInnerDivCount !== this.state.lastCellInnerDivCount;
+        this.state.lastCellInnerDivCount = cellInnerDivCount;
+        if (!this.state.isHighlighting && shouldHighlight) {
           const unprocessedPosts = this.document.querySelectorAll(
             XGhosted.UNPROCESSED_POSTS_SELECTOR
           );
-          let containerFound = false;
-          let containerAttempted = false;
           if (unprocessedPosts.length > 0) {
-            this.highlightPosts(unprocessedPosts);
+            this.highlightPostsDebounced(unprocessedPosts);
             this.state.noPostsFoundCount = 0;
+            this.state.idleCycleCount = 0;
+            postsProcessed = unprocessedPosts.length;
           } else if (
             !this.document.querySelector(XGhosted.POST_CONTAINER_SELECTOR)
           ) {
@@ -1330,7 +1369,7 @@
             if (this.state.noPostsFoundCount <= 3) {
               if (foundContainer) {
                 this.log('Container found, setting post density');
-              } else {
+              } else if (CONFIG.debug) {
                 this.log(
                   this.state.noPostsFoundCount === 0
                     ? 'No post container found, trying to find it...'
@@ -1343,66 +1382,62 @@
               this.state.noPostsFoundCount = 0;
               if (!this.state.containerFound) {
                 this.emit(EVENTS.SET_POST_DENSITY, {
-                  count: this.document.querySelectorAll(
-                    'div[data-testid="cellInnerDiv"]'
-                  ).length,
+                  count: cellInnerDivCount,
                 });
                 this.state.containerFound = true;
               }
-              this.highlightPosts();
+              this.highlightPostsDebounced();
             }
+          } else {
+            this.state.idleCycleCount++;
           }
-          this.emit(EVENTS.RECORD_POLL, {
-            postsProcessed: unprocessedPosts.length,
-            wasSkipped: false,
-            containerFound,
-            containerAttempted,
-            pageType: this.state.isWithReplies
-              ? 'with_replies'
-              : this.state.userProfileName
-                ? 'profile'
-                : 'timeline',
-            isPollingStarted: false,
-            isPollingStopped: false,
-          });
-          if (cycleMode && this.state.isPollingEnabled) {
-            const previousPostCount = this.document.querySelectorAll(
-              'div[data-testid="cellInnerDiv"]'
-            ).length;
-            this.performSmoothScroll();
-            const bottomReached =
-              window.innerHeight + window.scrollY >= document.body.scrollHeight;
-            const newPostCount = this.document.querySelectorAll(
-              'div[data-testid="cellInnerDiv"]'
-            ).length;
-            this.emit(EVENTS.RECORD_SCROLL, { bottomReached });
-            if (bottomReached && newPostCount === previousPostCount) {
-              this.log(
-                'Reached page bottom or no new posts, stopping auto-scrolling'
-              );
-              this.state.isAutoScrollingEnabled = false;
-              this.emit(EVENTS.SET_AUTO_SCROLLING, { enabled: false });
-            }
-          }
-        } else {
-          this.emit(EVENTS.RECORD_POLL, {
-            postsProcessed: 0,
-            wasSkipped: false,
-            containerFound: false,
-            containerAttempted: false,
-            pageType: this.state.isWithReplies
-              ? 'with_replies'
-              : this.state.userProfileName
-                ? 'profile'
-                : 'timeline',
-            isPollingStarted: false,
-            isPollingStopped: false,
-          });
         }
-        this.pollTimer = setTimeout(pollCycle, interval);
+        this.emit(EVENTS.RECORD_POLL, {
+          postsProcessed,
+          wasSkipped: !shouldHighlight,
+          containerFound,
+          containerAttempted,
+          pageType: this.state.isWithReplies
+            ? 'with_replies'
+            : this.state.userProfileName
+              ? 'profile'
+              : 'timeline',
+          isPollingStarted: false,
+          isPollingStopped: false,
+          cellInnerDivCount,
+        });
+        if (
+          this.state.isPollingEnabled &&
+          this.state.userRequestedAutoScrolling
+        ) {
+          this.log(
+            `Polling in auto-scrolling mode, interval: ${this.timing.scrollInterval}ms`
+          );
+          const previousPostCount = cellInnerDivCount;
+          this.performSmoothScroll();
+          const bottomReached =
+            window.innerHeight + window.scrollY >= document.body.scrollHeight;
+          const newPostCount = this.document.querySelectorAll(
+            'div[data-testid="cellInnerDiv"]'
+          ).length;
+          this.emit(EVENTS.RECORD_SCROLL, { bottomReached });
+          if (bottomReached || this.state.idleCycleCount >= 3) {
+            this.log(
+              `Stopping auto-scrolling: ${bottomReached ? 'reached page bottom' : '3 idle cycles'}`
+            );
+            this.state.userRequestedAutoScrolling = false;
+            this.emit(EVENTS.SET_AUTO_SCROLLING, { enabled: false });
+          }
+          this.pollTimer = setTimeout(pollCycle, this.timing.scrollInterval);
+        } else {
+          if (this.state.userRequestedAutoScrolling && CONFIG.debug) {
+            this.log('Auto-scrolling skipped: polling is disabled');
+          }
+          this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
+        }
       };
       this.log(
-        `Starting polling with initial interval ${this.timing.pollInterval}ms...`
+        `Starting polling with interval ${this.timing.pollInterval}ms...`
       );
       this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
     };
@@ -1411,15 +1446,24 @@
         this.log('Cannot start auto-scrolling: polling is disabled');
         return;
       }
-      this.state.isAutoScrollingEnabled = true;
+      this.state.userRequestedAutoScrolling = true;
+      this.state.idleCycleCount = 0;
       this.log('Auto-scrolling enabled');
     };
     XGhosted.prototype.setAutoScrolling = function (enabled) {
-      this.state.isAutoScrollingEnabled = enabled;
-      this.log(`Auto-scrolling set to: ${enabled}`);
+      if (enabled && !this.state.isPollingEnabled) {
+        this.log('Cannot enable auto-scrolling: polling is disabled');
+        return;
+      }
+      this.state.userRequestedAutoScrolling = enabled;
+      this.log(
+        `Auto-scrolling set to: ${enabled}, state: userRequestedAutoScrolling=${this.state.userRequestedAutoScrolling}`
+      );
       this.document.dispatchEvent(
         new CustomEvent(EVENTS.AUTO_SCROLLING_TOGGLED, {
-          detail: { isAutoScrollingEnabled: this.state.isAutoScrollingEnabled },
+          detail: {
+            userRequestedAutoScrolling: this.state.userRequestedAutoScrolling,
+          },
         })
       );
     };
@@ -1436,7 +1480,9 @@
       this.state.isHighlighting = true;
       const processPostAnalysis = (post, analysis) => {
         if (!(post instanceof this.document.defaultView.Element)) {
-          this.log('Skipping invalid DOM element:', post);
+          if (CONFIG.debug) {
+            this.log('Skipping invalid DOM element:', post);
+          }
           return Promise.resolve();
         }
         const id = analysis.link;
@@ -1446,14 +1492,16 @@
             post.setAttribute('data-xghosted-id', '');
             post.classList.add('xghosted-problem');
             this.log('Marked PROBLEM post with invalid href');
-          } else {
+          } else if (CONFIG.debug) {
             this.log(`Skipping post with invalid href: ${id}`);
           }
           return Promise.resolve();
         }
         return this.waitForPostRetrieved(id).then((cached) => {
           if (cached) {
-            this.log(`Skipping already processed post: ${id}`);
+            if (CONFIG.debug) {
+              this.log(`Skipping already processed post: ${id}`);
+            }
             const qualityName2 = cached.analysis.quality.name
               .toLowerCase()
               .replace(' ', '_');
@@ -1475,7 +1523,7 @@
             )?.parentElement;
             if (shareButtonContainer) {
               shareButtonContainer.classList.add('xghosted-eyeball');
-            } else {
+            } else if (CONFIG.debug) {
               this.log(
                 `No share button container found for post with href: ${id}`
               );
@@ -1500,13 +1548,24 @@
             this.handleStopPolling();
           }
           return processPostAnalysis(post, analysis).then((id) => {
-            if (id && id !== 'false' && !processedIds.has(id)) {
-              processedIds.add(id);
-              this.emit(EVENTS.POST_REGISTERED, {
-                href: postId,
-                data: { analysis, checked: false },
-              });
-              postsProcessed++;
+            if (id && id !== 'false') {
+              if (processedIds.has(id)) {
+                if (CONFIG.debug) {
+                  const snippet = post.textContent
+                    .slice(0, 50)
+                    .replace(/\n/g, ' ');
+                  this.log(
+                    `Duplicate post skipped: ${id} (postId: ${postId}, snippet: "${snippet}")`
+                  );
+                }
+              } else {
+                processedIds.add(id);
+                this.emit(EVENTS.POST_REGISTERED, {
+                  href: postId,
+                  data: { analysis, checked: false },
+                });
+                postsProcessed++;
+              }
             }
             results.push(analysis);
           });
@@ -1526,6 +1585,7 @@
         this.state.isHighlighting = false;
         this.emit(EVENTS.RECORD_HIGHLIGHT, {
           duration: performance.now() - start,
+          wasSkipped: postsProcessed === 0,
         });
       });
       return results;
@@ -1617,7 +1677,7 @@
         isPollingEnabled: this.state.isPollingEnabled,
       });
       this.emit(EVENTS.AUTO_SCROLLING_TOGGLED, {
-        isAutoScrollingEnabled: this.state.isAutoScrollingEnabled,
+        userRequestedAutoScrolling: this.state.userRequestedAutoScrolling,
       });
       const styleSheet = this.document.createElement('style');
       styleSheet.textContent = `
@@ -2366,7 +2426,7 @@
         isRateLimited: false,
         isManualCheckEnabled: false,
         isPollingEnabled: true,
-        isAutoScrollingEnabled: false,
+        userRequestedAutoScrolling: false,
         themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
         hasSeenSplash: false,
         userProfileName: null,
@@ -2489,7 +2549,8 @@
         this.renderPanel();
       };
       const handleAutoScrollingToggled = (e) => {
-        this.state.isAutoScrollingEnabled = e.detail.isAutoScrollingEnabled;
+        this.state.userRequestedAutoScrolling =
+          e.detail.userRequestedAutoScrolling;
         this.renderPanel();
       };
       const handleInit = (e) => {
@@ -2908,7 +2969,7 @@
           flagged: this.state.flagged || [],
           totalPosts: this.state.totalPosts || 0,
           isPolling: this.state.isPollingEnabled,
-          isScrolling: this.state.isAutoScrollingEnabled,
+          isScrolling: this.state.userRequestedAutoScrolling,
           userProfileName: this.state.userProfileName,
           onToggleVisibility: () => this.toggleVisibility(),
           onToggleTools: () => this.toggleTools(),
@@ -2962,12 +3023,14 @@
     window.PanelManager.prototype.toggleAutoScrolling = function () {
       this.document.dispatchEvent(
         new CustomEvent(EVENTS.SET_AUTO_SCROLLING, {
-          detail: { enabled: !this.state.isAutoScrollingEnabled },
+          detail: { enabled: !this.state.userRequestedAutoScrolling },
         })
       );
       this.saveState();
       this.renderPanel();
-      this.log(`Toggled auto-scrolling: ${!this.state.isAutoScrollingEnabled}`);
+      this.log(
+        `Toggled auto-scrolling: ${!this.state.userRequestedAutoScrolling}`
+      );
     };
     window.PanelManager.prototype.exportCsv = function () {
       this.pendingExportCsv = true;
@@ -3392,23 +3455,29 @@
         this.document = document;
         this.startTime = performance.now();
         this.metrics = {
-          polls: 0,
-          postsProcessed: [],
-          pollSkips: 0,
+          totalPolls: 0,
+          totalSkips: 0,
+          totalPostsProcessed: 0,
+          postsProcessedCount: 0,
+          avgPostsProcessed: 0,
+          totalScrolls: 0,
+          bottomReachedCount: 0,
+          totalHighlights: 0,
+          highlightingDurationSum: 0,
+          avgHighlightingDuration: 0,
+          maxHighlightingDuration: 0,
+          cellInnerDivCount: 0,
           containerFinds: 0,
           containerDetectionAttempts: 0,
           containerFoundTimestamp: null,
           initialWaitTime: null,
-          scrolls: 0,
-          bottomReached: 0,
-          highlightingDurations: [],
           postDensity: 0,
           pageType: 'unknown',
           sessionStarts: 0,
           sessionStops: 0,
-          sessionDurations: [],
+          sessionDurationSum: 0,
+          avgSessionDuration: 0,
           currentSessionStart: null,
-          cellInnerDivCount: 0,
         };
         this.initialWaitTimeSet = false;
         this.hasSetDensity = false;
@@ -3492,8 +3561,8 @@
         if (skipped && CONFIG.debug) {
           this.log('Recording RECORD_POLL as skipped: polling is disabled');
         }
-        this.metrics.polls++;
-        if (wasSkipped) this.metrics.pollSkips++;
+        this.metrics.totalPolls++;
+        if (wasSkipped) this.metrics.totalSkips++;
         if (containerFound) {
           this.metrics.containerFinds++;
           if (!this.metrics.containerFoundTimestamp) {
@@ -3503,7 +3572,12 @@
         }
         if (containerAttempted) this.metrics.containerDetectionAttempts++;
         if (postsProcessed !== void 0) {
-          this.metrics.postsProcessed.push(postsProcessed);
+          this.metrics.totalPostsProcessed += postsProcessed;
+          this.metrics.postsProcessedCount += postsProcessed > 0 ? 1 : 0;
+          this.metrics.avgPostsProcessed = this.metrics.postsProcessedCount
+            ? this.metrics.totalPostsProcessed /
+              this.metrics.postsProcessedCount
+            : 0;
         }
         this.metrics.pageType = pageType;
         this.metrics.cellInnerDivCount = cellInnerDivCount || 0;
@@ -3514,27 +3588,45 @@
             `Polling session started (count: ${this.metrics.sessionStarts})`
           );
         }
-        if (isPollingStopped) {
+        if (isPollingStopped && this.metrics.currentSessionStart !== null) {
           this.metrics.sessionStops++;
-          if (this.metrics.currentSessionStart) {
-            const duration =
-              performance.now() - this.metrics.currentSessionStart;
-            this.metrics.sessionDurations.push(duration);
-            this.log(
-              `Polling session stopped (duration: ${duration.toFixed(2)}ms)`
-            );
-            this.metrics.currentSessionStart = null;
-          }
+          const duration = performance.now() - this.metrics.currentSessionStart;
+          this.metrics.sessionDurationSum += duration;
+          this.metrics.avgSessionDuration = this.metrics.sessionStops
+            ? this.metrics.sessionDurationSum / this.metrics.sessionStops
+            : 0;
+          this.log(
+            `Polling session stopped (duration: ${duration.toFixed(2)}ms)`
+          );
+          this.metrics.currentSessionStart = null;
         }
         this.metricsHistory.push({
-          ...this.metrics,
+          totalPolls: this.metrics.totalPolls,
+          totalSkips: this.metrics.totalSkips,
+          totalPostsProcessed: this.metrics.totalPostsProcessed,
+          avgPostsProcessed: this.metrics.avgPostsProcessed,
+          totalScrolls: this.metrics.totalScrolls,
+          bottomReachedCount: this.metrics.bottomReachedCount,
+          totalHighlights: this.metrics.totalHighlights,
+          avgHighlightingDuration: this.metrics.avgHighlightingDuration,
+          maxHighlightingDuration: this.metrics.maxHighlightingDuration,
+          cellInnerDivCount: this.metrics.cellInnerDivCount,
+          postDensity: this.metrics.postDensity,
+          initialWaitTime: this.metrics.initialWaitTime,
+          sessionStarts: this.metrics.sessionStarts,
+          sessionStops: this.metrics.sessionStops,
+          avgSessionDuration: this.metrics.avgSessionDuration,
+          pageType: this.metrics.pageType,
           timestamp: performance.now(),
           skipped,
         });
+        if (this.metricsHistory.length > 100) {
+          this.metricsHistory.shift();
+        }
         this.saveMetrics();
         this.log(
-          'Emitting xghosted:metrics-updated with polls:',
-          this.metrics.polls
+          'Emitting xghosted:metrics-updated with totalPolls:',
+          this.metrics.totalPolls
         );
         this.document.dispatchEvent(
           new CustomEvent(EVENTS.METRICS_UPDATED, {
@@ -3548,13 +3640,31 @@
         if (skipped && CONFIG.debug) {
           this.log('Recording RECORD_SCROLL as skipped: polling is disabled');
         }
-        this.metrics.scrolls++;
-        if (bottomReached) this.metrics.bottomReached++;
+        this.metrics.totalScrolls++;
+        if (bottomReached) this.metrics.bottomReachedCount++;
         this.metricsHistory.push({
-          ...this.metrics,
+          totalPolls: this.metrics.totalPolls,
+          totalSkips: this.metrics.totalSkips,
+          totalPostsProcessed: this.metrics.totalPostsProcessed,
+          avgPostsProcessed: this.metrics.avgPostsProcessed,
+          totalScrolls: this.metrics.totalScrolls,
+          bottomReachedCount: this.metrics.bottomReachedCount,
+          totalHighlights: this.metrics.totalHighlights,
+          avgHighlightingDuration: this.metrics.avgHighlightingDuration,
+          maxHighlightingDuration: this.metrics.maxHighlightingDuration,
+          cellInnerDivCount: this.metrics.cellInnerDivCount,
+          postDensity: this.metrics.postDensity,
+          initialWaitTime: this.metrics.initialWaitTime,
+          sessionStarts: this.metrics.sessionStarts,
+          sessionStops: this.metrics.sessionStops,
+          avgSessionDuration: this.metrics.avgSessionDuration,
+          pageType: this.metrics.pageType,
           timestamp: performance.now(),
           skipped,
         });
+        if (this.metricsHistory.length > 100) {
+          this.metricsHistory.shift();
+        }
         this.saveMetrics();
       }
       recordHighlighting(duration) {
@@ -3564,15 +3674,41 @@
             'Recording RECORD_HIGHLIGHT as skipped: polling is disabled'
           );
         }
-        this.metrics.highlightingDurations.push(duration);
+        this.metrics.totalHighlights++;
+        this.metrics.highlightingDurationSum += duration;
+        this.metrics.avgHighlightingDuration = this.metrics.totalHighlights
+          ? this.metrics.highlightingDurationSum / this.metrics.totalHighlights
+          : 0;
+        this.metrics.maxHighlightingDuration = Math.max(
+          this.metrics.maxHighlightingDuration,
+          duration
+        );
         if (CONFIG.debug) {
           this.log(`Highlighting duration: ${duration.toFixed(2)}ms`);
         }
         this.metricsHistory.push({
-          ...this.metrics,
+          totalPolls: this.metrics.totalPolls,
+          totalSkips: this.metrics.totalSkips,
+          totalPostsProcessed: this.metrics.totalPostsProcessed,
+          avgPostsProcessed: this.metrics.avgPostsProcessed,
+          totalScrolls: this.metrics.totalScrolls,
+          bottomReachedCount: this.metrics.bottomReachedCount,
+          totalHighlights: this.metrics.totalHighlights,
+          avgHighlightingDuration: this.metrics.avgHighlightingDuration,
+          maxHighlightingDuration: this.metrics.maxHighlightingDuration,
+          cellInnerDivCount: this.metrics.cellInnerDivCount,
+          postDensity: this.metrics.postDensity,
+          initialWaitTime: this.metrics.initialWaitTime,
+          sessionStarts: this.metrics.sessionStarts,
+          sessionStops: this.metrics.sessionStops,
+          avgSessionDuration: this.metrics.avgSessionDuration,
+          pageType: this.metrics.pageType,
           timestamp: performance.now(),
           skipped,
         });
+        if (this.metricsHistory.length > 100) {
+          this.metricsHistory.shift();
+        }
         this.saveMetrics();
       }
       setPostDensity(count) {
@@ -3592,22 +3728,16 @@
         }
       }
       logMetrics() {
-        if (this.metrics.polls % 50 === 0 && this.metrics.polls > 0) {
+        if (this.metrics.totalPolls % 50 === 0 && this.metrics.totalPolls > 0) {
           const postContainerMetrics = this.metricsHistory.filter(
-            (entry) => entry.containerFinds > 0
-          );
-          const postContainerPostsProcessed = postContainerMetrics.flatMap(
-            (entry) => entry.postsProcessed
+            (entry) => entry.totalPolls > 0
           );
           const avgPostsProcessed =
-            postContainerPostsProcessed.length > 0
-              ? (
-                  postContainerPostsProcessed.reduce((sum, n) => sum + n, 0) /
-                  postContainerPostsProcessed.length
-                ).toFixed(2)
+            postContainerMetrics.length > 0
+              ? this.metrics.avgPostsProcessed.toFixed(2)
               : 0;
           this.log('Timing Metrics Summary:', {
-            polls: this.metrics.polls,
+            totalPolls: this.metrics.totalPolls,
             avgPostsProcessedAfterContainer: avgPostsProcessed,
             cellInnerDivCount: this.metrics.cellInnerDivCount,
           });

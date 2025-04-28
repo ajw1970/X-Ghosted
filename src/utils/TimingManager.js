@@ -9,23 +9,29 @@ var TimingManager = class {
     this.document = document;
     this.startTime = performance.now();
     this.metrics = {
-      polls: 0,
-      postsProcessed: [],
-      pollSkips: 0,
+      totalPolls: 0,
+      totalSkips: 0,
+      totalPostsProcessed: 0,
+      postsProcessedCount: 0,
+      avgPostsProcessed: 0,
+      totalScrolls: 0,
+      bottomReachedCount: 0,
+      totalHighlights: 0,
+      highlightingDurationSum: 0,
+      avgHighlightingDuration: 0,
+      maxHighlightingDuration: 0,
+      cellInnerDivCount: 0,
       containerFinds: 0,
       containerDetectionAttempts: 0,
       containerFoundTimestamp: null,
       initialWaitTime: null,
-      scrolls: 0,
-      bottomReached: 0,
-      highlightingDurations: [],
       postDensity: 0,
       pageType: "unknown",
       sessionStarts: 0,
       sessionStops: 0,
-      sessionDurations: [],
+      sessionDurationSum: 0,
+      avgSessionDuration: 0,
       currentSessionStart: null,
-      cellInnerDivCount: 0,
     };
     this.initialWaitTimeSet = false;
     this.hasSetDensity = false;
@@ -110,8 +116,8 @@ var TimingManager = class {
     if (skipped && CONFIG.debug) {
       this.log("Recording RECORD_POLL as skipped: polling is disabled");
     }
-    this.metrics.polls++;
-    if (wasSkipped) this.metrics.pollSkips++;
+    this.metrics.totalPolls++;
+    if (wasSkipped) this.metrics.totalSkips++;
     if (containerFound) {
       this.metrics.containerFinds++;
       if (!this.metrics.containerFoundTimestamp) {
@@ -121,7 +127,11 @@ var TimingManager = class {
     }
     if (containerAttempted) this.metrics.containerDetectionAttempts++;
     if (postsProcessed !== undefined) {
-      this.metrics.postsProcessed.push(postsProcessed);
+      this.metrics.totalPostsProcessed += postsProcessed;
+      this.metrics.postsProcessedCount += postsProcessed > 0 ? 1 : 0;
+      this.metrics.avgPostsProcessed = this.metrics.postsProcessedCount
+        ? this.metrics.totalPostsProcessed / this.metrics.postsProcessedCount
+        : 0;
     }
     this.metrics.pageType = pageType;
     this.metrics.cellInnerDivCount = cellInnerDivCount || 0;
@@ -133,28 +143,47 @@ var TimingManager = class {
         `Polling session started (count: ${this.metrics.sessionStarts})`
       );
     }
-    if (isPollingStopped) {
+    if (isPollingStopped && this.metrics.currentSessionStart !== null) {
       this.metrics.sessionStops++;
-      if (this.metrics.currentSessionStart) {
-        const duration = performance.now() - this.metrics.currentSessionStart;
-        this.metrics.sessionDurations.push(duration);
-        this.log(
-          `Polling session stopped (duration: ${duration.toFixed(2)}ms)`
-        );
-        this.metrics.currentSessionStart = null;
-      }
+      const duration = performance.now() - this.metrics.currentSessionStart;
+      this.metrics.sessionDurationSum += duration;
+      this.metrics.avgSessionDuration = this.metrics.sessionStops
+        ? this.metrics.sessionDurationSum / this.metrics.sessionStops
+        : 0;
+      this.log(`Polling session stopped (duration: ${duration.toFixed(2)}ms)`);
+      this.metrics.currentSessionStart = null;
     }
 
     this.metricsHistory.push({
-      ...this.metrics,
+      totalPolls: this.metrics.totalPolls,
+      totalSkips: this.metrics.totalSkips,
+      totalPostsProcessed: this.metrics.totalPostsProcessed,
+      avgPostsProcessed: this.metrics.avgPostsProcessed,
+      totalScrolls: this.metrics.totalScrolls,
+      bottomReachedCount: this.metrics.bottomReachedCount,
+      totalHighlights: this.metrics.totalHighlights,
+      avgHighlightingDuration: this.metrics.avgHighlightingDuration,
+      maxHighlightingDuration: this.metrics.maxHighlightingDuration,
+      cellInnerDivCount: this.metrics.cellInnerDivCount,
+      postDensity: this.metrics.postDensity,
+      initialWaitTime: this.metrics.initialWaitTime,
+      sessionStarts: this.metrics.sessionStarts,
+      sessionStops: this.metrics.sessionStops,
+      avgSessionDuration: this.metrics.avgSessionDuration,
+      pageType: this.metrics.pageType,
       timestamp: performance.now(),
       skipped,
     });
+
+    if (this.metricsHistory.length > 100) {
+      this.metricsHistory.shift();
+    }
+
     this.saveMetrics();
 
     this.log(
-      "Emitting xghosted:metrics-updated with polls:",
-      this.metrics.polls
+      "Emitting xghosted:metrics-updated with totalPolls:",
+      this.metrics.totalPolls
     );
     this.document.dispatchEvent(
       new CustomEvent(EVENTS.METRICS_UPDATED, {
@@ -170,13 +199,33 @@ var TimingManager = class {
     if (skipped && CONFIG.debug) {
       this.log("Recording RECORD_SCROLL as skipped: polling is disabled");
     }
-    this.metrics.scrolls++;
-    if (bottomReached) this.metrics.bottomReached++;
+    this.metrics.totalScrolls++;
+    if (bottomReached) this.metrics.bottomReachedCount++;
     this.metricsHistory.push({
-      ...this.metrics,
+      totalPolls: this.metrics.totalPolls,
+      totalSkips: this.metrics.totalSkips,
+      totalPostsProcessed: this.metrics.totalPostsProcessed,
+      avgPostsProcessed: this.metrics.avgPostsProcessed,
+      totalScrolls: this.metrics.totalScrolls,
+      bottomReachedCount: this.metrics.bottomReachedCount,
+      totalHighlights: this.metrics.totalHighlights,
+      avgHighlightingDuration: this.metrics.avgHighlightingDuration,
+      maxHighlightingDuration: this.metrics.maxHighlightingDuration,
+      cellInnerDivCount: this.metrics.cellInnerDivCount,
+      postDensity: this.metrics.postDensity,
+      initialWaitTime: this.metrics.initialWaitTime,
+      sessionStarts: this.metrics.sessionStarts,
+      sessionStops: this.metrics.sessionStops,
+      avgSessionDuration: this.metrics.avgSessionDuration,
+      pageType: this.metrics.pageType,
       timestamp: performance.now(),
       skipped,
     });
+
+    if (this.metricsHistory.length > 100) {
+      this.metricsHistory.shift();
+    }
+
     this.saveMetrics();
   }
 
@@ -185,15 +234,43 @@ var TimingManager = class {
     if (skipped && CONFIG.debug) {
       this.log("Recording RECORD_HIGHLIGHT as skipped: polling is disabled");
     }
-    this.metrics.highlightingDurations.push(duration);
+    this.metrics.totalHighlights++;
+    this.metrics.highlightingDurationSum += duration;
+    this.metrics.avgHighlightingDuration = this.metrics.totalHighlights
+      ? this.metrics.highlightingDurationSum / this.metrics.totalHighlights
+      : 0;
+    this.metrics.maxHighlightingDuration = Math.max(
+      this.metrics.maxHighlightingDuration,
+      duration
+    );
     if (CONFIG.debug) {
       this.log(`Highlighting duration: ${duration.toFixed(2)}ms`);
     }
     this.metricsHistory.push({
-      ...this.metrics,
+      totalPolls: this.metrics.totalPolls,
+      totalSkips: this.metrics.totalSkips,
+      totalPostsProcessed: this.metrics.totalPostsProcessed,
+      avgPostsProcessed: this.metrics.avgPostsProcessed,
+      totalScrolls: this.metrics.totalScrolls,
+      bottomReachedCount: this.metrics.bottomReachedCount,
+      totalHighlights: this.metrics.totalHighlights,
+      avgHighlightingDuration: this.metrics.avgHighlightingDuration,
+      maxHighlightingDuration: this.metrics.maxHighlightingDuration,
+      cellInnerDivCount: this.metrics.cellInnerDivCount,
+      postDensity: this.metrics.postDensity,
+      initialWaitTime: this.metrics.initialWaitTime,
+      sessionStarts: this.metrics.sessionStarts,
+      sessionStops: this.metrics.sessionStops,
+      avgSessionDuration: this.metrics.avgSessionDuration,
+      pageType: this.metrics.pageType,
       timestamp: performance.now(),
       skipped,
     });
+
+    if (this.metricsHistory.length > 100) {
+      this.metricsHistory.shift();
+    }
+
     this.saveMetrics();
   }
 
@@ -216,23 +293,17 @@ var TimingManager = class {
   }
 
   logMetrics() {
-    if (this.metrics.polls % 50 === 0 && this.metrics.polls > 0) {
+    if (this.metrics.totalPolls % 50 === 0 && this.metrics.totalPolls > 0) {
       const postContainerMetrics = this.metricsHistory.filter(
-        (entry) => entry.containerFinds > 0
-      );
-      const postContainerPostsProcessed = postContainerMetrics.flatMap(
-        (entry) => entry.postsProcessed
+        (entry) => entry.totalPolls > 0
       );
       const avgPostsProcessed =
-        postContainerPostsProcessed.length > 0
-          ? (
-              postContainerPostsProcessed.reduce((sum, n) => sum + n, 0) /
-              postContainerPostsProcessed.length
-            ).toFixed(2)
+        postContainerMetrics.length > 0
+          ? this.metrics.avgPostsProcessed.toFixed(2)
           : 0;
 
       this.log("Timing Metrics Summary:", {
-        polls: this.metrics.polls,
+        totalPolls: this.metrics.totalPolls,
         avgPostsProcessedAfterContainer: avgPostsProcessed,
         cellInnerDivCount: this.metrics.cellInnerDivCount,
       });
