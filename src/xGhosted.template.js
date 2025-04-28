@@ -19,62 +19,10 @@
   ("use strict");
 
   // Centralized configuration object
-  const CONFIG = {
-    timing: {
-      debounceDelay: 500,
-      throttleDelay: 1000,
-      tabCheckThrottle: 5000,
-      exportThrottle: 5000,
-      rateLimitPause: 20 * 1000,
-      pollInterval: 600,
-      scrollInterval: 1250,
-    },
-    showSplash: true,
-    logTarget: "tampermonkey",
-    persistProcessedPosts: false,
-    linkPrefix: "https://x.com",
-  };
+  // INJECT: Config
 
   // Event constants for consistent event naming across components
-  const EVENTS = {
-    INIT_COMPONENTS: "xghosted:init-components",
-    POST_REGISTERED: "xghosted:post-registered",
-    POST_REQUESTED: "xghosted:post-requested",
-    POST_RETRIEVED: "xghosted:post-retrieved",
-    REQUEST_POST_CHECK: "xghosted:request-post-check",
-    CLEAR_POSTS: "xghosted:clear-posts",
-    CLEAR_POSTS_UI: "xghosted:clear-posts-ui",
-    POSTS_CLEARED: "xghosted:posts-cleared",
-    POSTS_CLEARED_CONFIRMED: "xghosted:posts-cleared-confirmed",
-    REQUEST_POSTS: "xghosted:request-posts",
-    POSTS_RETRIEVED: "xghosted:posts-retrieved",
-    CSV_IMPORT: "xghosted:csv-import",
-    CSV_IMPORTED: "xghosted:csv-imported",
-    REQUEST_IMPORT_CSV: "xghosted:request-import-csv",
-    EXPORT_CSV: "xghosted:export-csv",
-    CSV_EXPORTED: "xghosted:csv-exported",
-    SET_POLLING: "xghosted:set-polling",
-    POLLING_STATE_UPDATED: "xghosted:polling-state-updated",
-    SET_AUTO_SCROLLING: "xghosted:set-auto-scrolling",
-    AUTO_SCROLLING_TOGGLED: "xghosted:auto-scrolling-toggled",
-    RATE_LIMIT_DETECTED: "xghosted:rate-limit-detected",
-    USER_PROFILE_UPDATED: "xghosted:user-profile-updated",
-    INIT: "xghosted:init",
-    STATE_UPDATED: "xghosted:state-updated",
-    OPEN_ABOUT: "xghosted:open-about",
-    TOGGLE_PANEL_VISIBILITY: "xghosted:toggle-panel-visibility",
-    COPY_LINKS: "xghosted:copy-links",
-    REQUEST_METRICS: "xghosted:request-metrics",
-    METRICS_RETRIEVED: "xghosted:metrics-retrieved",
-    EXPORT_METRICS: "xghosted:export-metrics",
-    METRICS_UPDATED: "xghosted:metrics-updated",
-    RECORD_POLL: "xghosted:record-poll",
-    RECORD_SCROLL: "xghosted:record-scroll",
-    RECORD_HIGHLIGHT: "xghosted:record-highlight",
-    SET_INITIAL_WAIT_TIME: "xghosted:set-initial-wait-time",
-    SET_POST_DENSITY: "xghosted:set-post-density",
-    SAVE_METRICS: "xghosted:save-metrics",
-  };
+  // INJECT: Events
 
   // --- Inject Shared Utilities ---
   // INJECT: Utils

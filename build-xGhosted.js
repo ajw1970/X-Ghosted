@@ -37,51 +37,94 @@ templateContent = templateContent
   .replace(/{{VERSION}}/g, appVersion)
   .replace(/{{Suffix}}/g, suffix);
 
-// Read CSS files
-const modalCssContent = fs.readFileSync(
-  path.resolve(SRC_DIR, "ui/Modal.css"),
-  "utf8"
-);
-const panelCssContent = fs.readFileSync(
-  path.resolve(SRC_DIR, "ui/Panel.css"),
-  "utf8"
-);
+// Dynamically import config.js and events.js
+async function loadConfigAndEvents() {
+  try {
+    const configModule = await import(path.resolve(SRC_DIR, "config.js"));
+    if (!configModule.CONFIG) {
+      throw new Error("CONFIG export not found in config.js");
+    }
+    const eventsModule = await import(path.resolve(SRC_DIR, "events.js"));
+    if (!eventsModule.EVENTS || !eventsModule.EVENT_CONTRACTS) {
+      throw new Error(
+        "EVENTS or EVENT_CONTRACTS export not found in events.js"
+      );
+    }
+    return {
+      CONFIG: configModule.CONFIG,
+      EVENTS: eventsModule.EVENTS,
+      EVENT_CONTRACTS: eventsModule.EVENT_CONTRACTS,
+    };
+  } catch (err) {
+    console.error("Failed to load config or events:", err.message);
+    console.error("config.js path:", path.resolve(SRC_DIR, "config.js"));
+    console.error("events.js path:", path.resolve(SRC_DIR, "events.js"));
+    process.exit(1);
+  }
+}
 
-// Define modules to bundle separately
-const modules = [
-  {
-    entryPoint: path.resolve(SRC_DIR, "xGhosted.js"),
-    placeholder: "// INJECT: xGhosted",
-    globalName: "XGhosted",
-    requiresPreact: false,
-  },
-  {
-    entryPoint: path.resolve(SRC_DIR, "ui/SplashPanel.js"),
-    placeholder: "// INJECT: SplashPanel",
-    globalName: "SplashPanel",
-    requiresPreact: false,
-  },
-  {
-    entryPoint: path.resolve(SRC_DIR, "ui/PanelManager.js"),
-    placeholder: "// INJECT: PanelManager",
-    globalName: "PanelManager",
-    requiresPreact: true,
-  },
-  {
-    entryPoint: path.resolve(SRC_DIR, "utils/ProcessedPostsManager.js"),
-    placeholder: "// INJECT: ProcessedPostsManager",
-    globalName: "ProcessedPostsManager",
-    requiresPreact: false,
-  },
-  {
-    entryPoint: path.resolve(SRC_DIR, "utils/TimingManager.js"),
-    placeholder: "// INJECT: TimingManager",
-    globalName: "TimingManager",
-    requiresPreact: false,
-  },
-];
-
+// Inject CONFIG and EVENTS into template
 (async () => {
+  const { CONFIG, EVENTS, EVENT_CONTRACTS } = await loadConfigAndEvents();
+
+  // Serialize objects to JSON with proper formatting
+  const configJson = JSON.stringify(CONFIG, null, 2);
+  const eventsJson = JSON.stringify(EVENTS, null, 2);
+  const eventContractsJson = JSON.stringify(EVENT_CONTRACTS, null, 2);
+
+  templateContent = templateContent.replace(
+    "// INJECT: Config",
+    `const CONFIG = ${configJson};`
+  );
+  templateContent = templateContent.replace(
+    "// INJECT: Events",
+    `const EVENTS = ${eventsJson};\nconst EVENT_CONTRACTS = ${eventContractsJson};`
+  );
+
+  // Read CSS files
+  const modalCssContent = fs.readFileSync(
+    path.resolve(SRC_DIR, "ui/Modal.css"),
+    "utf8"
+  );
+  const panelCssContent = fs.readFileSync(
+    path.resolve(SRC_DIR, "ui/Panel.css"),
+    "utf8"
+  );
+
+  // Define modules to bundle separately
+  const modules = [
+    {
+      entryPoint: path.resolve(SRC_DIR, "xGhosted.js"),
+      placeholder: "// INJECT: xGhosted",
+      globalName: "XGhosted",
+      requiresPreact: false,
+    },
+    {
+      entryPoint: path.resolve(SRC_DIR, "ui/SplashPanel.js"),
+      placeholder: "// INJECT: SplashPanel",
+      globalName: "SplashPanel",
+      requiresPreact: false,
+    },
+    {
+      entryPoint: path.resolve(SRC_DIR, "ui/PanelManager.js"),
+      placeholder: "// INJECT: PanelManager",
+      globalName: "PanelManager",
+      requiresPreact: true,
+    },
+    {
+      entryPoint: path.resolve(SRC_DIR, "utils/ProcessedPostsManager.js"),
+      placeholder: "// INJECT: ProcessedPostsManager",
+      globalName: "ProcessedPostsManager",
+      requiresPreact: false,
+    },
+    {
+      entryPoint: path.resolve(SRC_DIR, "utils/TimingManager.js"),
+      placeholder: "// INJECT: TimingManager",
+      globalName: "TimingManager",
+      requiresPreact: false,
+    },
+  ];
+
   try {
     let finalContent = templateContent;
     const sharedImports = new Set();
