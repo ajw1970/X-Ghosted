@@ -583,6 +583,38 @@ XGhosted.prototype.initEventListeners = function () {
       this.userRequestedPostCheck(href, post);
     }
   );
+
+  // Handles DOM eyeball clicks for Potential Problem post checks (see _grok-xGhosted Check Potential Problem Post In New Tab Design)
+  this.document.addEventListener(
+    "click",
+    (e) => {
+      const eyeball =
+        e.target.closest(".xghosted-eyeball") ||
+        (e.target.classList.contains("xghosted-eyeball") ? e.target : null);
+      if (eyeball) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.log("Eyeball clicked! Digging in...");
+        const clickedPost = eyeball.closest("div[data-xghosted-id]");
+        const href = clickedPost?.getAttribute("data-xghosted-id");
+        if (!href) {
+          this.log("No href found for clicked eyeball");
+          return;
+        }
+        this.log(`Processing eyeball click for: ${href}`);
+        if (this.state.isRateLimited) {
+          this.log(`Eyeball click skipped for ${href} due to rate limit`);
+          return;
+        }
+        this.document.dispatchEvent(
+          new CustomEvent(EVENTS.REQUEST_POST_CHECK, {
+            detail: { href, post: clickedPost },
+          })
+        );
+      }
+    },
+    { capture: true }
+  );
 };
 
 XGhosted.prototype.init = function () {
