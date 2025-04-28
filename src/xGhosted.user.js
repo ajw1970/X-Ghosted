@@ -25,14 +25,16 @@
       throttleDelay: 1000,
       tabCheckThrottle: 5000,
       exportThrottle: 5000,
-      rateLimitPause: 20 * 1000,
-      pollInterval: 600,
-      scrollInterval: 1250,
+      rateLimitPause: 20000,
+      pollInterval: 2000,
+      scrollInterval: 800,
     },
     showSplash: true,
     logTarget: 'tampermonkey',
     persistProcessedPosts: false,
     linkPrefix: 'https://x.com',
+    debug: true,
+    smoothScrolling: true,
   };
 
   // Event constants for consistent event naming across components
@@ -74,6 +76,106 @@
     SET_INITIAL_WAIT_TIME: 'xghosted:set-initial-wait-time',
     SET_POST_DENSITY: 'xghosted:set-post-density',
     SAVE_METRICS: 'xghosted:save-metrics',
+  };
+  const EVENT_CONTRACTS = {
+    'xghosted:init-components': {
+      config: 'object',
+    },
+    'xghosted:post-registered': {
+      href: 'string',
+      data: 'object',
+    },
+    'xghosted:post-requested': {
+      href: 'string',
+    },
+    'xghosted:post-retrieved': {
+      href: 'string',
+      post: 'object|null',
+    },
+    'xghosted:request-post-check': {
+      href: 'string',
+      post: 'object|null',
+    },
+    'xghosted:clear-posts': {},
+    'xghosted:clear-posts-ui': {},
+    'xghosted:posts-cleared': {},
+    'xghosted:posts-cleared-confirmed': {},
+    'xghosted:request-posts': {},
+    'xghosted:posts-retrieved': {
+      posts: 'array',
+    },
+    'xghosted:csv-import': {
+      csvText: 'string',
+    },
+    'xghosted:csv-imported': {
+      importedCount: 'number',
+    },
+    'xghosted:request-import-csv': {
+      csvText: 'string',
+    },
+    'xghosted:export-csv': {},
+    'xghosted:csv-exported': {
+      csvData: 'string',
+    },
+    'xghosted:set-polling': {
+      enabled: 'boolean',
+    },
+    'xghosted:polling-state-updated': {
+      isPollingEnabled: 'boolean',
+    },
+    'xghosted:set-auto-scrolling': {
+      enabled: 'boolean',
+    },
+    'xghosted:auto-scrolling-toggled': {
+      isAutoScrollingEnabled: 'boolean',
+    },
+    'xghosted:rate-limit-detected': {
+      pauseDuration: 'number',
+    },
+    'xghosted:user-profile-updated': {
+      userProfileName: 'string|null',
+    },
+    'xghosted:init': {
+      config: 'object',
+    },
+    'xghosted:state-updated': {
+      isRateLimited: 'boolean',
+    },
+    'xghosted:open-about': {},
+    'xghosted:toggle-panel-visibility': {
+      isPanelVisible: 'boolean',
+    },
+    'xghosted:copy-links': {},
+    'xghosted:request-metrics': {},
+    'xghosted:metrics-retrieved': {
+      timingHistory: 'array',
+    },
+    'xghosted:export-metrics': {},
+    'xghosted:metrics-updated': {
+      metrics: 'object',
+    },
+    'xghosted:record-poll': {
+      postsProcessed: 'number',
+      wasSkipped: 'boolean',
+      containerFound: 'boolean',
+      containerAttempted: 'boolean',
+      pageType: 'string',
+      isPollingStarted: 'boolean',
+      isPollingStopped: 'boolean',
+    },
+    'xghosted:record-scroll': {
+      bottomReached: 'boolean',
+    },
+    'xghosted:record-highlight': {
+      duration: 'number',
+    },
+    'xghosted:set-initial-wait-time': {
+      time: 'number',
+    },
+    'xghosted:set-post-density': {
+      count: 'number',
+    },
+    'xghosted:save-metrics': {},
   };
 
   // --- Inject Shared Utilities ---
@@ -722,13 +824,17 @@
         tabCheckThrottle: 5e3,
         exportThrottle: 5e3,
         rateLimitPause: 20 * 1e3,
-        pollInterval: 600,
+        pollInterval: 2e3,
+        // Slowed for visibility
         scrollInterval: 800,
       },
       showSplash: true,
       logTarget: 'tampermonkey',
       persistProcessedPosts: false,
       linkPrefix: 'https://x.com',
+      debug: true,
+      smoothScrolling: true,
+      // Reverted to smooth scrolling
     };
 
     // src/events.js
@@ -985,57 +1091,53 @@
       this.log(
         `Cached post for ${href}: quality=${cached?.analysis?.quality?.name || 'none'}, checked=${cached?.checked || false}`
       );
-      if (!cached || cached.analysis.quality.name !== 'Potential Problem') {
-        this.log(`Manual check skipped for ${href}: not a potential problem`);
+      if (!cached) {
+        this.log(`Post not found in cache for ${href}, skipping check`);
         return;
       }
-      if (!cached.checked) {
-        this.handleStopPolling();
-        this.log(`Manual check starting for ${href}`);
-        const isProblem = await this.checkPostInNewTab(href);
+      this.handleStopPolling();
+      this.log(`Manual check starting for ${href}`);
+      const isProblem = await this.checkPostInNewTab(href);
+      this.log(
+        `Manual check result for ${href}: ${isProblem ? 'problem' : 'good'}`
+      );
+      const currentPost = this.document.querySelector(
+        `[data-xghosted-id="${href}"]`
+      );
+      if (!currentPost) {
         this.log(
-          `Manual check result for ${href}: ${isProblem ? 'problem' : 'good'}`
+          `Post with href ${href} no longer exists in the DOM, skipping DOM update`
         );
-        const currentPost = this.document.querySelector(
-          `[data-xghosted-id="${href}"]`
-        );
-        if (!currentPost) {
-          this.log(
-            `Post with href ${href} no longer exists in the DOM, skipping DOM update`
-          );
-        } else {
-          currentPost.classList.remove(
-            'xghosted-potential_problem',
-            'xghosted-good',
-            'xghosted-problem'
-          );
-          currentPost.classList.add(
-            isProblem ? 'xghosted-problem' : 'xghosted-good'
-          );
-          currentPost.setAttribute(
-            'data-xghosted',
-            `postquality.${isProblem ? 'problem' : 'good'}`
-          );
-          const eyeballContainer =
-            currentPost.querySelector('.xghosted-eyeball');
-          if (eyeballContainer) {
-            eyeballContainer.classList.remove('xghosted-eyeball');
-          } else {
-            this.log(`Eyeball container not found for post with href: ${href}`);
-          }
-        }
-        cached.analysis.quality = isProblem
-          ? postQuality.PROBLEM
-          : postQuality.GOOD;
-        cached.checked = true;
-        this.emit(EVENTS.POST_REGISTERED, { href, data: cached });
-        this.document.dispatchEvent(
-          new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
-        );
-        this.log(`User requested post check completed for ${href}`);
       } else {
-        this.log(`Manual check skipped for ${href}: already checked`);
+        currentPost.classList.remove(
+          'xghosted-problem_adjacent',
+          'xghosted-potential_problem',
+          'xghosted-good',
+          'xghosted-problem'
+        );
+        currentPost.classList.add(
+          isProblem ? 'xghosted-problem_adjacent' : 'xghosted-good'
+        );
+        currentPost.setAttribute(
+          'data-xghosted',
+          `postquality.${isProblem ? 'problem_adjacent' : 'good'}`
+        );
+        const eyeballContainer = currentPost.querySelector('.xghosted-eyeball');
+        if (eyeballContainer) {
+          eyeballContainer.classList.remove('xghosted-eyeball');
+        } else {
+          this.log(`Eyeball container not found for post with href: ${href}`);
+        }
       }
+      cached.analysis.quality = isProblem
+        ? postQuality.PROBLEM_ADJACENT
+        : postQuality.GOOD;
+      cached.checked = true;
+      this.emit(EVENTS.POST_REGISTERED, { href, data: cached });
+      this.document.dispatchEvent(
+        new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
+      );
+      this.log(`User requested post check completed for ${href}`);
     };
     XGhosted.prototype.handleUrlChange = async function (urlFullPath) {
       const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
@@ -1489,10 +1591,11 @@
       });
       const styleSheet = this.document.createElement('style');
       styleSheet.textContent = `
-    .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
-    .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.1); }
-    .xghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.1); }
-    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+    .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.15); }
+    .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.15); }
+    .xghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.25); }
+    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.25); }
+    .xghosted-problem_adjacent { border: 2px solid coral; background: rgba(255, 127, 80, 0.25); }
     .xghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
     .xghosted-eyeball::after {
       content: '\u{1F440}';
@@ -2054,8 +2157,11 @@
                                 '\u{1F440}'
                               )
                             : window.preact.h('span', {
-                                className: 'status-dot status-problem',
-                                'aria-label': 'Problem post',
+                                className: `status-dot ${analysis.quality.name === 'Problem' ? 'status-problem' : 'status-problem-adjacent'}`,
+                                'aria-label':
+                                  analysis.quality.name === 'Problem'
+                                    ? 'Problem post'
+                                    : 'Problem adjacent post',
                               }),
                           window.preact.h(
                             'span',
@@ -2384,10 +2490,12 @@
       const handlePostRegistered = (e) => {
         const { href, data } = e.detail || {};
         if (href && data?.analysis?.quality?.name) {
-          const isProblem = ['Problem', 'Potential Problem'].includes(
-            data.analysis.quality.name
-          );
-          if (isProblem) {
+          const qualityName = data.analysis.quality.name;
+          if (
+            ['Problem', 'Potential Problem', 'Problem by Association'].includes(
+              qualityName
+            )
+          ) {
             this.state.flagged = [
               ...this.state.flagged.filter(
                 ([existingHref]) => existingHref !== href
@@ -2400,7 +2508,11 @@
             );
           }
           this.state.totalPosts += 1;
-          if (isProblem) {
+          if (
+            ['Problem', 'Potential Problem', 'Problem by Association'].includes(
+              qualityName
+            )
+          ) {
             this.renderPanelDebounced();
           }
         }
@@ -2448,9 +2560,11 @@
         }
         if (posts) {
           posts.forEach(([href, data]) => {
-            const isProblem = ['Problem', 'Potential Problem'].includes(
-              data.analysis.quality.name
-            );
+            const isProblem = [
+              'Problem',
+              'Problem by Association',
+              'Potential Problem',
+            ].includes(data.analysis.quality.name);
             if (isProblem) {
               this.state.flagged.push([href, data]);
             }
@@ -3264,6 +3378,7 @@
           sessionStops: 0,
           sessionDurations: [],
           currentSessionStart: null,
+          cellInnerDivCount: 0,
         };
         this.initialWaitTimeSet = false;
         this.hasSetDensity = false;
@@ -3341,7 +3456,12 @@
         pageType,
         isPollingStarted,
         isPollingStopped,
+        cellInnerDivCount,
       }) {
+        const skipped = !window.XGhosted?.state?.isPollingEnabled;
+        if (skipped && CONFIG.debug) {
+          this.log('Recording RECORD_POLL as skipped: polling is disabled');
+        }
         this.metrics.polls++;
         if (wasSkipped) this.metrics.pollSkips++;
         if (containerFound) {
@@ -3352,9 +3472,11 @@
           }
         }
         if (containerAttempted) this.metrics.containerDetectionAttempts++;
-        if (postsProcessed !== void 0)
+        if (postsProcessed !== void 0) {
           this.metrics.postsProcessed.push(postsProcessed);
+        }
         this.metrics.pageType = pageType;
+        this.metrics.cellInnerDivCount = cellInnerDivCount || 0;
         if (isPollingStarted) {
           this.metrics.sessionStarts++;
           this.metrics.currentSessionStart = performance.now();
@@ -3377,7 +3499,9 @@
         this.metricsHistory.push({
           ...this.metrics,
           timestamp: performance.now(),
+          skipped,
         });
+        this.saveMetrics();
         this.log(
           'Emitting xghosted:metrics-updated with polls:',
           this.metrics.polls
@@ -3390,17 +3514,43 @@
         this.logMetrics();
       }
       recordScroll({ bottomReached }) {
+        const skipped = !window.XGhosted?.state?.isPollingEnabled;
+        if (skipped && CONFIG.debug) {
+          this.log('Recording RECORD_SCROLL as skipped: polling is disabled');
+        }
         this.metrics.scrolls++;
         if (bottomReached) this.metrics.bottomReached++;
+        this.metricsHistory.push({
+          ...this.metrics,
+          timestamp: performance.now(),
+          skipped,
+        });
+        this.saveMetrics();
       }
       recordHighlighting(duration) {
+        const skipped = !window.XGhosted?.state?.isPollingEnabled;
+        if (skipped && CONFIG.debug) {
+          this.log(
+            'Recording RECORD_HIGHLIGHT as skipped: polling is disabled'
+          );
+        }
         this.metrics.highlightingDurations.push(duration);
+        if (CONFIG.debug) {
+          this.log(`Highlighting duration: ${duration.toFixed(2)}ms`);
+        }
+        this.metricsHistory.push({
+          ...this.metrics,
+          timestamp: performance.now(),
+          skipped,
+        });
+        this.saveMetrics();
       }
       setPostDensity(count) {
         if (!this.hasSetDensity) {
           this.metrics.postDensity = count;
           this.hasSetDensity = true;
           this.log(`Set post density: ${count}`);
+          this.saveMetrics();
         }
       }
       setInitialWaitTime(time) {
@@ -3408,6 +3558,7 @@
           this.metrics.initialWaitTime = time;
           this.initialWaitTimeSet = true;
           this.log(`Initial wait time set: ${time}ms`);
+          this.saveMetrics();
         }
       }
       logMetrics() {
@@ -3428,19 +3579,15 @@
           this.log('Timing Metrics Summary:', {
             polls: this.metrics.polls,
             avgPostsProcessedAfterContainer: avgPostsProcessed,
+            cellInnerDivCount: this.metrics.cellInnerDivCount,
           });
         }
       }
       saveMetrics() {
-        if (
-          this.metrics.containerFinds > 0 ||
-          this.metrics.postsProcessed.some((n) => n > 0)
-        ) {
-          const state = this.storage.get('xGhostedState', {});
-          state.timingMetrics = { ...this.metrics };
-          this.storage.set('xGhostedState', state);
-          this.log('Saved timing metrics to storage');
-        }
+        const state = this.storage.get('xGhostedState', {});
+        state.timingMetrics = { ...this.metrics };
+        this.storage.set('xGhostedState', state);
+        this.log('Saved timing metrics to storage');
       }
       loadMetrics() {
         const state = this.storage.get('xGhostedState', {});
@@ -3703,6 +3850,10 @@
 
 .status-problem {
   background-color: red;
+}
+
+.status-problem-adjacent {
+  background-color: coral;
 }
 
 .problem-links-wrapper {

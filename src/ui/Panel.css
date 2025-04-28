@@ -152,6 +152,10 @@
   background-color: red;
 }
 
+.status-problem-adjacent {
+  background-color: coral;
+}
+
 .problem-links-wrapper {
   padding: 0 8px;
 }

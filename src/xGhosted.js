@@ -113,56 +113,54 @@ XGhosted.prototype.userRequestedPostCheck = async function (href, post) {
     `Cached post for ${href}: quality=${cached?.analysis?.quality?.name || "none"}, checked=${cached?.checked || false}`
   );
 
-  if (!cached || cached.analysis.quality.name !== "Potential Problem") {
-    this.log(`Manual check skipped for ${href}: not a potential problem`);
+  if (!cached) {
+    this.log(`Post not found in cache for ${href}, skipping check`);
     return;
   }
-  if (!cached.checked) {
-    this.handleStopPolling();
-    this.log(`Manual check starting for ${href}`);
-    const isProblem = await this.checkPostInNewTab(href);
+
+  this.handleStopPolling();
+  this.log(`Manual check starting for ${href}`);
+  const isProblem = await this.checkPostInNewTab(href);
+  this.log(
+    `Manual check result for ${href}: ${isProblem ? "problem" : "good"}`
+  );
+  const currentPost = this.document.querySelector(
+    `[data-xghosted-id="${href}"]`
+  );
+  if (!currentPost) {
     this.log(
-      `Manual check result for ${href}: ${isProblem ? "problem" : "good"}`
+      `Post with href ${href} no longer exists in the DOM, skipping DOM update`
     );
-    const currentPost = this.document.querySelector(
-      `[data-xghosted-id="${href}"]`
-    );
-    if (!currentPost) {
-      this.log(
-        `Post with href ${href} no longer exists in the DOM, skipping DOM update`
-      );
-    } else {
-      currentPost.classList.remove(
-        "xghosted-potential_problem",
-        "xghosted-good",
-        "xghosted-problem"
-      );
-      currentPost.classList.add(
-        isProblem ? "xghosted-problem" : "xghosted-good"
-      );
-      currentPost.setAttribute(
-        "data-xghosted",
-        `postquality.${isProblem ? "problem" : "good"}`
-      );
-      const eyeballContainer = currentPost.querySelector(".xghosted-eyeball");
-      if (eyeballContainer) {
-        eyeballContainer.classList.remove("xghosted-eyeball");
-      } else {
-        this.log(`Eyeball container not found for post with href: ${href}`);
-      }
-    }
-    cached.analysis.quality = isProblem
-      ? postQuality.PROBLEM
-      : postQuality.GOOD;
-    cached.checked = true;
-    this.emit(EVENTS.POST_REGISTERED, { href, data: cached });
-    this.document.dispatchEvent(
-      new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
-    );
-    this.log(`User requested post check completed for ${href}`);
   } else {
-    this.log(`Manual check skipped for ${href}: already checked`);
+    currentPost.classList.remove(
+      "xghosted-problem_adjacent",
+      "xghosted-potential_problem",
+      "xghosted-good",
+      "xghosted-problem"
+    );
+    currentPost.classList.add(
+      isProblem ? "xghosted-problem_adjacent" : "xghosted-good"
+    );
+    currentPost.setAttribute(
+      "data-xghosted",
+      `postquality.${isProblem ? "problem_adjacent" : "good"}`
+    );
+    const eyeballContainer = currentPost.querySelector(".xghosted-eyeball");
+    if (eyeballContainer) {
+      eyeballContainer.classList.remove("xghosted-eyeball");
+    } else {
+      this.log(`Eyeball container not found for post with href: ${href}`);
+    }
   }
+  cached.analysis.quality = isProblem
+    ? postQuality.PROBLEM_ADJACENT
+    : postQuality.GOOD;
+  cached.checked = true;
+  this.emit(EVENTS.POST_REGISTERED, { href, data: cached });
+  this.document.dispatchEvent(
+    new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
+  );
+  this.log(`User requested post check completed for ${href}`);
 };
 
 XGhosted.prototype.handleUrlChange = async function (urlFullPath) {
@@ -628,10 +626,11 @@ XGhosted.prototype.init = function () {
 
   const styleSheet = this.document.createElement("style");
   styleSheet.textContent = `
-    .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.1); }
-    .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.1); }
-    .xghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.1); }
-    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.1); }
+    .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.15); }
+    .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.15); }
+    .xghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.25); }
+    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.25); }
+    .xghosted-problem_adjacent { border: 2px solid coral; background: rgba(255, 127, 80, 0.25); }
     .xghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
     .xghosted-eyeball::after {
       content: '\u{1F440}';

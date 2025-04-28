@@ -267,10 +267,12 @@ window.PanelManager.prototype.init = function () {
   const handlePostRegistered = (e) => {
     const { href, data } = e.detail || {};
     if (href && data?.analysis?.quality?.name) {
-      const isProblem = ["Problem", "Potential Problem"].includes(
-        data.analysis.quality.name
-      );
-      if (isProblem) {
+      const qualityName = data.analysis.quality.name;
+      if (
+        ["Problem", "Potential Problem", "Problem by Association"].includes(
+          qualityName
+        )
+      ) {
         this.state.flagged = [
           ...this.state.flagged.filter(
             ([existingHref]) => existingHref !== href
@@ -283,7 +285,11 @@ window.PanelManager.prototype.init = function () {
         );
       }
       this.state.totalPosts += 1;
-      if (isProblem) {
+      if (
+        ["Problem", "Potential Problem", "Problem by Association"].includes(
+          qualityName
+        )
+      ) {
         this.renderPanelDebounced();
       }
     }
@@ -331,9 +337,11 @@ window.PanelManager.prototype.init = function () {
     }
     if (posts) {
       posts.forEach(([href, data]) => {
-        const isProblem = ["Problem", "Potential Problem"].includes(
-          data.analysis.quality.name
-        );
+        const isProblem = [
+          "Problem",
+          "Problem by Association",
+          "Potential Problem",
+        ].includes(data.analysis.quality.name);
         if (isProblem) {
           this.state.flagged.push([href, data]);
         }

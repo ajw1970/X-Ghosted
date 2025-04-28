@@ -368,8 +368,14 @@ function Panel({
                       '\u{1F440}'
                     )
                     : window.preact.h('span', {
-                      className: 'status-dot status-problem',
-                      'aria-label': 'Problem post',
+                      className: `status-dot ${analysis.quality.name === 'Problem'
+                        ? 'status-problem'
+                        : 'status-problem-adjacent'
+                        }`,
+                      'aria-label':
+                        analysis.quality.name === 'Problem'
+                          ? 'Problem post'
+                          : 'Problem adjacent post'
                     }),
                   window.preact.h(
                     'span',
