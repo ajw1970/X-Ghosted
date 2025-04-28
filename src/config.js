@@ -5,7 +5,7 @@ export const CONFIG = {
     tabCheckThrottle: 5000,
     exportThrottle: 5000,
     rateLimitPause: 20 * 1000,
-    pollInterval: 600,
+    pollInterval: 2000, // Slowed for visibility
     scrollInterval: 800,
   },
   showSplash: true,
