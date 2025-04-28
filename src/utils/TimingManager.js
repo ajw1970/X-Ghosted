@@ -25,6 +25,7 @@ var TimingManager = class {
       sessionStops: 0,
       sessionDurations: [],
       currentSessionStart: null,
+      cellInnerDivCount: 0,
     };
     this.initialWaitTimeSet = false;
     this.hasSetDensity = false;
@@ -103,7 +104,12 @@ var TimingManager = class {
     pageType,
     isPollingStarted,
     isPollingStopped,
+    cellInnerDivCount,
   }) {
+    const skipped = !window.XGhosted?.state?.isPollingEnabled;
+    if (skipped && CONFIG.debug) {
+      this.log("Recording RECORD_POLL as skipped: polling is disabled");
+    }
     this.metrics.polls++;
     if (wasSkipped) this.metrics.pollSkips++;
     if (containerFound) {
@@ -114,9 +120,11 @@ var TimingManager = class {
       }
     }
     if (containerAttempted) this.metrics.containerDetectionAttempts++;
-    if (postsProcessed !== void 0)
+    if (postsProcessed !== undefined) {
       this.metrics.postsProcessed.push(postsProcessed);
+    }
     this.metrics.pageType = pageType;
+    this.metrics.cellInnerDivCount = cellInnerDivCount || 0;
 
     if (isPollingStarted) {
       this.metrics.sessionStarts++;
@@ -137,13 +145,17 @@ var TimingManager = class {
       }
     }
 
-    this.metricsHistory.push({ ...this.metrics, timestamp: performance.now() });
+    this.metricsHistory.push({
+      ...this.metrics,
+      timestamp: performance.now(),
+      skipped,
+    });
+    this.saveMetrics();
 
     this.log(
       "Emitting xghosted:metrics-updated with polls:",
       this.metrics.polls
     );
-
     this.document.dispatchEvent(
       new CustomEvent(EVENTS.METRICS_UPDATED, {
         detail: { metrics: this.metrics },
@@ -154,12 +166,35 @@ var TimingManager = class {
   }
 
   recordScroll({ bottomReached }) {
+    const skipped = !window.XGhosted?.state?.isPollingEnabled;
+    if (skipped && CONFIG.debug) {
+      this.log("Recording RECORD_SCROLL as skipped: polling is disabled");
+    }
     this.metrics.scrolls++;
     if (bottomReached) this.metrics.bottomReached++;
+    this.metricsHistory.push({
+      ...this.metrics,
+      timestamp: performance.now(),
+      skipped,
+    });
+    this.saveMetrics();
   }
 
   recordHighlighting(duration) {
+    const skipped = !window.XGhosted?.state?.isPollingEnabled;
+    if (skipped && CONFIG.debug) {
+      this.log("Recording RECORD_HIGHLIGHT as skipped: polling is disabled");
+    }
     this.metrics.highlightingDurations.push(duration);
+    if (CONFIG.debug) {
+      this.log(`Highlighting duration: ${duration.toFixed(2)}ms`);
+    }
+    this.metricsHistory.push({
+      ...this.metrics,
+      timestamp: performance.now(),
+      skipped,
+    });
+    this.saveMetrics();
   }
 
   setPostDensity(count) {
@@ -167,6 +202,7 @@ var TimingManager = class {
       this.metrics.postDensity = count;
       this.hasSetDensity = true;
       this.log(`Set post density: ${count}`);
+      this.saveMetrics();
     }
   }
 
@@ -175,6 +211,7 @@ var TimingManager = class {
       this.metrics.initialWaitTime = time;
       this.initialWaitTimeSet = true;
       this.log(`Initial wait time set: ${time}ms`);
+      this.saveMetrics();
     }
   }
 
@@ -197,20 +234,16 @@ var TimingManager = class {
       this.log("Timing Metrics Summary:", {
         polls: this.metrics.polls,
         avgPostsProcessedAfterContainer: avgPostsProcessed,
+        cellInnerDivCount: this.metrics.cellInnerDivCount,
       });
     }
   }
 
   saveMetrics() {
-    if (
-      this.metrics.containerFinds > 0 ||
-      this.metrics.postsProcessed.some((n) => n > 0)
-    ) {
-      const state = this.storage.get("xGhostedState", {});
-      state.timingMetrics = { ...this.metrics };
-      this.storage.set("xGhostedState", state);
-      this.log("Saved timing metrics to storage");
-    }
+    const state = this.storage.get("xGhostedState", {});
+    state.timingMetrics = { ...this.metrics };
+    this.storage.set("xGhostedState", state);
+    this.log("Saved timing metrics to storage");
   }
 
   loadMetrics() {
