@@ -71,6 +71,7 @@
 * [ ] If on with_replies, get account name from url and make sure to highlight reply to a problem that didn't belong to that account. As it is now, a bad post can have a good looking reply but we want the user to notice that they might want to step out of that conversation.
 ** [ ] Test with this sample: Reply-to-repost-of-unavailable.html
 ** [ ] Also test with: Replying-To-Conversation-Thread-with-Dashed-Lines.html
+* [ ] Append a # followed by a custom identifier, e.g., https://example.com#xGhostCheck. The fragment is not sent to the server and is accessible client-side via window.location.hash. Tampermonkey template can check for this with if (window.location.hash === '#xGhostCheck') and then show a special splash screen instead of the main panel.
 * [ ] Add Two Problems to postQuality. OUR-PROBLEM AND NOT-OUR-PROBLEM. (Checking username of href)
 * [ ] build ChatRTX local copy of samples and tests to see what's redundant and what's not tested yet.
 * [ ] Splash screen dragging is broken now - sticks to bottom of the page once dragging starts.
