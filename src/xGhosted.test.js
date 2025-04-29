@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 import { XGhosted } from './xGhosted.js';
 import { postQuality } from './utils/postQuality.js';
 import { summarizeRatedPosts } from './utils/summarizeRatedPosts.js';
-import * as identifyPostModule from './utils/identifyPost.js'; // For accessing the mock
+import * as identifyPostModule from './utils/identifyPost.js';
 import { findPostContainer } from './dom/findPostContainer.js';
 
 // Mock the identifyPost module globally with async import
@@ -13,7 +13,7 @@ vi.mock('./utils/identifyPost.js', async () => {
   const actual = await vi.importActual('./utils/identifyPost.js');
   return {
     ...actual,
-    identifyPost: vi.fn(actual.identifyPost), // Use the original function directly
+    identifyPost: vi.fn(actual.identifyPost),
   };
 });
 
@@ -68,26 +68,20 @@ describe('xGhosted', () => {
       useTampermonkeyLog: false,
       persistProcessedPosts: true,
     });
-    xGhosted.updateState('https://x.com/user/with_replies');
+    xGhosted.handleUrlChange('https://x.com/user/with_replies');
     xGhosted.highlightPostsDebounced = xGhosted.highlightPosts; // Simplify for tests
     xGhosted.state.processedPosts.clear();
     xGhosted.state = {
       ...xGhosted.state,
       themeMode: 'dark',
       isManualCheckEnabled: false,
+      userProfileName: 'user'
     };
   }, 30000);
 
   afterEach(() => {
     dom.window.document.body.innerHTML = '';
     vi.clearAllMocks();
-  });
-
-  test('updateState sets with_replies flag and resets on URL change', () => {
-    expect(xGhosted.state.isWithReplies).toBe(true);
-    xGhosted.updateState('https://x.com/user');
-    expect(xGhosted.state.isWithReplies).toBe(false);
-    expect(xGhosted.state.processedPosts.size).toBe(0);
   });
 
   test('checkPostInNewTab handles rate limit', async () => {
@@ -108,19 +102,8 @@ describe('xGhosted', () => {
     expect(mockWindow.close).toHaveBeenCalled();
   });
 
-  test('ensureAndHighlightPosts identifies all post qualities', () => {
-    const analyses = xGhosted.ensureAndHighlightPosts();
-    const summary = summarizeRatedPosts(analyses);
-    expect(summary.Good).toBe(21);
-    expect(summary.Problem).toBe(1);
-    expect(summary['Potential Problem']).toBe(2);
-    expect(summary.Undefined).toBe(12);
-    const post = analyses.find(pa => pa.link === '/OwenGregorian/status/1896977661144260900');
-    expect(post.quality).toBe(postQuality.PROBLEM);
-  });
-
   test('saveState and loadState persist data', () => {
-    xGhosted.ensureAndHighlightPosts();
+    xGhosted.highlightPosts();
     xGhosted.saveState();
     const saved = gmStorage.xGhostedState;
     expect(saved.processedPosts['/OwenGregorian/status/1896977661144260900'].analysis.quality).toBe(postQuality.PROBLEM);

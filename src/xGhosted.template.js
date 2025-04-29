@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         xGhosted
+// @name         xGhosted{{Suffix}}
 // @namespace    http://tampermonkey.net/
-// @version      0.6.1
+// @version      {{VERSION}}
 // @description  Highlight and manage problem posts on X.com with a resizable, draggable panel
 // @author       You
 // @match        https://x.com/*
@@ -16,52 +16,95 @@
 // ==/UserScript==
 
 (function () {
-  'use strict';
+  ("use strict");
+
+  // Centralized configuration object
+  // INJECT: Config
+
+  // Event constants for consistent event naming across components
+  // INJECT: Events
+
+  // --- Inject Shared Utilities ---
+  // INJECT: Utils
+
+  // Safety check: Ensure Logger is defined
+  if (!window.Logger || typeof window.Logger !== "function") {
+    console.error("xGhosted: Logger utility not found or not a constructor");
+    return;
+  }
 
   // Safety check: Ensure we're on X.com with a valid document
-  const log = typeof GM_log !== 'undefined' ? GM_log : console.log.bind(console);
-  if (!window.location.href.startsWith('https://x.com/') || !document.body) {
-    log('xGhosted: Aborting - invalid environment');
+  const log = new window.Logger({ logTarget: CONFIG.logTarget }).log.bind(
+    window.Logger
+  );
+  CONFIG.log = log;
+  if (!window.location.href.startsWith("https://x.com/") || !document.body) {
+    log("xGhosted: Aborting - invalid environment");
     return;
   }
 
-  // Log startup with safety focus
-  log('xGhosted v0.6.1 starting - Manual mode on, resource use capped, rate limit pause set to 20 seconds');
+  // Log startup
+  log("xGhosted v{{VERSION}} starting - Manual mode on");
 
-  // Check if Preact and Preact Hooks dependencies loaded
-  if (!window.preact || !window.preactHooks) {
-    log(
-      'xGhosted: Aborting - Failed to load dependencies. Preact: ' +
-        (window.preact ? 'loaded' : 'missing') +
-        ', Preact Hooks: ' +
-        (window.preactHooks ? 'loaded' : 'missing')
-    );
-    return;
-  }
-
-  // Check if Font Awesome loaded
-  if (typeof window.FontAwesome === 'undefined') {
-    log('xGhosted: Font Awesome failed to load, icons may not display correctly');
-  }
-
-  // --- Inject Module (single resolved xGhosted.js with all dependencies inlined) ---
+  // --- Inject Modules ---
   // INJECT: xGhosted
+  // INJECT: SplashPanel
+  // INJECT: PanelManager
+  // INJECT: ProcessedPostsManager
+  // INJECT: MetricsMonitor
 
-  // --- Initialization with Resource Limits and Rate Limiting ---
-  const RATE_LIMIT_PAUSE = 20 * 1000; // 20 seconds in milliseconds
-  const config = {
-    timing: {
-      debounceDelay: 500,
-      throttleDelay: 1000,
-      tabCheckThrottle: 5000,
-      exportThrottle: 5000,
-      rateLimitPause: RATE_LIMIT_PAUSE,
-      pollInterval: 1000
-    },
-    useTampermonkeyLog: true,
-    persistProcessedPosts: false
-  };
-  const xGhosted = new XGhosted(document, config);
-  xGhosted.state.isManualCheckEnabled = true;
+  // --- Inject Styles ---
+  // INJECT: Styles
+
+  // Initialize core components with document and configuration
+  const postsManager = new window.ProcessedPostsManager({
+    document,
+    storage: { get: GM_getValue, set: GM_setValue },
+    log,
+    linkPrefix: CONFIG.linkPrefix,
+    persistProcessedPosts: CONFIG.persistProcessedPosts,
+  });
+  const metricsMonitor = new window.MetricsMonitor({
+    document,
+    timing: CONFIG.timing,
+    log,
+    storage: { get: GM_getValue, set: GM_setValue },
+  });
+  const xGhosted = new window.XGhosted(document, { ...CONFIG, log });
+
+  // Emit INIT_COMPONENTS event for loose coupling
+  document.dispatchEvent(
+    new CustomEvent(EVENTS.INIT_COMPONENTS, { detail: { config: CONFIG } })
+  );
+
+  // Optionally initialize PanelManager if Preact is available
+  let panelManager;
+  try {
+    if (window.preact && window.preact.h) {
+      panelManager = new window.PanelManager(
+        document,
+        "dim",
+        CONFIG.linkPrefix,
+        { get: GM_getValue, set: GM_setValue },
+        log
+      );
+      log("GUI Panel initialized successfully");
+    } else {
+      log("Preact not available, running without UI");
+    }
+  } catch (error) {
+    log(
+      `Failed to initialize GUI Panel: ${error.message}. Continuing without panel.`
+    );
+  }
+
+  // Log Font Awesome status
+  if (typeof window.FontAwesome === "undefined") {
+    log(
+      "xGhosted: Font Awesome failed to load, icons may not display correctly"
+    );
+  }
+
+  // Start the core functionality
   xGhosted.init();
 })();

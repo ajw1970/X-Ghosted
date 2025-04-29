@@ -1,0 +1,45 @@
+= Process for User-Requested New Tab Check for Potential Problem Posts
+
+== Overview
+
+The application allows users to request a detailed check for posts flagged as "Potential Problem" by clicking an eyeball icon. This icon can appear either in the panel listing or directly in the DOM alongside the post. Clicking the icon triggers a process that opens the post in a new tab, analyzes it for issues, and updates its status accordingly.
+
+== Steps
+
+1. **User Interaction**
+   - The user identifies a post marked as "Potential Problem" and clicks the associated eyeball icon.
+   - This icon may be located:
+     - In the **panel listing**, next to a flagged post.
+     - In the **DOM**, typically added near the post’s share button container.
+
+2. **Event Triggering**
+   - An event listener tied to the eyeball icon detects the click.
+   - The listener extracts the post’s identifier (its `href`) from the clicked element.
+
+3. **Initiate Check**
+   - The event listener calls `checkPostInNewTab`, passing the post’s `href`.
+   - `checkPostInNewTab` opens a new browser tab with the post’s URL.
+   - It then waits for the tab to fully load before proceeding with the analysis.
+
+4. **Analyze Post in New Tab**
+   - In the new tab, the code examines the post’s content for specific indicators of a problem, such as:
+     - Text or elements indicating the post is "unavailable" or "deleted."
+     - Other predefined markers of problematic content.
+   - The analysis uses a `setInterval` loop to repeatedly check the tab’s state until a conclusion is reached or a timeout occurs.
+   - If a rate limit message is detected, the process pauses all operations for a set duration to avoid overwhelming the system.
+
+5. **Update Post Status**
+   - Once the analysis completes, `checkPostInNewTab` determines the post’s status:
+     - **Problem**: If issues are confirmed (e.g., unavailable or deleted).
+     - **Good**: If no problems are found.
+   - The result is returned to `userRequestedPostCheck`.
+   - The DOM is updated to reflect the new status (e.g., changing colors or labels).
+   - An event is emitted to register the updated status with the processed posts manager.
+
+6. **Close the New Tab**
+   - After the analysis, the new tab is automatically closed to keep the user’s workspace tidy.
+
+7. **Reflect Changes**
+   - The updated post status is mirrored in both:
+     - The **panel listing**, where the post’s entry is refreshed.
+     - The **DOM**, where the eyeball icon or post styling adjusts to the new status.

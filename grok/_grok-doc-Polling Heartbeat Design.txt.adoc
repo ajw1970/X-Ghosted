@@ -1,0 +1,70 @@
+= Grok Step 2: xGhosted Project Context
+:revision-date: April 28, 2025
+
+== Polling Heartbeat Design
+The polling loop is a "heartbeat" that runs continuously to detect URL changes, with activity levels varying based on `isPollingEnabled` and `userRequestedAutoScrolling`. It counts `cellInnerDiv` posts and logs manual scrolling to debug x.com's DOM and user interactions. `userRequestedAutoScrolling` is a user-controlled setting, not modified by the system except on bottom reach or idle cycles.
+
+[cols="1,1,1,2,3",options="header"]
+|===
+| isPollingEnabled | userRequestedAutoScrolling | Interval | Actions on Heartbeat | Notes
+
+| `false` | `false` | `pollInterval` (500ms) | - Check URL (`checkUrlDebounced`)  
+  - If URL changed:  
+    * Call `handleUrlChange`  
+    * Clear panel list (`CLEAR_POSTS`, `POSTS_CLEARED`)  
+    * Update state (`userProfileName`, `isWithReplies`)  
+  - Count `cellInnerDiv` posts  
+  - Log scroll position (`window.scrollY`) if `CONFIG.debug`  
+  - No post processing, scrolling, or metrics | - "Mostly idle" state: URL detection and debugging.  
+  - Fixes panel clearing bug (e.g., missed in logs at 14:49:49, April 27, 2025).  
+  - `cellInnerDiv` count and scroll position logged (`CONFIG.debug`) to track DOM fluctuations and manual scrolling (e.g., mouse wheel, April 27, 2025, 14:29).  
+  - Warns on re-enabling polling if significant scrolling, toggling panel visibility.
+
+| `false` | `true` | `pollInterval` (500ms) | - Same as above (`false`, `false`)  
+  - Log warning: Auto-scrolling not executed as `isPollingEnabled` is `false` | - `userRequestedAutoScrolling` preserved as user setting, but no scrolling (logs at 14:50:00.143 prevented).  
+  - Debug logs for `cellInnerDiv` count and scroll position.
+
+| `true` | `false` | `pollInterval` (500ms) | - Check URL (`checkUrlDebounced`)  
+  - If URL changed: Same as above  
+  - Count `cellInnerDiv` posts  
+  - Process posts (`highlightPostsDebounced`, delayed 500ms):  
+    * Highlight unprocessed posts  
+    * Emit `POST_REGISTERED`  
+    * Update DOM attributes  
+  - Record metrics:  
+    * `RECORD_POLL` (includes `cellInnerDiv` count)  
+    * `RECORD_HIGHLIGHT` | - "Fairly busy" state: Post processing, no scrolling.  
+  - Metrics track `cellInnerDiv` count for x.com’s DOM (e.g., growth/shrinkage, April 27, 2025, 14:03).  
+  - Handles toggles (e.g., 14:49:49.392).  
+  - Manual scrolling ("smoke show") logged in metrics.
+
+| `true` | `true` | `scrollInterval` (800ms) | - Check URL (`checkUrlDebounced`)  
+  - If URL changed: Same as above  
+  - Count `cellInnerDiv` posts  
+  - Process posts (`highlightPostsDebounced`, delayed 500ms):  
+    * Highlight unprocessed posts  
+    * Emit `POST_REGISTERED`  
+    * Update DOM attributes  
+  - Perform scroll (`performSmoothScroll`, 75% viewport or full if no posts found):  
+  - Record metrics:  
+    * `RECORD_POLL` (includes `cellInnerDiv` count)  
+    * `RECORD_SCROLL`  
+    * `RECORD_HIGHLIGHT` | - "Kicking butt" state: Full processing and scrolling.  
+  - Uses `scrollInterval` (800ms) for smoother scrolling (tested April 27, 2025, 15:10).  
+  - 500ms `highlightPosts` delay mitigates duplicates (e.g., 14:49:56.508).  
+  - 75% viewport scrolling (full after 3 idle cycles), smooth via `CONFIG.smoothScrolling`.  
+  - Metrics track DOM and scrolling (131 scrolls at 14:51:44.922).  
+  - Stops scrolling after 3 idle cycles or bottom reach (April 25, 2025).
+|===
+
+## Notes
+- **Implementation**: Implemented in `XGhosted.prototype.startPolling` in `src/xGhosted.js`.
+- **Continuous Polling**: Always `pollInterval` (500ms) for URL changes and processing (tested April 27, 2025, 15:10). Fixes panel clearing bug.
+- **Post Counting**: Counts `cellInnerDiv` posts, logged (`CONFIG.debug`), recorded in `RECORD_POLL` (April 27, 2025, 14:03).
+- **Manual Scrolling**: Logs scroll position when `isPollingEnabled` is `false` (`CONFIG.debug`). UI warning on re-enabling polling if significant scrolling (April 27, 2025, 14:29).
+- **Auto-Scrolling**: Gated by `isPollingEnabled`, user toggles `userRequestedAutoScrolling` via UI (April 27, 2025, 15:35). 75% viewport scrolling (full after 3 idle cycles), smooth scrolling optional.
+- **Metrics**: Recorded when `isPollingEnabled` is `true`, including `cellInnerDiv` count, fixing empty `xGhosted_timing_history.json`.
+- **Duplicates**: 500ms delay and debouncing for `highlightPosts`. Unit tests for `highlightPosts`, DOM mutations, scrolling planned post-refactor (April 27, 2025, 13:35).
+- **Problem Posts**: `isPollingEnabled` set to `false` until manual restart (placeholder, April 27, 2025, 15:10); URL checks continue.
+- **Debugging**: `CONFIG.debug` logs post counts, `highlightingDurations`, duplicate skips, scroll position, state changes.
+- **User Scrolling**: Rapid scrolling (arrow keys, mouse wheel, "smoke show") logged via post counts and scroll position. Unit tests planned to simulate high-speed scrolling.
