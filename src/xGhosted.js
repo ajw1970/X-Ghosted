@@ -57,8 +57,10 @@ XGhosted.prototype.getUrlFullPathIfChanged = function (url) {
   return { urlFullPath, oldUrlFullPath };
 };
 
+XGhosted.POSTS_IN_DOCUMENT = `div[data-testid="cellInnerDiv"]`;
 XGhosted.POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
-XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
+XGhosted.POSTS_IN_CONTAINER_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} ${XGhosted.POSTS_IN_DOCUMENT}`;
+XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POSTS_IN_CONTAINER_SELECTOR}:not([data-xghosted-id])`;
 
 XGhosted.prototype.emit = function (eventName, data) {
   this.document.dispatchEvent(
@@ -315,7 +317,7 @@ XGhosted.prototype.performSmoothScroll = function () {
   const scrollAmount =
     this.state.noPostsFoundCount >= 3
       ? window.innerHeight
-      : window.innerHeight * 0.75;
+      : window.innerHeight * 0.9;
   window.scrollBy({
     top: scrollAmount,
     behavior: CONFIG.smoothScrolling ? "smooth" : "auto",
@@ -358,9 +360,9 @@ XGhosted.prototype.startPolling = function () {
         this.emit(EVENTS.CLEAR_POSTS, {});
       }
     }
-  
+
     const cellInnerDivCount = this.document.querySelectorAll(
-      'div[data-testid="cellInnerDiv"]'
+      XGhosted.POSTS_IN_CONTAINER_SELECTOR
     ).length;
     if (CONFIG.debug) {
       this.log(`cellInnerDiv count: ${cellInnerDivCount}`);
@@ -438,7 +440,7 @@ XGhosted.prototype.startPolling = function () {
       isPollingStopped: false,
       cellInnerDivCount,
     });
-  
+
     if (this.state.isPollingEnabled && this.state.userRequestedAutoScrolling) {
       this.log(
         `Polling in auto-scrolling mode, interval: ${this.timing.scrollInterval}ms`
@@ -448,7 +450,7 @@ XGhosted.prototype.startPolling = function () {
       const bottomReached =
         window.innerHeight + window.scrollY >= document.body.scrollHeight;
       const newPostCount = this.document.querySelectorAll(
-        'div[data-testid="cellInnerDiv"]'
+        XGhosted.POSTS_IN_CONTAINER_SELECTOR
       ).length;
       this.emit(EVENTS.RECORD_SCROLL, { bottomReached });
       if (bottomReached || this.state.idleCycleCount >= 3) {
@@ -733,14 +735,13 @@ XGhosted.prototype.init = function () {
       text-decoration: none;
     }
   `;
-
   this.document.head.appendChild(styleSheet);
+
   const startContainerCheck = () => {
     const checkDomInterval = setInterval(() => {
       if (
         this.document.body &&
-        this.document.querySelectorAll('div[data-testid="cellInnerDiv"]')
-          .length > 0
+        this.document.querySelectorAll(XGhosted.POSTS_IN_DOCUMENT).length > 0
       ) {
         const foundContainer = findPostContainer(this.document, this.log);
         if (foundContainer) {

@@ -45,7 +45,8 @@ var MetricsMonitor = class {
       EVENTS.INIT_COMPONENTS,
       ({ detail: { config } }) => {
         this.timing = { ...this.timing, ...config.timing };
-        this.loadMetrics();
+        // Skip loading metrics from storage to start fresh
+        // this.loadMetrics();
       }
     );
 

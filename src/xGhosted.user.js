@@ -26,7 +26,7 @@
       tabCheckThrottle: 5000,
       exportThrottle: 5000,
       rateLimitPause: 20000,
-      pollInterval: 2000,
+      pollInterval: 500,
       scrollInterval: 800,
     },
     showSplash: true,
@@ -824,8 +824,7 @@
         tabCheckThrottle: 5e3,
         exportThrottle: 5e3,
         rateLimitPause: 20 * 1e3,
-        pollInterval: 2e3,
-        // Slowed for visibility
+        pollInterval: 500,
         scrollInterval: 800,
       },
       showSplash: true,
@@ -1040,8 +1039,10 @@
       this.state.lastUrlFullPath = urlFullPath;
       return { urlFullPath, oldUrlFullPath };
     };
+    XGhosted.POSTS_IN_DOCUMENT = `div[data-testid="cellInnerDiv"]`;
     XGhosted.POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
-    XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`;
+    XGhosted.POSTS_IN_CONTAINER_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} ${XGhosted.POSTS_IN_DOCUMENT}`;
+    XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POSTS_IN_CONTAINER_SELECTOR}:not([data-xghosted-id])`;
     XGhosted.prototype.emit = function (eventName, data) {
       this.document.dispatchEvent(
         new CustomEvent(eventName, {
@@ -1294,7 +1295,7 @@
       const scrollAmount =
         this.state.noPostsFoundCount >= 3
           ? window.innerHeight
-          : window.innerHeight * 0.75;
+          : window.innerHeight * 0.9;
       window.scrollBy({
         top: scrollAmount,
         behavior: CONFIG.smoothScrolling ? 'smooth' : 'auto',
@@ -1339,7 +1340,7 @@
           }
         }
         const cellInnerDivCount = this.document.querySelectorAll(
-          'div[data-testid="cellInnerDiv"]'
+          XGhosted.POSTS_IN_CONTAINER_SELECTOR
         ).length;
         if (CONFIG.debug) {
           this.log(`cellInnerDiv count: ${cellInnerDivCount}`);
@@ -1424,7 +1425,7 @@
           const bottomReached =
             window.innerHeight + window.scrollY >= document.body.scrollHeight;
           const newPostCount = this.document.querySelectorAll(
-            'div[data-testid="cellInnerDiv"]'
+            XGhosted.POSTS_IN_CONTAINER_SELECTOR
           ).length;
           this.emit(EVENTS.RECORD_SCROLL, { bottomReached });
           if (bottomReached || this.state.idleCycleCount >= 3) {
@@ -1706,8 +1707,8 @@
         const checkDomInterval = setInterval(() => {
           if (
             this.document.body &&
-            this.document.querySelectorAll('div[data-testid="cellInnerDiv"]')
-              .length > 0
+            this.document.querySelectorAll(XGhosted.POSTS_IN_DOCUMENT).length >
+              0
           ) {
             const foundContainer = findPostContainer(this.document, this.log);
             if (foundContainer) {
@@ -3496,7 +3497,6 @@
           EVENTS.INIT_COMPONENTS,
           ({ detail: { config } }) => {
             this.timing = { ...this.timing, ...config.timing };
-            this.loadMetrics();
           }
         );
         this.document.addEventListener(EVENTS.RECORD_POLL, ({ detail }) => {

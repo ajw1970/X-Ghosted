@@ -8,7 +8,7 @@ The polling loop is a "heartbeat" that runs continuously to detect URL changes, 
 |===
 | isPollingEnabled | userRequestedAutoScrolling | Interval | Actions on Heartbeat | Notes
 
-| `false` | `false` | `pollInterval` (2000ms) | - Check URL (`checkUrlDebounced`)  
+| `false` | `false` | `pollInterval` (500ms) | - Check URL (`checkUrlDebounced`)  
   - If URL changed:  
     * Call `handleUrlChange`  
     * Clear panel list (`CLEAR_POSTS`, `POSTS_CLEARED`)  
@@ -20,14 +20,14 @@ The polling loop is a "heartbeat" that runs continuously to detect URL changes, 
   - `cellInnerDiv` count and scroll position logged (`CONFIG.debug`) to track DOM fluctuations and manual scrolling (e.g., mouse wheel, April 27, 2025, 14:29).  
   - Warns on re-enabling polling if significant scrolling, toggling panel visibility.
 
-| `false` | `true` | `pollInterval` (2000ms) | - Same as above (`false`, `false`)  
+| `false` | `true` | `pollInterval` (500ms) | - Same as above (`false`, `false`)  
   - Log warning: Auto-scrolling not executed as `isPollingEnabled` is `false` | - `userRequestedAutoScrolling` preserved as user setting, but no scrolling (logs at 14:50:00.143 prevented).  
   - Debug logs for `cellInnerDiv` count and scroll position.
 
-| `true` | `false` | `pollInterval` (2000ms) | - Check URL (`checkUrlDebounced`)  
+| `true` | `false` | `pollInterval` (500ms) | - Check URL (`checkUrlDebounced`)  
   - If URL changed: Same as above  
   - Count `cellInnerDiv` posts  
-  - Process posts (`highlightPostsDebounced`, delayed 2000ms):  
+  - Process posts (`highlightPostsDebounced`, delayed 500ms):  
     * Highlight unprocessed posts  
     * Emit `POST_REGISTERED`  
     * Update DOM attributes  
@@ -41,7 +41,7 @@ The polling loop is a "heartbeat" that runs continuously to detect URL changes, 
 | `true` | `true` | `scrollInterval` (800ms) | - Check URL (`checkUrlDebounced`)  
   - If URL changed: Same as above  
   - Count `cellInnerDiv` posts  
-  - Process posts (`highlightPostsDebounced`, delayed 2000ms):  
+  - Process posts (`highlightPostsDebounced`, delayed 500ms):  
     * Highlight unprocessed posts  
     * Emit `POST_REGISTERED`  
     * Update DOM attributes  
@@ -51,7 +51,7 @@ The polling loop is a "heartbeat" that runs continuously to detect URL changes, 
     * `RECORD_SCROLL`  
     * `RECORD_HIGHLIGHT` | - "Kicking butt" state: Full processing and scrolling.  
   - Uses `scrollInterval` (800ms) for smoother scrolling (tested April 27, 2025, 15:10).  
-  - 2000ms `highlightPosts` delay mitigates duplicates (e.g., 14:49:56.508).  
+  - 500ms `highlightPosts` delay mitigates duplicates (e.g., 14:49:56.508).  
   - 75% viewport scrolling (full after 3 idle cycles), smooth via `CONFIG.smoothScrolling`.  
   - Metrics track DOM and scrolling (131 scrolls at 14:51:44.922).  
   - Stops scrolling after 3 idle cycles or bottom reach (April 25, 2025).
@@ -59,12 +59,12 @@ The polling loop is a "heartbeat" that runs continuously to detect URL changes, 
 
 ## Notes
 - **Implementation**: Implemented in `XGhosted.prototype.startPolling` in `src/xGhosted.js`.
-- **Continuous Polling**: Always `pollInterval` (2000ms) for URL changes and processing (tested April 27, 2025, 15:10). Fixes panel clearing bug.
+- **Continuous Polling**: Always `pollInterval` (500ms) for URL changes and processing (tested April 27, 2025, 15:10). Fixes panel clearing bug.
 - **Post Counting**: Counts `cellInnerDiv` posts, logged (`CONFIG.debug`), recorded in `RECORD_POLL` (April 27, 2025, 14:03).
 - **Manual Scrolling**: Logs scroll position when `isPollingEnabled` is `false` (`CONFIG.debug`). UI warning on re-enabling polling if significant scrolling (April 27, 2025, 14:29).
 - **Auto-Scrolling**: Gated by `isPollingEnabled`, user toggles `userRequestedAutoScrolling` via UI (April 27, 2025, 15:35). 75% viewport scrolling (full after 3 idle cycles), smooth scrolling optional.
 - **Metrics**: Recorded when `isPollingEnabled` is `true`, including `cellInnerDiv` count, fixing empty `xGhosted_timing_history.json`.
-- **Duplicates**: 2000ms delay and debouncing for `highlightPosts`. Unit tests for `highlightPosts`, DOM mutations, scrolling planned post-refactor (April 27, 2025, 13:35).
+- **Duplicates**: 500ms delay and debouncing for `highlightPosts`. Unit tests for `highlightPosts`, DOM mutations, scrolling planned post-refactor (April 27, 2025, 13:35).
 - **Problem Posts**: `isPollingEnabled` set to `false` until manual restart (placeholder, April 27, 2025, 15:10); URL checks continue.
 - **Debugging**: `CONFIG.debug` logs post counts, `highlightingDurations`, duplicate skips, scroll position, state changes.
 - **User Scrolling**: Rapid scrolling (arrow keys, mouse wheel, "smoke show") logged via post counts and scroll position. Unit tests planned to simulate high-speed scrolling.
