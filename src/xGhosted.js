@@ -337,6 +337,7 @@ XGhosted.prototype.startPolling = function () {
     this.log("Polling already active, updating state only");
     return;
   }
+
   const pollCycle = async () => {
     const currentUrl = this.document.location.href;
     if (CONFIG.debug) {
@@ -361,18 +362,53 @@ XGhosted.prototype.startPolling = function () {
       }
     }
 
-    let cellInnerDivCount = this.document.querySelectorAll(
-      XGhosted.POSTS_IN_CONTAINER_SELECTOR
-    ).length;
-    if (CONFIG.debug) {
-      this.log(`cellInnerDivCount: ${cellInnerDivCount}`);
-    }
-
+    let cellInnerDivCount = 0;
     let containerFound = false;
     let containerAttempted = false;
     let postsProcessed = 0;
 
-    // Only highlight posts if polling is enabled
+    // Check for container and calculate cellInnerDivCount
+    const container = this.document.querySelector(
+      XGhosted.POST_CONTAINER_SELECTOR
+    );
+    if (container) {
+      cellInnerDivCount = this.document.querySelectorAll(
+        XGhosted.POSTS_IN_CONTAINER_SELECTOR
+      ).length;
+      if (
+        CONFIG.debug &&
+        cellInnerDivCount !== this.state.lastCellInnerDivCount
+      ) {
+        this.log(`cellInnerDivCount: ${cellInnerDivCount}`);
+      }
+    } else {
+      containerAttempted = true;
+      const foundContainer = findPostContainer(this.document, this.log);
+      containerFound = !!foundContainer;
+      if (this.state.noPostsFoundCount <= 3) {
+        if (foundContainer) {
+          this.log("Container found, setting post density");
+          cellInnerDivCount = this.document.querySelectorAll(
+            XGhosted.POSTS_IN_CONTAINER_SELECTOR
+          ).length;
+          this.log(
+            `Emitting SET_POST_DENSITY with count: ${cellInnerDivCount}`
+          );
+          this.emit(EVENTS.SET_POST_DENSITY, {
+            count: cellInnerDivCount,
+          });
+        } else if (CONFIG.debug) {
+          this.log(
+            this.state.noPostsFoundCount === 0
+              ? "No post container found, trying to find it..."
+              : "Container still not found, skipping highlighting"
+          );
+        }
+      }
+      this.state.noPostsFoundCount++;
+    }
+
+    // Process unprocessed posts if polling is enabled
     if (!this.state.isHighlighting && this.state.isPollingEnabled) {
       const unprocessedPosts = this.document.querySelectorAll(
         XGhosted.UNPROCESSED_POSTS_SELECTOR
@@ -382,40 +418,12 @@ XGhosted.prototype.startPolling = function () {
         this.state.noPostsFoundCount = 0;
         this.state.idleCycleCount = 0;
         postsProcessed = unprocessedPosts.length;
-      } else if (
-        !this.document.querySelector(XGhosted.POST_CONTAINER_SELECTOR)
-      ) {
-        containerAttempted = true;
-        const foundContainer = findPostContainer(this.document, this.log);
-        containerFound = !!foundContainer;
-        if (this.state.noPostsFoundCount <= 3) {
-          if (foundContainer) {
-            this.log("Container found, setting post density");
-            cellInnerDivCount = this.document.querySelectorAll(
-              XGhosted.POSTS_IN_CONTAINER_SELECTOR
-            ).length;
-            this.log(
-              `Emitting SET_POST_DENSITY with count: ${cellInnerDivCount}`
-            );
-            this.emit(EVENTS.SET_POST_DENSITY, {
-              count: cellInnerDivCount,
-            });
-          } else if (CONFIG.debug) {
-            this.log(
-              this.state.noPostsFoundCount === 0
-                ? "No post container found, trying to find it..."
-                : "Container still not found, skipping highlighting"
-            );
-          }
+      } else if (containerFound) {
+        this.state.noPostsFoundCount = 0;
+        if (!this.state.containerFound) {
+          this.state.containerFound = true;
         }
-        this.state.noPostsFoundCount++;
-        if (containerFound) {
-          this.state.noPostsFoundCount = 0;
-          if (!this.state.containerFound) {
-            this.state.containerFound = true;
-          }
-          this.highlightPostsDebounced();
-        }
+        this.highlightPostsDebounced();
       } else {
         this.state.idleCycleCount++;
       }
@@ -473,6 +481,7 @@ XGhosted.prototype.startPolling = function () {
       this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
     }
   };
+
   this.log(`Starting polling with interval ${this.timing.pollInterval}ms...`);
   this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
 };
@@ -755,6 +764,15 @@ XGhosted.prototype.init = function () {
           this.log(`Initial wait time set: ${waitTime}ms`);
           this.emit(EVENTS.SET_INITIAL_WAIT_TIME, { time: waitTime });
           this.state.containerFound = true;
+
+          const initialCellInnerDivCount = this.document.querySelectorAll(
+            XGhosted.POSTS_IN_CONTAINER_SELECTOR
+          ).length;
+          this.log(`Setting initial post density: ${initialCellInnerDivCount}`);
+          this.emit(EVENTS.SET_POST_DENSITY, {
+            count: initialCellInnerDivCount,
+          });
+          
           this.startPolling();
         }
       }

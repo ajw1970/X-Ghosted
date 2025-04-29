@@ -276,12 +276,9 @@ var MetricsMonitor = class {
   }
 
   setPostDensity(count) {
-    if (!this.hasSetDensity) {
-      this.metrics.postDensity = count;
-      this.hasSetDensity = true;
-      this.log(`Set post density: ${count}`);
-      this.saveMetrics();
-    }
+    this.metrics.postDensity = count;
+    this.log(`Set post density: ${count}`);
+    this.saveMetrics();
   }
 
   setInitialWaitTime(time) {
