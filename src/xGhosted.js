@@ -361,11 +361,11 @@ XGhosted.prototype.startPolling = function () {
       }
     }
 
-    const cellInnerDivCount = this.document.querySelectorAll(
+    let cellInnerDivCount = this.document.querySelectorAll(
       XGhosted.POSTS_IN_CONTAINER_SELECTOR
     ).length;
     if (CONFIG.debug) {
-      this.log(`cellInnerDiv count: ${cellInnerDivCount}`);
+      this.log(`cellInnerDivCount: ${cellInnerDivCount}`);
     }
 
     let containerFound = false;
@@ -391,6 +391,15 @@ XGhosted.prototype.startPolling = function () {
         if (this.state.noPostsFoundCount <= 3) {
           if (foundContainer) {
             this.log("Container found, setting post density");
+            cellInnerDivCount = this.document.querySelectorAll(
+              XGhosted.POSTS_IN_CONTAINER_SELECTOR
+            ).length;
+            this.log(
+              `Emitting SET_POST_DENSITY with count: ${cellInnerDivCount}`
+            );
+            this.emit(EVENTS.SET_POST_DENSITY, {
+              count: cellInnerDivCount,
+            });
           } else if (CONFIG.debug) {
             this.log(
               this.state.noPostsFoundCount === 0
@@ -403,9 +412,6 @@ XGhosted.prototype.startPolling = function () {
         if (containerFound) {
           this.state.noPostsFoundCount = 0;
           if (!this.state.containerFound) {
-            this.emit(EVENTS.SET_POST_DENSITY, {
-              count: cellInnerDivCount,
-            });
             this.state.containerFound = true;
           }
           this.highlightPostsDebounced();
@@ -414,13 +420,12 @@ XGhosted.prototype.startPolling = function () {
         this.state.idleCycleCount++;
       }
     } else {
-      // Log cellInnerDivCount changes for debugging, but don't highlight
       if (
         cellInnerDivCount !== this.state.lastCellInnerDivCount &&
         CONFIG.debug
       ) {
         this.log(
-          `cellInnerDiv count changed from ${this.state.lastCellInnerDivCount} to ${cellInnerDivCount}, but polling is disabled`
+          `cellInnerDivCount changed from ${this.state.lastCellInnerDivCount} to ${cellInnerDivCount}, but polling is disabled`
         );
       }
     }
