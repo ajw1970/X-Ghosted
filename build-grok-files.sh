@@ -12,6 +12,8 @@ FILES=(
     "grok/_grok-step2-project-context.txt.adoc"
     # "grok/_grok-step3-roadmap.txt.adoc"
     # "grok/_grok-step4-backlog-checklist.txt.adoc"
+    "grok/_grok-doc-Check Potential Problem Post In New Tab Design.txt.adoc"
+    "grok/_grok-doc-Polling Heartbeat Design.txt.adoc"
 )
 
 # Function to display progress messages with consistent formatting
