@@ -1347,11 +1347,7 @@
         let containerFound = false;
         let containerAttempted = false;
         let postsProcessed = 0;
-        const shouldHighlight =
-          this.state.isPollingEnabled ||
-          cellInnerDivCount !== this.state.lastCellInnerDivCount;
-        this.state.lastCellInnerDivCount = cellInnerDivCount;
-        if (!this.state.isHighlighting && shouldHighlight) {
+        if (!this.state.isHighlighting && this.state.isPollingEnabled) {
           const unprocessedPosts = this.document.querySelectorAll(
             XGhosted.UNPROCESSED_POSTS_SELECTOR
           );
@@ -1391,10 +1387,20 @@
           } else {
             this.state.idleCycleCount++;
           }
+        } else {
+          if (
+            cellInnerDivCount !== this.state.lastCellInnerDivCount &&
+            CONFIG.debug
+          ) {
+            this.log(
+              `cellInnerDiv count changed from ${this.state.lastCellInnerDivCount} to ${cellInnerDivCount}, but polling is disabled`
+            );
+          }
         }
+        this.state.lastCellInnerDivCount = cellInnerDivCount;
         this.emit(EVENTS.RECORD_POLL, {
           postsProcessed,
-          wasSkipped: !shouldHighlight,
+          wasSkipped: !this.state.isPollingEnabled,
           containerFound,
           containerAttempted,
           pageType: this.state.isWithReplies

@@ -358,7 +358,7 @@ XGhosted.prototype.startPolling = function () {
         this.emit(EVENTS.CLEAR_POSTS, {});
       }
     }
-
+  
     const cellInnerDivCount = this.document.querySelectorAll(
       'div[data-testid="cellInnerDiv"]'
     ).length;
@@ -370,12 +370,8 @@ XGhosted.prototype.startPolling = function () {
     let containerAttempted = false;
     let postsProcessed = 0;
 
-    const shouldHighlight =
-      this.state.isPollingEnabled ||
-      cellInnerDivCount !== this.state.lastCellInnerDivCount;
-    this.state.lastCellInnerDivCount = cellInnerDivCount;
-
-    if (!this.state.isHighlighting && shouldHighlight) {
+    // Only highlight posts if polling is enabled
+    if (!this.state.isHighlighting && this.state.isPollingEnabled) {
       const unprocessedPosts = this.document.querySelectorAll(
         XGhosted.UNPROCESSED_POSTS_SELECTOR
       );
@@ -415,11 +411,22 @@ XGhosted.prototype.startPolling = function () {
       } else {
         this.state.idleCycleCount++;
       }
+    } else {
+      // Log cellInnerDivCount changes for debugging, but don't highlight
+      if (
+        cellInnerDivCount !== this.state.lastCellInnerDivCount &&
+        CONFIG.debug
+      ) {
+        this.log(
+          `cellInnerDiv count changed from ${this.state.lastCellInnerDivCount} to ${cellInnerDivCount}, but polling is disabled`
+        );
+      }
     }
+    this.state.lastCellInnerDivCount = cellInnerDivCount;
 
     this.emit(EVENTS.RECORD_POLL, {
       postsProcessed,
-      wasSkipped: !shouldHighlight,
+      wasSkipped: !this.state.isPollingEnabled,
       containerFound,
       containerAttempted,
       pageType: this.state.isWithReplies
@@ -431,7 +438,7 @@ XGhosted.prototype.startPolling = function () {
       isPollingStopped: false,
       cellInnerDivCount,
     });
-
+  
     if (this.state.isPollingEnabled && this.state.userRequestedAutoScrolling) {
       this.log(
         `Polling in auto-scrolling mode, interval: ${this.timing.scrollInterval}ms`
