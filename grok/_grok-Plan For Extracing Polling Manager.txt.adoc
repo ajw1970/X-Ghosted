@@ -1,0 +1,59 @@
+= Updated Plan for Extracting PollingManager from XGhosted
+
+== Responsibilities
+
+=== PollingManager
+- Manages the polling loop, including timing, enabling/disabling polling, and coordinating actions like checking for URL changes, counting posts, and triggering scrolling or highlighting.
+- Acts as a coordinator, unaware of domain-specific details, relying on `XGhosted` for actual DOM interactions.
+
+=== XGhosted
+- Handles all domain-specific logic, including DOM interactions (e.g., querying elements, highlighting posts), URL change detection, and scrolling.
+- Remains the sole expert on x.com's structure and behavior.
+
+== State Management
+- **PollingManager** manages polling-related state:
+  - `isPollingEnabled`
+  - `userRequestedAutoScrolling`
+  - `lastUrlFullPath`
+  - `noPostsFoundCount`
+  - `idleCycleCount`
+  - `lastCellInnerDivCount`
+- **XGhosted** retains state related to the DOM and broader application:
+  - `postContainer`
+  - `isHighlighting`
+  - `isWithReplies`
+  - `userProfileName`
+  - Other domain-specific state
+
+== PollingManager Design
+- **Constructor**: Accepts `xGhosted` (for method calls), `document`, `log`, and `timing` config.
+- **Methods**:
+  - `startPolling()`: Begins the polling loop.
+  - `stopPolling()`: Halts the polling loop.
+  - `setPollingEnabled(enabled)`: Toggles polling state and emits events.
+  - `setAutoScrolling(enabled)`: Toggles auto-scrolling and emits events.
+  - `pollCycle()`: Executes the polling logic, calling `XGhosted` methods as needed.
+- **Events**: Uses `document.dispatchEvent` for metrics and state updates (e.g., `RECORD_POLL`, `RECORD_SCROLL`).
+
+== XGhosted Updates
+- **Instantiation**: Creates `PollingManager` in its constructor (e.g., `this.pollingManager = new PollingManager(this, config);`).
+- **Delegation**: Calls `PollingManager` methods for polling actions:
+  - `startPolling()` calls `this.pollingManager.startPolling()`.
+  - `setAutoScrolling(enabled)` calls `this.pollingManager.setAutoScrolling(enabled)`.
+- **Event Listeners**: Updates to listen for events emitted by `PollingManager` where necessary.
+
+== Behavior Preservation
+- Replicates the current polling loop's conditional logic in `PollingManager`.
+- Maintains debounced calls (e.g., `highlightPostsDebounced`) by invoking them from `PollingManager`.
+
+== Testability Enhancements
+- **Isolation**: Test `PollingManager` by mocking `XGhosted` and `document`.
+- **Verification**: Check state transitions (e.g., `isPollingEnabled`) and event emissions independently.
+
+== Build Process
+- Place `PollingManager.js` in `src/utils/` to ensure it's bundled correctly in `build-xGhosted.js`.
+
+== Key Considerations
+- **Domain Expertise**: `XGhosted` remains the sole handler of x.com-specific logic.
+- **Coordination**: `PollingManager` is a lightweight coordinator, unaware of DOM details, relying on `XGhosted` for actions.
+- **Dependency**: Instantiating `PollingManager` inside `XGhosted` reflects its role as a dedicated helper.
