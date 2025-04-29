@@ -33,11 +33,11 @@
 
 == Template Functionality (xGhosted.template.js)
 - *Role*: Orchestrates components, handles Tampermonkey specifics.
-- *Features*: Initializes `xGhosted.js`, `PanelManager.js`, `TimingManager.js`, `ProcessedPostsManager.js`; manages logging (`GM_log`), storage (`GM_getValue`, `GM_setValue`).
+- *Features*: Initializes `xGhosted.js`, `PanelManager.js`, `MetricsMonitor.js`, `ProcessedPostsManager.js`; manages logging (`GM_log`), storage (`GM_getValue`, `GM_setValue`).
 
 == Recent Changes
 - *Timing Data Aggregation (April 28, 2025)*:
-  - Updated `TimingManager.js` to aggregate metrics in `xGhosted_timing_history.json`.
+  - Updated `MetricsMonitor.js` to aggregate metrics in `xGhosted_timing_history.json`.
   - Replaced arrays (`postsProcessed`, `highlightingDurations`, `sessionDurations`) with:
     - `totalPolls`, `totalSkips`, `totalPostsProcessed`, `avgPostsProcessed`.
     - `totalScrolls`, `bottomReachedCount`.
@@ -60,7 +60,7 @@
 == File Inventory
 - *Core*: `src/xGhosted.js`, `src/xGhosted.template.js`, `build-xGhosted.js`.
 - *UI*: `src/ui/PanelManager.js`, `src/ui/SplashPanel.js`, `src/ui/Panel.jsx`, `src/ui/Modal.css`, `src/ui/Panel.css`.
-- *Utils*: `src/utils/TimingManager.js`, `src/utils/ProcessedPostsManager.js`, `src/utils/debounce.js`, `src/utils/findReplyingToWithDepth.js`, `src/utils/getRelativeLinkToPost.js`, `src/utils/identifyPost.js`, `src/utils/isPostDivider.js`, `src/utils/postHasProblemCommunity.js`, `src/utils/postHasProblemSystemNotice.js`, `src/utils/postQuality.js`.
+- *Utils*: `src/utils/MetricsMonitor.js`, `src/utils/ProcessedPostsManager.js`, `src/utils/debounce.js`, `src/utils/findReplyingToWithDepth.js`, `src/utils/getRelativeLinkToPost.js`, `src/utils/identifyPost.js`, `src/utils/isPostDivider.js`, `src/utils/postHasProblemCommunity.js`, `src/utils/postHasProblemSystemNotice.js`, `src/utils/postQuality.js`.
 - *DOM*: `src/dom/findPostContainer.js`, `src/dom/parseUrl.js`.
 - *Config/Events*: `src/config.js`, `src/events.js`.
 - *Dev*: `package.json`, `jest.config.mjs`, `jest.setup.mjs`, `babel.config.mjs`.
@@ -72,5 +72,5 @@
 - *Blocks First*: Provide full functions or logical chunks, not line-by-line changes.
 
 == Revision History
-- April 28, 2025: Aggregated timing data in `TimingManager.js`, capped history at 100 entries.
+- April 28, 2025: Aggregated timing data in `MetricsMonitor.js`, capped history at 100 entries.
 - April 18, 2025: Decoupled `toggleAutoScrolling` in `Panel.jsx` with `xghosted:set-auto-scrolling` event.

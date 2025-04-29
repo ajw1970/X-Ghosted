@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { TimingManager } from './TimingManager';
+import { MetricsMonitor } from './MetricsMonitor';
 
-describe('TimingManager', () => {
-    let timingManager, log, storage;
+describe('MetricsMonitor', () => {
+    let metricsMonitor, log, storage;
 
     beforeEach(() => {
         log = vi.fn();
@@ -10,7 +10,7 @@ describe('TimingManager', () => {
             get: vi.fn(() => ({})),
             set: vi.fn()
         };
-        timingManager = new TimingManager({
+        metricsMonitor = new MetricsMonitor({
             timing: { pollInterval: 1000, scrollInterval: 1500 },
             log,
             storage
@@ -18,7 +18,7 @@ describe('TimingManager', () => {
     });
 
     it('initializes with default metrics', () => {
-        expect(timingManager.metrics).toEqual({
+        expect(metricsMonitor.metrics).toEqual({
             polls: 0,
             postsProcessed: [],
             pollSkips: 0,
@@ -32,18 +32,18 @@ describe('TimingManager', () => {
             postDensity: 0,
             pageType: 'unknown'
         });
-        expect(log).toHaveBeenCalledWith('TimingManager initialized');
+        expect(log).toHaveBeenCalledWith('MetricsMonitor initialized');
     });
 
     it('records poll metrics correctly', () => {
-        timingManager.recordPoll({
+        metricsMonitor.recordPoll({
             postsProcessed: 5,
             wasSkipped: false,
             containerFound: true,
             containerAttempted: true,
             pageType: 'with_replies'
         });
-        expect(timingManager.metrics).toMatchObject({
+        expect(metricsMonitor.metrics).toMatchObject({
             polls: 1,
             postsProcessed: [5],
             pollSkips: 0,
@@ -51,18 +51,18 @@ describe('TimingManager', () => {
             containerDetectionAttempts: 1,
             pageType: 'with_replies'
         });
-        expect(timingManager.metrics.containerFoundTimestamp).toBeGreaterThan(0);
+        expect(metricsMonitor.metrics.containerFoundTimestamp).toBeGreaterThan(0);
     });
 
     it('records skip metrics correctly', () => {
-        timingManager.recordPoll({
+        metricsMonitor.recordPoll({
             postsProcessed: 0,
             wasSkipped: true,
             containerFound: false,
             containerAttempted: false,
             pageType: 'timeline'
         });
-        expect(timingManager.metrics).toMatchObject({
+        expect(metricsMonitor.metrics).toMatchObject({
             polls: 1,
             postsProcessed: [0],
             pollSkips: 1,
@@ -73,14 +73,14 @@ describe('TimingManager', () => {
     });
 
     it('records failed container attempt correctly', () => {
-        timingManager.recordPoll({
+        metricsMonitor.recordPoll({
             postsProcessed: 0,
             wasSkipped: false,
             containerFound: false,
             containerAttempted: true,
             pageType: 'profile'
         });
-        expect(timingManager.metrics).toMatchObject({
+        expect(metricsMonitor.metrics).toMatchObject({
             polls: 1,
             postsProcessed: [0],
             pollSkips: 0,
@@ -91,33 +91,33 @@ describe('TimingManager', () => {
     });
 
     it('records scroll metrics correctly', () => {
-        timingManager.recordScroll({ bottomReached: true });
-        expect(timingManager.metrics).toMatchObject({
+        metricsMonitor.recordScroll({ bottomReached: true });
+        expect(metricsMonitor.metrics).toMatchObject({
             scrolls: 1,
             bottomReached: 1
         });
     });
 
     it('records highlighting duration correctly', () => {
-        timingManager.recordHighlighting(50);
-        expect(timingManager.metrics.highlightingDurations).toEqual([50]);
+        metricsMonitor.recordHighlighting(50);
+        expect(metricsMonitor.metrics.highlightingDurations).toEqual([50]);
     });
 
     it('sets post density correctly', () => {
-        timingManager.setPostDensity(20);
-        expect(timingManager.metrics.postDensity).toBe(20);
+        metricsMonitor.setPostDensity(20);
+        expect(metricsMonitor.metrics.postDensity).toBe(20);
         expect(log).toHaveBeenCalledWith('Set post density: 20');
     });
 
     it('sets initial wait time correctly', () => {
-        timingManager.setInitialWaitTime(3000);
-        expect(timingManager.metrics.initialWaitTime).toBe(3000);
+        metricsMonitor.setInitialWaitTime(3000);
+        expect(metricsMonitor.metrics.initialWaitTime).toBe(3000);
         expect(log).toHaveBeenCalledWith('Initial wait time set: 3000ms');
     });
 
     it('logs metrics every 100 polls', () => {
-        timingManager.metrics.polls = 99;
-        timingManager.recordPoll({
+        metricsMonitor.metrics.polls = 99;
+        metricsMonitor.recordPoll({
             postsProcessed: 3,
             wasSkipped: false,
             containerFound: true,
@@ -128,32 +128,32 @@ describe('TimingManager', () => {
     });
 
     it('saves and loads metrics', () => {
-        timingManager.recordPoll({
+        metricsMonitor.recordPoll({
             postsProcessed: 2,
             wasSkipped: false,
             containerFound: true,
             containerAttempted: true,
             pageType: 'timeline'
         });
-        timingManager.setInitialWaitTime(3000);
-        timingManager.saveMetrics();
+        metricsMonitor.setInitialWaitTime(3000);
+        metricsMonitor.saveMetrics();
         expect(storage.set).toHaveBeenCalledWith('xGhostedState', expect.any(Object));
-        storage.get.mockReturnValue({ timingMetrics: timingManager.metrics });
-        timingManager.loadMetrics();
-        expect(timingManager.metrics.polls).toBe(1);
-        expect(timingManager.metrics.containerFinds).toBe(1);
-        expect(timingManager.metrics.initialWaitTime).toBe(3000);
+        storage.get.mockReturnValue({ timingMetrics: metricsMonitor.metrics });
+        metricsMonitor.loadMetrics();
+        expect(metricsMonitor.metrics.polls).toBe(1);
+        expect(metricsMonitor.metrics.containerFinds).toBe(1);
+        expect(metricsMonitor.metrics.initialWaitTime).toBe(3000);
     });
 
     it('does not save metrics without container or posts', () => {
-        timingManager.recordPoll({
+        metricsMonitor.recordPoll({
             postsProcessed: 0,
             wasSkipped: true,
             containerFound: false,
             containerAttempted: true,
             pageType: 'timeline'
         });
-        timingManager.saveMetrics();
+        metricsMonitor.saveMetrics();
         expect(storage.set).not.toHaveBeenCalled();
     });
 });

@@ -3444,10 +3444,10 @@
     };
     return ProcessedPostsManager;
   })();
-  window.TimingManager = (function () {
+  window.MetricsMonitor = (function () {
     const { CONFIG, EVENTS } = window.XGhostedUtils;
-    // src/utils/TimingManager.js
-    var TimingManager = class {
+    // src/utils/MetricsMonitor.js
+    var MetricsMonitor = class {
       constructor({ timing, log, storage, document }) {
         this.timing = { ...CONFIG.timing, ...timing };
         this.log = log || console.log.bind(console);
@@ -3482,7 +3482,7 @@
         this.initialWaitTimeSet = false;
         this.hasSetDensity = false;
         this.metricsHistory = [];
-        this.log('TimingManager initialized');
+        this.log('MetricsMonitor initialized');
         this.initEventListeners();
       }
       initEventListeners() {
@@ -3761,7 +3761,7 @@
         return this.timing;
       }
     };
-    return TimingManager;
+    return MetricsMonitor;
   })();
 
   // --- Inject Styles ---
@@ -4083,7 +4083,7 @@
     linkPrefix: CONFIG.linkPrefix,
     persistProcessedPosts: CONFIG.persistProcessedPosts,
   });
-  const timingManager = new window.TimingManager({
+  const metricsMonitor = new window.MetricsMonitor({
     document,
     timing: CONFIG.timing,
     log,

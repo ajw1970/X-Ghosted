@@ -1,7 +1,7 @@
 import { CONFIG } from "../config.js";
 import { EVENTS } from "../events.js";
 
-var TimingManager = class {
+var MetricsMonitor = class {
   constructor({ timing, log, storage, document }) {
     this.timing = { ...CONFIG.timing, ...timing };
     this.log = log || console.log.bind(console);
@@ -36,7 +36,7 @@ var TimingManager = class {
     this.initialWaitTimeSet = false;
     this.hasSetDensity = false;
     this.metricsHistory = [];
-    this.log("TimingManager initialized");
+    this.log("MetricsMonitor initialized");
     this.initEventListeners();
   }
 
@@ -331,4 +331,4 @@ var TimingManager = class {
   }
 };
 
-export { TimingManager };
+export { MetricsMonitor };

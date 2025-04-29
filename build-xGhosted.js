@@ -118,9 +118,9 @@ async function loadConfigAndEvents() {
       requiresPreact: false,
     },
     {
-      entryPoint: path.resolve(SRC_DIR, "utils/TimingManager.js"),
-      placeholder: "// INJECT: TimingManager",
-      globalName: "TimingManager",
+      entryPoint: path.resolve(SRC_DIR, "utils/MetricsMonitor.js"),
+      placeholder: "// INJECT: MetricsMonitor",
+      globalName: "MetricsMonitor",
       requiresPreact: false,
     },
   ];

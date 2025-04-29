@@ -51,7 +51,7 @@
   // INJECT: SplashPanel
   // INJECT: PanelManager
   // INJECT: ProcessedPostsManager
-  // INJECT: TimingManager
+  // INJECT: MetricsMonitor
 
   // --- Inject Styles ---
   // INJECT: Styles
@@ -64,7 +64,7 @@
     linkPrefix: CONFIG.linkPrefix,
     persistProcessedPosts: CONFIG.persistProcessedPosts,
   });
-  const timingManager = new window.TimingManager({
+  const metricsMonitor = new window.MetricsMonitor({
     document,
     timing: CONFIG.timing,
     log,
