@@ -246,13 +246,13 @@ XGhosted.prototype.checkPostInNewTab = async function (href) {
         if (targetPost) {
           this.log(`Original post found in new tab: ${href}`);
           clearInterval(checkInterval);
+          
           const hasProblem =
             doc.querySelector('[data-xghosted="postquality.problem"]') !== null;
+          newWindow.close();
           if (hasProblem) {
-            newWindow.scrollTo(0, 0);
             this.log(`Problem found in thread at ${href}`);
           } else {
-            newWindow.close();
             this.log(`No problem found in thread at ${href}`);
           }
           resolve(hasProblem);
@@ -303,11 +303,6 @@ XGhosted.prototype.highlightPosts = function (posts) {
 
     previousPostConnector = connectedPostAnalysis.connector;
     previousPostQuality = connectedPostAnalysis.quality;
-
-    // We'll leave this in for now but remove once we prove the new changes work
-    if (connectedPostAnalysis?.quality === postQuality.PROBLEM) {
-      this.pollingManager.stopPolling();
-    }
 
     if (!(post instanceof this.window.Element)) {
       if (CONFIG.debug) {

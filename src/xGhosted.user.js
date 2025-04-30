@@ -1506,11 +1506,10 @@
               const hasProblem =
                 doc.querySelector('[data-xghosted="postquality.problem"]') !==
                 null;
+              newWindow.close();
               if (hasProblem) {
-                newWindow.scrollTo(0, 0);
                 this.log(`Problem found in thread at ${href}`);
               } else {
-                newWindow.close();
                 this.log(`No problem found in thread at ${href}`);
               }
               resolve(hasProblem);
@@ -1558,9 +1557,6 @@
         );
         previousPostConnector = connectedPostAnalysis.connector;
         previousPostQuality = connectedPostAnalysis.quality;
-        if (connectedPostAnalysis?.quality === postQuality.PROBLEM) {
-          this.pollingManager.stopPolling();
-        }
         if (!(post instanceof this.window.Element)) {
           if (CONFIG.debug) {
             this.log('Skipping invalid DOM element:', post);
