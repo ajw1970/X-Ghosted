@@ -796,6 +796,9 @@
       dispatchEvent(element, event) {
         element.dispatchEvent(event);
       },
+      removeEventListener(element, event, handler, options = {}) {
+        element.removeEventListener(event, handler, options);
+      },
     };
 
     // src/dom/extractUserFromLink.js
@@ -1281,6 +1284,7 @@
     const {
       CONFIG,
       EVENTS,
+      domUtils,
       parseUrl,
       debounce,
       postQuality,
@@ -1336,22 +1340,26 @@
     XGhosted.POSTS_IN_CONTAINER_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} ${XGhosted.POSTS_IN_DOCUMENT}`;
     XGhosted.UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POSTS_IN_CONTAINER_SELECTOR}:not([data-xghosted-id])`;
     XGhosted.prototype.emit = function (eventName, data) {
-      this.document.dispatchEvent(
-        new CustomEvent(eventName, {
-          detail: data,
-        })
+      domUtils.dispatchEvent(
+        this.document,
+        new CustomEvent(eventName, { detail: data })
       );
     };
     XGhosted.prototype.waitForClearConfirmation = function () {
       return new Promise((resolve) => {
         const handler = () => {
-          this.document.removeEventListener(
+          domUtils.removeEventListener(
+            this.document,
             EVENTS.POSTS_CLEARED_CONFIRMED,
             handler
           );
           resolve();
         };
-        this.document.addEventListener(EVENTS.POSTS_CLEARED_CONFIRMED, handler);
+        domUtils.addEventListener(
+          this.document,
+          EVENTS.POSTS_CLEARED_CONFIRMED,
+          handler
+        );
       });
     };
     XGhosted.prototype.waitForPostRetrieved = function (href) {
@@ -1363,11 +1371,19 @@
             this.log(
               `Received ${EVENTS.POST_RETRIEVED} for ${href}: post=${e.detail.post ? 'found' : 'null'}`
             );
-            this.document.removeEventListener(EVENTS.POST_RETRIEVED, handler);
+            domUtils.removeEventListener(
+              this.document,
+              EVENTS.POST_RETRIEVED,
+              handler
+            );
             resolve(e.detail.post);
           }
         };
-        this.document.addEventListener(EVENTS.POST_RETRIEVED, handler);
+        domUtils.addEventListener(
+          this.document,
+          EVENTS.POST_RETRIEVED,
+          handler
+        );
         this.emit(EVENTS.POST_REQUESTED, { href });
         setTimeout(() => {
           if (!resolved) {
@@ -1375,7 +1391,11 @@
             this.log(
               `waitForPostRetrieved timed out for ${href}, resolving with null`
             );
-            this.document.removeEventListener(EVENTS.POST_RETRIEVED, handler);
+            domUtils.removeEventListener(
+              this.document,
+              EVENTS.POST_RETRIEVED,
+              handler
+            );
             resolve(null);
           }
         }, 1e3);
@@ -1398,8 +1418,9 @@
       this.log(
         `Manual check result for ${href}: ${isProblem ? 'problem' : 'good'}`
       );
-      const currentPost = this.document.querySelector(
-        `[data-xghosted-id="${href}"]`
+      const currentPost = domUtils.querySelector(
+        `[data-xghosted-id="${href}"]`,
+        this.document
       );
       if (!currentPost) {
         this.log(
@@ -1419,7 +1440,10 @@
           'data-xghosted',
           `postquality.${isProblem ? 'problem_adjacent' : 'good'}`
         );
-        const eyeballContainer = currentPost.querySelector('.xghosted-eyeball');
+        const eyeballContainer = domUtils.querySelector(
+          '.xghosted-eyeball',
+          currentPost
+        );
         if (eyeballContainer) {
           eyeballContainer.classList.remove('xghosted-eyeball');
         } else {
@@ -1431,7 +1455,8 @@
         : postQuality.GOOD;
       cached.checked = true;
       this.emit(EVENTS.POST_REGISTERED, { href, data: cached });
-      this.document.dispatchEvent(
+      domUtils.dispatchEvent(
+        this.document,
         new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
       );
       this.log(`User requested post check completed for ${href}`);
@@ -1444,7 +1469,8 @@
       this.state.isWithReplies = isWithReplies;
       if (this.state.userProfileName !== userProfileName) {
         this.state.userProfileName = userProfileName;
-        this.document.dispatchEvent(
+        domUtils.dispatchEvent(
+          this.document,
           new CustomEvent(EVENTS.USER_PROFILE_UPDATED, {
             detail: { userProfileName: this.state.userProfileName },
           })
@@ -1453,10 +1479,9 @@
       this.emit(EVENTS.CLEAR_POSTS, {});
       await this.waitForClearConfirmation();
       this.state.containerFound = false;
-      this.document.dispatchEvent(
-        new CustomEvent(EVENTS.POSTS_CLEARED, {
-          detail: {},
-        })
+      domUtils.dispatchEvent(
+        this.document,
+        new CustomEvent(EVENTS.POSTS_CLEARED, { detail: {} })
       );
       this.log(`URL change completed`);
     };
@@ -1472,7 +1497,10 @@
       return false;
     };
     XGhosted.prototype.getPostContainer = function () {
-      return this.document.querySelector(XGhosted.POST_CONTAINER_SELECTOR);
+      return domUtils.querySelector(
+        XGhosted.POST_CONTAINER_SELECTOR,
+        this.document
+      );
     };
     XGhosted.prototype.findPostContainer = function () {
       const container = findPostContainer(this.document, this.log);
@@ -1483,13 +1511,15 @@
       return false;
     };
     XGhosted.prototype.getCellInnerDivCount = function () {
-      return this.document.querySelectorAll(
-        XGhosted.POSTS_IN_CONTAINER_SELECTOR
+      return domUtils.querySelectorAll(
+        XGhosted.POSTS_IN_CONTAINER_SELECTOR,
+        this.document
       ).length;
     };
     XGhosted.prototype.getUnprocessedPosts = function () {
-      return this.document.querySelectorAll(
-        XGhosted.UNPROCESSED_POSTS_SELECTOR
+      return domUtils.querySelectorAll(
+        XGhosted.UNPROCESSED_POSTS_SELECTOR,
+        this.document
       );
     };
     XGhosted.prototype.checkPostInNewTab = async function (href) {
@@ -1517,15 +1547,18 @@
               }, 3e5);
               return;
             }
-            const targetPost = doc.querySelector(
-              `[data-xghosted-id="${href}"]`
+            const targetPost = domUtils.querySelector(
+              `[data-xghosted-id="${href}"]`,
+              doc
             );
             if (targetPost) {
               this.log(`Original post found in new tab: ${href}`);
               clearInterval(checkInterval);
               const hasProblem =
-                doc.querySelector('[data-xghosted="postquality.problem"]') !==
-                null;
+                domUtils.querySelector(
+                  '[data-xghosted="postquality.problem"]',
+                  doc
+                ) !== null;
               newWindow.close();
               if (hasProblem) {
                 this.log(`Problem found in thread at ${href}`);
@@ -1560,7 +1593,10 @@
       const results = [];
       const postsToProcess =
         posts ||
-        this.document.querySelectorAll(XGhosted.UNPROCESSED_POSTS_SELECTOR);
+        domUtils.querySelectorAll(
+          XGhosted.UNPROCESSED_POSTS_SELECTOR,
+          this.document
+        );
       let postsProcessed = 0;
       const processedIds = /* @__PURE__ */ new Set();
       const checkReplies = this.state.isWithReplies;
@@ -1626,8 +1662,9 @@
           post.setAttribute('data-xghosted', `postquality.${qualityName}`);
           post.classList.add(`xghosted-${qualityName}`);
           if (connectedPostAnalysis.quality === postQuality.POTENTIAL_PROBLEM) {
-            const shareButtonContainer = post.querySelector(
-              'button[aria-label="Share post"]'
+            const shareButtonContainer = domUtils.querySelector(
+              'button[aria-label="Share post"]',
+              post
             )?.parentElement;
             if (shareButtonContainer) {
               shareButtonContainer.classList.add('xghosted-eyeball');
@@ -1659,10 +1696,9 @@
       }
       if (postsProcessed > 0) {
         this.emit(EVENTS.SAVE_METRICS, {});
-        this.document.dispatchEvent(
-          new CustomEvent(EVENTS.STATE_UPDATED, {
-            detail: { ...this.state },
-          })
+        domUtils.dispatchEvent(
+          this.document,
+          new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
         );
         this.log(
           `Highlighted ${postsProcessed} new posts, state-updated emitted`
@@ -1676,7 +1712,8 @@
       return results;
     };
     XGhosted.prototype.initEventListeners = function () {
-      this.document.addEventListener(
+      domUtils.addEventListener(
+        this.document,
         EVENTS.REQUEST_POST_CHECK,
         ({ detail: { href, post } }) => {
           this.log(
@@ -1685,7 +1722,8 @@
           this.userRequestedPostCheck(href, post);
         }
       );
-      this.document.addEventListener(
+      domUtils.addEventListener(
+        this.document,
         'click',
         (e) => {
           const eyeball =
@@ -1706,7 +1744,8 @@
               this.log(`Eyeball click skipped for ${href} due to rate limit`);
               return;
             }
-            this.document.dispatchEvent(
+            domUtils.dispatchEvent(
+              this.document,
               new CustomEvent(EVENTS.REQUEST_POST_CHECK, {
                 detail: { href, post: clickedPost },
               })
@@ -1720,12 +1759,14 @@
       this.log('Initializing XGhosted...');
       const startTime = performance.now();
       this.initEventListeners();
-      this.document.dispatchEvent(
+      domUtils.dispatchEvent(
+        this.document,
         new CustomEvent(EVENTS.USER_PROFILE_UPDATED, {
           detail: { userProfileName: this.state.userProfileName },
         })
       );
-      this.document.dispatchEvent(
+      domUtils.dispatchEvent(
+        this.document,
         new CustomEvent(EVENTS.INIT, {
           detail: {
             config: {
@@ -1738,7 +1779,7 @@
       this.emit(EVENTS.STATE_UPDATED, {
         isRateLimited: this.state.isRateLimited,
       });
-      const styleSheet = this.document.createElement('style');
+      const styleSheet = domUtils.createElement('style', this.document);
       styleSheet.textContent = `
     .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.15); }
     .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.15); }
@@ -1759,8 +1800,8 @@
         const checkDomInterval = setInterval(() => {
           if (
             this.document.body &&
-            this.document.querySelectorAll(XGhosted.POSTS_IN_DOCUMENT).length >
-              0
+            domUtils.querySelectorAll(XGhosted.POSTS_IN_DOCUMENT, this.document)
+              .length > 0
           ) {
             const foundContainer = this.findPostContainer();
             if (foundContainer) {
@@ -1789,9 +1830,12 @@
       ) {
         startContainerCheck();
       } else {
-        document.addEventListener('DOMContentLoaded', startContainerCheck, {
-          once: true,
-        });
+        domUtils.addEventListener(
+          this.document,
+          'DOMContentLoaded',
+          startContainerCheck,
+          { once: true }
+        );
       }
     };
     return XGhosted;
