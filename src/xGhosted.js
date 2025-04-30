@@ -8,12 +8,13 @@ import { CONFIG } from "./config.js";
 import { EVENTS } from "./events.js";
 import { PollingManager } from "./utils/PollingManager.js";
 
-function XGhosted(doc, config = {}) {
+function XGhosted({ document, window, config = {} }) {
   this.timing = { ...CONFIG.timing, ...config.timing };
-  this.document = doc;
+  this.document = document;
+  this.window = window;
   this.log = config.log;
   this.linkPrefix = config.linkPrefix || CONFIG.linkPrefix;
-  const urlFullPath = doc.location.origin + doc.location.pathname;
+  const urlFullPath = document.location.origin + document.location.pathname;
   const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
   this.state = {
     domPostContainer: null,
@@ -219,7 +220,7 @@ XGhosted.prototype.getUnprocessedPosts = function () {
 XGhosted.prototype.checkPostInNewTab = async function (href) {
   this.log(`Checking post in new tab: ${href}`);
   const fullUrl = `${this.linkPrefix}${href}`;
-  const newWindow = this.document.defaultView.open(fullUrl, "_blank");
+  const newWindow = this.window.open(fullUrl, "_blank");
   let attempts = 0;
   const maxAttempts = 10;
   return new Promise((resolve) => {
@@ -280,7 +281,7 @@ XGhosted.prototype.highlightPosts = function (posts) {
   const start = performance.now();
   this.state.isHighlighting = true;
   const processPostAnalysis = (post, analysis) => {
-    if (!(post instanceof this.document.defaultView.Element)) {
+    if (!(post instanceof this.window.Element)) {
       if (CONFIG.debug) {
         this.log("Skipping invalid DOM element:", post);
       }

@@ -1220,12 +1220,14 @@
       PollingManager,
     } = window.XGhostedUtils;
     // src/xGhosted.js
-    function XGhosted(doc, config = {}) {
+    function XGhosted({ document: document2, window, config = {} }) {
       this.timing = { ...CONFIG.timing, ...config.timing };
-      this.document = doc;
+      this.document = document2;
+      this.window = window;
       this.log = config.log;
       this.linkPrefix = config.linkPrefix || CONFIG.linkPrefix;
-      const urlFullPath = doc.location.origin + doc.location.pathname;
+      const urlFullPath =
+        document2.location.origin + document2.location.pathname;
       const { isWithReplies, userProfileName } = parseUrl(urlFullPath);
       this.state = {
         domPostContainer: null,
@@ -1423,7 +1425,7 @@
     XGhosted.prototype.checkPostInNewTab = async function (href) {
       this.log(`Checking post in new tab: ${href}`);
       const fullUrl = `${this.linkPrefix}${href}`;
-      const newWindow = this.document.defaultView.open(fullUrl, '_blank');
+      const newWindow = this.window.open(fullUrl, '_blank');
       let attempts = 0;
       const maxAttempts = 10;
       return new Promise((resolve) => {
@@ -1487,7 +1489,7 @@
       const start = performance.now();
       this.state.isHighlighting = true;
       const processPostAnalysis = (post, analysis) => {
-        if (!(post instanceof this.document.defaultView.Element)) {
+        if (!(post instanceof this.window.Element)) {
           if (CONFIG.debug) {
             this.log('Skipping invalid DOM element:', post);
           }
@@ -4066,7 +4068,11 @@
     log,
     storage: { get: GM_getValue, set: GM_setValue },
   });
-  const xGhosted = new window.XGhosted(document, { ...CONFIG, log });
+  const xGhosted = new window.XGhosted({
+    document,
+    window,
+    config: { ...CONFIG, log },
+  });
 
   // Emit INIT_COMPONENTS event for loose coupling
   document.dispatchEvent(

@@ -70,7 +70,11 @@
     log,
     storage: { get: GM_getValue, set: GM_setValue },
   });
-  const xGhosted = new window.XGhosted(document, { ...CONFIG, log });
+  const xGhosted = new window.XGhosted({
+    document,
+    window,
+    config: { ...CONFIG, log },
+  });
 
   // Emit INIT_COMPONENTS event for loose coupling
   document.dispatchEvent(
