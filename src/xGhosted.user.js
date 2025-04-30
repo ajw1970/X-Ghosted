@@ -4013,7 +4013,7 @@
   margin-bottom: 8px;
 }
 
-.toolbar>div {
+.toolbar > div {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -4021,7 +4021,7 @@
   margin-left: 12px;
 }
 
-.toolbar>div>button:not(:last-child) {
+.toolbar > div > button:not(:last-child) {
   margin-right: 12px;
 }
 
@@ -4029,7 +4029,7 @@
   /* No opacity to prevent affecting children */
 }
 
-.tools-section>div>div:first-child {
+.tools-section > div > div:first-child {
   padding-bottom: 12px;
   border-bottom: 2px solid var(--border-color);
 }
@@ -4054,7 +4054,11 @@
 }
 
 .panel-button {
-  background: linear-gradient(to bottom, var(--button-bg), color-mix(in srgb, var(--button-bg) 70%, #000000));
+  background: linear-gradient(
+    to bottom,
+    var(--button-bg),
+    color-mix(in srgb, var(--button-bg) 70%, #000000)
+  );
   color: var(--button-text);
   border: 2px solid var(--border-color);
   padding: 8px 12px;
@@ -4062,17 +4066,23 @@
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
-  transition: background 0.2s ease, transform 0.1s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.1s ease;
   display: flex;
   align-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 0 8px rgba(255, 255, 255, 0.2);
   max-width: 160px;
   text-align: center;
 }
 
 .panel-button:hover {
   background: var(--hover-bg);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 0 8px rgba(255, 255, 255, 0.3);
 }
 
 .panel-button:active {
@@ -4080,7 +4090,7 @@
 }
 
 .polling-stopped {
-  border: 2px solid #FFA500;
+  border: 2px solid #ffa500;
 }
 
 .custom-dropdown {
@@ -4100,11 +4110,13 @@
   top: 100%;
   left: 0;
   right: 0;
-  background-color: var(--button-bg, #3A4A5B);
+  background-color: var(--button-bg, #3a4a5b);
   color: var(--button-text);
   border: 2px solid var(--border-color);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 0 8px rgba(255, 255, 255, 0.2);
   z-index: 1000;
   margin-top: 4px;
 }
@@ -4115,7 +4127,7 @@
   font-size: 14px;
   font-weight: 600;
   /* Bolder text for better readability */
-  background-color: var(--button-bg, #3A4A5B);
+  background-color: var(--button-bg, #3a4a5b);
   color: var(--button-text);
 }
 
@@ -4165,6 +4177,8 @@
 
 .problem-links-wrapper {
   padding: 0 8px;
+  max-height: 300px; /* Added to limit vertical growth */
+  overflow-y: auto; /* Ensure scrollbar appears when content exceeds max-height */
 }
 
 .problem-links-wrapper::-webkit-scrollbar {
@@ -4220,7 +4234,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-}`;
+}
+`;
 
   // Initialize core components with document and configuration
   const postsManager = new window.ProcessedPostsManager({
