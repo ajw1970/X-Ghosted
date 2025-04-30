@@ -326,102 +326,19 @@ XGhosted.prototype.highlightPosts = function (posts) {
   let previousPostConnector = null;
 
   for (const post of postsToProcess) {
-    const connectedPostAnalysis = identifyPostWithConnectors(
+    const { analysis, updatedQuality, updatedConnector } = this.processPost(
       post,
       checkReplies,
       previousPostQuality,
       previousPostConnector,
-      CONFIG.debug,
-      this.log
+      processedIds
     );
-
-    previousPostConnector = connectedPostAnalysis.connector;
-    previousPostQuality = connectedPostAnalysis.quality;
-
-    if (!(post instanceof this.window.Element)) {
-      if (CONFIG.debug) {
-        this.log("Skipping invalid DOM element:", post);
-      }
-      results.push(connectedPostAnalysis);
-      continue;
-    }
-
-    const id = connectedPostAnalysis.link;
-    if (!id || id === "false") {
-      if (connectedPostAnalysis.quality === postQuality.PROBLEM) {
-        post.setAttribute("data-xghosted", "postquality.problem");
-        post.setAttribute("data-xghosted-id", "");
-        post.classList.add("xghosted-problem");
-        this.log("Marked PROBLEM post with invalid href");
-      } else if (CONFIG.debug) {
-        this.log(`Skipping post with invalid href: ${id}`);
-      }
-      results.push(connectedPostAnalysis);
-      continue;
-    }
-
-    // Synchronous cache check
-    let cached = null;
-    if (
-      window.ProcessedPostsManager &&
-      window.ProcessedPostsManager.prototype.posts
-    ) {
-      cached = window.ProcessedPostsManager.prototype.getPost.call(
-        { posts: window.ProcessedPostsManager.prototype.posts },
-        id
-      );
-    }
-
-    if (cached) {
-      if (CONFIG.debug) {
-        this.log(`Skipping already processed post: ${id}`);
-      }
-      const qualityName = postQualityNameGetter(
-        cached.analysis.quality
-      ).toLowerCase();
-      post.setAttribute("data-xghosted-id", id);
-      post.setAttribute("data-xghosted", `postquality.${qualityName}`);
-      post.classList.add(`xghosted-${qualityName}`);
-      this.log(`Restored attributes for cached post: ${id}`);
-    } else {
-      const qualityName = postQualityNameGetter(
-        connectedPostAnalysis.quality
-      ).toLowerCase();
-      post.setAttribute("data-xghosted-id", id);
-      post.setAttribute("data-xghosted", `postquality.${qualityName}`);
-      post.classList.add(`xghosted-${qualityName}`);
-      if (connectedPostAnalysis.quality === postQuality.POTENTIAL_PROBLEM) {
-        const shareButtonContainer = domUtils.querySelector(
-          'button[aria-label="Share post"]',
-          post
-        )?.parentElement;
-        if (shareButtonContainer) {
-          shareButtonContainer.classList.add("xghosted-eyeball");
-        } else if (CONFIG.debug) {
-          this.log(`No share button container found for post with href: ${id}`);
-        }
-      }
-      this.log(
-        `Highlighted post ${id}: quality=${connectedPostAnalysis.quality.name}`
-      );
-    }
-
-    const postId = connectedPostAnalysis.link;
-    if (!processedIds.has(id)) {
-      processedIds.add(id);
-      this.emit(EVENTS.POST_REGISTERED, {
-        href: postId,
-        data: { analysis: connectedPostAnalysis, checked: false },
-      });
+    previousPostQuality = updatedQuality;
+    previousPostConnector = updatedConnector;
+    results.push(analysis);
+    if (analysis.link && !processedIds.has(analysis.link)) {
       postsProcessed++;
-    } else if (CONFIG.debug) {
-      const snippet = post.textContent.slice(0, 50).replace(/\n/g, " ");
-      this.log(
-        `Duplicate post skipped: ${id} (postId: ${postId}, snippet: "${snippet}")`
-      );
     }
-
-    results.push(connectedPostAnalysis);
   }
 
   if (postsProcessed > 0) {
@@ -440,6 +357,117 @@ XGhosted.prototype.highlightPosts = function (posts) {
   });
 
   return results;
+};
+
+XGhosted.prototype.processPost = function (
+  post,
+  checkReplies,
+  previousPostQuality,
+  previousPostConnector,
+  processedIds
+) {
+  const connectedPostAnalysis = identifyPostWithConnectors(
+    post,
+    checkReplies,
+    previousPostQuality,
+    previousPostConnector,
+    CONFIG.debug,
+    this.log
+  );
+
+  if (!(post instanceof this.window.Element)) {
+    if (CONFIG.debug) {
+      this.log("Skipping invalid DOM element:", post);
+    }
+    return {
+      analysis: connectedPostAnalysis,
+      updatedQuality: connectedPostAnalysis.quality,
+      updatedConnector: connectedPostAnalysis.connector,
+    };
+  }
+
+  const id = connectedPostAnalysis.link;
+  if (!id || id === "false") {
+    if (connectedPostAnalysis.quality === postQuality.PROBLEM) {
+      post.setAttribute("data-xghosted", "postquality.problem");
+      post.setAttribute("data-xghosted-id", "");
+      post.classList.add("xghosted-problem");
+      this.log("Marked PROBLEM post with invalid href");
+    } else if (CONFIG.debug) {
+      this.log(`Skipping post with invalid href: ${id}`);
+    }
+    return {
+      analysis: connectedPostAnalysis,
+      updatedQuality: connectedPostAnalysis.quality,
+      updatedConnector: connectedPostAnalysis.connector,
+    };
+  }
+
+  // Synchronous cache check
+  let cached = null;
+  if (
+    window.ProcessedPostsManager &&
+    window.ProcessedPostsManager.prototype.posts
+  ) {
+    cached = window.ProcessedPostsManager.prototype.getPost.call(
+      { posts: window.ProcessedPostsManager.prototype.posts },
+      id
+    );
+  }
+
+  if (cached) {
+    if (CONFIG.debug) {
+      this.log(`Skipping already processed post: ${id}`);
+    }
+    const qualityName = postQualityNameGetter(
+      cached.analysis.quality
+    ).toLowerCase();
+    post.setAttribute("data-xghosted-id", id);
+    post.setAttribute("data-xghosted", `postquality.${qualityName}`);
+    post.classList.add(`xghosted-${qualityName}`);
+    this.log(`Restored attributes for cached post: ${id}`);
+  } else {
+    const qualityName = postQualityNameGetter(
+      connectedPostAnalysis.quality
+    ).toLowerCase();
+    post.setAttribute("data-xghosted-id", id);
+    post.setAttribute("data-xghosted", `postquality.${qualityName}`);
+    post.classList.add(`xghosted-${qualityName}`);
+    if (connectedPostAnalysis.quality === postQuality.POTENTIAL_PROBLEM) {
+      const shareButtonContainer = domUtils.querySelector(
+        'button[aria-label="Share post"]',
+        post
+      )?.parentElement;
+      if (shareButtonContainer) {
+        shareButtonContainer.classList.add("xghosted-eyeball");
+      } else if (CONFIG.debug) {
+        this.log(`No share button container found for post with href: ${id}`);
+      }
+    }
+    this.log(
+      `Highlighted post ${id}: quality=${connectedPostAnalysis.quality.name}`
+    );
+  }
+
+  const postId = connectedPostAnalysis.link;
+  if (!processedIds.has(id)) {
+    processedIds.add(id);
+    this.emit(EVENTS.POST_REGISTERED, {
+      href: postId,
+      data: { analysis: connectedPostAnalysis, checked: false },
+    });
+  } else if (CONFIG.debug) {
+    const snippet = post.textContent.slice(0, 50).replace(/\n/g, " ");
+    this.log(
+      `Duplicate post skipped: ${id} (postId: ${postId}, snippet: "${snippet}")`
+    );
+  }
+
+  return {
+    analysis: connectedPostAnalysis,
+    updatedQuality: connectedPostAnalysis.quality,
+    updatedConnector: connectedPostAnalysis.connector,
+  };
 };
 
 XGhosted.prototype.initEventListeners = function () {
