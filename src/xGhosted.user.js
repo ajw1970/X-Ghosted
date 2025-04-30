@@ -1567,8 +1567,8 @@
       const processedIds = /* @__PURE__ */ new Set();
       Promise.all(
         Array.from(postsToProcess).map((post) => {
-          const postId = getRelativeLinkToPost(post);
           let analysis = identifyPost(post, checkReplies);
+          const postId = analysis.link;
           if (analysis?.quality === postQuality.PROBLEM) {
             this.pollingManager.stopPolling();
           }
