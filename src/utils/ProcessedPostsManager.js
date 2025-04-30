@@ -1,6 +1,7 @@
 import { postQuality } from "./postQuality.js";
 import { CONFIG } from "../config.js";
 import { EVENTS } from "../events.js";
+import { domUtils } from "../dom/domUtils.js";
 
 class ProcessedPostsManager {
   constructor({ storage, log, linkPrefix, persistProcessedPosts, document }) {
@@ -18,7 +19,8 @@ class ProcessedPostsManager {
   }
 
   initEventListeners() {
-    this.document.addEventListener(
+    domUtils.addEventListener(
+      this.document,
       EVENTS.INIT_COMPONENTS,
       ({ detail: { config } }) => {
         this.linkPrefix = config.linkPrefix || this.linkPrefix;
@@ -30,7 +32,8 @@ class ProcessedPostsManager {
       }
     );
 
-    this.document.addEventListener(
+    domUtils.addEventListener(
+      this.document,
       EVENTS.POST_REGISTERED,
       ({ detail: { href, data } }) => {
         if (!data?.analysis?.quality) {
@@ -47,7 +50,8 @@ class ProcessedPostsManager {
         }
         this.registerPost(href, data);
         this.log(`Registered post: ${href}`);
-        this.document.dispatchEvent(
+        domUtils.dispatchEvent(
+          this.document,
           new CustomEvent(EVENTS.POST_REGISTERED_CONFIRMED, {
             detail: { href, data },
           })
@@ -55,11 +59,13 @@ class ProcessedPostsManager {
       }
     );
 
-    this.document.addEventListener(
+    domUtils.addEventListener(
+      this.document,
       EVENTS.POST_REQUESTED,
       ({ detail: { href } }) => {
         const post = this.getPost(href);
-        this.document.dispatchEvent(
+        domUtils.dispatchEvent(
+          this.document,
           new CustomEvent(EVENTS.POST_RETRIEVED, {
             detail: { href, post },
           })
@@ -68,14 +74,16 @@ class ProcessedPostsManager {
       }
     );
 
-    this.document.addEventListener(EVENTS.CLEAR_POSTS, async () => {
+    domUtils.addEventListener(this.document, EVENTS.CLEAR_POSTS, async () => {
       await this.clearPosts();
-      this.document.dispatchEvent(
+      domUtils.dispatchEvent(
+        this.document,
         new CustomEvent(EVENTS.POSTS_CLEARED_CONFIRMED, {
           detail: {},
         })
       );
-      this.document.dispatchEvent(
+      domUtils.dispatchEvent(
+        this.document,
         new CustomEvent(EVENTS.POSTS_CLEARED, {
           detail: {},
         })
@@ -83,26 +91,33 @@ class ProcessedPostsManager {
       this.log("Cleared all posts");
     });
 
-    this.document.addEventListener(EVENTS.CLEAR_POSTS_UI, async () => {
-      if (confirm("Clear all processed posts?")) {
-        await this.clearPosts();
-        this.document.dispatchEvent(
-          new CustomEvent(EVENTS.POSTS_CLEARED_CONFIRMED, {
-            detail: {},
-          })
-        );
-        this.document.dispatchEvent(
-          new CustomEvent(EVENTS.POSTS_CLEARED, {
-            detail: {},
-          })
-        );
-        this.log("Cleared all posts via UI");
+    domUtils.addEventListener(
+      this.document,
+      EVENTS.CLEAR_POSTS_UI,
+      async () => {
+        if (confirm("Clear all processed posts?")) {
+          await this.clearPosts();
+          domUtils.dispatchEvent(
+            this.document,
+            new CustomEvent(EVENTS.POSTS_CLEARED_CONFIRMED, {
+              detail: {},
+            })
+          );
+          domUtils.dispatchEvent(
+            this.document,
+            new CustomEvent(EVENTS.POSTS_CLEARED, {
+              detail: {},
+            })
+          );
+          this.log("Cleared all posts via UI");
+        }
       }
-    });
+    );
 
-    this.document.addEventListener(EVENTS.REQUEST_POSTS, () => {
+    domUtils.addEventListener(this.document, EVENTS.REQUEST_POSTS, () => {
       const posts = this.getAllPosts();
-      this.document.dispatchEvent(
+      domUtils.dispatchEvent(
+        this.document,
         new CustomEvent(EVENTS.POSTS_RETRIEVED, {
           detail: { posts },
         })
@@ -110,11 +125,13 @@ class ProcessedPostsManager {
       this.log("Dispatched xghosted:posts-retrieved with posts:", posts);
     });
 
-    this.document.addEventListener(
+    domUtils.addEventListener(
+      this.document,
       EVENTS.REQUEST_IMPORT_CSV,
       ({ detail: { csvText } }) => {
         const importedCount = this.importPosts(csvText);
-        this.document.dispatchEvent(
+        domUtils.dispatchEvent(
+          this.document,
           new CustomEvent(EVENTS.CSV_IMPORTED, {
             detail: { importedCount },
           })
@@ -123,9 +140,10 @@ class ProcessedPostsManager {
       }
     );
 
-    this.document.addEventListener(EVENTS.EXPORT_CSV, () => {
+    domUtils.addEventListener(this.document, EVENTS.EXPORT_CSV, () => {
       const csvData = this.exportPostsToCSV();
-      this.document.dispatchEvent(
+      domUtils.dispatchEvent(
+        this.document,
         new CustomEvent(EVENTS.CSV_EXPORTED, {
           detail: { csvData },
         })

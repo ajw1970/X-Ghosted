@@ -1,13 +1,13 @@
+import { postQuality } from "./utils/postQuality.js";
+import { debounce } from "./utils/debounce.js";
+import { findPostContainer } from "./dom/findPostContainer.js";
+import { identifyPostWithConnectors } from "./dom/identifyPostWithConnectors.js";
+import { postQualityNameGetter } from "./utils/postQualityNameGetter.js";
+import { parseUrl } from "./dom/parseUrl.js";
 import { CONFIG } from "./config.js";
 import { EVENTS } from "./events.js";
-import { domUtils } from "./dom/domUtils.js";
-import { parseUrl } from "./dom/parseUrl.js";
-import { debounce } from "./utils/debounce.js";
-import { postQuality } from "./utils/postQuality.js";
 import { PollingManager } from "./utils/PollingManager.js";
-import { findPostContainer } from "./dom/findPostContainer.js";
-import { postQualityNameGetter } from "./utils/postQualityNameGetter.js";
-import { identifyPostWithConnectors } from "./dom/identifyPostWithConnectors.js";
+import { domUtils } from "./dom/domUtils.js";
 
 function XGhosted({ document, window, config = {} }) {
   this.timing = { ...CONFIG.timing, ...config.timing };
