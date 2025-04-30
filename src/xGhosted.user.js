@@ -1054,6 +1054,60 @@
       return 'unknown';
     }
 
+    // src/utils/identifyPostWithConnectors.js
+    function identifyPostWithConnectors(
+      post,
+      checkReplies = true,
+      previousPostQuality,
+      previousPostConnector,
+      debug,
+      logger = console.log
+    ) {
+      const postAnalysis = identifyPost(
+        post,
+        checkReplies,
+        debug ? logger : () => {}
+      );
+      const hasProblemSystemNotice = postAnalysis.reason.startsWith(
+        postQualityReasons.NOTICE.name
+      );
+      if (debug) {
+        logger(`Calling identifyPostConnectors for: ${postAnalysis.link}`);
+      }
+      const connector = identifyPostConnectors(
+        post,
+        postAnalysis.quality,
+        hasProblemSystemNotice,
+        previousPostConnector,
+        debug ? logger : () => {}
+      );
+      if (
+        postAnalysis.quality === postQuality.GOOD &&
+        connector === postConnector.CONTINUES &&
+        previousPostQuality &&
+        [postQuality.PROBLEM, postQuality.PROBLEM_ADJACENT].includes(
+          previousPostQuality
+        )
+      ) {
+        if (debug) {
+          logger(
+            `Problem Adjacent Post Found: ${postQualityNameGetter(postAnalysis.quality)}`
+          );
+        }
+        postAnalysis.quality = postQuality.PROBLEM_ADJACENT;
+        postAnalysis.reason = 'Problem upstream in converation thread';
+        if (debug) {
+          logger(`New Quality: ${postQualityNameGetter(postAnalysis.quality)}`);
+        }
+      }
+      return {
+        connector,
+        quality: postAnalysis.quality,
+        reason: postAnalysis.reason,
+        link: postAnalysis.link,
+      };
+    }
+
     // src/utils/identifyPosts.js
     function identifyPosts(
       document2,
@@ -1065,42 +1119,22 @@
     ) {
       const connectedPostsAnalyses = [];
       document2.querySelectorAll(selector).forEach((post) => {
-        const postAnalysis = identifyPost(post, checkReplies, logger);
-        const hasProblemSystemNotice = postAnalysis.reason.startsWith(
-          postQualityReasons.NOTICE.name
-        );
-        const postText = getTweetText(post);
-        logger(`Calling identifyPostConnectors for: ${postAnalysis.link}`);
-        const connector = identifyPostConnectors(
+        const connectedPostAnalysis = identifyPostWithConnectors(
           post,
-          postAnalysis.quality,
-          hasProblemSystemNotice,
+          checkReplies,
+          previousPostQuality,
           previousPostConnector,
+          true,
           logger
         );
-        if (
-          postAnalysis.quality === postQuality.GOOD &&
-          connector === postConnector.CONTINUES &&
-          previousPostQuality &&
-          [postQuality.PROBLEM, postQuality.PROBLEM_ADJACENT].includes(
-            previousPostQuality
-          )
-        ) {
-          logger(
-            `Problem Adjacent Post Found: ${postQualityNameGetter(postAnalysis.quality)}`
-          );
-          postAnalysis.quality = postQuality.PROBLEM_ADJACENT;
-          postAnalysis.reason = 'Problem upstream in converation thread';
-          logger(`New Quality: ${postQualityNameGetter(postAnalysis.quality)}`);
-        }
-        previousPostConnector = connector;
-        previousPostQuality = postAnalysis.quality;
+        previousPostConnector = connectedPostAnalysis.connector;
+        previousPostQuality = connectedPostAnalysis.quality;
         connectedPostsAnalyses.push({
-          connector,
-          quality: postAnalysis.quality,
-          reason: postAnalysis.reason,
-          link: postAnalysis.link,
-          text: postText,
+          connector: connectedPostAnalysis.connector,
+          quality: connectedPostAnalysis.quality,
+          reason: connectedPostAnalysis.reason,
+          link: connectedPostAnalysis.link,
+          text: getTweetText(post),
         });
       });
       return connectedPostsAnalyses;
@@ -1187,6 +1221,7 @@
       getTweetText,
       identifyPost,
       identifyPostConnectors,
+      identifyPostWithConnectors,
       identifyPosts,
       isPostDivider,
       parseUrl,
@@ -1225,10 +1260,10 @@
   window.XGhosted = (function () {
     const {
       postQuality,
-      identifyPost,
       debounce,
       findPostContainer,
-      getRelativeLinkToPost,
+      identifyPostWithConnectors,
+      postQualityNameGetter,
       parseUrl,
       CONFIG,
       EVENTS,
@@ -1510,22 +1545,32 @@
       let postsProcessed = 0;
       const processedIds = /* @__PURE__ */ new Set();
       const checkReplies = this.state.isWithReplies;
+      let previousPostQuality = null;
+      let previousPostConnector = null;
       for (const post of postsToProcess) {
-        const analysis = identifyPost(post, checkReplies);
-        const postId = analysis.link;
-        if (analysis?.quality === postQuality.PROBLEM) {
+        const connectedPostAnalysis = identifyPostWithConnectors(
+          post,
+          checkReplies,
+          previousPostQuality,
+          previousPostConnector,
+          CONFIG.debug,
+          this.log
+        );
+        previousPostConnector = connectedPostAnalysis.connector;
+        previousPostQuality = connectedPostAnalysis.quality;
+        if (connectedPostAnalysis?.quality === postQuality.PROBLEM) {
           this.pollingManager.stopPolling();
         }
         if (!(post instanceof this.window.Element)) {
           if (CONFIG.debug) {
             this.log('Skipping invalid DOM element:', post);
           }
-          results.push(analysis);
+          results.push(connectedPostAnalysis);
           continue;
         }
-        const id = analysis.link;
+        const id = connectedPostAnalysis.link;
         if (!id || id === 'false') {
-          if (analysis.quality === postQuality.PROBLEM) {
+          if (connectedPostAnalysis.quality === postQuality.PROBLEM) {
             post.setAttribute('data-xghosted', 'postquality.problem');
             post.setAttribute('data-xghosted-id', '');
             post.classList.add('xghosted-problem');
@@ -1533,7 +1578,7 @@
           } else if (CONFIG.debug) {
             this.log(`Skipping post with invalid href: ${id}`);
           }
-          results.push(analysis);
+          results.push(connectedPostAnalysis);
           continue;
         }
         let cached = null;
@@ -1550,21 +1595,21 @@
           if (CONFIG.debug) {
             this.log(`Skipping already processed post: ${id}`);
           }
-          const qualityName = cached.analysis.quality.name
-            .toLowerCase()
-            .replace(' ', '_');
+          const qualityName = postQualityNameGetter(
+            cached.analysis.quality
+          ).toLowerCase();
           post.setAttribute('data-xghosted-id', id);
           post.setAttribute('data-xghosted', `postquality.${qualityName}`);
           post.classList.add(`xghosted-${qualityName}`);
           this.log(`Restored attributes for cached post: ${id}`);
         } else {
-          const qualityName = analysis.quality.name
-            .toLowerCase()
-            .replace(' ', '_');
+          const qualityName = postQualityNameGetter(
+            connectedPostAnalysis.quality
+          ).toLowerCase();
           post.setAttribute('data-xghosted-id', id);
           post.setAttribute('data-xghosted', `postquality.${qualityName}`);
           post.classList.add(`xghosted-${qualityName}`);
-          if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
+          if (connectedPostAnalysis.quality === postQuality.POTENTIAL_PROBLEM) {
             const shareButtonContainer = post.querySelector(
               'button[aria-label="Share post"]'
             )?.parentElement;
@@ -1576,13 +1621,16 @@
               );
             }
           }
-          this.log(`Highlighted post ${id}: quality=${analysis.quality.name}`);
+          this.log(
+            `Highlighted post ${id}: quality=${connectedPostAnalysis.quality.name}`
+          );
         }
+        const postId = connectedPostAnalysis.link;
         if (!processedIds.has(id)) {
           processedIds.add(id);
           this.emit(EVENTS.POST_REGISTERED, {
             href: postId,
-            data: { analysis, checked: false },
+            data: { analysis: connectedPostAnalysis, checked: false },
           });
           postsProcessed++;
         } else if (CONFIG.debug) {
@@ -1591,7 +1639,7 @@
             `Duplicate post skipped: ${id} (postId: ${postId}, snippet: "${snippet}")`
           );
         }
-        results.push(analysis);
+        results.push(connectedPostAnalysis);
       }
       if (postsProcessed > 0) {
         this.emit(EVENTS.SAVE_METRICS, {});

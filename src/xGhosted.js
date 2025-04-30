@@ -1,8 +1,8 @@
 import { postQuality } from "./utils/postQuality.js";
-import { identifyPost } from "./utils/identifyPost.js";
 import { debounce } from "./utils/debounce.js";
 import { findPostContainer } from "./dom/findPostContainer.js";
-import { getRelativeLinkToPost } from "./utils/getRelativeLinkToPost.js";
+import { identifyPostWithConnectors } from "./utils/identifyPostWithConnectors.js";
+import { postQualityNameGetter } from "./utils/postQualityNameGetter.js";
 import { parseUrl } from "./dom/parseUrl.js";
 import { CONFIG } from "./config.js";
 import { EVENTS } from "./events.js";
@@ -288,27 +288,38 @@ XGhosted.prototype.highlightPosts = function (posts) {
   const processedIds = new Set();
   const checkReplies = this.state.isWithReplies;
 
-  for (const post of postsToProcess) {
-    // Define analysis first
-    const analysis = identifyPost(post, checkReplies);
-    const postId = analysis.link;
+  let previousPostQuality = null;
+  let previousPostConnector = null;
 
-    if (analysis?.quality === postQuality.PROBLEM) {
+  for (const post of postsToProcess) {
+    const connectedPostAnalysis = identifyPostWithConnectors(
+      post,
+      checkReplies,
+      previousPostQuality,
+      previousPostConnector,
+      CONFIG.debug,
+      this.log
+    );
+
+    previousPostConnector = connectedPostAnalysis.connector;
+    previousPostQuality = connectedPostAnalysis.quality;
+
+    // We'll leave this in for now but remove once we prove the new changes work
+    if (connectedPostAnalysis?.quality === postQuality.PROBLEM) {
       this.pollingManager.stopPolling();
     }
 
-    // Process post synchronously
     if (!(post instanceof this.window.Element)) {
       if (CONFIG.debug) {
         this.log("Skipping invalid DOM element:", post);
       }
-      results.push(analysis);
+      results.push(connectedPostAnalysis);
       continue;
     }
 
-    const id = analysis.link;
+    const id = connectedPostAnalysis.link;
     if (!id || id === "false") {
-      if (analysis.quality === postQuality.PROBLEM) {
+      if (connectedPostAnalysis.quality === postQuality.PROBLEM) {
         post.setAttribute("data-xghosted", "postquality.problem");
         post.setAttribute("data-xghosted-id", "");
         post.classList.add("xghosted-problem");
@@ -316,7 +327,7 @@ XGhosted.prototype.highlightPosts = function (posts) {
       } else if (CONFIG.debug) {
         this.log(`Skipping post with invalid href: ${id}`);
       }
-      results.push(analysis);
+      results.push(connectedPostAnalysis);
       continue;
     }
 
@@ -336,19 +347,21 @@ XGhosted.prototype.highlightPosts = function (posts) {
       if (CONFIG.debug) {
         this.log(`Skipping already processed post: ${id}`);
       }
-      const qualityName = cached.analysis.quality.name
-        .toLowerCase()
-        .replace(" ", "_");
+      const qualityName = postQualityNameGetter(
+        cached.analysis.quality
+      ).toLowerCase();
       post.setAttribute("data-xghosted-id", id);
       post.setAttribute("data-xghosted", `postquality.${qualityName}`);
       post.classList.add(`xghosted-${qualityName}`);
       this.log(`Restored attributes for cached post: ${id}`);
     } else {
-      const qualityName = analysis.quality.name.toLowerCase().replace(" ", "_");
+      const qualityName = postQualityNameGetter(
+        connectedPostAnalysis.quality
+      ).toLowerCase();
       post.setAttribute("data-xghosted-id", id);
       post.setAttribute("data-xghosted", `postquality.${qualityName}`);
       post.classList.add(`xghosted-${qualityName}`);
-      if (analysis.quality === postQuality.POTENTIAL_PROBLEM) {
+      if (connectedPostAnalysis.quality === postQuality.POTENTIAL_PROBLEM) {
         const shareButtonContainer = post.querySelector(
           'button[aria-label="Share post"]'
         )?.parentElement;
@@ -358,14 +371,17 @@ XGhosted.prototype.highlightPosts = function (posts) {
           this.log(`No share button container found for post with href: ${id}`);
         }
       }
-      this.log(`Highlighted post ${id}: quality=${analysis.quality.name}`);
+      this.log(
+        `Highlighted post ${id}: quality=${connectedPostAnalysis.quality.name}`
+      );
     }
 
+    const postId = connectedPostAnalysis.link;
     if (!processedIds.has(id)) {
       processedIds.add(id);
       this.emit(EVENTS.POST_REGISTERED, {
         href: postId,
-        data: { analysis, checked: false },
+        data: { analysis: connectedPostAnalysis, checked: false },
       });
       postsProcessed++;
     } else if (CONFIG.debug) {
@@ -375,7 +391,7 @@ XGhosted.prototype.highlightPosts = function (posts) {
       );
     }
 
-    results.push(analysis);
+    results.push(connectedPostAnalysis);
   }
 
   if (postsProcessed > 0) {
