@@ -12,6 +12,6 @@ export const CONFIG = {
   logTarget: "tampermonkey",
   persistProcessedPosts: false,
   linkPrefix: "https://x.com",
-  debug: true,
+  debug: false,
   smoothScrolling: true, // Reverted to smooth scrolling
 };
