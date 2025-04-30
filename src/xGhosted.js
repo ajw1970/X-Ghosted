@@ -30,7 +30,7 @@ function XGhosted({ document, window, config = {} }) {
     return this.checkPostInNewTab(href);
   }, this.timing.tabCheckThrottle);
   this.highlightPostsDebounced = debounce((posts) => {
-    this.highlightPosts(posts);
+    this.highlightPosts(posts, CONFIG.debug, this.log, this.emit.bind(this));
   }, 500);
   this.pollingManager = new PollingManager({
     document: this.document,
@@ -308,7 +308,7 @@ XGhosted.prototype.expandArticle = function (article) {
   }
 };
 
-XGhosted.prototype.highlightPosts = function (posts) {
+XGhosted.prototype.highlightPosts = function (posts, debug, log, emit) {
   const start = performance.now();
   this.state.isHighlighting = true;
   const results = [];
@@ -331,7 +331,10 @@ XGhosted.prototype.highlightPosts = function (posts) {
       checkReplies,
       previousPostQuality,
       previousPostConnector,
-      processedIds
+      processedIds,
+      debug,
+      log,
+      emit
     );
     previousPostQuality = updatedQuality;
     previousPostConnector = updatedConnector;
@@ -342,16 +345,16 @@ XGhosted.prototype.highlightPosts = function (posts) {
   }
 
   if (postsProcessed > 0) {
-    this.emit(EVENTS.SAVE_METRICS, {});
+    emit(EVENTS.SAVE_METRICS, {});
     domUtils.dispatchEvent(
       this.document,
       new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
     );
-    this.log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
+    log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
   }
 
   this.state.isHighlighting = false;
-  this.emit(EVENTS.RECORD_HIGHLIGHT, {
+  emit(EVENTS.RECORD_HIGHLIGHT, {
     duration: performance.now() - start,
     wasSkipped: postsProcessed === 0,
   });
@@ -364,20 +367,23 @@ XGhosted.prototype.processPost = function (
   checkReplies,
   previousPostQuality,
   previousPostConnector,
-  processedIds
+  processedIds,
+  debug,
+  log,
+  emit
 ) {
   const connectedPostAnalysis = identifyPostWithConnectors(
     post,
     checkReplies,
     previousPostQuality,
     previousPostConnector,
-    CONFIG.debug,
-    this.log
+    debug,
+    log
   );
 
   if (!(post instanceof this.window.Element)) {
-    if (CONFIG.debug) {
-      this.log("Skipping invalid DOM element:", post);
+    if (debug) {
+      log("Skipping invalid DOM element:", post);
     }
     return {
       analysis: connectedPostAnalysis,
@@ -392,9 +398,9 @@ XGhosted.prototype.processPost = function (
       post.setAttribute("data-xghosted", "postquality.problem");
       post.setAttribute("data-xghosted-id", "");
       post.classList.add("xghosted-problem");
-      this.log("Marked PROBLEM post with invalid href");
-    } else if (CONFIG.debug) {
-      this.log(`Skipping post with invalid href: ${id}`);
+      log("Marked PROBLEM post with invalid href");
+    } else if (debug) {
+      log(`Skipping post with invalid href: ${id}`);
     }
     return {
       analysis: connectedPostAnalysis,
@@ -416,8 +422,8 @@ XGhosted.prototype.processPost = function (
   }
 
   if (cached) {
-    if (CONFIG.debug) {
-      this.log(`Skipping already processed post: ${id}`);
+    if (debug) {
+      log(`Skipping already processed post: ${id}`);
     }
     const qualityName = postQualityNameGetter(
       cached.analysis.quality
@@ -425,7 +431,7 @@ XGhosted.prototype.processPost = function (
     post.setAttribute("data-xghosted-id", id);
     post.setAttribute("data-xghosted", `postquality.${qualityName}`);
     post.classList.add(`xghosted-${qualityName}`);
-    this.log(`Restored attributes for cached post: ${id}`);
+    log(`Restored attributes for cached post: ${id}`);
   } else {
     const qualityName = postQualityNameGetter(
       connectedPostAnalysis.quality
@@ -440,11 +446,11 @@ XGhosted.prototype.processPost = function (
       )?.parentElement;
       if (shareButtonContainer) {
         shareButtonContainer.classList.add("xghosted-eyeball");
-      } else if (CONFIG.debug) {
-        this.log(`No share button container found for post with href: ${id}`);
+      } else if (debug) {
+        log(`No share button container found for post with href: ${id}`);
       }
     }
-    this.log(
+    log(
       `Highlighted post ${id}: quality=${connectedPostAnalysis.quality.name}`
     );
   }
@@ -452,13 +458,13 @@ XGhosted.prototype.processPost = function (
   const postId = connectedPostAnalysis.link;
   if (!processedIds.has(id)) {
     processedIds.add(id);
-    this.emit(EVENTS.POST_REGISTERED, {
+    emit(EVENTS.POST_REGISTERED, {
       href: postId,
       data: { analysis: connectedPostAnalysis, checked: false },
     });
-  } else if (CONFIG.debug) {
+  } else if (debug) {
     const snippet = post.textContent.slice(0, 50).replace(/\n/g, " ");
-    this.log(
+    log(
       `Duplicate post skipped: ${id} (postId: ${postId}, snippet: "${snippet}")`
     );
   }

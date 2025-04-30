@@ -485,13 +485,23 @@
             const unprocessedPosts = this.xGhosted.getUnprocessedPosts();
             if (unprocessedPosts.length > 0) {
               postsProcessed = unprocessedPosts.length;
-              await this.xGhosted.highlightPosts(unprocessedPosts);
+              await this.xGhosted.highlightPosts(
+                unprocessedPosts,
+                CONFIG.debug,
+                this.log,
+                this.emit.bind(this)
+              );
               this.state.noPostsFoundCount = 0;
               this.state.idleCycleCount = 0;
             } else if (containerFound) {
               this.state.noPostsFoundCount = 0;
               this.state.idleCycleCount = 0;
-              await this.xGhosted.highlightPosts();
+              await this.xGhosted.highlightPosts(
+                [],
+                CONFIG.debug,
+                this.log,
+                this.emit.bind(this)
+              );
             } else {
               this.state.idleCycleCount++;
             }
@@ -1316,7 +1326,12 @@
         return this.checkPostInNewTab(href);
       }, this.timing.tabCheckThrottle);
       this.highlightPostsDebounced = debounce((posts) => {
-        this.highlightPosts(posts);
+        this.highlightPosts(
+          posts,
+          CONFIG.debug,
+          this.log,
+          this.emit.bind(this)
+        );
       }, 500);
       this.pollingManager = new PollingManager({
         document: this.document,
@@ -1587,7 +1602,7 @@
         article.style.padding = 'auto';
       }
     };
-    XGhosted.prototype.highlightPosts = function (posts) {
+    XGhosted.prototype.highlightPosts = function (posts, debug, log, emit) {
       const start = performance.now();
       this.state.isHighlighting = true;
       const results = [];
@@ -1608,7 +1623,10 @@
           checkReplies,
           previousPostQuality,
           previousPostConnector,
-          processedIds
+          processedIds,
+          debug,
+          log,
+          emit
         );
         previousPostQuality = updatedQuality;
         previousPostConnector = updatedConnector;
@@ -1618,17 +1636,15 @@
         }
       }
       if (postsProcessed > 0) {
-        this.emit(EVENTS.SAVE_METRICS, {});
+        emit(EVENTS.SAVE_METRICS, {});
         domUtils.dispatchEvent(
           this.document,
           new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
         );
-        this.log(
-          `Highlighted ${postsProcessed} new posts, state-updated emitted`
-        );
+        log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
       }
       this.state.isHighlighting = false;
-      this.emit(EVENTS.RECORD_HIGHLIGHT, {
+      emit(EVENTS.RECORD_HIGHLIGHT, {
         duration: performance.now() - start,
         wasSkipped: postsProcessed === 0,
       });
@@ -1639,19 +1655,22 @@
       checkReplies,
       previousPostQuality,
       previousPostConnector,
-      processedIds
+      processedIds,
+      debug,
+      log,
+      emit
     ) {
       const connectedPostAnalysis = identifyPostWithConnectors(
         post,
         checkReplies,
         previousPostQuality,
         previousPostConnector,
-        CONFIG.debug,
-        this.log
+        debug,
+        log
       );
       if (!(post instanceof this.window.Element)) {
-        if (CONFIG.debug) {
-          this.log('Skipping invalid DOM element:', post);
+        if (debug) {
+          log('Skipping invalid DOM element:', post);
         }
         return {
           analysis: connectedPostAnalysis,
@@ -1665,9 +1684,9 @@
           post.setAttribute('data-xghosted', 'postquality.problem');
           post.setAttribute('data-xghosted-id', '');
           post.classList.add('xghosted-problem');
-          this.log('Marked PROBLEM post with invalid href');
-        } else if (CONFIG.debug) {
-          this.log(`Skipping post with invalid href: ${id}`);
+          log('Marked PROBLEM post with invalid href');
+        } else if (debug) {
+          log(`Skipping post with invalid href: ${id}`);
         }
         return {
           analysis: connectedPostAnalysis,
@@ -1686,8 +1705,8 @@
         );
       }
       if (cached) {
-        if (CONFIG.debug) {
-          this.log(`Skipping already processed post: ${id}`);
+        if (debug) {
+          log(`Skipping already processed post: ${id}`);
         }
         const qualityName = postQualityNameGetter(
           cached.analysis.quality
@@ -1695,7 +1714,7 @@
         post.setAttribute('data-xghosted-id', id);
         post.setAttribute('data-xghosted', `postquality.${qualityName}`);
         post.classList.add(`xghosted-${qualityName}`);
-        this.log(`Restored attributes for cached post: ${id}`);
+        log(`Restored attributes for cached post: ${id}`);
       } else {
         const qualityName = postQualityNameGetter(
           connectedPostAnalysis.quality
@@ -1710,26 +1729,24 @@
           )?.parentElement;
           if (shareButtonContainer) {
             shareButtonContainer.classList.add('xghosted-eyeball');
-          } else if (CONFIG.debug) {
-            this.log(
-              `No share button container found for post with href: ${id}`
-            );
+          } else if (debug) {
+            log(`No share button container found for post with href: ${id}`);
           }
         }
-        this.log(
+        log(
           `Highlighted post ${id}: quality=${connectedPostAnalysis.quality.name}`
         );
       }
       const postId = connectedPostAnalysis.link;
       if (!processedIds.has(id)) {
         processedIds.add(id);
-        this.emit(EVENTS.POST_REGISTERED, {
+        emit(EVENTS.POST_REGISTERED, {
           href: postId,
           data: { analysis: connectedPostAnalysis, checked: false },
         });
-      } else if (CONFIG.debug) {
+      } else if (debug) {
         const snippet = post.textContent.slice(0, 50).replace(/\n/g, ' ');
-        this.log(
+        log(
           `Duplicate post skipped: ${id} (postId: ${postId}, snippet: "${snippet}")`
         );
       }
