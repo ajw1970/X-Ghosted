@@ -1,7 +1,7 @@
-import { postQuality } from "./postQuality";
+import { postQuality } from "../utils/postQuality";
 import { identifyPosts } from "./identifyPosts";
-import { postConnector } from "./postConnector";
-import { describeSampleAnalyses } from "./describeSampleAnalyses";
+import { postConnector } from "../utils/postConnector";
+import { describeSampleAnalyses } from "../utils/describeSampleAnalyses";
 import { postHasProblemSystemNotice } from "./postHasProblemSystemNotice";
 import { describe, expect, it } from "vitest";
 

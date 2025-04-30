@@ -4,4 +4,4 @@ function extractUserFromLink (link) {
     return match ? match[1] : null;
   };
 
-  export { extractUserFromLink}
+  export { extractUserFromLink }

@@ -1,6 +1,6 @@
-import { postConnector } from "./postConnector";
-import { postConnectorNameGetter } from "./postConnectorNameGetter";
-import { postQuality } from "./postQuality";
+import { postConnector } from "../utils/postConnector";
+import { postConnectorNameGetter } from "../utils/postConnectorNameGetter";
+import { postQuality } from "../utils/postQuality";
 
 // Configuration for DOM selectors
 const SELECTORS = {

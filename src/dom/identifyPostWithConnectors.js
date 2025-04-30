@@ -1,9 +1,9 @@
-import { postQuality } from "./postQuality";
 import { identifyPost } from "./identifyPost";
-import { postConnector } from "./postConnector";
-import { postQualityReasons } from "./postQualityReasons";
-import { postQualityNameGetter } from "./postQualityNameGetter";
+import { postQuality } from "../utils/postQuality";
+import { postConnector } from "../utils/postConnector";
+import { postQualityReasons } from "../utils/postQualityReasons";
 import { identifyPostConnectors } from "./identifyPostConnectors";
+import { postQualityNameGetter } from "../utils/postQualityNameGetter";
 
 function identifyPostWithConnectors(
   post,

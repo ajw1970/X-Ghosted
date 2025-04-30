@@ -695,45 +695,6 @@
       ].join('\n');
     }
 
-    // src/utils/extractUserFromLink.js
-    function extractUserFromLink(link) {
-      if (!link) return null;
-      const match = link.match(/^\/([^/]+)/);
-      return match ? match[1] : null;
-    }
-
-    // src/utils/findReplyingToWithDepth.js
-    function findReplyingToWithDepth(article) {
-      function getInnerHTMLWithoutAttributes(element) {
-        const clone = element.cloneNode(true);
-        clone.querySelectorAll('*').forEach((el) => {
-          while (el.attributes.length > 0) {
-            el.removeAttribute(el.attributes[0].name);
-          }
-        });
-        return clone.innerHTML;
-      }
-      function findDivs(element, depth) {
-        if (element.tagName === 'DIV') {
-          if (element.innerHTML.startsWith('Replying to')) {
-            result.push({
-              depth,
-              innerHTML: getInnerHTMLWithoutAttributes(element).replace(
-                /<\/?(div|span)>/gi,
-                ''
-              ),
-            });
-          }
-        }
-        Array.from(element.children).forEach((child) =>
-          findDivs(child, depth + 1)
-        );
-      }
-      const result = [];
-      findDivs(article, 0);
-      return result;
-    }
-
     // src/utils/getPostEngagement.js
     function getPostEngagement(post) {
       const engagementContainer = post.querySelector('[role="group"]');
@@ -782,13 +743,146 @@
       }
     }
 
-    // src/utils/getRelativeLinkToPost.js
+    // src/utils/postConnectorNameGetter.js
+    function postConnectorNameGetter(connector) {
+      if (!connector) return 'none';
+      if (connector === postConnector.DIVIDES) return 'DIVIDES';
+      if (connector === postConnector.INDEPENDENT) return 'INDEPENDENT';
+      if (connector === postConnector.STARTS) return 'STARTS';
+      if (connector === postConnector.CONTINUES) return 'CONTINUES';
+      if (connector === postConnector.DANGLES) return 'DANGLES';
+      return 'unknown';
+    }
+
+    // src/utils/postQualityNameGetter.js
+    function postQualityNameGetter(quality) {
+      if (!quality) return 'none';
+      if (quality === postQuality.UNDEFINED) return 'UNDEFINED';
+      if (quality === postQuality.DIVIDER) return 'DIVIDER';
+      if (quality === postQuality.PROBLEM) return 'PROBLEM';
+      if (quality === postQuality.PROBLEM_ADJACENT) return 'PROBLEM_ADJACENT';
+      if (quality === postQuality.POTENTIAL_PROBLEM) return 'POTENTIAL_PROBLEM';
+      if (quality === postQuality.GOOD) return 'GOOD';
+      return 'unknown';
+    }
+
+    // src/utils/postQualityReasons.js
+    var postQualityReasons = Object.freeze({
+      NOTICE: Object.freeze({ name: 'Found notice', value: 1 }),
+      COMMUNITY: Object.freeze({ name: 'Found community', value: 2 }),
+      DIVIDER: Object.freeze({
+        name: 'Invisible Divider Between Post Collections',
+        value: 3,
+      }),
+      NO_ARTICLE: Object.freeze({ name: 'No article found', value: 4 }),
+      UNDEFINED: Object.freeze({ name: 'Nothing to measure', value: 5 }),
+      GOOD: Object.freeze({ name: 'Looks good', value: 5 }),
+    });
+
+    // src/dom/domUtils.js
+    var domUtils = {
+      querySelector(selector, doc = document) {
+        return doc.querySelector(selector);
+      },
+      querySelectorAll(selector, doc = document) {
+        return doc.querySelectorAll(selector);
+      },
+      createElement(tag, doc = document) {
+        return doc.createElement(tag);
+      },
+      addEventListener(element, event, handler, options = {}) {
+        element.addEventListener(event, handler, options);
+      },
+      dispatchEvent(element, event) {
+        element.dispatchEvent(event);
+      },
+    };
+
+    // src/dom/extractUserFromLink.js
+    function extractUserFromLink(link) {
+      if (!link) return null;
+      const match = link.match(/^\/([^/]+)/);
+      return match ? match[1] : null;
+    }
+
+    // src/dom/findPostContainer.js
+    function findPostContainer(doc, log = () => {}) {
+      const potentialPosts = doc.querySelectorAll(
+        'div[data-testid="cellInnerDiv"]'
+      );
+      if (!potentialPosts.length) {
+        return null;
+      }
+      let firstPost = null;
+      for (const post of potentialPosts) {
+        const closestAriaLabel = post.closest('div[aria-label]');
+        if (
+          closestAriaLabel &&
+          closestAriaLabel.getAttribute('aria-label') === 'Timeline: Messages'
+        ) {
+          log('Skipping post in Messages timeline');
+          continue;
+        }
+        firstPost = post;
+        break;
+      }
+      if (!firstPost) {
+        log('No valid posts found outside Messages timeline');
+        return null;
+      }
+      let currentElement = firstPost.parentElement;
+      while (currentElement) {
+        if (currentElement.hasAttribute('aria-label')) {
+          currentElement.setAttribute('data-xghosted', 'posts-container');
+          const ariaLabel = currentElement.getAttribute('aria-label');
+          log(`Posts container identified with aria-label: "${ariaLabel}"`);
+          return currentElement;
+        }
+        currentElement = currentElement.parentElement;
+      }
+      log('No parent container found with aria-label');
+      return null;
+    }
+
+    // src/dom/findReplyingToWithDepth.js
+    function findReplyingToWithDepth(article) {
+      function getInnerHTMLWithoutAttributes(element) {
+        const clone = element.cloneNode(true);
+        clone.querySelectorAll('*').forEach((el) => {
+          while (el.attributes.length > 0) {
+            el.removeAttribute(el.attributes[0].name);
+          }
+        });
+        return clone.innerHTML;
+      }
+      function findDivs(element, depth) {
+        if (element.tagName === 'DIV') {
+          if (element.innerHTML.startsWith('Replying to')) {
+            result.push({
+              depth,
+              innerHTML: getInnerHTMLWithoutAttributes(element).replace(
+                /<\/?(div|span)>/gi,
+                ''
+              ),
+            });
+          }
+        }
+        Array.from(element.children).forEach((child) =>
+          findDivs(child, depth + 1)
+        );
+      }
+      const result = [];
+      findDivs(article, 0);
+      return result;
+    }
+
+    // src/dom/getRelativeLinkToPost.js
     function getRelativeLinkToPost(element) {
       const link = element.querySelector('a:has(time)')?.getAttribute('href');
       return link || false;
     }
 
-    // src/utils/getTweetText.js
+    // src/dom/getTweetText.js
     function getTweetText(post) {
       let visibleText = '';
       if (post.matches('div[data-testid="cellInnerDiv"]')) {
@@ -815,7 +909,7 @@
       return visibleText.trim();
     }
 
-    // src/utils/postHasProblemCommunity.js
+    // src/dom/postHasProblemCommunity.js
     function postHasProblemCommunity(article) {
       const communityIds = ['1889908654133911912'];
       const aTags = Array.from(article.querySelectorAll('a'));
@@ -829,7 +923,7 @@
       return false;
     }
 
-    // src/utils/postHasProblemSystemNotice.js
+    // src/dom/postHasProblemSystemNotice.js
     function postHasProblemSystemNotice(article) {
       const targetNotices = [
         'unavailable',
@@ -857,7 +951,7 @@
       return false;
     }
 
-    // src/utils/isPostDivider.js
+    // src/dom/isPostDivider.js
     function isPostDivider(post) {
       const children = post.children;
       if (children.length !== 1) {
@@ -870,20 +964,7 @@
       return child.children.length === 0;
     }
 
-    // src/utils/postQualityReasons.js
-    var postQualityReasons = Object.freeze({
-      NOTICE: Object.freeze({ name: 'Found notice', value: 1 }),
-      COMMUNITY: Object.freeze({ name: 'Found community', value: 2 }),
-      DIVIDER: Object.freeze({
-        name: 'Invisible Divider Between Post Collections',
-        value: 3,
-      }),
-      NO_ARTICLE: Object.freeze({ name: 'No article found', value: 4 }),
-      UNDEFINED: Object.freeze({ name: 'Nothing to measure', value: 5 }),
-      GOOD: Object.freeze({ name: 'Looks good', value: 5 }),
-    });
-
-    // src/utils/identifyPost.js
+    // src/dom/identifyPost.js
     function identifyPost(post, checkReplies = true, logger = console.log) {
       const isDivider = isPostDivider(post);
       if (isDivider) {
@@ -949,18 +1030,7 @@
       };
     }
 
-    // src/utils/postConnectorNameGetter.js
-    function postConnectorNameGetter(connector) {
-      if (!connector) return 'none';
-      if (connector === postConnector.DIVIDES) return 'DIVIDES';
-      if (connector === postConnector.INDEPENDENT) return 'INDEPENDENT';
-      if (connector === postConnector.STARTS) return 'STARTS';
-      if (connector === postConnector.CONTINUES) return 'CONTINUES';
-      if (connector === postConnector.DANGLES) return 'DANGLES';
-      return 'unknown';
-    }
-
-    // src/utils/identifyPostConnectors.js
+    // src/dom/identifyPostConnectors.js
     var SELECTORS = {
       VERTICAL_LINE: '.r-m5arl1',
       REPLY_INDICATOR: '.r-18kxxzh.r-1wron08.r-onrtq4.r-15zivkp',
@@ -1042,19 +1112,7 @@
       return postConnector.INDEPENDENT;
     }
 
-    // src/utils/postQualityNameGetter.js
-    function postQualityNameGetter(quality) {
-      if (!quality) return 'none';
-      if (quality === postQuality.UNDEFINED) return 'UNDEFINED';
-      if (quality === postQuality.DIVIDER) return 'DIVIDER';
-      if (quality === postQuality.PROBLEM) return 'PROBLEM';
-      if (quality === postQuality.PROBLEM_ADJACENT) return 'PROBLEM_ADJACENT';
-      if (quality === postQuality.POTENTIAL_PROBLEM) return 'POTENTIAL_PROBLEM';
-      if (quality === postQuality.GOOD) return 'GOOD';
-      return 'unknown';
-    }
-
-    // src/utils/identifyPostWithConnectors.js
+    // src/dom/identifyPostWithConnectors.js
     function identifyPostWithConnectors(
       post,
       checkReplies = true,
@@ -1108,7 +1166,7 @@
       };
     }
 
-    // src/utils/identifyPosts.js
+    // src/dom/identifyPosts.js
     function identifyPosts(
       document2,
       selector = 'div[data-testid="cellInnerDiv"]',
@@ -1138,45 +1196,6 @@
         });
       });
       return connectedPostsAnalyses;
-    }
-
-    // src/dom/findPostContainer.js
-    function findPostContainer(doc, log = () => {}) {
-      const potentialPosts = doc.querySelectorAll(
-        'div[data-testid="cellInnerDiv"]'
-      );
-      if (!potentialPosts.length) {
-        return null;
-      }
-      let firstPost = null;
-      for (const post of potentialPosts) {
-        const closestAriaLabel = post.closest('div[aria-label]');
-        if (
-          closestAriaLabel &&
-          closestAriaLabel.getAttribute('aria-label') === 'Timeline: Messages'
-        ) {
-          log('Skipping post in Messages timeline');
-          continue;
-        }
-        firstPost = post;
-        break;
-      }
-      if (!firstPost) {
-        log('No valid posts found outside Messages timeline');
-        return null;
-      }
-      let currentElement = firstPost.parentElement;
-      while (currentElement) {
-        if (currentElement.hasAttribute('aria-label')) {
-          currentElement.setAttribute('data-xghosted', 'posts-container');
-          const ariaLabel = currentElement.getAttribute('aria-label');
-          log(`Posts container identified with aria-label: "${ariaLabel}"`);
-          return currentElement;
-        }
-        currentElement = currentElement.parentElement;
-      }
-      log('No parent container found with aria-label');
-      return null;
     }
 
     // src/dom/parseUrl.js
@@ -1212,6 +1231,7 @@
       copyTextToClipboard,
       debounce,
       describeSampleAnalyses,
+      domUtils,
       exportToCSV,
       extractUserFromLink,
       findPostContainer,
@@ -1259,15 +1279,15 @@
   // --- Inject Modules ---
   window.XGhosted = (function () {
     const {
-      postQuality,
-      debounce,
-      findPostContainer,
-      identifyPostWithConnectors,
-      postQualityNameGetter,
-      parseUrl,
       CONFIG,
       EVENTS,
+      parseUrl,
+      debounce,
+      postQuality,
       PollingManager,
+      findPostContainer,
+      postQualityNameGetter,
+      identifyPostWithConnectors,
     } = window.XGhostedUtils;
     // src/xGhosted.js
     function XGhosted({ document: document2, window: window2, config = {} }) {

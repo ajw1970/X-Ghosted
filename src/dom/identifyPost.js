@@ -3,8 +3,8 @@ import { postHasProblemSystemNotice } from './postHasProblemSystemNotice';
 import { findReplyingToWithDepth } from './findReplyingToWithDepth';
 import { getRelativeLinkToPost } from "./getRelativeLinkToPost";
 import { isPostDivider } from "./isPostDivider";
-import { postQuality } from "./postQuality";
-import { postQualityReasons } from "./postQualityReasons";
+import { postQuality } from "../utils/postQuality";
+import { postQualityReasons } from "../utils/postQualityReasons";
 
 function identifyPost(post, checkReplies = true, logger = console.log) {
   const isDivider = isPostDivider(post);

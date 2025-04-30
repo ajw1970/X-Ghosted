@@ -1,12 +1,12 @@
-import { postQuality } from "./utils/postQuality.js";
-import { debounce } from "./utils/debounce.js";
-import { findPostContainer } from "./dom/findPostContainer.js";
-import { identifyPostWithConnectors } from "./utils/identifyPostWithConnectors.js";
-import { postQualityNameGetter } from "./utils/postQualityNameGetter.js";
-import { parseUrl } from "./dom/parseUrl.js";
 import { CONFIG } from "./config.js";
 import { EVENTS } from "./events.js";
+import { parseUrl } from "./dom/parseUrl.js";
+import { debounce } from "./utils/debounce.js";
+import { postQuality } from "./utils/postQuality.js";
 import { PollingManager } from "./utils/PollingManager.js";
+import { findPostContainer } from "./dom/findPostContainer.js";
+import { postQualityNameGetter } from "./utils/postQualityNameGetter.js";
+import { identifyPostWithConnectors } from "./dom/identifyPostWithConnectors.js";
 
 function XGhosted({ document, window, config = {} }) {
   this.timing = { ...CONFIG.timing, ...config.timing };
@@ -246,7 +246,7 @@ XGhosted.prototype.checkPostInNewTab = async function (href) {
         if (targetPost) {
           this.log(`Original post found in new tab: ${href}`);
           clearInterval(checkInterval);
-          
+
           const hasProblem =
             doc.querySelector('[data-xghosted="postquality.problem"]') !== null;
           newWindow.close();

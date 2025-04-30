@@ -3,9 +3,8 @@ import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import { JSDOM } from 'jsdom';
 import { XGhosted } from './xGhosted.js';
-import { postQuality } from './utils/postQuality.js';
-import { summarizeRatedPosts } from './utils/summarizeRatedPosts.js';
-import * as identifyPostModule from './utils/identifyPost.js';
+import { postQuality } from "./utils/postQuality.js";
+import * as identifyPostModule from "./dom/identifyPost.js";
 import { findPostContainer } from './dom/findPostContainer.js';
 
 // Mock the identifyPost module globally with async import
