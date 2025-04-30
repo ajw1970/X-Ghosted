@@ -870,13 +870,26 @@
       return child.children.length === 0;
     }
 
+    // src/utils/postQualityReasons.js
+    var postQualityReasons = Object.freeze({
+      NOTICE: Object.freeze({ name: 'Found notice', value: 1 }),
+      COMMUNITY: Object.freeze({ name: 'Found community', value: 2 }),
+      DIVIDER: Object.freeze({
+        name: 'Invisible Divider Between Post Collections',
+        value: 3,
+      }),
+      NO_ARTICLE: Object.freeze({ name: 'No article found', value: 4 }),
+      UNDEFINED: Object.freeze({ name: 'Nothing to measure', value: 5 }),
+      GOOD: Object.freeze({ name: 'Looks good', value: 5 }),
+    });
+
     // src/utils/identifyPost.js
     function identifyPost(post, checkReplies = true, logger = console.log) {
       const isDivider = isPostDivider(post);
       if (isDivider) {
         return {
           quality: postQuality.DIVIDER,
-          reason: 'Invisible Divider Between Post Collections',
+          reason: postQualityReasons.DIVIDER.name,
           link: false,
         };
       }
@@ -884,7 +897,7 @@
       if (!article) {
         return {
           quality: postQuality.UNDEFINED,
-          reason: 'No article found',
+          reason: postQualityReasons.NO_ARTICLE.name,
           link: false,
         };
       }
@@ -892,7 +905,7 @@
       if (noticeFound) {
         return {
           quality: postQuality.PROBLEM,
-          reason: `Found notice: ${noticeFound}`,
+          reason: `${postQualityReasons.NOTICE.name}: ${noticeFound}`,
           link: getRelativeLinkToPost(post),
         };
       }
@@ -900,7 +913,7 @@
       if (communityFound) {
         return {
           quality: postQuality.PROBLEM,
-          reason: `Found community: ${communityFound}`,
+          reason: `${postQualityReasons.COMMUNITY.name}: ${communityFound}`,
           link: getRelativeLinkToPost(post),
         };
       }
@@ -925,13 +938,13 @@
       if (link) {
         return {
           quality: postQuality.GOOD,
-          reason: 'Looks good',
+          reason: postQualityReasons.GOOD.name,
           link,
         };
       }
       return {
         quality: postQuality.UNDEFINED,
-        reason: 'Nothing to measure',
+        reason: postQualityReasons.UNDEFINED.name,
         link: false,
       };
     }
@@ -1053,8 +1066,9 @@
       const connectedPostsAnalyses = [];
       document2.querySelectorAll(selector).forEach((post) => {
         const postAnalysis = identifyPost(post, checkReplies, logger);
-        const hasProblemSystemNotice =
-          postAnalysis.reason.startsWith('Found notice:');
+        const hasProblemSystemNotice = postAnalysis.reason.startsWith(
+          postQualityReasons.NOTICE.name
+        );
         const postText = getTweetText(post);
         logger(`Calling identifyPostConnectors for: ${postAnalysis.link}`);
         const connector = identifyPostConnectors(
@@ -1182,6 +1196,7 @@
       postHasProblemSystemNotice,
       postQuality,
       postQualityNameGetter,
+      postQualityReasons,
       summarizeConnectedPosts,
       summarizeRatedPosts,
     };

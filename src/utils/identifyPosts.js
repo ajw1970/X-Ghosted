@@ -4,6 +4,7 @@ import { getTweetText } from "./getTweetText";
 import { postConnector } from "./postConnector";
 import { postQuality } from "./postQuality";
 import { postQualityNameGetter } from "./postQualityNameGetter";
+import { postQualityReasons } from "./postQualityReasons";
 
 function identifyPosts(
   document,
@@ -17,8 +18,9 @@ function identifyPosts(
 
   document.querySelectorAll(selector).forEach((post) => {
     const postAnalysis = identifyPost(post, checkReplies, logger);
-    const hasProblemSystemNotice =
-      postAnalysis.reason.startsWith("Found notice:");
+    const hasProblemSystemNotice = postAnalysis.reason.startsWith(
+      postQualityReasons.NOTICE.name
+    );
     const postText = getTweetText(post);
 
     logger(`Calling identifyPostConnectors for: ${postAnalysis.link}`);

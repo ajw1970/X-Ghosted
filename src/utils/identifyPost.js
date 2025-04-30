@@ -4,13 +4,14 @@ import { findReplyingToWithDepth } from './findReplyingToWithDepth';
 import { getRelativeLinkToPost } from "./getRelativeLinkToPost";
 import { isPostDivider } from "./isPostDivider";
 import { postQuality } from "./postQuality";
+import { postQualityReasons } from "./postQualityReasons";
 
 function identifyPost(post, checkReplies = true, logger = console.log) {
   const isDivider = isPostDivider(post);
   if (isDivider) {
     return {
       quality: postQuality.DIVIDER,
-      reason: "Invisible Divider Between Post Collections",
+      reason: postQualityReasons.DIVIDER.name,
       link: false,
     };
   }
@@ -19,7 +20,7 @@ function identifyPost(post, checkReplies = true, logger = console.log) {
   if (!article) {
     return {
       quality: postQuality.UNDEFINED,
-      reason: "No article found",
+      reason: postQualityReasons.NO_ARTICLE.name,
       link: false,
     };
   }
@@ -29,7 +30,7 @@ function identifyPost(post, checkReplies = true, logger = console.log) {
   if (noticeFound) {
     return {
       quality: postQuality.PROBLEM,
-      reason: `Found notice: ${noticeFound}`,
+      reason: `${postQualityReasons.NOTICE.name}: ${noticeFound}`,
       link: getRelativeLinkToPost(post),
     };
   }
@@ -39,7 +40,7 @@ function identifyPost(post, checkReplies = true, logger = console.log) {
   if (communityFound) {
     return {
       quality: postQuality.PROBLEM,
-      reason: `Found community: ${communityFound}`,
+      reason: `${postQualityReasons.COMMUNITY.name}: ${communityFound}`,
       link: getRelativeLinkToPost(post),
     };
   }
@@ -71,14 +72,14 @@ function identifyPost(post, checkReplies = true, logger = console.log) {
   if (link) {
     return {
       quality: postQuality.GOOD,
-      reason: "Looks good",
+      reason: postQualityReasons.GOOD.name,
       link: link,
     };
   }
 
   return {
     quality: postQuality.UNDEFINED,
-    reason: "Nothing to measure",
+    reason: postQualityReasons.UNDEFINED.name,
     link: false,
   };
 }
