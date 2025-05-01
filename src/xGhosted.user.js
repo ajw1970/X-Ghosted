@@ -468,7 +468,7 @@
             const unprocessedPosts = this.xGhosted.getUnprocessedPosts();
             if (unprocessedPosts.length > 0) {
               postsProcessed = unprocessedPosts.length;
-              await this.xGhosted.highlightPosts(
+              await this.xGhosted.processUnprocessedPosts(
                 unprocessedPosts,
                 this.xGhosted.state.isWithReplies,
                 CONFIG.debug,
@@ -480,7 +480,7 @@
             } else if (containerFound) {
               this.state.noPostsFoundCount = 0;
               this.state.idleCycleCount = 0;
-              await this.xGhosted.highlightPosts(
+              await this.xGhosted.processUnprocessedPosts(
                 [],
                 this.xGhosted.state.isWithReplies,
                 CONFIG.debug,
@@ -1310,8 +1310,8 @@
       this.checkPostInNewTabThrottled = debounce((href) => {
         return this.checkPostInNewTab(href);
       }, this.timing.tabCheckThrottle);
-      this.highlightPostsDebounced = debounce((posts) => {
-        this.highlightPosts(
+      this.processUnprocessedPostsDebounced = debounce((posts) => {
+        this.processUnprocessedPosts(
           posts,
           this.state.isWithReplies,
           CONFIG.debug,
@@ -1588,7 +1588,7 @@
         article.style.padding = 'auto';
       }
     };
-    XGhosted.prototype.highlightPosts = function (
+    XGhosted.prototype.processUnprocessedPosts = function (
       posts,
       checkReplies,
       debug,

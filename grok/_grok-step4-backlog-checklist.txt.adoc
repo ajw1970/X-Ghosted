@@ -32,8 +32,6 @@
 * [x] Make sure we can open with the eyeballs from the panel if manual check is disabled
 * [x] Make sure we can open the old way with the eyeballs if manual check is disabled and panel didn't open.
 
-* [x] Get collapsing feature working as a feature of highlightPosts
-
 * [x] Fix move panel
 * [x] Adjust layout to open up room in top tool bar. Move post counter down to be a listing header.
 * [x] Add ability to disable xGhosted from the panel (meaning the processing stops so that no new highlighting happens). Have the panel container element change color to indicate.

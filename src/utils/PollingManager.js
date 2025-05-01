@@ -149,13 +149,13 @@ class PollingManager {
         const unprocessedPosts = this.xGhosted.getUnprocessedPosts();
         if (unprocessedPosts.length > 0) {
           postsProcessed = unprocessedPosts.length;
-          await this.xGhosted.highlightPosts(unprocessedPosts, this.xGhosted.state.isWithReplies, CONFIG.debug, this.log, this.emit.bind(this));
+          await this.xGhosted.processUnprocessedPosts(unprocessedPosts, this.xGhosted.state.isWithReplies, CONFIG.debug, this.log, this.emit.bind(this));
           this.state.noPostsFoundCount = 0;
           this.state.idleCycleCount = 0;
         } else if (containerFound) {
           this.state.noPostsFoundCount = 0;
           this.state.idleCycleCount = 0;
-          await this.xGhosted.highlightPosts([], this.xGhosted.state.isWithReplies, CONFIG.debug, this.log, this.emit.bind(this));
+          await this.xGhosted.processUnprocessedPosts([], this.xGhosted.state.isWithReplies, CONFIG.debug, this.log, this.emit.bind(this));
         } else {
           this.state.idleCycleCount++;
         }

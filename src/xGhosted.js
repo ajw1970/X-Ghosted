@@ -29,8 +29,8 @@ function XGhosted({ document, window, config = {} }) {
   this.checkPostInNewTabThrottled = debounce((href) => {
     return this.checkPostInNewTab(href);
   }, this.timing.tabCheckThrottle);
-  this.highlightPostsDebounced = debounce((posts) => {
-    this.highlightPosts(
+  this.processUnprocessedPostsDebounced = debounce((posts) => {
+    this.processUnprocessedPosts(
       posts,
       this.state.isWithReplies,
       CONFIG.debug,
@@ -314,7 +314,7 @@ XGhosted.prototype.expandArticle = function (article) {
   }
 };
 
-XGhosted.prototype.highlightPosts = function (
+XGhosted.prototype.processUnprocessedPosts = function (
   posts,
   checkReplies,
   debug,

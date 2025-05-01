@@ -55,14 +55,20 @@ describe("XGhosted DOM Updates", () => {
     mockEmit.mockClear();
   });
 
-  test("highlightPosts applies correct data-xghosted attributes, classes, and eyeballs with checkReplies true", () => {
+  test("processUnprocessedPosts applies correct data-xghosted attributes, classes, and eyeballs with checkReplies true", () => {
     const { GOOD, PROBLEM, POTENTIAL_PROBLEM, DIVIDER } = postQuality;
 
     // Get all posts
     const posts = document.querySelectorAll(XGhosted.POSTS_IN_DOCUMENT);
 
-    // Call highlightPosts with mocked dependencies and checkReplies: true
-    xGhosted.highlightPosts(posts, true, CONFIG.debug, mockLog, mockEmit);
+    // Call processUnprocessedPosts with mocked dependencies and checkReplies: true
+    xGhosted.processUnprocessedPosts(
+      posts,
+      true,
+      CONFIG.debug,
+      mockLog,
+      mockEmit
+    );
 
     // Expected post analyses based on identifyPosts.gold-standard-sample.test.js
     const expectedAnalyses = [
@@ -217,14 +223,20 @@ describe("XGhosted DOM Updates", () => {
     );
   });
 
-  test("highlightPosts applies correct data-xghosted attributes, classes, and no eyeballs with checkReplies false", () => {
+  test("processUnprocessedPosts applies correct data-xghosted attributes, classes, and no eyeballs with checkReplies false", () => {
     const { GOOD, PROBLEM, DIVIDER } = postQuality;
 
     // Get all posts
     const posts = document.querySelectorAll(XGhosted.POSTS_IN_DOCUMENT);
 
-    // Call highlightPosts with mocked dependencies and checkReplies: false
-    xGhosted.highlightPosts(posts, false, CONFIG.debug, mockLog, mockEmit);
+    // Call processUnprocessedPosts with mocked dependencies and checkReplies: false
+    xGhosted.processUnprocessedPosts(
+      posts,
+      false,
+      CONFIG.debug,
+      mockLog,
+      mockEmit
+    );
 
     // Expected post analyses with checkReplies: false (no POTENTIAL_PROBLEM)
     const expectedAnalyses = [
