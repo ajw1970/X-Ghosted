@@ -393,76 +393,47 @@ XGhosted.prototype.processPost = function (
   }
 
   const id = connectedPostAnalysis.link;
-  if (!id || id === "false") {
-    if (connectedPostAnalysis.quality === postQuality.PROBLEM) {
-      post.setAttribute("data-xghosted", "postquality.problem");
-      post.setAttribute("data-xghosted-id", "");
-      post.classList.add("xghosted-problem");
-      log("Marked PROBLEM post with invalid href");
-    } else if (debug) {
-      log(`Skipping post with invalid href: ${id}`);
-    }
-    return {
-      analysis: connectedPostAnalysis,
-      updatedQuality: connectedPostAnalysis.quality,
-      updatedConnector: connectedPostAnalysis.connector,
-    };
-  }
+  const qualityName = postQualityNameGetter(
+    connectedPostAnalysis.quality
+  ).toLowerCase();
+  post.setAttribute("data-xghosted", `postquality.${qualityName}`);
+  post.setAttribute("data-xghosted-id", id && id !== "false" ? id : "");
+  post.classList.add(`xghosted-${qualityName}`);
 
-  // Synchronous cache check
-  let cached = null;
-  if (
-    window.ProcessedPostsManager &&
-    window.ProcessedPostsManager.prototype.posts
-  ) {
-    cached = window.ProcessedPostsManager.prototype.getPost.call(
-      { posts: window.ProcessedPostsManager.prototype.posts },
-      id
-    );
-  }
-
-  if (cached) {
+  if (connectedPostAnalysis.quality === postQuality.PROBLEM) {
+    log("Marked PROBLEM post");
+  } else if (connectedPostAnalysis.quality === postQuality.DIVIDER) {
+    log("Marked DIVIDER post");
+  } else if (!id || id === "false") {
     if (debug) {
-      log(`Skipping already processed post: ${id}`);
+      log(`Marked post with invalid href: ${id}`);
     }
-    const qualityName = postQualityNameGetter(
-      cached.analysis.quality
-    ).toLowerCase();
-    post.setAttribute("data-xghosted-id", id);
-    post.setAttribute("data-xghosted", `postquality.${qualityName}`);
-    post.classList.add(`xghosted-${qualityName}`);
-    log(`Restored attributes for cached post: ${id}`);
   } else {
-    const qualityName = postQualityNameGetter(
-      connectedPostAnalysis.quality
-    ).toLowerCase();
-    post.setAttribute("data-xghosted-id", id);
-    post.setAttribute("data-xghosted", `postquality.${qualityName}`);
-    post.classList.add(`xghosted-${qualityName}`);
-    if (connectedPostAnalysis.quality === postQuality.POTENTIAL_PROBLEM) {
-      const shareButtonContainer = domUtils.querySelector(
-        'button[aria-label="Share post"]',
-        post
-      )?.parentElement;
-      if (shareButtonContainer) {
-        shareButtonContainer.classList.add("xghosted-eyeball");
-      } else if (debug) {
-        log(`No share button container found for post with href: ${id}`);
-      }
-    }
     log(
       `Highlighted post ${id}: quality=${connectedPostAnalysis.quality.name}`
     );
   }
 
+  if (connectedPostAnalysis.quality === postQuality.POTENTIAL_PROBLEM) {
+    const shareButtonContainer = domUtils.querySelector(
+      'button[aria-label="Share post"]',
+      post
+    )?.parentElement;
+    if (shareButtonContainer) {
+      shareButtonContainer.classList.add("xghosted-eyeball");
+    } else if (debug) {
+      log(`No share button container found for post with href: ${id}`);
+    }
+  }
+
   const postId = connectedPostAnalysis.link;
-  if (!processedIds.has(id)) {
+  if (postId && !processedIds.has(id)) {
     processedIds.add(id);
     emit(EVENTS.POST_REGISTERED, {
       href: postId,
       data: { analysis: connectedPostAnalysis, checked: false },
     });
-  } else if (debug) {
+  } else if (debug && postId) {
     const snippet = post.textContent.slice(0, 50).replace(/\n/g, " ");
     log(
       `Duplicate post skipped: ${id} (postId: ${postId}, snippet: "${snippet}")`

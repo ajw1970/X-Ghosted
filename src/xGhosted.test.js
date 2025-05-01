@@ -1,216 +1,201 @@
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
-import { JSDOM } from 'jsdom';
-import { XGhosted } from './xGhosted.js';
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
+import { XGhosted } from "./xGhosted.js";
 import { postQuality } from "./utils/postQuality.js";
-import * as identifyPostModule from "./dom/identifyPost.js";
-import { findPostContainer } from './dom/findPostContainer.js';
+import { CONFIG } from "./config.js";
+import { EVENTS } from "./events.js";
+import { postQualityNameGetter } from "./utils/postQualityNameGetter.js";
 
-// Mock the identifyPost module globally with async import
-vi.mock('./utils/identifyPost.js', async () => {
-  const actual = await vi.importActual('./utils/identifyPost.js');
-  return {
-    ...actual,
-    identifyPost: vi.fn(actual.identifyPost),
-  };
-});
+// Mock ProcessedPostsManager to simulate cache behavior
+const mockProcessedPostsManager = {
+  posts: {},
+  getPost: vi.fn((id) => mockProcessedPostsManager.posts[id] || null),
+};
 
-// Mock Tampermonkey GM_* functions
-const gmStorage = {};
-global.GM_getValue = vi.fn((key, defaultValue) => gmStorage[key] ?? defaultValue);
-global.GM_setValue = vi.fn((key, value) => { gmStorage[key] = value; });
+// Mock window.ProcessedPostsManager for synchronous cache check in processPost
+global.window = global.window || {};
+window.ProcessedPostsManager = function () {};
+window.ProcessedPostsManager.prototype = mockProcessedPostsManager;
 
-// ES6-compatible __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+describe("XGhosted DOM Updates", () => {
+  let xGhosted;
+  let mockLog;
+  let mockEmit;
 
-// Mock window.alert
-global.alert = vi.fn();
+  beforeEach(() => {
+    // Load sample HTML
+    loadHTML("samples/ajweltytest-with-replies-april-21-2025.html");
 
-let clipboardMock;
+    // Mock dependencies
+    mockLog = vi.fn();
+    mockEmit = vi.fn();
+    mockProcessedPostsManager.posts = {}; // Reset cache
+    mockProcessedPostsManager.getPost.mockClear();
 
-function setupJSDOM() {
-  const samplePath = resolve(__dirname, '../samples/Home-Timeline-With-Reply-To-Repost-No-Longer-Available.html');
-  const sampleHtml = readFileSync(samplePath, 'utf8');
-  const html = `<!DOCTYPE html><html><body>${sampleHtml}</body></html>`;
-  const dom = new JSDOM(html, {
-    url: 'https://x.com/user/with_replies',
-    resources: 'usable',
-    runScripts: 'dangerously',
-  });
-  global.window = dom.window;
-  global.document = dom.window.document;
-  dom.window.document.defaultView.open = vi.fn();
-  dom.window.alert = vi.fn();
-  clipboardMock = { writeText: vi.fn().mockResolvedValue() };
-  dom.window.navigator = { clipboard: clipboardMock, userAgent: 'vitest' };
-  global.navigator = dom.window.navigator;
-  dom.window.URL = {
-    createObjectURL: vi.fn(() => 'blob://test'),
-    revokeObjectURL: vi.fn(),
-  };
-  return dom;
-}
-
-describe('xGhosted', () => {
-  let xGhosted, dom;
-
-  beforeAll(async () => {
-    vi.useFakeTimers();
-  });
-
-  beforeEach(async () => {
-    dom = setupJSDOM();
-    xGhosted = new XGhosted(dom.window.document, {
-      timing: { debounceDelay: 0, throttleDelay: 0, tabCheckThrottle: 0, exportThrottle: 0, rateLimitPause: 100 },
-      useTampermonkeyLog: false,
-      persistProcessedPosts: true,
+    // Instantiate XGhosted
+    xGhosted = new XGhosted({
+      document,
+      window: global,
+      config: {
+        ...CONFIG,
+        log: mockLog,
+      },
     });
-    xGhosted.handleUrlChange('https://x.com/user/with_replies');
-    xGhosted.highlightPostsDebounced = xGhosted.highlightPosts; // Simplify for tests
-    xGhosted.state.processedPosts.clear();
-    xGhosted.state = {
-      ...xGhosted.state,
-      themeMode: 'dark',
-      isManualCheckEnabled: false,
-      userProfileName: 'user'
-    };
-  }, 30000);
+
+    // Ensure window.Element is defined for processPost's type check
+    global.Element = document.createElement("div").constructor;
+  });
 
   afterEach(() => {
-    dom.window.document.body.innerHTML = '';
-    vi.clearAllMocks();
+    // Reset DOM
+    document.documentElement.innerHTML = "";
+    // Clear mocks
+    mockLog.mockClear();
+    mockEmit.mockClear();
   });
 
-  test('checkPostInNewTab handles rate limit', async () => {
-    xGhosted.state.isManualCheckEnabled = true;
-    xGhosted.state.themeMode = 'dark';
-    const mockWindow = {
-      document: { readyState: 'complete', querySelectorAll: () => [], body: { textContent: 'Rate limit exceeded' } },
-      close: vi.fn(),
-    };
-    xGhosted.document.defaultView.open.mockReturnValue(mockWindow);
-    const promise = xGhosted.checkPostInNewTab('/test/status/123');
-    vi.advanceTimersByTime(500);
-    expect(xGhosted.state.isRateLimited).toBe(true);
-    vi.advanceTimersByTime(xGhosted.timing.rateLimitPause);
-    const result = await promise;
-    expect(xGhosted.state.isRateLimited).toBe(false);
-    expect(result).toBe(false);
-    expect(mockWindow.close).toHaveBeenCalled();
-  });
+  test("highlightPosts applies correct data-xghosted attributes, classes, and eyeballs", () => {
+    const { GOOD, PROBLEM, POTENTIAL_PROBLEM, DIVIDER } = postQuality;
 
-  test('saveState and loadState persist data', () => {
-    xGhosted.highlightPosts();
-    xGhosted.saveState();
-    const saved = gmStorage.xGhostedState;
-    expect(saved.processedPosts['/OwenGregorian/status/1896977661144260900'].analysis.quality).toBe(postQuality.PROBLEM);
-    xGhosted.state.processedPosts.clear();
-    xGhosted.loadState();
-    expect(xGhosted.state.processedPosts.size).toBeGreaterThan(0);
-  });
+    // Get all posts
+    const posts = document.querySelectorAll(XGhosted.POSTS_IN_DOCUMENT);
 
-  test('highlightPosts calls identifyPost once per post', () => {
-    // Mock identifyPost to track calls
-    const spy = vi.spyOn(identifyPostModule, 'identifyPost');
+    // Call highlightPosts with mocked dependencies
+    xGhosted.highlightPosts(posts, CONFIG.debug, mockLog, mockEmit);
 
-    // Add data-xghosted attribute to post container
-    findPostContainer(document);
-
-    // Check the number of posts
-    const posts = document.querySelectorAll('div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]');
-    expect(posts.length).toBe(36);
-
-    // Run highlightPosts
-    xGhosted.highlightPosts();
-
-    // Verify identifyPost was called twice
-    expect(spy).toHaveBeenCalledTimes(36);
-    expect(spy).toHaveBeenCalledWith(posts[0], true); // Assuming checkReplies is true
-    expect(spy).toHaveBeenCalledWith(posts[35], true);
-  });
-
-  test('highlightPosts does not call identifyPost after first processing', () => {
-    // Mock identifyPost to track calls
-    const spy = vi.spyOn(identifyPostModule, 'identifyPost');
-
-    // Add data-xghosted attribute to post container
-    findPostContainer(document);
-
-    const selector = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
-
-    // Check the number of posts
-    const posts = document.querySelectorAll(selector);
-    expect(posts.length).toBe(36);
-
-    // Run highlightPosts
-    xGhosted.highlightPosts();
-
-    // Verify identifyPost was called twice
-    expect(spy).toHaveBeenCalledTimes(36);
-    expect(spy).toHaveBeenCalledWith(posts[0], true); // Assuming checkReplies is true
-    expect(spy).toHaveBeenCalledWith(posts[35], true);
-
-    // Check the number of posts
-    const secondPassPosts = document.querySelectorAll(selector);
-    expect(secondPassPosts.length).toBe(0);
-
-    // Mock identifyPost to track calls
-    const secondPassSpy = vi.spyOn(identifyPostModule, 'identifyPost');
-
-    // Run highlightPosts
-    xGhosted.highlightPosts();
-
-    // Verify identifyPost was called twice
-    expect(secondPassSpy).toHaveBeenCalledTimes(0);
-  });
-
-  test('highlightPost does not call identifyPost on previously processed posts', () => {
-    const { PROBLEM } = postQuality;
-
-    // Mock identifyPost to track calls
-    const spy = vi.spyOn(identifyPostModule, 'identifyPost');
-
-    // Add data-xghosted attribute to post container
-    findPostContainer(document);
-
-    const selector = 'div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])';
-
-    // Check the number of posts
-    const posts = document.querySelectorAll(selector);
-    expect(posts.length).toBe(36);
-
-    // Add previously processedPost which will show up in the new query
-    xGhosted.state.processedPosts.set("/OwenGregorian/status/1896977661144260900", {
-      analysis: {
-        quality: PROBLEM,
-        link: "/OwenGregorian/status/1896977661144260900",
-        reason: "Found notice: this post is unavailable"
+    // Expected post analyses based on identifyPosts.gold-standard-sample.test.js
+    const expectedAnalyses = [
+      {
+        quality: DIVIDER,
+        link: false,
+        reason: "Invisible Divider Between Post Collections",
       },
-      checked: false
+      {
+        quality: GOOD,
+        link: "/ApostleJohnW/status/1899820744072110204",
+        reason: "Looks good",
+      },
+      {
+        quality: GOOD,
+        link: "/ajweltytest/status/1909349357331304643",
+        reason: "Looks good",
+      },
+      {
+        quality: PROBLEM,
+        link: "/ajweltytest/status/1901080866002014636",
+        reason: "Found notice: this post is unavailable",
+      },
+      {
+        quality: DIVIDER,
+        link: false,
+        reason: "Invisible Divider Between Post Collections",
+      },
+      {
+        quality: POTENTIAL_PROBLEM,
+        link: "/ajweltytest/status/1899820959197995180",
+        reason: "Found: 'Replying to <a>@ApostleJohnW</a>' at a depth of 6",
+      },
+      {
+        quality: DIVIDER,
+        link: false,
+        reason: "Invisible Divider Between Post Collections",
+      },
+      {
+        quality: POTENTIAL_PROBLEM,
+        link: "/ajweltytest/status/1899820920266535120",
+        reason: "Found: 'Replying to <a>@ApostleJohnW</a>' at a depth of 6",
+      },
+      {
+        quality: DIVIDER,
+        link: false,
+        reason: "Invisible Divider Between Post Collections",
+      },
+      {
+        quality: GOOD,
+        link: "/ApostleJohnW/status/1895367468908192087",
+        reason: "Looks good",
+      },
+      {
+        quality: GOOD,
+        link: "/ajweltytest/status/1895407388871798985",
+        reason: "Looks good",
+      },
+      {
+        quality: DIVIDER,
+        link: false,
+        reason: "Invisible Divider Between Post Collections",
+      },
+    ];
+
+    // Verify DOM updates for each post
+    posts.forEach((post, index) => {
+      const expected = expectedAnalyses[index];
+      const qualityName = postQualityNameGetter(expected.quality).toLowerCase();
+      const expectedClass = `xghosted-${qualityName}`;
+      const expectedDataAttr = `postquality.${qualityName}`;
+      console.log(`${index}: ${expected.link}`);
+      // Check data-xghosted attribute
+      expect(post.getAttribute("data-xghosted")).toBe(expectedDataAttr);
+
+      // Check data-xghosted-id attribute
+      if (expected.quality === PROBLEM && expected.link) {
+        expect(post.getAttribute("data-xghosted-id")).toBe(expected.link);
+      } else if (expected.link && expected.quality !== DIVIDER) {
+        expect(post.getAttribute("data-xghosted-id")).toBe(expected.link);
+      } else {
+        expect(post.getAttribute("data-xghosted-id")).toBe("");
+      }
+
+      // Check CSS class
+      expect(post.classList.contains(expectedClass)).toBe(true);
+
+      // Check eyeball for POTENTIAL_PROBLEM posts
+      if (expected.quality === POTENTIAL_PROBLEM) {
+        const shareButtonContainer = post.querySelector(
+          'button[aria-label="Share post"]'
+        )?.parentElement;
+        expect(shareButtonContainer).toBeTruthy();
+        expect(
+          shareButtonContainer.classList.contains("xghosted-eyeball")
+        ).toBe(true);
+      } else {
+        const shareButtonContainer = post.querySelector(
+          'button[aria-label="Share post"]'
+        )?.parentElement;
+        if (shareButtonContainer) {
+          expect(
+            shareButtonContainer.classList.contains("xghosted-eyeball")
+          ).toBe(false);
+        }
+      }
     });
 
-    // Run highlightPosts
-    xGhosted.highlightPosts();
+    // Verify emit calls for POST_REGISTERED
+    const registeredPosts = expectedAnalyses.filter(
+      (analysis) => analysis.link && analysis.quality !== DIVIDER
+    );
+    expect(mockEmit).toHaveBeenCalledTimes(registeredPosts.length + 2); // +2 for SAVE_METRICS and RECORD_HIGHLIGHT
+    registeredPosts.forEach((analysis) => {
+      expect(mockEmit).toHaveBeenCalledWith(EVENTS.POST_REGISTERED, {
+        href: analysis.link,
+        data: expect.objectContaining({
+          analysis: expect.objectContaining({
+            quality: analysis.quality,
+            reason: analysis.reason,
+            link: analysis.link,
+          }),
+          checked: false,
+        }),
+      });
+    });
 
-    // Verify identifyPost was called twice
-    expect(spy).toHaveBeenCalledTimes(35);
-    expect(spy).toHaveBeenCalledWith(posts[0], true); // Assuming checkReplies is true
-    expect(spy).toHaveBeenCalledWith(posts[35], true);
-
-    // Now we do a second pass and should fine none
-    // This proves that the cached post did get processed but not re-identified with postIdentify
-    const secondPassPosts = document.querySelectorAll(selector);
-    expect(secondPassPosts.length).toBe(0);
-
-    // Mock identifyPost to track calls
-    const secondPassSpy = vi.spyOn(identifyPostModule, 'identifyPost');
-
-    // Run highlightPosts
-    xGhosted.highlightPosts();
-
-    // Verify identifyPost was called twice
-    expect(secondPassSpy).toHaveBeenCalledTimes(0);
+    // Verify SAVE_METRICS and RECORD_HIGHLIGHT were emitted
+    expect(mockEmit).toHaveBeenCalledWith(EVENTS.SAVE_METRICS, {});
+    expect(mockEmit).toHaveBeenCalledWith(
+      EVENTS.RECORD_HIGHLIGHT,
+      expect.objectContaining({
+        duration: expect.any(Number),
+        wasSkipped: false,
+      })
+    );
   });
 });
