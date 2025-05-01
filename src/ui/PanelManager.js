@@ -114,7 +114,7 @@ window.PanelManager = function (
     isPanelVisible: true,
     isRateLimited: false,
     isManualCheckEnabled: false,
-    isPollingEnabled: true,
+    isProcessingEnabled: true,
     userRequestedAutoScrolling: false,
     themeMode: validThemes.includes(themeMode) ? themeMode : "light",
     hasSeenSplash: false,
@@ -230,8 +230,8 @@ window.PanelManager.prototype.init = function () {
     this.state.isRateLimited = e.detail.isRateLimited;
     this.renderPanelDebounced();
   };
-  const handlePollingStateUpdated = (e) => {
-    this.state.isPollingEnabled = e.detail.isPollingEnabled;
+  const handleProcessingStateUpdated = (e) => {
+    this.state.isProcessingEnabled = e.detail.isProcessingEnabled;
     this.applyPanelStyles();
     this.renderPanel();
   };
@@ -388,8 +388,8 @@ window.PanelManager.prototype.init = function () {
   );
   this.document.addEventListener(EVENTS.STATE_UPDATED, handleStateUpdated);
   this.document.addEventListener(
-    EVENTS.POLLING_STATE_UPDATED,
-    handlePollingStateUpdated
+    EVENTS.PROCESSING_STATE_UPDATED,
+    handleProcessingStateUpdated
   );
   this.document.addEventListener(
     EVENTS.AUTO_SCROLLING_TOGGLED,
@@ -422,8 +422,8 @@ window.PanelManager.prototype.init = function () {
   this.cleanup = () => {
     this.document.removeEventListener(EVENTS.STATE_UPDATED, handleStateUpdated);
     this.document.removeEventListener(
-      EVENTS.POLLING_STATE_UPDATED,
-      handlePollingStateUpdated
+      EVENTS.PROCESSING_STATE_UPDATED,
+      handleProcessingStateUpdated
     );
     this.document.removeEventListener(
       EVENTS.AUTO_SCROLLING_TOGGLED,
@@ -638,12 +638,12 @@ window.PanelManager.prototype.renderPanel = function () {
       onEyeballClick: (href) => this.onEyeballClick(href),
       flagged: this.state.flagged || [],
       totalPosts: this.state.totalPosts || 0,
-      isPolling: this.state.isPollingEnabled,
+      isProcessing: this.state.isProcessingEnabled,
       isScrolling: this.state.userRequestedAutoScrolling,
       userProfileName: this.state.userProfileName,
       onToggleVisibility: () => this.toggleVisibility(),
       onToggleTools: () => this.toggleTools(),
-      onTogglePolling: () => this.togglePolling(),
+      onToggleProcessing: () => this.toggleProcessing(),
       onToggleAutoScrolling: () => this.toggleAutoScrolling(),
       onExportCsv: () => this.exportCsv(),
       onOpenModal: () => this.openModal(),
@@ -685,15 +685,15 @@ window.PanelManager.prototype.toggleDropdown = function () {
   this.log(`Toggled theme dropdown: ${this.state.isDropdownOpen}`);
 };
 
-window.PanelManager.prototype.togglePolling = function () {
+window.PanelManager.prototype.toggleProcessing = function () {
   this.document.dispatchEvent(
-    new CustomEvent(EVENTS.SET_POLLING, {
-      detail: { enabled: !this.state.isPollingEnabled },
+    new CustomEvent(EVENTS.SET_PROCESSING, {
+      detail: { enabled: !this.state.isProcessingEnabled },
     })
   );
   this.saveState();
   this.renderPanel(); // Immediate for user interaction
-  this.log(`Toggled polling: ${!this.state.isPollingEnabled}`);
+  this.log(`Toggled processing: ${!this.state.isProcessingEnabled}`);
 };
 
 window.PanelManager.prototype.toggleAutoScrolling = function () {

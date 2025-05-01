@@ -109,11 +109,11 @@ var MetricsMonitor = class {
     containerFound,
     containerAttempted,
     pageType,
-    isPollingStarted,
-    isPollingStopped,
+    isProcessingStarted,
+    isProcessingStopped,
     cellInnerDivCount,
   }) {
-    const skipped = !window.XGhosted?.state?.isPollingEnabled;
+    const skipped = !window.XGhosted?.state?.isProcessingEnabled;
     if (skipped && CONFIG.debug) {
       this.log("Recording RECORD_POLL as skipped: polling is disabled");
     }
@@ -137,14 +137,14 @@ var MetricsMonitor = class {
     this.metrics.pageType = pageType;
     this.metrics.cellInnerDivCount = cellInnerDivCount || 0;
 
-    if (isPollingStarted) {
+    if (isProcessingStarted) {
       this.metrics.sessionStarts++;
       this.metrics.currentSessionStart = performance.now();
       this.log(
         `Polling session started (count: ${this.metrics.sessionStarts})`
       );
     }
-    if (isPollingStopped && this.metrics.currentSessionStart !== null) {
+    if (isProcessingStopped && this.metrics.currentSessionStart !== null) {
       this.metrics.sessionStops++;
       const duration = performance.now() - this.metrics.currentSessionStart;
       this.metrics.sessionDurationSum += duration;
@@ -196,7 +196,7 @@ var MetricsMonitor = class {
   }
 
   recordScroll({ bottomReached }) {
-    const skipped = !window.XGhosted?.state?.isPollingEnabled;
+    const skipped = !window.XGhosted?.state?.isProcessingEnabled;
     if (skipped && CONFIG.debug) {
       this.log("Recording RECORD_SCROLL as skipped: polling is disabled");
     }
@@ -231,7 +231,7 @@ var MetricsMonitor = class {
   }
 
   recordHighlighting(duration) {
-    const skipped = !window.XGhosted?.state?.isPollingEnabled;
+    const skipped = !window.XGhosted?.state?.isProcessingEnabled;
     if (skipped && CONFIG.debug) {
       this.log("Recording RECORD_HIGHLIGHT as skipped: polling is disabled");
     }

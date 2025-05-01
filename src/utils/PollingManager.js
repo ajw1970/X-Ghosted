@@ -9,7 +9,7 @@ class PollingManager {
     this.timing = { ...CONFIG.timing, ...timing };
     this.log = log || console.log.bind(console);
     this.state = {
-      isPollingEnabled: true,
+      isProcessingEnabled: true,
       userRequestedAutoScrolling: false,
       noPostsFoundCount: 0,
       lastCellInnerDivCount: 0,
@@ -27,9 +27,9 @@ class PollingManager {
 
   initEventListeners() {
     this.document.addEventListener(
-      EVENTS.SET_POLLING,
+      EVENTS.SET_PROCESSING,
       ({ detail: { enabled } }) => {
-        this.setPolling(enabled);
+        this.setProcessing(enabled);
       }
     );
 
@@ -41,14 +41,14 @@ class PollingManager {
     );
   }
 
-  setPolling(enabled) {
-    this.state.isPollingEnabled = enabled;
+  setProcessing(enabled) {
+    this.state.isProcessingEnabled = enabled;
     this.log(
-      `Polling ${enabled ? "enabled" : "disabled"}, state: isPollingEnabled=${this.state.isPollingEnabled}`
+      `Processing ${enabled ? "enabled" : "disabled"}, state: isProcessingEnabled=${this.state.isProcessingEnabled}`
     );
     this.document.dispatchEvent(
-      new CustomEvent(EVENTS.POLLING_STATE_UPDATED, {
-        detail: { isPollingEnabled: this.state.isPollingEnabled },
+      new CustomEvent(EVENTS.PROCESSING_STATE_UPDATED, {
+        detail: { isProcessingEnabled: this.state.isProcessingEnabled },
       })
     );
     if (!this.pollTimer && enabled) {
@@ -56,26 +56,8 @@ class PollingManager {
     }
   }
 
-  stopPolling() {
-    this.setPolling(false);
-    this.emit(EVENTS.RECORD_POLL, {
-      postsProcessed: 0,
-      wasSkipped: true,
-      containerFound: false,
-      containerAttempted: false,
-      pageType: this.xGhosted.state.isWithReplies
-        ? "with_replies"
-        : this.xGhosted.state.userProfileName
-          ? "profile"
-          : "timeline",
-      isPollingStarted: false,
-      isPollingStopped: true,
-      cellInnerDivCount: 0,
-    });
-  }
-
   setAutoScrolling(enabled) {
-    if (enabled && !this.state.isPollingEnabled) {
+    if (enabled && !this.state.isProcessingEnabled) {
       this.log("Cannot enable auto-scrolling: polling is disabled");
       return;
     }
@@ -163,7 +145,7 @@ class PollingManager {
         this.state.noPostsFoundCount++;
       }
 
-      if (this.state.isPollingEnabled && !this.xGhosted.state.isHighlighting) {
+      if (this.state.isProcessingEnabled && !this.xGhosted.state.isHighlighting) {
         const unprocessedPosts = this.xGhosted.getUnprocessedPosts();
         if (unprocessedPosts.length > 0) {
           postsProcessed = unprocessedPosts.length;
@@ -189,7 +171,7 @@ class PollingManager {
 
       this.emit(EVENTS.RECORD_POLL, {
         postsProcessed,
-        wasSkipped: !this.state.isPollingEnabled,
+        wasSkipped: !this.state.isProcessingEnabled,
         containerFound,
         containerAttempted,
         pageType: this.xGhosted.state.isWithReplies
@@ -197,13 +179,13 @@ class PollingManager {
           : this.xGhosted.state.userProfileName
             ? "profile"
             : "timeline",
-        isPollingStarted: false,
-        isPollingStopped: false,
+        isProcessingStarted: false,
+        isProcessingStopped: false,
         cellInnerDivCount,
       });
 
       if (
-        this.state.isPollingEnabled &&
+        this.state.isProcessingEnabled &&
         this.state.userRequestedAutoScrolling
       ) {
         this.log(

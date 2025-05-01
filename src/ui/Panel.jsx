@@ -9,12 +9,12 @@ function Panel({
   onEyeballClick,
   flagged,
   totalPosts,
-  isPolling,
+  isProcessing,
   isScrolling,
   userProfileName,
   onToggleVisibility,
   onToggleTools,
-  onTogglePolling,
+  onToggleProcessing,
   onToggleAutoScrolling,
   onExportCsv,
   onOpenModal,
@@ -37,7 +37,7 @@ function Panel({
         id: 'xghosted-panel',
         style: {
           background: config.THEMES[currentMode].bg,
-          border: `2px solid ${isPolling ? config.THEMES[currentMode].border : '#FFA500'}`,
+          border: `2px solid ${isProcessing ? config.THEMES[currentMode].border : '#FFA500'}`,
           borderRadius: '12px',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
           color: config.THEMES[currentMode].text,
@@ -87,20 +87,20 @@ function Panel({
               window.preact.h(
                 'button',
                 {
-                  key: isPolling ? 'polling-stop' : 'polling-start',
-                  className: `panel-button ${isPolling ? '' : 'polling-stopped'}`,
-                  onClick: onTogglePolling,
-                  'aria-label': isPolling
-                    ? 'Stop Polling'
-                    : 'Start Polling',
+                  key: isProcessing ? 'processing-stop' : 'processing-start',
+                  className: `panel-button ${isProcessing ? '' : 'processing-stopped'}`,
+                  onClick: onToggleProcessing,
+                  'aria-label': isProcessing
+                    ? 'Stop Processing'
+                    : 'Start Processing',
                 },
                 window.preact.h('i', {
-                  className: isPolling
+                  className: isProcessing
                     ? 'fa-solid fa-stop'
                     : 'fa-solid fa-play',
                   style: { marginRight: '12px' },
                 }),
-                'Polling'
+                'Processing'
               ),
               window.preact.h(
                 'button',

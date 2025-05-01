@@ -264,7 +264,7 @@ XGhosted.prototype.checkPostInNewTab = async function (href) {
           clearInterval(checkInterval);
           this.log("Rate limit detected, pausing operations for 5 minutes");
           this.state.isRateLimited = true;
-          this.pollingManager.stopPolling();
+          this.emit(EVENTS.SET_PROCESSING, { enabled: false });
           newWindow.close();
           this.emit(EVENTS.RATE_LIMIT_DETECTED, { pauseDuration: 300000 });
           setTimeout(() => {

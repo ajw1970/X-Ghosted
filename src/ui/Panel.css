@@ -82,7 +82,7 @@
   transform: scale(0.95);
 }
 
-.polling-stopped {
+.processing-stopped {
   border: 2px solid #ffa500;
 }
 

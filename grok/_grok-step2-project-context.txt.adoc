@@ -5,7 +5,7 @@
 - *Product*: Tampermonkey userscript (`src/xGhosted.user.js`) for use on `x.com`.
 - *Purpose*: Identifies and highlights problem posts on x.com, with an expected but optional UI for user-friendly interaction.
 - *Core Component*: `src/xGhosted.js` (expert in x.com DOM interactions).
-- *UI Component*: Managed by `PanelManager.js`, includes `Panel.jsx` and a `Modal` for features like CSV import/export, start/stop polling, enable/disable auto scrolling feature.
+- *UI Component*: Managed by `PanelManager.js`, includes `Panel.jsx` and a `Modal` for features like CSV import/export, start/stop processing, enable/disable auto scrolling feature.
 - *Template Component*: `src/xGhosted.template.js` (Tampermonkey interface, manages logging, storage, and configuration).
 - *Dependencies*: Relies on CDN-hosted Preact, Preact Hooks, and Font Awesome in production for UI rendering.
 

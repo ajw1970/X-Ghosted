@@ -55,8 +55,8 @@
     REQUEST_IMPORT_CSV: 'xghosted:request-import-csv',
     EXPORT_CSV: 'xghosted:export-csv',
     CSV_EXPORTED: 'xghosted:csv-exported',
-    SET_POLLING: 'xghosted:set-polling',
-    POLLING_STATE_UPDATED: 'xghosted:polling-state-updated',
+    SET_PROCESSING: 'xghosted:set-processing',
+    PROCESSING_STATE_UPDATED: 'xghosted:processing-state-updated',
     SET_AUTO_SCROLLING: 'xghosted:set-auto-scrolling',
     AUTO_SCROLLING_TOGGLED: 'xghosted:auto-scrolling-toggled',
     RATE_LIMIT_DETECTED: 'xghosted:rate-limit-detected',
@@ -117,11 +117,11 @@
     'xghosted:csv-exported': {
       csvData: 'string',
     },
-    'xghosted:set-polling': {
+    'xghosted:set-processing': {
       enabled: 'boolean',
     },
-    'xghosted:polling-state-updated': {
-      isPollingEnabled: 'boolean',
+    'xghosted:processing-state-updated': {
+      isProcessingEnabled: 'boolean',
     },
     'xghosted:set-auto-scrolling': {
       enabled: 'boolean',
@@ -160,8 +160,8 @@
       containerFound: 'boolean',
       containerAttempted: 'boolean',
       pageType: 'string',
-      isPollingStarted: 'boolean',
-      isPollingStopped: 'boolean',
+      isProcessingStarted: 'boolean',
+      isProcessingStopped: 'boolean',
     },
     'xghosted:record-scroll': {
       bottomReached: 'boolean',
@@ -255,8 +255,8 @@
       REQUEST_IMPORT_CSV: 'xghosted:request-import-csv',
       EXPORT_CSV: 'xghosted:export-csv',
       CSV_EXPORTED: 'xghosted:csv-exported',
-      SET_POLLING: 'xghosted:set-polling',
-      POLLING_STATE_UPDATED: 'xghosted:polling-state-updated',
+      SET_PROCESSING: 'xghosted:set-processing',
+      PROCESSING_STATE_UPDATED: 'xghosted:processing-state-updated',
       SET_AUTO_SCROLLING: 'xghosted:set-auto-scrolling',
       AUTO_SCROLLING_TOGGLED: 'xghosted:auto-scrolling-toggled',
       RATE_LIMIT_DETECTED: 'xghosted:rate-limit-detected',
@@ -294,8 +294,8 @@
       [EVENTS.REQUEST_IMPORT_CSV]: { csvText: 'string' },
       [EVENTS.EXPORT_CSV]: {},
       [EVENTS.CSV_EXPORTED]: { csvData: 'string' },
-      [EVENTS.SET_POLLING]: { enabled: 'boolean' },
-      [EVENTS.POLLING_STATE_UPDATED]: { isPollingEnabled: 'boolean' },
+      [EVENTS.SET_PROCESSING]: { enabled: 'boolean' },
+      [EVENTS.PROCESSING_STATE_UPDATED]: { isProcessingEnabled: 'boolean' },
       [EVENTS.SET_AUTO_SCROLLING]: { enabled: 'boolean' },
       [EVENTS.AUTO_SCROLLING_TOGGLED]: {
         userRequestedAutoScrolling: 'boolean',
@@ -317,8 +317,8 @@
         containerFound: 'boolean',
         containerAttempted: 'boolean',
         pageType: 'string',
-        isPollingStarted: 'boolean',
-        isPollingStopped: 'boolean',
+        isProcessingStarted: 'boolean',
+        isProcessingStopped: 'boolean',
       },
       [EVENTS.RECORD_SCROLL]: { bottomReached: 'boolean' },
       [EVENTS.RECORD_HIGHLIGHT]: { duration: 'number' },
@@ -335,7 +335,7 @@
         this.timing = { ...CONFIG.timing, ...timing };
         this.log = log || console.log.bind(console);
         this.state = {
-          isPollingEnabled: true,
+          isProcessingEnabled: true,
           userRequestedAutoScrolling: false,
           noPostsFoundCount: 0,
           lastCellInnerDivCount: 0,
@@ -352,9 +352,9 @@
       }
       initEventListeners() {
         this.document.addEventListener(
-          EVENTS.SET_POLLING,
+          EVENTS.SET_PROCESSING,
           ({ detail: { enabled } }) => {
-            this.setPolling(enabled);
+            this.setProcessing(enabled);
           }
         );
         this.document.addEventListener(
@@ -364,39 +364,22 @@
           }
         );
       }
-      setPolling(enabled) {
-        this.state.isPollingEnabled = enabled;
+      setProcessing(enabled) {
+        this.state.isProcessingEnabled = enabled;
         this.log(
-          `Polling ${enabled ? 'enabled' : 'disabled'}, state: isPollingEnabled=${this.state.isPollingEnabled}`
+          `Processing ${enabled ? 'enabled' : 'disabled'}, state: isProcessingEnabled=${this.state.isProcessingEnabled}`
         );
         this.document.dispatchEvent(
-          new CustomEvent(EVENTS.POLLING_STATE_UPDATED, {
-            detail: { isPollingEnabled: this.state.isPollingEnabled },
+          new CustomEvent(EVENTS.PROCESSING_STATE_UPDATED, {
+            detail: { isProcessingEnabled: this.state.isProcessingEnabled },
           })
         );
         if (!this.pollTimer && enabled) {
           this.startPolling();
         }
       }
-      stopPolling() {
-        this.setPolling(false);
-        this.emit(EVENTS.RECORD_POLL, {
-          postsProcessed: 0,
-          wasSkipped: true,
-          containerFound: false,
-          containerAttempted: false,
-          pageType: this.xGhosted.state.isWithReplies
-            ? 'with_replies'
-            : this.xGhosted.state.userProfileName
-              ? 'profile'
-              : 'timeline',
-          isPollingStarted: false,
-          isPollingStopped: true,
-          cellInnerDivCount: 0,
-        });
-      }
       setAutoScrolling(enabled) {
-        if (enabled && !this.state.isPollingEnabled) {
+        if (enabled && !this.state.isProcessingEnabled) {
           this.log('Cannot enable auto-scrolling: polling is disabled');
           return;
         }
@@ -479,7 +462,7 @@
             this.state.noPostsFoundCount++;
           }
           if (
-            this.state.isPollingEnabled &&
+            this.state.isProcessingEnabled &&
             !this.xGhosted.state.isHighlighting
           ) {
             const unprocessedPosts = this.xGhosted.getUnprocessedPosts();
@@ -518,7 +501,7 @@
           this.state.lastCellInnerDivCount = cellInnerDivCount;
           this.emit(EVENTS.RECORD_POLL, {
             postsProcessed,
-            wasSkipped: !this.state.isPollingEnabled,
+            wasSkipped: !this.state.isProcessingEnabled,
             containerFound,
             containerAttempted,
             pageType: this.xGhosted.state.isWithReplies
@@ -526,12 +509,12 @@
               : this.xGhosted.state.userProfileName
                 ? 'profile'
                 : 'timeline',
-            isPollingStarted: false,
-            isPollingStopped: false,
+            isProcessingStarted: false,
+            isProcessingStopped: false,
             cellInnerDivCount,
           });
           if (
-            this.state.isPollingEnabled &&
+            this.state.isProcessingEnabled &&
             this.state.userRequestedAutoScrolling
           ) {
             this.log(
@@ -1555,7 +1538,7 @@
               clearInterval(checkInterval);
               this.log('Rate limit detected, pausing operations for 5 minutes');
               this.state.isRateLimited = true;
-              this.pollingManager.stopPolling();
+              this.emit(EVENTS.SET_PROCESSING, { enabled: false });
               newWindow.close();
               this.emit(EVENTS.RATE_LIMIT_DETECTED, { pauseDuration: 3e5 });
               setTimeout(() => {
@@ -2008,12 +1991,12 @@
       onEyeballClick,
       flagged,
       totalPosts,
-      isPolling,
+      isProcessing,
       isScrolling,
       userProfileName,
       onToggleVisibility,
       onToggleTools,
-      onTogglePolling,
+      onToggleProcessing,
       onToggleAutoScrolling,
       onExportCsv,
       onOpenModal,
@@ -2035,7 +2018,7 @@
             id: 'xghosted-panel',
             style: {
               background: config.THEMES[currentMode].bg,
-              border: `2px solid ${isPolling ? config.THEMES[currentMode].border : '#FFA500'}`,
+              border: `2px solid ${isProcessing ? config.THEMES[currentMode].border : '#FFA500'}`,
               borderRadius: '12px',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
               color: config.THEMES[currentMode].text,
@@ -2087,20 +2070,22 @@
                     window.preact.h(
                       'button',
                       {
-                        key: isPolling ? 'polling-stop' : 'polling-start',
-                        className: `panel-button ${isPolling ? '' : 'polling-stopped'}`,
-                        onClick: onTogglePolling,
-                        'aria-label': isPolling
-                          ? 'Stop Polling'
-                          : 'Start Polling',
+                        key: isProcessing
+                          ? 'processing-stop'
+                          : 'processing-start',
+                        className: `panel-button ${isProcessing ? '' : 'processing-stopped'}`,
+                        onClick: onToggleProcessing,
+                        'aria-label': isProcessing
+                          ? 'Stop Processing'
+                          : 'Start Processing',
                       },
                       window.preact.h('i', {
-                        className: isPolling
+                        className: isProcessing
                           ? 'fa-solid fa-stop'
                           : 'fa-solid fa-play',
                         style: { marginRight: '12px' },
                       }),
-                      'Polling'
+                      'Processing'
                     ),
                     window.preact.h(
                       'button',
@@ -2549,7 +2534,7 @@
         isPanelVisible: true,
         isRateLimited: false,
         isManualCheckEnabled: false,
-        isPollingEnabled: true,
+        isProcessingEnabled: true,
         userRequestedAutoScrolling: false,
         themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
         hasSeenSplash: false,
@@ -2667,8 +2652,8 @@
         this.state.isRateLimited = e.detail.isRateLimited;
         this.renderPanelDebounced();
       };
-      const handlePollingStateUpdated = (e) => {
-        this.state.isPollingEnabled = e.detail.isPollingEnabled;
+      const handleProcessingStateUpdated = (e) => {
+        this.state.isProcessingEnabled = e.detail.isProcessingEnabled;
         this.applyPanelStyles();
         this.renderPanel();
       };
@@ -2828,8 +2813,8 @@
       );
       this.document.addEventListener(EVENTS.STATE_UPDATED, handleStateUpdated);
       this.document.addEventListener(
-        EVENTS.POLLING_STATE_UPDATED,
-        handlePollingStateUpdated
+        EVENTS.PROCESSING_STATE_UPDATED,
+        handleProcessingStateUpdated
       );
       this.document.addEventListener(
         EVENTS.AUTO_SCROLLING_TOGGLED,
@@ -2874,8 +2859,8 @@
           handleStateUpdated
         );
         this.document.removeEventListener(
-          EVENTS.POLLING_STATE_UPDATED,
-          handlePollingStateUpdated
+          EVENTS.PROCESSING_STATE_UPDATED,
+          handleProcessingStateUpdated
         );
         this.document.removeEventListener(
           EVENTS.AUTO_SCROLLING_TOGGLED,
@@ -3092,12 +3077,12 @@
           onEyeballClick: (href) => this.onEyeballClick(href),
           flagged: this.state.flagged || [],
           totalPosts: this.state.totalPosts || 0,
-          isPolling: this.state.isPollingEnabled,
+          isProcessing: this.state.isProcessingEnabled,
           isScrolling: this.state.userRequestedAutoScrolling,
           userProfileName: this.state.userProfileName,
           onToggleVisibility: () => this.toggleVisibility(),
           onToggleTools: () => this.toggleTools(),
-          onTogglePolling: () => this.togglePolling(),
+          onToggleProcessing: () => this.toggleProcessing(),
           onToggleAutoScrolling: () => this.toggleAutoScrolling(),
           onExportCsv: () => this.exportCsv(),
           onOpenModal: () => this.openModal(),
@@ -3134,15 +3119,15 @@
       this.renderPanel();
       this.log(`Toggled theme dropdown: ${this.state.isDropdownOpen}`);
     };
-    window.PanelManager.prototype.togglePolling = function () {
+    window.PanelManager.prototype.toggleProcessing = function () {
       this.document.dispatchEvent(
-        new CustomEvent(EVENTS.SET_POLLING, {
-          detail: { enabled: !this.state.isPollingEnabled },
+        new CustomEvent(EVENTS.SET_PROCESSING, {
+          detail: { enabled: !this.state.isProcessingEnabled },
         })
       );
       this.saveState();
       this.renderPanel();
-      this.log(`Toggled polling: ${!this.state.isPollingEnabled}`);
+      this.log(`Toggled processing: ${!this.state.isProcessingEnabled}`);
     };
     window.PanelManager.prototype.toggleAutoScrolling = function () {
       this.document.dispatchEvent(
@@ -3697,11 +3682,11 @@
         containerFound,
         containerAttempted,
         pageType,
-        isPollingStarted,
-        isPollingStopped,
+        isProcessingStarted,
+        isProcessingStopped,
         cellInnerDivCount,
       }) {
-        const skipped = !window.XGhosted?.state?.isPollingEnabled;
+        const skipped = !window.XGhosted?.state?.isProcessingEnabled;
         if (skipped && CONFIG.debug) {
           this.log('Recording RECORD_POLL as skipped: polling is disabled');
         }
@@ -3725,14 +3710,14 @@
         }
         this.metrics.pageType = pageType;
         this.metrics.cellInnerDivCount = cellInnerDivCount || 0;
-        if (isPollingStarted) {
+        if (isProcessingStarted) {
           this.metrics.sessionStarts++;
           this.metrics.currentSessionStart = performance.now();
           this.log(
             `Polling session started (count: ${this.metrics.sessionStarts})`
           );
         }
-        if (isPollingStopped && this.metrics.currentSessionStart !== null) {
+        if (isProcessingStopped && this.metrics.currentSessionStart !== null) {
           this.metrics.sessionStops++;
           const duration = performance.now() - this.metrics.currentSessionStart;
           this.metrics.sessionDurationSum += duration;
@@ -3780,7 +3765,7 @@
         this.logMetrics();
       }
       recordScroll({ bottomReached }) {
-        const skipped = !window.XGhosted?.state?.isPollingEnabled;
+        const skipped = !window.XGhosted?.state?.isProcessingEnabled;
         if (skipped && CONFIG.debug) {
           this.log('Recording RECORD_SCROLL as skipped: polling is disabled');
         }
@@ -3812,7 +3797,7 @@
         this.saveMetrics();
       }
       recordHighlighting(duration) {
-        const skipped = !window.XGhosted?.state?.isPollingEnabled;
+        const skipped = !window.XGhosted?.state?.isProcessingEnabled;
         if (skipped && CONFIG.debug) {
           this.log(
             'Recording RECORD_HIGHLIGHT as skipped: polling is disabled'
@@ -4083,7 +4068,7 @@
   transform: scale(0.95);
 }
 
-.polling-stopped {
+.processing-stopped {
   border: 2px solid #ffa500;
 }
 

@@ -36,14 +36,11 @@
 
 * [x] Fix move panel
 * [x] Adjust layout to open up room in top tool bar. Move post counter down to be a listing header.
-* [x] Add ability to disable xGhosted from the panel (meaning the polling stops so that no new highlighting happens). Have the panel container element change color to indicate.
+* [x] Add ability to disable xGhosted from the panel (meaning the processing stops so that no new highlighting happens). Have the panel container element change color to indicate.
 * [x] Dial in size of panel when collapsed.
-* [x] Start/Stop icon isn't updating for polling until doing something else to trigger a panel refresh
-* [x] Rename handleStart/Stop/Reset to clarify Collapsing
-* [x] Combine start/stop buttons for auto collapsing
-* [x] Stop auto collapsing didn't stop it from continuing with each poll.
+* [x] Start/Stop icon isn't updating for processing until doing something else to trigger a panel refresh
 
-* [x] User requested eyeball check should stop polling.
+* [x] User requested eyeball check should stop processing.
 * [x] Allow file upload for import CSV
 
 * [x] Fix duplicate variables in user file like h and h2 for instance.
@@ -56,7 +53,7 @@
 * [x] Add a toggle to enable/disable dragging (pin/unpin panel location).
 ** Planned as part of Task 8 in the roadmap, to be implemented in the Tools panel with `isDraggingEnabled` state.
 * [ ] Add button for timing metrics CSV export.
-* [ ] Add disable button to clear highlighted posts from x.com dom (leave them on the list) and stop polling and scrolling.
+* [ ] Add disable button to clear highlighted posts from x.com dom (leave them on the list) and stop processing and scrolling.
 * [x] Make Splash panel draggable
 * [ ] Replace new windows post check with Puppeteer or something similar to avoid the need for a new window.
 ** [ ] Grok suggested this solution with a netlify endpoint: https://grok.com/share/bGVnYWN5_27dfba9c-32bc-4638-af8a-6adc7f9f211f
@@ -65,7 +62,7 @@
 * [ ] Decouple xGhosted from ProcessedPostsManager but be careful.
 * [x] Add a copy icon near the url list to make it easy to copy the problems without going to the Tools menu.
 * [x] Start/Stop icons are small and hard to identify.
-* [x] Stop polling when a first order problem is identified.
+* [x] Stop processing when a first order problem is identified.
 * [x] Update xGhosted.template.js with a userscript name suffix that is set to "-{{BranchName}}" when not on main git branch.
 * [x] Use build-xGhosted to replace placeholder in xGhosted.template.js with package.json version. Have this included in the Splash Screen.
 * [ ] If on with_replies, get account name from url and make sure to highlight reply to a problem that didn't belong to that account. As it is now, a bad post can have a good looking reply but we want the user to notice that they might want to step out of that conversation.
@@ -85,10 +82,8 @@
 * [x] Stop persisting auto scroll
 * [x] Fix panel layout and margins.
 * [x] Fix panel width when collapsed.
-* [x] Add border to Start Polling button when polling is stopped to make it clear what to use to restart polling.
+* [x] Add border to Start Processing button when processing is stopped to make it clear what to use to restart processing.
 * [x] Switch to Auto Scroll instead of Auto Collapse. 
-** [x] Stop when no more scrolling available. Separate polling timer for scrolling. Maybe use smooth scrolling too?
-** [x] Use separate polling. 
 * [x] Make sure we're not persisting processedPosts. 
 * [x] Make sure we clear processedPosts when the urlFullPath changes.
 * [ ] Fix tests
