@@ -165,4 +165,77 @@ describe("MetricsMonitor", () => {
       expect(mockDocument.dispatchEvent).not.toHaveBeenCalled();
     });
   });
+
+  describe("recordScan (auto-scrolling)", () => {
+    it("increments totalScansAuto and scanDurationSumAuto every poll, even when postsProcessed is 0", () => {
+      metricsMonitor.recordScan({
+        duration: 150,
+        postsProcessed: 0,
+        wasSkipped: true,
+        interval: 800,
+        isAutoScrolling: true,
+      });
+
+      expect(metricsMonitor.metrics.totalScansAuto).toBe(1);
+      expect(metricsMonitor.metrics.scanDurationSumAuto).toBe(150);
+      expect(metricsMonitor.metrics.avgScanDurationAuto).toBe(150);
+      expect(metricsMonitor.metricsHistory).toHaveLength(1);
+      expect(metricsMonitor.metricsHistory[0]).toMatchObject({
+        totalScansAuto: 1,
+        scanDurationSumAuto: 150,
+        interval: 800,
+        isAutoScrolling: true,
+      });
+      expect(mockDocument.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: EVENTS.METRICS_UPDATED,
+          detail: { metrics: expect.any(Object) },
+        })
+      );
+    });
+
+    it("increments totalScansAuto and scanDurationSumAuto when postsProcessed > 0", () => {
+      metricsMonitor.recordScan({
+        duration: 200,
+        postsProcessed: 3,
+        wasSkipped: false,
+        interval: 800,
+        isAutoScrolling: true,
+      });
+
+      expect(metricsMonitor.metrics.totalScansAuto).toBe(1);
+      expect(metricsMonitor.metrics.scanDurationSumAuto).toBe(200);
+      expect(metricsMonitor.metrics.avgScanDurationAuto).toBe(200);
+      expect(metricsMonitor.metricsHistory).toHaveLength(1);
+      expect(metricsMonitor.metricsHistory[0]).toMatchObject({
+        totalScansAuto: 1,
+        scanDurationSumAuto: 200,
+        interval: 800,
+        isAutoScrolling: true,
+      });
+      expect(mockDocument.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: EVENTS.METRICS_UPDATED,
+          detail: { metrics: expect.any(Object) },
+        })
+      );
+    });
+
+    it("skips update when isPostScanningEnabled is false", () => {
+      global.window.XGhosted.state.isPostScanningEnabled = false;
+
+      metricsMonitor.recordScan({
+        duration: 150,
+        postsProcessed: 0,
+        wasSkipped: true,
+        interval: 800,
+        isAutoScrolling: true,
+      });
+
+      expect(metricsMonitor.metrics.totalScansAuto).toBe(0);
+      expect(metricsMonitor.metrics.scanDurationSumAuto).toBe(0);
+      expect(metricsMonitor.metricsHistory).toHaveLength(0);
+      expect(mockDocument.dispatchEvent).not.toHaveBeenCalled();
+    });
+  });
 });
