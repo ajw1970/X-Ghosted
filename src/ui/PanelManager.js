@@ -230,7 +230,7 @@ window.PanelManager.prototype.init = function () {
     this.state.isRateLimited = e.detail.isRateLimited;
     this.renderPanelDebounced();
   };
-  const handleProcessingStateUpdated = (e) => {
+  const handleScanningStateUpdated = (e) => {
     this.state.isPostScanningEnabled = e.detail.isPostScanningEnabled;
     this.applyPanelStyles();
     this.renderPanel();
@@ -388,8 +388,8 @@ window.PanelManager.prototype.init = function () {
   );
   this.document.addEventListener(EVENTS.STATE_UPDATED, handleStateUpdated);
   this.document.addEventListener(
-    EVENTS.PROCESSING_STATE_UPDATED,
-    handleProcessingStateUpdated
+    EVENTS.SCANNING_STATE_UPDATED,
+    handleScanningStateUpdated
   );
   this.document.addEventListener(
     EVENTS.AUTO_SCROLLING_TOGGLED,
@@ -422,8 +422,8 @@ window.PanelManager.prototype.init = function () {
   this.cleanup = () => {
     this.document.removeEventListener(EVENTS.STATE_UPDATED, handleStateUpdated);
     this.document.removeEventListener(
-      EVENTS.PROCESSING_STATE_UPDATED,
-      handleProcessingStateUpdated
+      EVENTS.SCANNING_STATE_UPDATED,
+      handleScanningStateUpdated
     );
     this.document.removeEventListener(
       EVENTS.AUTO_SCROLLING_TOGGLED,
@@ -638,12 +638,12 @@ window.PanelManager.prototype.renderPanel = function () {
       onEyeballClick: (href) => this.onEyeballClick(href),
       flagged: this.state.flagged || [],
       totalPosts: this.state.totalPosts || 0,
-      isProcessing: this.state.isPostScanningEnabled,
+      isScanning: this.state.isPostScanningEnabled,
       isScrolling: this.state.userRequestedAutoScrolling,
       userProfileName: this.state.userProfileName,
       onToggleVisibility: () => this.toggleVisibility(),
       onToggleTools: () => this.toggleTools(),
-      onToggleProcessing: () => this.toggleProcessing(),
+      onToggleScanning: () => this.toggleScanning(),
       onToggleAutoScrolling: () => this.toggleAutoScrolling(),
       onExportCsv: () => this.exportCsv(),
       onOpenModal: () => this.openModal(),
@@ -685,15 +685,15 @@ window.PanelManager.prototype.toggleDropdown = function () {
   this.log(`Toggled theme dropdown: ${this.state.isDropdownOpen}`);
 };
 
-window.PanelManager.prototype.toggleProcessing = function () {
+window.PanelManager.prototype.toggleScanning = function () {
   this.document.dispatchEvent(
-    new CustomEvent(EVENTS.SET_PROCESSING, {
+    new CustomEvent(EVENTS.SET_SCANNING, {
       detail: { enabled: !this.state.isPostScanningEnabled },
     })
   );
   this.saveState();
   this.renderPanel(); // Immediate for user interaction
-  this.log(`Toggled processing: ${!this.state.isPostScanningEnabled}`);
+  this.log(`Toggled scanning: ${!this.state.isPostScanningEnabled}`);
 };
 
 window.PanelManager.prototype.toggleAutoScrolling = function () {

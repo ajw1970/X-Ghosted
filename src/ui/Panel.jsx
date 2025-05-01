@@ -9,12 +9,12 @@ function Panel({
   onEyeballClick,
   flagged,
   totalPosts,
-  isProcessing,
+  isScanning,
   isScrolling,
   userProfileName,
   onToggleVisibility,
   onToggleTools,
-  onToggleProcessing,
+  onToggleScanning,
   onToggleAutoScrolling,
   onExportCsv,
   onOpenModal,
@@ -37,7 +37,7 @@ function Panel({
         id: 'xghosted-panel',
         style: {
           background: config.THEMES[currentMode].bg,
-          border: `2px solid ${isProcessing ? config.THEMES[currentMode].border : '#FFA500'}`,
+          border: `2px solid ${isScanning ? config.THEMES[currentMode].border : '#FFA500'}`,
           borderRadius: '12px',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
           color: config.THEMES[currentMode].text,
@@ -87,15 +87,15 @@ function Panel({
               window.preact.h(
                 'button',
                 {
-                  key: isProcessing ? 'processing-stop' : 'processing-start',
-                  className: `panel-button ${isProcessing ? '' : 'processing-stopped'}`,
-                  onClick: onToggleProcessing,
-                  'aria-label': isProcessing
+                  key: isScanning ? 'scanning-stop' : 'scanning-start',
+                  className: `panel-button ${isScanning ? '' : 'scanning-stopped'}`,
+                  onClick: onToggleScanning,
+                  'aria-label': isScanning
                     ? 'Stop Scanning'
                     : 'Start Scanning',
                 },
                 window.preact.h('i', {
-                  className: isProcessing
+                  className: isScanning
                     ? 'fa-solid fa-stop'
                     : 'fa-solid fa-play',
                   style: { marginRight: '12px' },

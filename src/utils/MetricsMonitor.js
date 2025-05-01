@@ -109,14 +109,18 @@ var MetricsMonitor = class {
     containerFound,
     containerAttempted,
     pageType,
-    isProcessingStarted,
-    isProcessingStopped,
+    isScanningStarted,
+    isScanningStopped,
     cellInnerDivCount,
   }) {
     const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-    if (skipped && CONFIG.debug) {
-      this.log("Recording RECORD_POLL as skipped: polling is disabled");
+    if (skipped) {
+      if (CONFIG.debug) {
+        this.log("Skipping RECORD_POLL: post scanning is disabled");
+      }
+      return;
     }
+
     this.metrics.totalPolls++;
     if (wasSkipped) this.metrics.totalSkips++;
     if (containerFound) {
@@ -137,14 +141,14 @@ var MetricsMonitor = class {
     this.metrics.pageType = pageType;
     this.metrics.cellInnerDivCount = cellInnerDivCount || 0;
 
-    if (isProcessingStarted) {
+    if (isScanningStarted) {
       this.metrics.sessionStarts++;
       this.metrics.currentSessionStart = performance.now();
       this.log(
         `Polling session started (count: ${this.metrics.sessionStarts})`
       );
     }
-    if (isProcessingStopped && this.metrics.currentSessionStart !== null) {
+    if (isScanningStopped && this.metrics.currentSessionStart !== null) {
       this.metrics.sessionStops++;
       const duration = performance.now() - this.metrics.currentSessionStart;
       this.metrics.sessionDurationSum += duration;
@@ -173,7 +177,7 @@ var MetricsMonitor = class {
       avgSessionDuration: this.metrics.avgSessionDuration,
       pageType: this.metrics.pageType,
       timestamp: performance.now(),
-      skipped,
+      skipped: false,
     });
 
     if (this.metricsHistory.length > 100) {
@@ -197,9 +201,13 @@ var MetricsMonitor = class {
 
   recordScroll({ bottomReached }) {
     const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-    if (skipped && CONFIG.debug) {
-      this.log("Recording RECORD_SCROLL as skipped: polling is disabled");
+    if (skipped) {
+      if (CONFIG.debug) {
+        this.log("Skipping RECORD_SCROLL: post scanning is disabled");
+      }
+      return;
     }
+
     this.metrics.totalScrolls++;
     if (bottomReached) this.metrics.bottomReachedCount++;
     this.metricsHistory.push({
@@ -220,7 +228,7 @@ var MetricsMonitor = class {
       avgSessionDuration: this.metrics.avgSessionDuration,
       pageType: this.metrics.pageType,
       timestamp: performance.now(),
-      skipped,
+      skipped: false,
     });
 
     if (this.metricsHistory.length > 100) {
@@ -232,9 +240,13 @@ var MetricsMonitor = class {
 
   recordHighlighting(duration) {
     const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-    if (skipped && CONFIG.debug) {
-      this.log("Recording RECORD_HIGHLIGHT as skipped: polling is disabled");
+    if (skipped) {
+      if (CONFIG.debug) {
+        this.log("Skipping RECORD_HIGHLIGHT: post scanning is disabled");
+      }
+      return;
     }
+
     this.metrics.totalHighlights++;
     this.metrics.highlightingDurationSum += duration;
     this.metrics.avgHighlightingDuration = this.metrics.totalHighlights
@@ -265,7 +277,7 @@ var MetricsMonitor = class {
       avgSessionDuration: this.metrics.avgSessionDuration,
       pageType: this.metrics.pageType,
       timestamp: performance.now(),
-      skipped,
+      skipped: false,
     });
 
     if (this.metricsHistory.length > 100) {
@@ -275,57 +287,65 @@ var MetricsMonitor = class {
     this.saveMetrics();
   }
 
-  setPostDensity(count) {
-    this.metrics.postDensity = count;
-    this.log(`Set post density: ${count}`);
-    this.saveMetrics();
-  }
-
   setInitialWaitTime(time) {
-    if (!this.initialWaitTimeSet) {
+    if (!this.initialWaitTimeSet && time !== null) {
       this.metrics.initialWaitTime = time;
       this.initialWaitTimeSet = true;
       this.log(`Initial wait time set: ${time}ms`);
-      this.saveMetrics();
     }
   }
 
-  logMetrics() {
-    if (this.metrics.totalPolls % 50 === 0 && this.metrics.totalPolls > 0) {
-      const postContainerMetrics = this.metricsHistory.filter(
-        (entry) => entry.totalPolls > 0
-      );
-      const avgPostsProcessed =
-        postContainerMetrics.length > 0
-          ? this.metrics.avgPostsProcessed.toFixed(2)
-          : 0;
-
-      this.log("Timing Metrics Summary:", {
-        totalPolls: this.metrics.totalPolls,
-        avgPostsProcessedAfterContainer: avgPostsProcessed,
-        cellInnerDivCount: this.metrics.cellInnerDivCount,
-      });
+  setPostDensity(count) {
+    if (!this.hasSetDensity && count !== null) {
+      this.metrics.postDensity = count;
+      this.hasSetDensity = true;
+      this.log(`Post density set: ${count}`);
     }
   }
 
   saveMetrics() {
-    const state = this.storage.get("xGhostedState", {});
-    state.timingMetrics = { ...this.metrics };
-    this.storage.set("xGhostedState", state);
-    this.log("Saved timing metrics to storage");
-  }
-
-  loadMetrics() {
-    const state = this.storage.get("xGhostedState", {});
-    if (state.timingMetrics) {
-      this.metrics = { ...state.timingMetrics, currentSessionStart: null };
-      this.initialWaitTimeSet = !!this.metrics.initialWaitTime;
-      this.log("Loaded timing metrics from storage");
+    if (!window.XGhosted?.state?.isPostScanningEnabled) {
+      if (CONFIG.debug) {
+        this.log("Skipping metrics save: post scanning is disabled");
+      }
+      return;
     }
+
+    const state = this.storage.get("xGhostedState", {});
+    state.metrics = { ...this.metrics };
+    state.metricsHistory = [...this.metricsHistory];
+    this.storage.set("xGhostedState", state);
+    this.log("Saved metrics to storage");
   }
 
-  adjustIntervals() {
-    return this.timing;
+  logMetrics() {
+    if (CONFIG.debug) {
+      this.log("Current metrics:", {
+        totalPolls: this.metrics.totalPolls,
+        totalSkips: this.metrics.totalSkips,
+        totalPostsProcessed: this.metrics.totalPostsProcessed,
+        avgPostsProcessed: this.metrics.avgPostsProcessed.toFixed(2),
+        totalScrolls: this.metrics.totalScrolls,
+        bottomReachedCount: this.metrics.bottomReachedCount,
+        totalHighlights: this.metrics.totalHighlights,
+        avgHighlightingDuration:
+          this.metrics.avgHighlightingDuration.toFixed(2),
+        maxHighlightingDuration:
+          this.metrics.maxHighlightingDuration.toFixed(2),
+        cellInnerDivCount: this.metrics.cellInnerDivCount,
+        containerFinds: this.metrics.containerFinds,
+        containerDetectionAttempts: this.metrics.containerDetectionAttempts,
+        containerFoundTimestamp:
+          this.metrics.containerFoundTimestamp?.toFixed(2),
+        initialWaitTime: this.metrics.initialWaitTime?.toFixed(2),
+        postDensity: this.metrics.postDensity,
+        pageType: this.metrics.pageType,
+        sessionStarts: this.metrics.sessionStarts,
+        sessionStops: this.metrics.sessionStops,
+        avgSessionDuration: this.metrics.avgSessionDuration.toFixed(2),
+        metricsHistoryLength: this.metricsHistory.length,
+      });
+    }
   }
 };
 

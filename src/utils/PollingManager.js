@@ -27,9 +27,9 @@ class PollingManager {
 
   initEventListeners() {
     this.document.addEventListener(
-      EVENTS.SET_PROCESSING,
+      EVENTS.SET_SCANNING,
       ({ detail: { enabled } }) => {
-        this.setProcessing(enabled);
+        this.setPostScanning(enabled);
       }
     );
 
@@ -41,13 +41,13 @@ class PollingManager {
     );
   }
 
-  setProcessing(enabled) {
+  setPostScanning(enabled) {
     this.state.isPostScanningEnabled = enabled;
     this.log(
-      `Processing ${enabled ? "enabled" : "disabled"}, state: isPostScanningEnabled=${this.state.isPostScanningEnabled}`
+      `Post Scanning ${enabled ? "enabled" : "disabled"}, state: isPostScanningEnabled=${this.state.isPostScanningEnabled}`
     );
     this.document.dispatchEvent(
-      new CustomEvent(EVENTS.PROCESSING_STATE_UPDATED, {
+      new CustomEvent(EVENTS.SCANNING_STATE_UPDATED, {
         detail: { isPostScanningEnabled: this.state.isPostScanningEnabled },
       })
     );
@@ -179,8 +179,8 @@ class PollingManager {
           : this.xGhosted.state.userProfileName
             ? "profile"
             : "timeline",
-        isProcessingStarted: false,
-        isProcessingStopped: false,
+        isScanningStarted: false,
+        isScanningStopped: false,
         cellInnerDivCount,
       });
 

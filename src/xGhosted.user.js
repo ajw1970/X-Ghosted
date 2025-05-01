@@ -55,8 +55,8 @@
     REQUEST_IMPORT_CSV: 'xghosted:request-import-csv',
     EXPORT_CSV: 'xghosted:export-csv',
     CSV_EXPORTED: 'xghosted:csv-exported',
-    SET_PROCESSING: 'xghosted:set-processing',
-    PROCESSING_STATE_UPDATED: 'xghosted:processing-state-updated',
+    SET_SCANNING: 'xghosted:set-scanning',
+    SCANNING_STATE_UPDATED: 'xghosted:scanning-state-updated',
     SET_AUTO_SCROLLING: 'xghosted:set-auto-scrolling',
     AUTO_SCROLLING_TOGGLED: 'xghosted:auto-scrolling-toggled',
     RATE_LIMIT_DETECTED: 'xghosted:rate-limit-detected',
@@ -117,10 +117,10 @@
     'xghosted:csv-exported': {
       csvData: 'string',
     },
-    'xghosted:set-processing': {
+    'xghosted:set-scanning': {
       enabled: 'boolean',
     },
-    'xghosted:processing-state-updated': {
+    'xghosted:scanning-state-updated': {
       isPostScanningEnabled: 'boolean',
     },
     'xghosted:set-auto-scrolling': {
@@ -160,8 +160,8 @@
       containerFound: 'boolean',
       containerAttempted: 'boolean',
       pageType: 'string',
-      isProcessingStarted: 'boolean',
-      isProcessingStopped: 'boolean',
+      isScanningStarted: 'boolean',
+      isScanningStopped: 'boolean',
     },
     'xghosted:record-scroll': {
       bottomReached: 'boolean',
@@ -255,8 +255,8 @@
       REQUEST_IMPORT_CSV: 'xghosted:request-import-csv',
       EXPORT_CSV: 'xghosted:export-csv',
       CSV_EXPORTED: 'xghosted:csv-exported',
-      SET_PROCESSING: 'xghosted:set-processing',
-      PROCESSING_STATE_UPDATED: 'xghosted:processing-state-updated',
+      SET_SCANNING: 'xghosted:set-scanning',
+      SCANNING_STATE_UPDATED: 'xghosted:scanning-state-updated',
       SET_AUTO_SCROLLING: 'xghosted:set-auto-scrolling',
       AUTO_SCROLLING_TOGGLED: 'xghosted:auto-scrolling-toggled',
       RATE_LIMIT_DETECTED: 'xghosted:rate-limit-detected',
@@ -294,8 +294,8 @@
       [EVENTS.REQUEST_IMPORT_CSV]: { csvText: 'string' },
       [EVENTS.EXPORT_CSV]: {},
       [EVENTS.CSV_EXPORTED]: { csvData: 'string' },
-      [EVENTS.SET_PROCESSING]: { enabled: 'boolean' },
-      [EVENTS.PROCESSING_STATE_UPDATED]: { isPostScanningEnabled: 'boolean' },
+      [EVENTS.SET_SCANNING]: { enabled: 'boolean' },
+      [EVENTS.SCANNING_STATE_UPDATED]: { isPostScanningEnabled: 'boolean' },
       [EVENTS.SET_AUTO_SCROLLING]: { enabled: 'boolean' },
       [EVENTS.AUTO_SCROLLING_TOGGLED]: {
         userRequestedAutoScrolling: 'boolean',
@@ -317,8 +317,8 @@
         containerFound: 'boolean',
         containerAttempted: 'boolean',
         pageType: 'string',
-        isProcessingStarted: 'boolean',
-        isProcessingStopped: 'boolean',
+        isScanningStarted: 'boolean',
+        isScanningStopped: 'boolean',
       },
       [EVENTS.RECORD_SCROLL]: { bottomReached: 'boolean' },
       [EVENTS.RECORD_HIGHLIGHT]: { duration: 'number' },
@@ -352,9 +352,9 @@
       }
       initEventListeners() {
         this.document.addEventListener(
-          EVENTS.SET_PROCESSING,
+          EVENTS.SET_SCANNING,
           ({ detail: { enabled } }) => {
-            this.setProcessing(enabled);
+            this.setPostScanning(enabled);
           }
         );
         this.document.addEventListener(
@@ -364,13 +364,13 @@
           }
         );
       }
-      setProcessing(enabled) {
+      setPostScanning(enabled) {
         this.state.isPostScanningEnabled = enabled;
         this.log(
-          `Processing ${enabled ? 'enabled' : 'disabled'}, state: isPostScanningEnabled=${this.state.isPostScanningEnabled}`
+          `Post Scanning ${enabled ? 'enabled' : 'disabled'}, state: isPostScanningEnabled=${this.state.isPostScanningEnabled}`
         );
         this.document.dispatchEvent(
-          new CustomEvent(EVENTS.PROCESSING_STATE_UPDATED, {
+          new CustomEvent(EVENTS.SCANNING_STATE_UPDATED, {
             detail: { isPostScanningEnabled: this.state.isPostScanningEnabled },
           })
         );
@@ -509,8 +509,8 @@
               : this.xGhosted.state.userProfileName
                 ? 'profile'
                 : 'timeline',
-            isProcessingStarted: false,
-            isProcessingStopped: false,
+            isScanningStarted: false,
+            isScanningStopped: false,
             cellInnerDivCount,
           });
           if (
@@ -1538,7 +1538,7 @@
               clearInterval(checkInterval);
               this.log('Rate limit detected, pausing operations for 5 minutes');
               this.state.isRateLimited = true;
-              this.emit(EVENTS.SET_PROCESSING, { enabled: false });
+              this.emit(EVENTS.SET_SCANNING, { enabled: false });
               newWindow.close();
               this.emit(EVENTS.RATE_LIMIT_DETECTED, { pauseDuration: 3e5 });
               setTimeout(() => {
@@ -1991,12 +1991,12 @@
       onEyeballClick,
       flagged,
       totalPosts,
-      isProcessing,
+      isScanning,
       isScrolling,
       userProfileName,
       onToggleVisibility,
       onToggleTools,
-      onToggleProcessing,
+      onToggleScanning,
       onToggleAutoScrolling,
       onExportCsv,
       onOpenModal,
@@ -2018,7 +2018,7 @@
             id: 'xghosted-panel',
             style: {
               background: config.THEMES[currentMode].bg,
-              border: `2px solid ${isProcessing ? config.THEMES[currentMode].border : '#FFA500'}`,
+              border: `2px solid ${isScanning ? config.THEMES[currentMode].border : '#FFA500'}`,
               borderRadius: '12px',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
               color: config.THEMES[currentMode].text,
@@ -2070,17 +2070,15 @@
                     window.preact.h(
                       'button',
                       {
-                        key: isProcessing
-                          ? 'processing-stop'
-                          : 'processing-start',
-                        className: `panel-button ${isProcessing ? '' : 'processing-stopped'}`,
-                        onClick: onToggleProcessing,
-                        'aria-label': isProcessing
+                        key: isScanning ? 'scanning-stop' : 'scanning-start',
+                        className: `panel-button ${isScanning ? '' : 'scanning-stopped'}`,
+                        onClick: onToggleScanning,
+                        'aria-label': isScanning
                           ? 'Stop Scanning'
                           : 'Start Scanning',
                       },
                       window.preact.h('i', {
-                        className: isProcessing
+                        className: isScanning
                           ? 'fa-solid fa-stop'
                           : 'fa-solid fa-play',
                         style: { marginRight: '12px' },
@@ -2652,7 +2650,7 @@
         this.state.isRateLimited = e.detail.isRateLimited;
         this.renderPanelDebounced();
       };
-      const handleProcessingStateUpdated = (e) => {
+      const handleScanningStateUpdated = (e) => {
         this.state.isPostScanningEnabled = e.detail.isPostScanningEnabled;
         this.applyPanelStyles();
         this.renderPanel();
@@ -2813,8 +2811,8 @@
       );
       this.document.addEventListener(EVENTS.STATE_UPDATED, handleStateUpdated);
       this.document.addEventListener(
-        EVENTS.PROCESSING_STATE_UPDATED,
-        handleProcessingStateUpdated
+        EVENTS.SCANNING_STATE_UPDATED,
+        handleScanningStateUpdated
       );
       this.document.addEventListener(
         EVENTS.AUTO_SCROLLING_TOGGLED,
@@ -2859,8 +2857,8 @@
           handleStateUpdated
         );
         this.document.removeEventListener(
-          EVENTS.PROCESSING_STATE_UPDATED,
-          handleProcessingStateUpdated
+          EVENTS.SCANNING_STATE_UPDATED,
+          handleScanningStateUpdated
         );
         this.document.removeEventListener(
           EVENTS.AUTO_SCROLLING_TOGGLED,
@@ -3077,12 +3075,12 @@
           onEyeballClick: (href) => this.onEyeballClick(href),
           flagged: this.state.flagged || [],
           totalPosts: this.state.totalPosts || 0,
-          isProcessing: this.state.isPostScanningEnabled,
+          isScanning: this.state.isPostScanningEnabled,
           isScrolling: this.state.userRequestedAutoScrolling,
           userProfileName: this.state.userProfileName,
           onToggleVisibility: () => this.toggleVisibility(),
           onToggleTools: () => this.toggleTools(),
-          onToggleProcessing: () => this.toggleProcessing(),
+          onToggleScanning: () => this.toggleScanning(),
           onToggleAutoScrolling: () => this.toggleAutoScrolling(),
           onExportCsv: () => this.exportCsv(),
           onOpenModal: () => this.openModal(),
@@ -3119,15 +3117,15 @@
       this.renderPanel();
       this.log(`Toggled theme dropdown: ${this.state.isDropdownOpen}`);
     };
-    window.PanelManager.prototype.toggleProcessing = function () {
+    window.PanelManager.prototype.toggleScanning = function () {
       this.document.dispatchEvent(
-        new CustomEvent(EVENTS.SET_PROCESSING, {
+        new CustomEvent(EVENTS.SET_SCANNING, {
           detail: { enabled: !this.state.isPostScanningEnabled },
         })
       );
       this.saveState();
       this.renderPanel();
-      this.log(`Toggled processing: ${!this.state.isPostScanningEnabled}`);
+      this.log(`Toggled scanning: ${!this.state.isPostScanningEnabled}`);
     };
     window.PanelManager.prototype.toggleAutoScrolling = function () {
       this.document.dispatchEvent(
@@ -3682,13 +3680,16 @@
         containerFound,
         containerAttempted,
         pageType,
-        isProcessingStarted,
-        isProcessingStopped,
+        isScanningStarted,
+        isScanningStopped,
         cellInnerDivCount,
       }) {
         const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-        if (skipped && CONFIG.debug) {
-          this.log('Recording RECORD_POLL as skipped: polling is disabled');
+        if (skipped) {
+          if (CONFIG.debug) {
+            this.log('Skipping RECORD_POLL: post scanning is disabled');
+          }
+          return;
         }
         this.metrics.totalPolls++;
         if (wasSkipped) this.metrics.totalSkips++;
@@ -3710,14 +3711,14 @@
         }
         this.metrics.pageType = pageType;
         this.metrics.cellInnerDivCount = cellInnerDivCount || 0;
-        if (isProcessingStarted) {
+        if (isScanningStarted) {
           this.metrics.sessionStarts++;
           this.metrics.currentSessionStart = performance.now();
           this.log(
             `Polling session started (count: ${this.metrics.sessionStarts})`
           );
         }
-        if (isProcessingStopped && this.metrics.currentSessionStart !== null) {
+        if (isScanningStopped && this.metrics.currentSessionStart !== null) {
           this.metrics.sessionStops++;
           const duration = performance.now() - this.metrics.currentSessionStart;
           this.metrics.sessionDurationSum += duration;
@@ -3747,7 +3748,7 @@
           avgSessionDuration: this.metrics.avgSessionDuration,
           pageType: this.metrics.pageType,
           timestamp: performance.now(),
-          skipped,
+          skipped: false,
         });
         if (this.metricsHistory.length > 100) {
           this.metricsHistory.shift();
@@ -3766,8 +3767,11 @@
       }
       recordScroll({ bottomReached }) {
         const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-        if (skipped && CONFIG.debug) {
-          this.log('Recording RECORD_SCROLL as skipped: polling is disabled');
+        if (skipped) {
+          if (CONFIG.debug) {
+            this.log('Skipping RECORD_SCROLL: post scanning is disabled');
+          }
+          return;
         }
         this.metrics.totalScrolls++;
         if (bottomReached) this.metrics.bottomReachedCount++;
@@ -3789,7 +3793,7 @@
           avgSessionDuration: this.metrics.avgSessionDuration,
           pageType: this.metrics.pageType,
           timestamp: performance.now(),
-          skipped,
+          skipped: false,
         });
         if (this.metricsHistory.length > 100) {
           this.metricsHistory.shift();
@@ -3798,10 +3802,11 @@
       }
       recordHighlighting(duration) {
         const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-        if (skipped && CONFIG.debug) {
-          this.log(
-            'Recording RECORD_HIGHLIGHT as skipped: polling is disabled'
-          );
+        if (skipped) {
+          if (CONFIG.debug) {
+            this.log('Skipping RECORD_HIGHLIGHT: post scanning is disabled');
+          }
+          return;
         }
         this.metrics.totalHighlights++;
         this.metrics.highlightingDurationSum += duration;
@@ -3833,58 +3838,68 @@
           avgSessionDuration: this.metrics.avgSessionDuration,
           pageType: this.metrics.pageType,
           timestamp: performance.now(),
-          skipped,
+          skipped: false,
         });
         if (this.metricsHistory.length > 100) {
           this.metricsHistory.shift();
         }
         this.saveMetrics();
       }
-      setPostDensity(count) {
-        this.metrics.postDensity = count;
-        this.log(`Set post density: ${count}`);
-        this.saveMetrics();
-      }
       setInitialWaitTime(time) {
-        if (!this.initialWaitTimeSet) {
+        if (!this.initialWaitTimeSet && time !== null) {
           this.metrics.initialWaitTime = time;
           this.initialWaitTimeSet = true;
           this.log(`Initial wait time set: ${time}ms`);
-          this.saveMetrics();
         }
       }
-      logMetrics() {
-        if (this.metrics.totalPolls % 50 === 0 && this.metrics.totalPolls > 0) {
-          const postContainerMetrics = this.metricsHistory.filter(
-            (entry) => entry.totalPolls > 0
-          );
-          const avgPostsProcessed =
-            postContainerMetrics.length > 0
-              ? this.metrics.avgPostsProcessed.toFixed(2)
-              : 0;
-          this.log('Timing Metrics Summary:', {
-            totalPolls: this.metrics.totalPolls,
-            avgPostsProcessedAfterContainer: avgPostsProcessed,
-            cellInnerDivCount: this.metrics.cellInnerDivCount,
-          });
+      setPostDensity(count) {
+        if (!this.hasSetDensity && count !== null) {
+          this.metrics.postDensity = count;
+          this.hasSetDensity = true;
+          this.log(`Post density set: ${count}`);
         }
       }
       saveMetrics() {
-        const state = this.storage.get('xGhostedState', {});
-        state.timingMetrics = { ...this.metrics };
-        this.storage.set('xGhostedState', state);
-        this.log('Saved timing metrics to storage');
-      }
-      loadMetrics() {
-        const state = this.storage.get('xGhostedState', {});
-        if (state.timingMetrics) {
-          this.metrics = { ...state.timingMetrics, currentSessionStart: null };
-          this.initialWaitTimeSet = !!this.metrics.initialWaitTime;
-          this.log('Loaded timing metrics from storage');
+        if (!window.XGhosted?.state?.isPostScanningEnabled) {
+          if (CONFIG.debug) {
+            this.log('Skipping metrics save: post scanning is disabled');
+          }
+          return;
         }
+        const state = this.storage.get('xGhostedState', {});
+        state.metrics = { ...this.metrics };
+        state.metricsHistory = [...this.metricsHistory];
+        this.storage.set('xGhostedState', state);
+        this.log('Saved metrics to storage');
       }
-      adjustIntervals() {
-        return this.timing;
+      logMetrics() {
+        if (CONFIG.debug) {
+          this.log('Current metrics:', {
+            totalPolls: this.metrics.totalPolls,
+            totalSkips: this.metrics.totalSkips,
+            totalPostsProcessed: this.metrics.totalPostsProcessed,
+            avgPostsProcessed: this.metrics.avgPostsProcessed.toFixed(2),
+            totalScrolls: this.metrics.totalScrolls,
+            bottomReachedCount: this.metrics.bottomReachedCount,
+            totalHighlights: this.metrics.totalHighlights,
+            avgHighlightingDuration:
+              this.metrics.avgHighlightingDuration.toFixed(2),
+            maxHighlightingDuration:
+              this.metrics.maxHighlightingDuration.toFixed(2),
+            cellInnerDivCount: this.metrics.cellInnerDivCount,
+            containerFinds: this.metrics.containerFinds,
+            containerDetectionAttempts: this.metrics.containerDetectionAttempts,
+            containerFoundTimestamp:
+              this.metrics.containerFoundTimestamp?.toFixed(2),
+            initialWaitTime: this.metrics.initialWaitTime?.toFixed(2),
+            postDensity: this.metrics.postDensity,
+            pageType: this.metrics.pageType,
+            sessionStarts: this.metrics.sessionStarts,
+            sessionStops: this.metrics.sessionStops,
+            avgSessionDuration: this.metrics.avgSessionDuration.toFixed(2),
+            metricsHistoryLength: this.metricsHistory.length,
+          });
+        }
       }
     };
     return MetricsMonitor;
@@ -4068,7 +4083,7 @@
   transform: scale(0.95);
 }
 
-.processing-stopped {
+.scanning-stopped {
   border: 2px solid #ffa500;
 }
 
