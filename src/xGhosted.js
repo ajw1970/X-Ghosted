@@ -255,6 +255,7 @@ XGhosted.prototype.checkPostInNewTab = async function (href) {
   const newWindow = this.window.open(fullUrl, "_blank");
   let attempts = 0;
   const maxAttempts = 10;
+  const start = performance.now();
   return new Promise((resolve) => {
     const checkInterval = setInterval(() => {
       attempts++;
@@ -267,6 +268,13 @@ XGhosted.prototype.checkPostInNewTab = async function (href) {
           this.emit(EVENTS.SET_SCANNING, { enabled: false });
           newWindow.close();
           this.emit(EVENTS.RATE_LIMIT_DETECTED, { pauseDuration: 300000 });
+          const duration = performance.now() - start;
+          this.emit(EVENTS.RECORD_TAB_CHECK, {
+            duration,
+            success: false,
+            rateLimited: true,
+            attempts,
+          });
           setTimeout(() => {
             this.log("Resuming after rate limit pause");
             this.state.isRateLimited = false;
@@ -287,6 +295,13 @@ XGhosted.prototype.checkPostInNewTab = async function (href) {
               doc
             ) !== null;
           newWindow.close();
+          const duration = performance.now() - start;
+          this.emit(EVENTS.RECORD_TAB_CHECK, {
+            duration,
+            success: true,
+            rateLimited: false,
+            attempts,
+          });
           if (hasProblem) {
             this.log(`Problem found in thread at ${href}`);
           } else {
@@ -298,6 +313,13 @@ XGhosted.prototype.checkPostInNewTab = async function (href) {
           clearInterval(checkInterval);
           if (newWindow) newWindow.close();
           this.log(`Failed to process ${href} within ${maxAttempts} attempts`);
+          const duration = performance.now() - start;
+          this.emit(EVENTS.RECORD_TAB_CHECK, {
+            duration,
+            success: false,
+            rateLimited: false,
+            attempts,
+          });
           resolve(false);
         }
       }

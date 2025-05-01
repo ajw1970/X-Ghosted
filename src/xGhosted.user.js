@@ -73,6 +73,7 @@
     RECORD_POLL: 'xghosted:record-poll',
     RECORD_SCROLL: 'xghosted:record-scroll',
     RECORD_SCAN: 'xghosted:record-scan',
+    RECORD_TAB_CHECK: 'xghosted:record-tab-check',
     SET_INITIAL_WAIT_TIME: 'xghosted:set-initial-wait-time',
     SET_POST_DENSITY: 'xghosted:set-post-density',
     SAVE_METRICS: 'xghosted:save-metrics',
@@ -173,6 +174,12 @@
       wasSkipped: 'boolean',
       interval: 'number',
       isAutoScrolling: 'boolean',
+    },
+    'xghosted:record-tab-check': {
+      duration: 'number',
+      success: 'boolean',
+      rateLimited: 'boolean',
+      attempts: 'number',
     },
     'xghosted:set-initial-wait-time': {
       time: 'number',
@@ -278,6 +285,7 @@
       RECORD_POLL: 'xghosted:record-poll',
       RECORD_SCROLL: 'xghosted:record-scroll',
       RECORD_SCAN: 'xghosted:record-scan',
+      RECORD_TAB_CHECK: 'xghosted:record-tab-check',
       SET_INITIAL_WAIT_TIME: 'xghosted:set-initial-wait-time',
       SET_POST_DENSITY: 'xghosted:set-post-density',
       SAVE_METRICS: 'xghosted:save-metrics',
@@ -333,6 +341,12 @@
         wasSkipped: 'boolean',
         interval: 'number',
         isAutoScrolling: 'boolean',
+      },
+      [EVENTS.RECORD_TAB_CHECK]: {
+        duration: 'number',
+        success: 'boolean',
+        rateLimited: 'boolean',
+        attempts: 'number',
       },
       [EVENTS.SET_INITIAL_WAIT_TIME]: { time: 'number' },
       [EVENTS.SET_POST_DENSITY]: { count: 'number' },
@@ -1553,6 +1567,7 @@
       const newWindow = this.window.open(fullUrl, '_blank');
       let attempts = 0;
       const maxAttempts = 10;
+      const start = performance.now();
       return new Promise((resolve) => {
         const checkInterval = setInterval(() => {
           attempts++;
@@ -1565,6 +1580,13 @@
               this.emit(EVENTS.SET_SCANNING, { enabled: false });
               newWindow.close();
               this.emit(EVENTS.RATE_LIMIT_DETECTED, { pauseDuration: 3e5 });
+              const duration = performance.now() - start;
+              this.emit(EVENTS.RECORD_TAB_CHECK, {
+                duration,
+                success: false,
+                rateLimited: true,
+                attempts,
+              });
               setTimeout(() => {
                 this.log('Resuming after rate limit pause');
                 this.state.isRateLimited = false;
@@ -1585,6 +1607,13 @@
                   doc
                 ) !== null;
               newWindow.close();
+              const duration = performance.now() - start;
+              this.emit(EVENTS.RECORD_TAB_CHECK, {
+                duration,
+                success: true,
+                rateLimited: false,
+                attempts,
+              });
               if (hasProblem) {
                 this.log(`Problem found in thread at ${href}`);
               } else {
@@ -1598,6 +1627,13 @@
               this.log(
                 `Failed to process ${href} within ${maxAttempts} attempts`
               );
+              const duration = performance.now() - start;
+              this.emit(EVENTS.RECORD_TAB_CHECK, {
+                duration,
+                success: false,
+                rateLimited: false,
+                attempts,
+              });
               resolve(false);
             }
           }
@@ -3624,6 +3660,10 @@
           avgScanDurationManual: 0,
           avgScanDurationAuto: 0,
           maxScanDuration: 0,
+          totalTabChecks: 0,
+          tabCheckDurationSum: 0,
+          avgTabCheckDuration: 0,
+          rateLimitCount: 0,
           cellInnerDivCount: 0,
           containerFinds: 0,
           containerDetectionAttempts: 0,
@@ -3659,6 +3699,12 @@
         this.document.addEventListener(EVENTS.RECORD_SCAN, ({ detail }) => {
           this.recordScan(detail);
         });
+        this.document.addEventListener(
+          EVENTS.RECORD_TAB_CHECK,
+          ({ detail }) => {
+            this.recordTabCheck(detail);
+          }
+        );
         this.document.addEventListener(
           EVENTS.SET_INITIAL_WAIT_TIME,
           ({ detail }) => {
@@ -3771,6 +3817,10 @@
           avgScanDurationManual: this.metrics.avgScanDurationManual,
           avgScanDurationAuto: this.metrics.avgScanDurationAuto,
           maxScanDuration: this.metrics.maxScanDuration,
+          totalTabChecks: this.metrics.totalTabChecks,
+          tabCheckDurationSum: this.metrics.tabCheckDurationSum,
+          avgTabCheckDuration: this.metrics.avgTabCheckDuration,
+          rateLimitCount: this.metrics.rateLimitCount,
           cellInnerDivCount: this.metrics.cellInnerDivCount,
           postDensity: this.metrics.postDensity,
           initialWaitTime: this.metrics.initialWaitTime,
@@ -3810,8 +3860,6 @@
           totalSkips: this.metrics.totalSkips,
           totalPostsProcessed: this.metrics.totalPostsProcessed,
           avgPostsProcessed: this.metrics.avgPostsProcessed,
-          totalScrolls: this.metrics.totalScrolls,
-          bottomReachedCount: this.metrics.bottomReachedCount,
           totalScans: this.metrics.totalScans,
           totalScansManual: this.metrics.totalScansManual,
           totalScansAuto: this.metrics.totalScansAuto,
@@ -3822,6 +3870,10 @@
           avgScanDurationManual: this.metrics.avgScanDurationManual,
           avgScanDurationAuto: this.metrics.avgScanDurationAuto,
           maxScanDuration: this.metrics.maxScanDuration,
+          totalTabChecks: this.metrics.totalTabChecks,
+          tabCheckDurationSum: this.metrics.tabCheckDurationSum,
+          avgTabCheckDuration: this.metrics.avgTabCheckDuration,
+          rateLimitCount: this.metrics.rateLimitCount,
           cellInnerDivCount: this.metrics.cellInnerDivCount,
           postDensity: this.metrics.postDensity,
           initialWaitTime: this.metrics.initialWaitTime,
@@ -3888,6 +3940,68 @@
           totalSkips: this.metrics.totalSkips,
           totalPostsProcessed: this.metrics.totalPostsProcessed,
           avgPostsProcessed: this.metrics.avgPostsProcessed,
+          totalScrolls: this.metrics.totalScans,
+          bottomReachedCount: this.metrics.bottomReachedCount,
+          totalScans: this.metrics.totalScans,
+          totalScansManual: this.metrics.totalScansManual,
+          totalScansAuto: this.metrics.totalScansAuto,
+          scanDurationSum: this.metrics.scanDurationSum,
+          scanDurationSumManual: this.metrics.scanDurationSumManual,
+          scanDurationSumAuto: this.metrics.scanDurationSumAuto,
+          avgScanDuration: this.metrics.avgScanDuration,
+          avgScanDurationManual: this.metrics.avgScanDurationManual,
+          avgScanDurationAuto: this.metrics.avgScanDurationAuto,
+          maxScanDuration: this.metrics.maxScanDuration,
+          totalTabChecks: this.metrics.totalTabChecks,
+          tabCheckDurationSum: this.metrics.tabCheckDurationSum,
+          avgTabCheckDuration: this.metrics.avgTabCheckDuration,
+          rateLimitCount: this.metrics.rateLimitCount,
+          cellInnerDivCount: this.metrics.cellInnerDivCount,
+          postDensity: this.metrics.postDensity,
+          initialWaitTime: this.metrics.initialWaitTime,
+          sessionStarts: this.metrics.sessionStarts,
+          sessionStops: this.metrics.sessionStops,
+          avgSessionDuration: this.metrics.avgSessionDuration,
+          pageType: this.metrics.postDensity,
+          timestamp: performance.now(),
+          skipped: wasSkipped,
+          interval,
+          isAutoScrolling,
+        });
+        if (this.metricsHistory.length > 100) {
+          this.metricsHistory.shift();
+        }
+        this.document.dispatchEvent(
+          new CustomEvent(EVENTS.METRICS_UPDATED, {
+            detail: { metrics: this.metrics },
+          })
+        );
+        this.logMetrics();
+      }
+      recordTabCheck({ duration, success, rateLimited, attempts }) {
+        const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
+        if (skipped) {
+          if (CONFIG.debug) {
+            this.log('Skipping RECORD_TAB_CHECK: post scanning is disabled');
+          }
+          return;
+        }
+        this.metrics.totalTabChecks++;
+        this.metrics.tabCheckDurationSum += duration;
+        this.metrics.avgTabCheckDuration = this.metrics.totalTabChecks
+          ? this.metrics.tabCheckDurationSum / this.metrics.totalTabChecks
+          : 0;
+        if (rateLimited) this.metrics.rateLimitCount++;
+        if (CONFIG.debug) {
+          this.log(
+            `Tab check duration: ${duration.toFixed(2)}ms, success: ${success}, rateLimited: ${rateLimited}, attempts: ${attempts}`
+          );
+        }
+        this.metricsHistory.push({
+          totalPolls: this.metrics.totalPolls,
+          totalSkips: this.metrics.totalSkips,
+          totalPostsProcessed: this.metrics.totalPostsProcessed,
+          avgPostsProcessed: this.metrics.avgPostsProcessed,
           totalScrolls: this.metrics.totalScrolls,
           bottomReachedCount: this.metrics.bottomReachedCount,
           totalScans: this.metrics.totalScans,
@@ -3900,6 +4014,10 @@
           avgScanDurationManual: this.metrics.avgScanDurationManual,
           avgScanDurationAuto: this.metrics.avgScanDurationAuto,
           maxScanDuration: this.metrics.maxScanDuration,
+          totalTabChecks: this.metrics.totalTabChecks,
+          tabCheckDurationSum: this.metrics.tabCheckDurationSum,
+          avgTabCheckDuration: this.metrics.avgTabCheckDuration,
+          rateLimitCount: this.metrics.rateLimitCount,
           cellInnerDivCount: this.metrics.cellInnerDivCount,
           postDensity: this.metrics.postDensity,
           initialWaitTime: this.metrics.initialWaitTime,
@@ -3908,9 +4026,9 @@
           avgSessionDuration: this.metrics.avgSessionDuration,
           pageType: this.metrics.pageType,
           timestamp: performance.now(),
-          skipped: wasSkipped,
-          interval,
-          isAutoScrolling,
+          tabCheckSuccess: success,
+          tabCheckRateLimited: rateLimited,
+          tabCheckAttempts: attempts,
         });
         if (this.metricsHistory.length > 100) {
           this.metricsHistory.shift();
@@ -3957,6 +4075,10 @@
               this.metrics.avgScanDurationManual.toFixed(2),
             avgScanDurationAuto: this.metrics.avgScanDurationAuto.toFixed(2),
             maxScanDuration: this.metrics.maxScanDuration.toFixed(2),
+            totalTabChecks: this.metrics.totalTabChecks,
+            tabCheckDurationSum: this.metrics.tabCheckDurationSum.toFixed(2),
+            avgTabCheckDuration: this.metrics.avgTabCheckDuration.toFixed(2),
+            rateLimitCount: this.metrics.rateLimitCount,
             cellInnerDivCount: this.metrics.cellInnerDivCount,
             containerFinds: this.metrics.containerFinds,
             containerDetectionAttempts: this.metrics.containerDetectionAttempts,

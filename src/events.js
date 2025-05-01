@@ -33,12 +33,12 @@ export const EVENTS = {
   RECORD_POLL: "xghosted:record-poll",
   RECORD_SCROLL: "xghosted:record-scroll",
   RECORD_SCAN: "xghosted:record-scan",
+  RECORD_TAB_CHECK: "xghosted:record-tab-check",
   SET_INITIAL_WAIT_TIME: "xghosted:set-initial-wait-time",
   SET_POST_DENSITY: "xghosted:set-post-density",
   SAVE_METRICS: "xghosted:save-metrics",
 };
 
-// Event contracts (expected detail properties)
 export const EVENT_CONTRACTS = {
   [EVENTS.INIT_COMPONENTS]: { config: "object" },
   [EVENTS.POST_REGISTERED]: { href: "string", data: "object" },
@@ -88,6 +88,12 @@ export const EVENT_CONTRACTS = {
     wasSkipped: "boolean",
     interval: "number",
     isAutoScrolling: "boolean",
+  },
+  [EVENTS.RECORD_TAB_CHECK]: {
+    duration: "number",
+    success: "boolean",
+    rateLimited: "boolean",
+    attempts: "number",
   },
   [EVENTS.SET_INITIAL_WAIT_TIME]: { time: "number" },
   [EVENTS.SET_POST_DENSITY]: { count: "number" },
