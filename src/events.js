@@ -57,7 +57,7 @@ export const EVENT_CONTRACTS = {
   [EVENTS.EXPORT_CSV]: {},
   [EVENTS.CSV_EXPORTED]: { csvData: "string" },
   [EVENTS.SET_PROCESSING]: { enabled: "boolean" },
-  [EVENTS.PROCESSING_STATE_UPDATED]: { isProcessingEnabled: "boolean" },
+  [EVENTS.PROCESSING_STATE_UPDATED]: { isPostScanningEnabled: "boolean" },
   [EVENTS.SET_AUTO_SCROLLING]: { enabled: "boolean" },
   [EVENTS.AUTO_SCROLLING_TOGGLED]: { userRequestedAutoScrolling: "boolean" },
   [EVENTS.RATE_LIMIT_DETECTED]: { pauseDuration: "number" },

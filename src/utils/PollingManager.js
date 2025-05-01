@@ -9,7 +9,7 @@ class PollingManager {
     this.timing = { ...CONFIG.timing, ...timing };
     this.log = log || console.log.bind(console);
     this.state = {
-      isProcessingEnabled: true,
+      isPostScanningEnabled: true,
       userRequestedAutoScrolling: false,
       noPostsFoundCount: 0,
       lastCellInnerDivCount: 0,
@@ -42,13 +42,13 @@ class PollingManager {
   }
 
   setProcessing(enabled) {
-    this.state.isProcessingEnabled = enabled;
+    this.state.isPostScanningEnabled = enabled;
     this.log(
-      `Processing ${enabled ? "enabled" : "disabled"}, state: isProcessingEnabled=${this.state.isProcessingEnabled}`
+      `Processing ${enabled ? "enabled" : "disabled"}, state: isPostScanningEnabled=${this.state.isPostScanningEnabled}`
     );
     this.document.dispatchEvent(
       new CustomEvent(EVENTS.PROCESSING_STATE_UPDATED, {
-        detail: { isProcessingEnabled: this.state.isProcessingEnabled },
+        detail: { isPostScanningEnabled: this.state.isPostScanningEnabled },
       })
     );
     if (!this.pollTimer && enabled) {
@@ -57,7 +57,7 @@ class PollingManager {
   }
 
   setAutoScrolling(enabled) {
-    if (enabled && !this.state.isProcessingEnabled) {
+    if (enabled && !this.state.isPostScanningEnabled) {
       this.log("Cannot enable auto-scrolling: polling is disabled");
       return;
     }
@@ -145,7 +145,7 @@ class PollingManager {
         this.state.noPostsFoundCount++;
       }
 
-      if (this.state.isProcessingEnabled && !this.xGhosted.state.isHighlighting) {
+      if (this.state.isPostScanningEnabled && !this.xGhosted.state.isHighlighting) {
         const unprocessedPosts = this.xGhosted.getUnprocessedPosts();
         if (unprocessedPosts.length > 0) {
           postsProcessed = unprocessedPosts.length;
@@ -171,7 +171,7 @@ class PollingManager {
 
       this.emit(EVENTS.RECORD_POLL, {
         postsProcessed,
-        wasSkipped: !this.state.isProcessingEnabled,
+        wasSkipped: !this.state.isPostScanningEnabled,
         containerFound,
         containerAttempted,
         pageType: this.xGhosted.state.isWithReplies
@@ -185,7 +185,7 @@ class PollingManager {
       });
 
       if (
-        this.state.isProcessingEnabled &&
+        this.state.isPostScanningEnabled &&
         this.state.userRequestedAutoScrolling
       ) {
         this.log(

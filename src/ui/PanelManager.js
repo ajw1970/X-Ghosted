@@ -114,7 +114,7 @@ window.PanelManager = function (
     isPanelVisible: true,
     isRateLimited: false,
     isManualCheckEnabled: false,
-    isProcessingEnabled: true,
+    isPostScanningEnabled: true,
     userRequestedAutoScrolling: false,
     themeMode: validThemes.includes(themeMode) ? themeMode : "light",
     hasSeenSplash: false,
@@ -231,7 +231,7 @@ window.PanelManager.prototype.init = function () {
     this.renderPanelDebounced();
   };
   const handleProcessingStateUpdated = (e) => {
-    this.state.isProcessingEnabled = e.detail.isProcessingEnabled;
+    this.state.isPostScanningEnabled = e.detail.isPostScanningEnabled;
     this.applyPanelStyles();
     this.renderPanel();
   };
@@ -638,7 +638,7 @@ window.PanelManager.prototype.renderPanel = function () {
       onEyeballClick: (href) => this.onEyeballClick(href),
       flagged: this.state.flagged || [],
       totalPosts: this.state.totalPosts || 0,
-      isProcessing: this.state.isProcessingEnabled,
+      isProcessing: this.state.isPostScanningEnabled,
       isScrolling: this.state.userRequestedAutoScrolling,
       userProfileName: this.state.userProfileName,
       onToggleVisibility: () => this.toggleVisibility(),
@@ -688,12 +688,12 @@ window.PanelManager.prototype.toggleDropdown = function () {
 window.PanelManager.prototype.toggleProcessing = function () {
   this.document.dispatchEvent(
     new CustomEvent(EVENTS.SET_PROCESSING, {
-      detail: { enabled: !this.state.isProcessingEnabled },
+      detail: { enabled: !this.state.isPostScanningEnabled },
     })
   );
   this.saveState();
   this.renderPanel(); // Immediate for user interaction
-  this.log(`Toggled processing: ${!this.state.isProcessingEnabled}`);
+  this.log(`Toggled processing: ${!this.state.isPostScanningEnabled}`);
 };
 
 window.PanelManager.prototype.toggleAutoScrolling = function () {

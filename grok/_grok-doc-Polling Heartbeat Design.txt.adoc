@@ -2,11 +2,11 @@
 :revision-date: April 28, 2025
 
 == Polling Heartbeat Design
-The polling loop is a "heartbeat" that runs continuously to detect URL changes, with activity levels varying based on `isProcessingEnabled` and `userRequestedAutoScrolling`. It counts `cellInnerDiv` posts and logs manual scrolling to debug x.com's DOM and user interactions. `userRequestedAutoScrolling` is a user-controlled setting, not modified by the system except on bottom reach or idle cycles.
+The polling loop is a "heartbeat" that runs continuously to detect URL changes, with activity levels varying based on `isPostScanningEnabled` and `userRequestedAutoScrolling`. It counts `cellInnerDiv` posts and logs manual scrolling to debug x.com's DOM and user interactions. `userRequestedAutoScrolling` is a user-controlled setting, not modified by the system except on bottom reach or idle cycles.
 
 [cols="1,1,1,2,3",options="header"]
 |===
-| isProcessingEnabled | userRequestedAutoScrolling | Interval | Actions on Heartbeat | Notes
+| isPostScanningEnabled | userRequestedAutoScrolling | Interval | Actions on Heartbeat | Notes
 
 | `false` | `false` | `pollInterval` (500ms) | - Check URL (`checkUrlDebounced`)  
   - If URL changed:  
@@ -21,7 +21,7 @@ The polling loop is a "heartbeat" that runs continuously to detect URL changes, 
   - Warns on re-enabling polling if significant scrolling, toggling panel visibility.
 
 | `false` | `true` | `pollInterval` (500ms) | - Same as above (`false`, `false`)  
-  - Log warning: Auto-scrolling not executed as `isProcessingEnabled` is `false` | - `userRequestedAutoScrolling` preserved as user setting, but no scrolling (logs at 14:50:00.143 prevented).  
+  - Log warning: Auto-scrolling not executed as `isPostScanningEnabled` is `false` | - `userRequestedAutoScrolling` preserved as user setting, but no scrolling (logs at 14:50:00.143 prevented).  
   - Debug logs for `cellInnerDiv` count and scroll position.
 
 | `true` | `false` | `pollInterval` (500ms) | - Check URL (`checkUrlDebounced`)  
@@ -61,10 +61,10 @@ The polling loop is a "heartbeat" that runs continuously to detect URL changes, 
 - **Implementation**: Implemented in `XGhosted.prototype.startPolling` in `src/xGhosted.js`.
 - **Continuous Polling**: Always `pollInterval` (500ms) for URL changes and processing (tested April 27, 2025, 15:10). Fixes panel clearing bug.
 - **Post Counting**: Counts `cellInnerDiv` posts, logged (`CONFIG.debug`), recorded in `RECORD_POLL` (April 27, 2025, 14:03).
-- **Manual Scrolling**: Logs scroll position when `isProcessingEnabled` is `false` (`CONFIG.debug`). UI warning on re-enabling polling if significant scrolling (April 27, 2025, 14:29).
-- **Auto-Scrolling**: Gated by `isProcessingEnabled`, user toggles `userRequestedAutoScrolling` via UI (April 27, 2025, 15:35). 75% viewport scrolling (full after 3 idle cycles), smooth scrolling optional.
-- **Metrics**: Recorded when `isProcessingEnabled` is `true`, including `cellInnerDiv` count, fixing empty `xGhosted_timing_history.json`.
+- **Manual Scrolling**: Logs scroll position when `isPostScanningEnabled` is `false` (`CONFIG.debug`). UI warning on re-enabling polling if significant scrolling (April 27, 2025, 14:29).
+- **Auto-Scrolling**: Gated by `isPostScanningEnabled`, user toggles `userRequestedAutoScrolling` via UI (April 27, 2025, 15:35). 75% viewport scrolling (full after 3 idle cycles), smooth scrolling optional.
+- **Metrics**: Recorded when `isPostScanningEnabled` is `true`, including `cellInnerDiv` count, fixing empty `xGhosted_timing_history.json`.
 - **Duplicates**: 500ms delay and debouncing for `processUnprocessedPosts`. Unit tests for `processUnprocessedPosts`, DOM mutations, scrolling planned post-refactor (April 27, 2025, 13:35).
-- **Problem Posts**: `isProcessingEnabled` set to `false` until manual restart (placeholder, April 27, 2025, 15:10); URL checks continue.
+- **Problem Posts**: `isPostScanningEnabled` set to `false` until manual restart (placeholder, April 27, 2025, 15:10); URL checks continue.
 - **Debugging**: `CONFIG.debug` logs post counts, `highlightingDurations`, duplicate skips, scroll position, state changes.
 - **User Scrolling**: Rapid scrolling (arrow keys, mouse wheel, "smoke show") logged via post counts and scroll position. Unit tests planned to simulate high-speed scrolling.

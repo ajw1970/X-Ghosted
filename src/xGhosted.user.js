@@ -121,7 +121,7 @@
       enabled: 'boolean',
     },
     'xghosted:processing-state-updated': {
-      isProcessingEnabled: 'boolean',
+      isPostScanningEnabled: 'boolean',
     },
     'xghosted:set-auto-scrolling': {
       enabled: 'boolean',
@@ -295,7 +295,7 @@
       [EVENTS.EXPORT_CSV]: {},
       [EVENTS.CSV_EXPORTED]: { csvData: 'string' },
       [EVENTS.SET_PROCESSING]: { enabled: 'boolean' },
-      [EVENTS.PROCESSING_STATE_UPDATED]: { isProcessingEnabled: 'boolean' },
+      [EVENTS.PROCESSING_STATE_UPDATED]: { isPostScanningEnabled: 'boolean' },
       [EVENTS.SET_AUTO_SCROLLING]: { enabled: 'boolean' },
       [EVENTS.AUTO_SCROLLING_TOGGLED]: {
         userRequestedAutoScrolling: 'boolean',
@@ -335,7 +335,7 @@
         this.timing = { ...CONFIG.timing, ...timing };
         this.log = log || console.log.bind(console);
         this.state = {
-          isProcessingEnabled: true,
+          isPostScanningEnabled: true,
           userRequestedAutoScrolling: false,
           noPostsFoundCount: 0,
           lastCellInnerDivCount: 0,
@@ -365,13 +365,13 @@
         );
       }
       setProcessing(enabled) {
-        this.state.isProcessingEnabled = enabled;
+        this.state.isPostScanningEnabled = enabled;
         this.log(
-          `Processing ${enabled ? 'enabled' : 'disabled'}, state: isProcessingEnabled=${this.state.isProcessingEnabled}`
+          `Processing ${enabled ? 'enabled' : 'disabled'}, state: isPostScanningEnabled=${this.state.isPostScanningEnabled}`
         );
         this.document.dispatchEvent(
           new CustomEvent(EVENTS.PROCESSING_STATE_UPDATED, {
-            detail: { isProcessingEnabled: this.state.isProcessingEnabled },
+            detail: { isPostScanningEnabled: this.state.isPostScanningEnabled },
           })
         );
         if (!this.pollTimer && enabled) {
@@ -379,7 +379,7 @@
         }
       }
       setAutoScrolling(enabled) {
-        if (enabled && !this.state.isProcessingEnabled) {
+        if (enabled && !this.state.isPostScanningEnabled) {
           this.log('Cannot enable auto-scrolling: polling is disabled');
           return;
         }
@@ -462,7 +462,7 @@
             this.state.noPostsFoundCount++;
           }
           if (
-            this.state.isProcessingEnabled &&
+            this.state.isPostScanningEnabled &&
             !this.xGhosted.state.isHighlighting
           ) {
             const unprocessedPosts = this.xGhosted.getUnprocessedPosts();
@@ -501,7 +501,7 @@
           this.state.lastCellInnerDivCount = cellInnerDivCount;
           this.emit(EVENTS.RECORD_POLL, {
             postsProcessed,
-            wasSkipped: !this.state.isProcessingEnabled,
+            wasSkipped: !this.state.isPostScanningEnabled,
             containerFound,
             containerAttempted,
             pageType: this.xGhosted.state.isWithReplies
@@ -514,7 +514,7 @@
             cellInnerDivCount,
           });
           if (
-            this.state.isProcessingEnabled &&
+            this.state.isPostScanningEnabled &&
             this.state.userRequestedAutoScrolling
           ) {
             this.log(
@@ -2534,7 +2534,7 @@
         isPanelVisible: true,
         isRateLimited: false,
         isManualCheckEnabled: false,
-        isProcessingEnabled: true,
+        isPostScanningEnabled: true,
         userRequestedAutoScrolling: false,
         themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
         hasSeenSplash: false,
@@ -2653,7 +2653,7 @@
         this.renderPanelDebounced();
       };
       const handleProcessingStateUpdated = (e) => {
-        this.state.isProcessingEnabled = e.detail.isProcessingEnabled;
+        this.state.isPostScanningEnabled = e.detail.isPostScanningEnabled;
         this.applyPanelStyles();
         this.renderPanel();
       };
@@ -3077,7 +3077,7 @@
           onEyeballClick: (href) => this.onEyeballClick(href),
           flagged: this.state.flagged || [],
           totalPosts: this.state.totalPosts || 0,
-          isProcessing: this.state.isProcessingEnabled,
+          isProcessing: this.state.isPostScanningEnabled,
           isScrolling: this.state.userRequestedAutoScrolling,
           userProfileName: this.state.userProfileName,
           onToggleVisibility: () => this.toggleVisibility(),
@@ -3122,12 +3122,12 @@
     window.PanelManager.prototype.toggleProcessing = function () {
       this.document.dispatchEvent(
         new CustomEvent(EVENTS.SET_PROCESSING, {
-          detail: { enabled: !this.state.isProcessingEnabled },
+          detail: { enabled: !this.state.isPostScanningEnabled },
         })
       );
       this.saveState();
       this.renderPanel();
-      this.log(`Toggled processing: ${!this.state.isProcessingEnabled}`);
+      this.log(`Toggled processing: ${!this.state.isPostScanningEnabled}`);
     };
     window.PanelManager.prototype.toggleAutoScrolling = function () {
       this.document.dispatchEvent(
@@ -3686,7 +3686,7 @@
         isProcessingStopped,
         cellInnerDivCount,
       }) {
-        const skipped = !window.XGhosted?.state?.isProcessingEnabled;
+        const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
         if (skipped && CONFIG.debug) {
           this.log('Recording RECORD_POLL as skipped: polling is disabled');
         }
@@ -3765,7 +3765,7 @@
         this.logMetrics();
       }
       recordScroll({ bottomReached }) {
-        const skipped = !window.XGhosted?.state?.isProcessingEnabled;
+        const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
         if (skipped && CONFIG.debug) {
           this.log('Recording RECORD_SCROLL as skipped: polling is disabled');
         }
@@ -3797,7 +3797,7 @@
         this.saveMetrics();
       }
       recordHighlighting(duration) {
-        const skipped = !window.XGhosted?.state?.isProcessingEnabled;
+        const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
         if (skipped && CONFIG.debug) {
           this.log(
             'Recording RECORD_HIGHLIGHT as skipped: polling is disabled'

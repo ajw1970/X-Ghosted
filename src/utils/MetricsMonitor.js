@@ -113,7 +113,7 @@ var MetricsMonitor = class {
     isProcessingStopped,
     cellInnerDivCount,
   }) {
-    const skipped = !window.XGhosted?.state?.isProcessingEnabled;
+    const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
     if (skipped && CONFIG.debug) {
       this.log("Recording RECORD_POLL as skipped: polling is disabled");
     }
@@ -196,7 +196,7 @@ var MetricsMonitor = class {
   }
 
   recordScroll({ bottomReached }) {
-    const skipped = !window.XGhosted?.state?.isProcessingEnabled;
+    const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
     if (skipped && CONFIG.debug) {
       this.log("Recording RECORD_SCROLL as skipped: polling is disabled");
     }
@@ -231,7 +231,7 @@ var MetricsMonitor = class {
   }
 
   recordHighlighting(duration) {
-    const skipped = !window.XGhosted?.state?.isProcessingEnabled;
+    const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
     if (skipped && CONFIG.debug) {
       this.log("Recording RECORD_HIGHLIGHT as skipped: polling is disabled");
     }
