@@ -91,8 +91,8 @@ function Panel({
                   className: `panel-button ${isProcessing ? '' : 'processing-stopped'}`,
                   onClick: onToggleProcessing,
                   'aria-label': isProcessing
-                    ? 'Stop Processing'
-                    : 'Start Processing',
+                    ? 'Stop Scanning'
+                    : 'Start Scanning',
                 },
                 window.preact.h('i', {
                   className: isProcessing
@@ -100,7 +100,7 @@ function Panel({
                     : 'fa-solid fa-play',
                   style: { marginRight: '12px' },
                 }),
-                'Processing'
+                'Scan'
               ),
               window.preact.h(
                 'button',
