@@ -135,10 +135,10 @@ describe("XGhosted DOM Updates", () => {
       const expectedClass = `xghosted-${qualityName}`;
       const expectedDataAttr = `postquality.${qualityName}`;
 
-      // Debug log to trace link value
+      /*       // Debug log to trace link value
       console.log(
         `Post ${index} expected link: ${expected.link}, actual link: ${post.getAttribute("data-xghosted-id")}`
-      );
+      ); */
 
       // Check data-xghosted attribute
       expect(post.getAttribute("data-xghosted")).toBe(expectedDataAttr);
@@ -297,10 +297,10 @@ describe("XGhosted DOM Updates", () => {
       const expectedClass = `xghosted-${qualityName}`;
       const expectedDataAttr = `postquality.${qualityName}`;
 
-      // Debug log to trace link value
+      /*       // Debug log to trace link value
       console.log(
         `Post ${index} expected link: ${expected.link}, actual link: ${post.getAttribute("data-xghosted-id")}`
-      );
+      ); */
 
       // Check data-xghosted attribute
       expect(post.getAttribute("data-xghosted")).toBe(expectedDataAttr);
