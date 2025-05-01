@@ -36,7 +36,7 @@ node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs gro
 # }
 
 show_progress "Running xGhosted DOM grokify.js execution..."
-node grokify.js build-xGhosted.js src/xGhosted.template.js src/xGhosted.js src/utils/ProcessedPostsManager.js src/utils/MetricsMonitor.js src/xGhosted.test.js src/dom/identifyPosts.gold-standard-sample.test.js  grok/3-xGhosted.dom.txt || {
+node grokify.js build-xGhosted.js src/xGhosted.template.js src/xGhosted.js src/utils/ProcessedPostsManager.js src/utils/MetricsMonitor.js src/xGhosted.test.js src/utils/MetricsMonitor.test.js  grok/3-xGhosted.dom.txt || {
     show_progress "Error: Second grokify.js execution failed"; exit 1;
 }
 

@@ -16,10 +16,16 @@ var MetricsMonitor = class {
       avgPostsProcessed: 0,
       totalScrolls: 0,
       bottomReachedCount: 0,
-      totalHighlights: 0,
-      highlightingDurationSum: 0,
-      avgHighlightingDuration: 0,
-      maxHighlightingDuration: 0,
+      totalScans: 0,
+      totalScansManual: 0,
+      totalScansAuto: 0,
+      scanDurationSum: 0,
+      scanDurationSumManual: 0,
+      scanDurationSumAuto: 0,
+      avgScanDuration: 0,
+      avgScanDurationManual: 0,
+      avgScanDurationAuto: 0,
+      maxScanDuration: 0,
       cellInnerDivCount: 0,
       containerFinds: 0,
       containerDetectionAttempts: 0,
@@ -45,8 +51,6 @@ var MetricsMonitor = class {
       EVENTS.INIT_COMPONENTS,
       ({ detail: { config } }) => {
         this.timing = { ...this.timing, ...config.timing };
-        // Skip loading metrics from storage to start fresh
-        // this.loadMetrics();
       }
     );
 
@@ -58,8 +62,8 @@ var MetricsMonitor = class {
       this.recordScroll(detail);
     });
 
-    this.document.addEventListener(EVENTS.RECORD_HIGHLIGHT, ({ detail }) => {
-      this.recordHighlighting(detail.duration);
+    this.document.addEventListener(EVENTS.RECORD_SCAN, ({ detail }) => {
+      this.recordScan(detail);
     });
 
     this.document.addEventListener(
@@ -71,10 +75,6 @@ var MetricsMonitor = class {
 
     this.document.addEventListener(EVENTS.SET_POST_DENSITY, ({ detail }) => {
       this.setPostDensity(detail.count);
-    });
-
-    this.document.addEventListener(EVENTS.SAVE_METRICS, () => {
-      this.saveMetrics();
     });
 
     this.document.addEventListener(EVENTS.REQUEST_METRICS, () => {
@@ -166,9 +166,16 @@ var MetricsMonitor = class {
       avgPostsProcessed: this.metrics.avgPostsProcessed,
       totalScrolls: this.metrics.totalScrolls,
       bottomReachedCount: this.metrics.bottomReachedCount,
-      totalHighlights: this.metrics.totalHighlights,
-      avgHighlightingDuration: this.metrics.avgHighlightingDuration,
-      maxHighlightingDuration: this.metrics.maxHighlightingDuration,
+      totalScans: this.metrics.totalScans,
+      totalScansManual: this.metrics.totalScansManual,
+      totalScansAuto: this.metrics.totalScansAuto,
+      scanDurationSum: this.metrics.scanDurationSum,
+      scanDurationSumManual: this.metrics.scanDurationSumManual,
+      scanDurationSumAuto: this.metrics.scanDurationSumAuto,
+      avgScanDuration: this.metrics.avgScanDuration,
+      avgScanDurationManual: this.metrics.avgScanDurationManual,
+      avgScanDurationAuto: this.metrics.avgScanDurationAuto,
+      maxScanDuration: this.metrics.maxScanDuration,
       cellInnerDivCount: this.metrics.cellInnerDivCount,
       postDensity: this.metrics.postDensity,
       initialWaitTime: this.metrics.initialWaitTime,
@@ -183,8 +190,6 @@ var MetricsMonitor = class {
     if (this.metricsHistory.length > 100) {
       this.metricsHistory.shift();
     }
-
-    this.saveMetrics();
 
     this.log(
       "Emitting xghosted:metrics-updated with totalPolls:",
@@ -217,9 +222,16 @@ var MetricsMonitor = class {
       avgPostsProcessed: this.metrics.avgPostsProcessed,
       totalScrolls: this.metrics.totalScrolls,
       bottomReachedCount: this.metrics.bottomReachedCount,
-      totalHighlights: this.metrics.totalHighlights,
-      avgHighlightingDuration: this.metrics.avgHighlightingDuration,
-      maxHighlightingDuration: this.metrics.maxHighlightingDuration,
+      totalScans: this.metrics.totalScans,
+      totalScansManual: this.metrics.totalScansManual,
+      totalScansAuto: this.metrics.totalScansAuto,
+      scanDurationSum: this.metrics.scanDurationSum,
+      scanDurationSumManual: this.metrics.scanDurationSumManual,
+      scanDurationSumAuto: this.metrics.scanDurationSumAuto,
+      avgScanDuration: this.metrics.avgScanDuration,
+      avgScanDurationManual: this.metrics.avgScanDurationManual,
+      avgScanDurationAuto: this.metrics.avgScanDurationAuto,
+      maxScanDuration: this.metrics.maxScanDuration,
       cellInnerDivCount: this.metrics.cellInnerDivCount,
       postDensity: this.metrics.postDensity,
       initialWaitTime: this.metrics.initialWaitTime,
@@ -234,31 +246,60 @@ var MetricsMonitor = class {
     if (this.metricsHistory.length > 100) {
       this.metricsHistory.shift();
     }
-
-    this.saveMetrics();
   }
 
-  recordHighlighting(duration) {
+  recordScan({
+    duration,
+    postsProcessed,
+    wasSkipped,
+    interval,
+    isAutoScrolling,
+  }) {
     const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
     if (skipped) {
       if (CONFIG.debug) {
-        this.log("Skipping RECORD_HIGHLIGHT: post scanning is disabled");
+        this.log("Skipping RECORD_SCAN: post scanning is disabled");
       }
       return;
     }
 
-    this.metrics.totalHighlights++;
-    this.metrics.highlightingDurationSum += duration;
-    this.metrics.avgHighlightingDuration = this.metrics.totalHighlights
-      ? this.metrics.highlightingDurationSum / this.metrics.totalHighlights
+    if (!isAutoScrolling && postsProcessed === 0) {
+      if (CONFIG.debug) {
+        this.log("Skipping RECORD_SCAN: no posts processed in manual mode");
+      }
+      return;
+    }
+
+    this.metrics.totalScans++;
+    this.metrics.scanDurationSum += duration;
+    this.metrics.avgScanDuration = this.metrics.totalScans
+      ? this.metrics.scanDurationSum / this.metrics.totalScans
       : 0;
-    this.metrics.maxHighlightingDuration = Math.max(
-      this.metrics.maxHighlightingDuration,
+    this.metrics.maxScanDuration = Math.max(
+      this.metrics.maxScanDuration,
       duration
     );
-    if (CONFIG.debug) {
-      this.log(`Highlighting duration: ${duration.toFixed(2)}ms`);
+
+    if (isAutoScrolling) {
+      this.metrics.totalScansAuto++;
+      this.metrics.scanDurationSumAuto += duration;
+      this.metrics.avgScanDurationAuto = this.metrics.totalScansAuto
+        ? this.metrics.scanDurationSumAuto / this.metrics.totalScansAuto
+        : 0;
+    } else {
+      this.metrics.totalScansManual++;
+      this.metrics.scanDurationSumManual += duration;
+      this.metrics.avgScanDurationManual = this.metrics.totalScansManual
+        ? this.metrics.scanDurationSumManual / this.metrics.totalScansManual
+        : 0;
     }
+
+    if (CONFIG.debug) {
+      this.log(
+        `Scan duration: ${duration.toFixed(2)}ms, interval: ${interval}ms`
+      );
+    }
+
     this.metricsHistory.push({
       totalPolls: this.metrics.totalPolls,
       totalSkips: this.metrics.totalSkips,
@@ -266,9 +307,16 @@ var MetricsMonitor = class {
       avgPostsProcessed: this.metrics.avgPostsProcessed,
       totalScrolls: this.metrics.totalScrolls,
       bottomReachedCount: this.metrics.bottomReachedCount,
-      totalHighlights: this.metrics.totalHighlights,
-      avgHighlightingDuration: this.metrics.avgHighlightingDuration,
-      maxHighlightingDuration: this.metrics.maxHighlightingDuration,
+      totalScans: this.metrics.totalScans,
+      totalScansManual: this.metrics.totalScansManual,
+      totalScansAuto: this.metrics.totalScansAuto,
+      scanDurationSum: this.metrics.scanDurationSum,
+      scanDurationSumManual: this.metrics.scanDurationSumManual,
+      scanDurationSumAuto: this.metrics.scanDurationSumAuto,
+      avgScanDuration: this.metrics.avgScanDuration,
+      avgScanDurationManual: this.metrics.avgScanDurationManual,
+      avgScanDurationAuto: this.metrics.avgScanDurationAuto,
+      maxScanDuration: this.metrics.maxScanDuration,
       cellInnerDivCount: this.metrics.cellInnerDivCount,
       postDensity: this.metrics.postDensity,
       initialWaitTime: this.metrics.initialWaitTime,
@@ -277,14 +325,22 @@ var MetricsMonitor = class {
       avgSessionDuration: this.metrics.avgSessionDuration,
       pageType: this.metrics.pageType,
       timestamp: performance.now(),
-      skipped: false,
+      skipped: wasSkipped,
+      interval,
+      isAutoScrolling,
     });
 
     if (this.metricsHistory.length > 100) {
       this.metricsHistory.shift();
     }
 
-    this.saveMetrics();
+    this.document.dispatchEvent(
+      new CustomEvent(EVENTS.METRICS_UPDATED, {
+        detail: { metrics: this.metrics },
+      })
+    );
+
+    this.logMetrics();
   }
 
   setInitialWaitTime(time) {
@@ -303,21 +359,6 @@ var MetricsMonitor = class {
     }
   }
 
-  saveMetrics() {
-    if (!window.XGhosted?.state?.isPostScanningEnabled) {
-      if (CONFIG.debug) {
-        this.log("Skipping metrics save: post scanning is disabled");
-      }
-      return;
-    }
-
-    const state = this.storage.get("xGhostedState", {});
-    state.metrics = { ...this.metrics };
-    state.metricsHistory = [...this.metricsHistory];
-    this.storage.set("xGhostedState", state);
-    this.log("Saved metrics to storage");
-  }
-
   logMetrics() {
     if (CONFIG.debug) {
       this.log("Current metrics:", {
@@ -327,11 +368,16 @@ var MetricsMonitor = class {
         avgPostsProcessed: this.metrics.avgPostsProcessed.toFixed(2),
         totalScrolls: this.metrics.totalScrolls,
         bottomReachedCount: this.metrics.bottomReachedCount,
-        totalHighlights: this.metrics.totalHighlights,
-        avgHighlightingDuration:
-          this.metrics.avgHighlightingDuration.toFixed(2),
-        maxHighlightingDuration:
-          this.metrics.maxHighlightingDuration.toFixed(2),
+        totalScans: this.metrics.totalScans,
+        totalScansManual: this.metrics.totalScansManual,
+        totalScansAuto: this.metrics.totalScansAuto,
+        scanDurationSum: this.metrics.scanDurationSum.toFixed(2),
+        scanDurationSumManual: this.metrics.scanDurationSumManual.toFixed(2),
+        scanDurationSumAuto: this.metrics.scanDurationSumAuto.toFixed(2),
+        avgScanDuration: this.metrics.avgScanDuration.toFixed(2),
+        avgScanDurationManual: this.metrics.avgScanDurationManual.toFixed(2),
+        avgScanDurationAuto: this.metrics.avgScanDurationAuto.toFixed(2),
+        maxScanDuration: this.metrics.maxScanDuration.toFixed(2),
         cellInnerDivCount: this.metrics.cellInnerDivCount,
         containerFinds: this.metrics.containerFinds,
         containerDetectionAttempts: this.metrics.containerDetectionAttempts,

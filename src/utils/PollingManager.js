@@ -145,20 +145,47 @@ class PollingManager {
         this.state.noPostsFoundCount++;
       }
 
-      if (this.state.isPostScanningEnabled && !this.xGhosted.state.isHighlighting) {
+      if (
+        this.state.isPostScanningEnabled &&
+        !this.xGhosted.state.isHighlighting
+      ) {
         const unprocessedPosts = this.xGhosted.getUnprocessedPosts();
+        const start = performance.now();
         if (unprocessedPosts.length > 0) {
           postsProcessed = unprocessedPosts.length;
-          await this.xGhosted.processUnprocessedPosts(unprocessedPosts, this.xGhosted.state.isWithReplies, CONFIG.debug, this.log, this.emit.bind(this));
+          await this.xGhosted.processUnprocessedPosts(
+            unprocessedPosts,
+            this.xGhosted.state.isWithReplies,
+            CONFIG.debug,
+            this.log,
+            this.emit.bind(this)
+          );
           this.state.noPostsFoundCount = 0;
           this.state.idleCycleCount = 0;
         } else if (containerFound) {
           this.state.noPostsFoundCount = 0;
           this.state.idleCycleCount = 0;
-          await this.xGhosted.processUnprocessedPosts([], this.xGhosted.state.isWithReplies, CONFIG.debug, this.log, this.emit.bind(this));
+          await this.xGhosted.processUnprocessedPosts(
+            [],
+            this.xGhosted.state.isWithReplies,
+            CONFIG.debug,
+            this.log,
+            this.emit.bind(this)
+          );
         } else {
           this.state.idleCycleCount++;
         }
+        const duration = performance.now() - start;
+        const interval = this.state.userRequestedAutoScrolling
+          ? this.timing.scrollInterval
+          : this.timing.pollInterval;
+        this.emit(EVENTS.RECORD_SCAN, {
+          duration,
+          postsProcessed,
+          wasSkipped: postsProcessed === 0,
+          interval,
+          isAutoScrolling: this.state.userRequestedAutoScrolling,
+        });
       } else if (
         cellInnerDivCount !== this.state.lastCellInnerDivCount &&
         CONFIG.debug

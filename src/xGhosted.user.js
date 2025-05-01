@@ -72,7 +72,7 @@
     METRICS_UPDATED: 'xghosted:metrics-updated',
     RECORD_POLL: 'xghosted:record-poll',
     RECORD_SCROLL: 'xghosted:record-scroll',
-    RECORD_HIGHLIGHT: 'xghosted:record-highlight',
+    RECORD_SCAN: 'xghosted:record-scan',
     SET_INITIAL_WAIT_TIME: 'xghosted:set-initial-wait-time',
     SET_POST_DENSITY: 'xghosted:set-post-density',
     SAVE_METRICS: 'xghosted:save-metrics',
@@ -162,12 +162,17 @@
       pageType: 'string',
       isScanningStarted: 'boolean',
       isScanningStopped: 'boolean',
+      cellInnerDivCount: 'number',
     },
     'xghosted:record-scroll': {
       bottomReached: 'boolean',
     },
-    'xghosted:record-highlight': {
+    'xghosted:record-scan': {
       duration: 'number',
+      postsProcessed: 'number',
+      wasSkipped: 'boolean',
+      interval: 'number',
+      isAutoScrolling: 'boolean',
     },
     'xghosted:set-initial-wait-time': {
       time: 'number',
@@ -272,7 +277,7 @@
       METRICS_UPDATED: 'xghosted:metrics-updated',
       RECORD_POLL: 'xghosted:record-poll',
       RECORD_SCROLL: 'xghosted:record-scroll',
-      RECORD_HIGHLIGHT: 'xghosted:record-highlight',
+      RECORD_SCAN: 'xghosted:record-scan',
       SET_INITIAL_WAIT_TIME: 'xghosted:set-initial-wait-time',
       SET_POST_DENSITY: 'xghosted:set-post-density',
       SAVE_METRICS: 'xghosted:save-metrics',
@@ -319,9 +324,16 @@
         pageType: 'string',
         isScanningStarted: 'boolean',
         isScanningStopped: 'boolean',
+        cellInnerDivCount: 'number',
       },
       [EVENTS.RECORD_SCROLL]: { bottomReached: 'boolean' },
-      [EVENTS.RECORD_HIGHLIGHT]: { duration: 'number' },
+      [EVENTS.RECORD_SCAN]: {
+        duration: 'number',
+        postsProcessed: 'number',
+        wasSkipped: 'boolean',
+        interval: 'number',
+        isAutoScrolling: 'boolean',
+      },
       [EVENTS.SET_INITIAL_WAIT_TIME]: { time: 'number' },
       [EVENTS.SET_POST_DENSITY]: { count: 'number' },
       [EVENTS.SAVE_METRICS]: {},
@@ -466,6 +478,7 @@
             !this.xGhosted.state.isHighlighting
           ) {
             const unprocessedPosts = this.xGhosted.getUnprocessedPosts();
+            const start = performance.now();
             if (unprocessedPosts.length > 0) {
               postsProcessed = unprocessedPosts.length;
               await this.xGhosted.processUnprocessedPosts(
@@ -490,6 +503,17 @@
             } else {
               this.state.idleCycleCount++;
             }
+            const duration = performance.now() - start;
+            const interval = this.state.userRequestedAutoScrolling
+              ? this.timing.scrollInterval
+              : this.timing.pollInterval;
+            this.emit(EVENTS.RECORD_SCAN, {
+              duration,
+              postsProcessed,
+              wasSkipped: postsProcessed === 0,
+              interval,
+              isAutoScrolling: this.state.userRequestedAutoScrolling,
+            });
           } else if (
             cellInnerDivCount !== this.state.lastCellInnerDivCount &&
             CONFIG.debug
@@ -3590,10 +3614,16 @@
           avgPostsProcessed: 0,
           totalScrolls: 0,
           bottomReachedCount: 0,
-          totalHighlights: 0,
-          highlightingDurationSum: 0,
-          avgHighlightingDuration: 0,
-          maxHighlightingDuration: 0,
+          totalScans: 0,
+          totalScansManual: 0,
+          totalScansAuto: 0,
+          scanDurationSum: 0,
+          scanDurationSumManual: 0,
+          scanDurationSumAuto: 0,
+          avgScanDuration: 0,
+          avgScanDurationManual: 0,
+          avgScanDurationAuto: 0,
+          maxScanDuration: 0,
           cellInnerDivCount: 0,
           containerFinds: 0,
           containerDetectionAttempts: 0,
@@ -3626,12 +3656,9 @@
         this.document.addEventListener(EVENTS.RECORD_SCROLL, ({ detail }) => {
           this.recordScroll(detail);
         });
-        this.document.addEventListener(
-          EVENTS.RECORD_HIGHLIGHT,
-          ({ detail }) => {
-            this.recordHighlighting(detail.duration);
-          }
-        );
+        this.document.addEventListener(EVENTS.RECORD_SCAN, ({ detail }) => {
+          this.recordScan(detail);
+        });
         this.document.addEventListener(
           EVENTS.SET_INITIAL_WAIT_TIME,
           ({ detail }) => {
@@ -3644,9 +3671,6 @@
             this.setPostDensity(detail.count);
           }
         );
-        this.document.addEventListener(EVENTS.SAVE_METRICS, () => {
-          this.saveMetrics();
-        });
         this.document.addEventListener(EVENTS.REQUEST_METRICS, () => {
           this.document.dispatchEvent(
             new CustomEvent(EVENTS.METRICS_RETRIEVED, {
@@ -3737,9 +3761,16 @@
           avgPostsProcessed: this.metrics.avgPostsProcessed,
           totalScrolls: this.metrics.totalScrolls,
           bottomReachedCount: this.metrics.bottomReachedCount,
-          totalHighlights: this.metrics.totalHighlights,
-          avgHighlightingDuration: this.metrics.avgHighlightingDuration,
-          maxHighlightingDuration: this.metrics.maxHighlightingDuration,
+          totalScans: this.metrics.totalScans,
+          totalScansManual: this.metrics.totalScansManual,
+          totalScansAuto: this.metrics.totalScansAuto,
+          scanDurationSum: this.metrics.scanDurationSum,
+          scanDurationSumManual: this.metrics.scanDurationSumManual,
+          scanDurationSumAuto: this.metrics.scanDurationSumAuto,
+          avgScanDuration: this.metrics.avgScanDuration,
+          avgScanDurationManual: this.metrics.avgScanDurationManual,
+          avgScanDurationAuto: this.metrics.avgScanDurationAuto,
+          maxScanDuration: this.metrics.maxScanDuration,
           cellInnerDivCount: this.metrics.cellInnerDivCount,
           postDensity: this.metrics.postDensity,
           initialWaitTime: this.metrics.initialWaitTime,
@@ -3753,7 +3784,6 @@
         if (this.metricsHistory.length > 100) {
           this.metricsHistory.shift();
         }
-        this.saveMetrics();
         this.log(
           'Emitting xghosted:metrics-updated with totalPolls:',
           this.metrics.totalPolls
@@ -3782,9 +3812,16 @@
           avgPostsProcessed: this.metrics.avgPostsProcessed,
           totalScrolls: this.metrics.totalScrolls,
           bottomReachedCount: this.metrics.bottomReachedCount,
-          totalHighlights: this.metrics.totalHighlights,
-          avgHighlightingDuration: this.metrics.avgHighlightingDuration,
-          maxHighlightingDuration: this.metrics.maxHighlightingDuration,
+          totalScans: this.metrics.totalScans,
+          totalScansManual: this.metrics.totalScansManual,
+          totalScansAuto: this.metrics.totalScansAuto,
+          scanDurationSum: this.metrics.scanDurationSum,
+          scanDurationSumManual: this.metrics.scanDurationSumManual,
+          scanDurationSumAuto: this.metrics.scanDurationSumAuto,
+          avgScanDuration: this.metrics.avgScanDuration,
+          avgScanDurationManual: this.metrics.avgScanDurationManual,
+          avgScanDurationAuto: this.metrics.avgScanDurationAuto,
+          maxScanDuration: this.metrics.maxScanDuration,
           cellInnerDivCount: this.metrics.cellInnerDivCount,
           postDensity: this.metrics.postDensity,
           initialWaitTime: this.metrics.initialWaitTime,
@@ -3798,27 +3835,53 @@
         if (this.metricsHistory.length > 100) {
           this.metricsHistory.shift();
         }
-        this.saveMetrics();
       }
-      recordHighlighting(duration) {
+      recordScan({
+        duration,
+        postsProcessed,
+        wasSkipped,
+        interval,
+        isAutoScrolling,
+      }) {
         const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
         if (skipped) {
           if (CONFIG.debug) {
-            this.log('Skipping RECORD_HIGHLIGHT: post scanning is disabled');
+            this.log('Skipping RECORD_SCAN: post scanning is disabled');
           }
           return;
         }
-        this.metrics.totalHighlights++;
-        this.metrics.highlightingDurationSum += duration;
-        this.metrics.avgHighlightingDuration = this.metrics.totalHighlights
-          ? this.metrics.highlightingDurationSum / this.metrics.totalHighlights
+        if (!isAutoScrolling && postsProcessed === 0) {
+          if (CONFIG.debug) {
+            this.log('Skipping RECORD_SCAN: no posts processed in manual mode');
+          }
+          return;
+        }
+        this.metrics.totalScans++;
+        this.metrics.scanDurationSum += duration;
+        this.metrics.avgScanDuration = this.metrics.totalScans
+          ? this.metrics.scanDurationSum / this.metrics.totalScans
           : 0;
-        this.metrics.maxHighlightingDuration = Math.max(
-          this.metrics.maxHighlightingDuration,
+        this.metrics.maxScanDuration = Math.max(
+          this.metrics.maxScanDuration,
           duration
         );
+        if (isAutoScrolling) {
+          this.metrics.totalScansAuto++;
+          this.metrics.scanDurationSumAuto += duration;
+          this.metrics.avgScanDurationAuto = this.metrics.totalScansAuto
+            ? this.metrics.scanDurationSumAuto / this.metrics.totalScansAuto
+            : 0;
+        } else {
+          this.metrics.totalScansManual++;
+          this.metrics.scanDurationSumManual += duration;
+          this.metrics.avgScanDurationManual = this.metrics.totalScansManual
+            ? this.metrics.scanDurationSumManual / this.metrics.totalScansManual
+            : 0;
+        }
         if (CONFIG.debug) {
-          this.log(`Highlighting duration: ${duration.toFixed(2)}ms`);
+          this.log(
+            `Scan duration: ${duration.toFixed(2)}ms, interval: ${interval}ms`
+          );
         }
         this.metricsHistory.push({
           totalPolls: this.metrics.totalPolls,
@@ -3827,9 +3890,16 @@
           avgPostsProcessed: this.metrics.avgPostsProcessed,
           totalScrolls: this.metrics.totalScrolls,
           bottomReachedCount: this.metrics.bottomReachedCount,
-          totalHighlights: this.metrics.totalHighlights,
-          avgHighlightingDuration: this.metrics.avgHighlightingDuration,
-          maxHighlightingDuration: this.metrics.maxHighlightingDuration,
+          totalScans: this.metrics.totalScans,
+          totalScansManual: this.metrics.totalScansManual,
+          totalScansAuto: this.metrics.totalScansAuto,
+          scanDurationSum: this.metrics.scanDurationSum,
+          scanDurationSumManual: this.metrics.scanDurationSumManual,
+          scanDurationSumAuto: this.metrics.scanDurationSumAuto,
+          avgScanDuration: this.metrics.avgScanDuration,
+          avgScanDurationManual: this.metrics.avgScanDurationManual,
+          avgScanDurationAuto: this.metrics.avgScanDurationAuto,
+          maxScanDuration: this.metrics.maxScanDuration,
           cellInnerDivCount: this.metrics.cellInnerDivCount,
           postDensity: this.metrics.postDensity,
           initialWaitTime: this.metrics.initialWaitTime,
@@ -3838,12 +3908,19 @@
           avgSessionDuration: this.metrics.avgSessionDuration,
           pageType: this.metrics.pageType,
           timestamp: performance.now(),
-          skipped: false,
+          skipped: wasSkipped,
+          interval,
+          isAutoScrolling,
         });
         if (this.metricsHistory.length > 100) {
           this.metricsHistory.shift();
         }
-        this.saveMetrics();
+        this.document.dispatchEvent(
+          new CustomEvent(EVENTS.METRICS_UPDATED, {
+            detail: { metrics: this.metrics },
+          })
+        );
+        this.logMetrics();
       }
       setInitialWaitTime(time) {
         if (!this.initialWaitTimeSet && time !== null) {
@@ -3859,19 +3936,6 @@
           this.log(`Post density set: ${count}`);
         }
       }
-      saveMetrics() {
-        if (!window.XGhosted?.state?.isPostScanningEnabled) {
-          if (CONFIG.debug) {
-            this.log('Skipping metrics save: post scanning is disabled');
-          }
-          return;
-        }
-        const state = this.storage.get('xGhostedState', {});
-        state.metrics = { ...this.metrics };
-        state.metricsHistory = [...this.metricsHistory];
-        this.storage.set('xGhostedState', state);
-        this.log('Saved metrics to storage');
-      }
       logMetrics() {
         if (CONFIG.debug) {
           this.log('Current metrics:', {
@@ -3881,11 +3945,18 @@
             avgPostsProcessed: this.metrics.avgPostsProcessed.toFixed(2),
             totalScrolls: this.metrics.totalScrolls,
             bottomReachedCount: this.metrics.bottomReachedCount,
-            totalHighlights: this.metrics.totalHighlights,
-            avgHighlightingDuration:
-              this.metrics.avgHighlightingDuration.toFixed(2),
-            maxHighlightingDuration:
-              this.metrics.maxHighlightingDuration.toFixed(2),
+            totalScans: this.metrics.totalScans,
+            totalScansManual: this.metrics.totalScansManual,
+            totalScansAuto: this.metrics.totalScansAuto,
+            scanDurationSum: this.metrics.scanDurationSum.toFixed(2),
+            scanDurationSumManual:
+              this.metrics.scanDurationSumManual.toFixed(2),
+            scanDurationSumAuto: this.metrics.scanDurationSumAuto.toFixed(2),
+            avgScanDuration: this.metrics.avgScanDuration.toFixed(2),
+            avgScanDurationManual:
+              this.metrics.avgScanDurationManual.toFixed(2),
+            avgScanDurationAuto: this.metrics.avgScanDurationAuto.toFixed(2),
+            maxScanDuration: this.metrics.maxScanDuration.toFixed(2),
             cellInnerDivCount: this.metrics.cellInnerDivCount,
             containerFinds: this.metrics.containerFinds,
             containerDetectionAttempts: this.metrics.containerDetectionAttempts,
