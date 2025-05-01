@@ -30,7 +30,13 @@ function XGhosted({ document, window, config = {} }) {
     return this.checkPostInNewTab(href);
   }, this.timing.tabCheckThrottle);
   this.highlightPostsDebounced = debounce((posts) => {
-    this.highlightPosts(posts, CONFIG.debug, this.log, this.emit.bind(this));
+    this.highlightPosts(
+      posts,
+      this.state.isWithReplies,
+      CONFIG.debug,
+      this.log,
+      this.emit.bind(this)
+    );
   }, 500);
   this.pollingManager = new PollingManager({
     document: this.document,
@@ -308,7 +314,13 @@ XGhosted.prototype.expandArticle = function (article) {
   }
 };
 
-XGhosted.prototype.highlightPosts = function (posts, debug, log, emit) {
+XGhosted.prototype.highlightPosts = function (
+  posts,
+  checkReplies,
+  debug,
+  log,
+  emit
+) {
   const start = performance.now();
   this.state.isHighlighting = true;
   const results = [];
@@ -318,9 +330,7 @@ XGhosted.prototype.highlightPosts = function (posts, debug, log, emit) {
       XGhosted.UNPROCESSED_POSTS_SELECTOR,
       this.document
     );
-  let postsProcessed = 0;
   const processedIds = new Set();
-  const checkReplies = this.state.isWithReplies;
 
   let previousPostQuality = null;
   let previousPostConnector = null;
@@ -339,11 +349,8 @@ XGhosted.prototype.highlightPosts = function (posts, debug, log, emit) {
     previousPostQuality = updatedQuality;
     previousPostConnector = updatedConnector;
     results.push(analysis);
-    if (analysis.link && !processedIds.has(analysis.link)) {
-      postsProcessed++;
-    }
   }
-
+  const postsProcessed = processedIds.size;
   if (postsProcessed > 0) {
     emit(EVENTS.SAVE_METRICS, {});
     domUtils.dispatchEvent(

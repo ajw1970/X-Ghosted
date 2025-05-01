@@ -487,6 +487,7 @@
               postsProcessed = unprocessedPosts.length;
               await this.xGhosted.highlightPosts(
                 unprocessedPosts,
+                this.xGhosted.state.isWithReplies,
                 CONFIG.debug,
                 this.log,
                 this.emit.bind(this)
@@ -498,6 +499,7 @@
               this.state.idleCycleCount = 0;
               await this.xGhosted.highlightPosts(
                 [],
+                this.xGhosted.state.isWithReplies,
                 CONFIG.debug,
                 this.log,
                 this.emit.bind(this)
@@ -1328,6 +1330,7 @@
       this.highlightPostsDebounced = debounce((posts) => {
         this.highlightPosts(
           posts,
+          this.state.isWithReplies,
           CONFIG.debug,
           this.log,
           this.emit.bind(this)
@@ -1602,7 +1605,13 @@
         article.style.padding = 'auto';
       }
     };
-    XGhosted.prototype.highlightPosts = function (posts, debug, log, emit) {
+    XGhosted.prototype.highlightPosts = function (
+      posts,
+      checkReplies,
+      debug,
+      log,
+      emit
+    ) {
       const start = performance.now();
       this.state.isHighlighting = true;
       const results = [];
@@ -1612,9 +1621,7 @@
           XGhosted.UNPROCESSED_POSTS_SELECTOR,
           this.document
         );
-      let postsProcessed = 0;
       const processedIds = /* @__PURE__ */ new Set();
-      const checkReplies = this.state.isWithReplies;
       let previousPostQuality = null;
       let previousPostConnector = null;
       for (const post of postsToProcess) {
@@ -1631,10 +1638,8 @@
         previousPostQuality = updatedQuality;
         previousPostConnector = updatedConnector;
         results.push(analysis);
-        if (analysis.link && !processedIds.has(analysis.link)) {
-          postsProcessed++;
-        }
       }
+      const postsProcessed = processedIds.size;
       if (postsProcessed > 0) {
         emit(EVENTS.SAVE_METRICS, {});
         domUtils.dispatchEvent(
