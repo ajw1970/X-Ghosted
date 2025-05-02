@@ -158,4 +158,160 @@ describe("MetricsMonitor", () => {
       expect(mockDocument.dispatchEvent).not.toHaveBeenCalled();
     });
   });
+
+  describe("recordScan (auto)", () => {
+    test("updates totalScansAuto and scanDurationSumAuto for every poll when isAutoScrolling is true", () => {
+      metricsMonitor.isPostScanningEnabled = true;
+      const detail = {
+        duration: 15,
+        postsProcessed: 0,
+        wasSkipped: true,
+        interval: 800,
+        isAutoScrolling: true,
+      };
+
+      metricsMonitor.recordScan(detail);
+
+      expect(metricsMonitor.metrics.totalScans).toBe(1);
+      expect(metricsMonitor.metrics.totalScansAuto).toBe(1);
+      expect(metricsMonitor.metrics.totalScansManual).toBe(0);
+      expect(metricsMonitor.metrics.scanDurationSum).toBe(15);
+      expect(metricsMonitor.metrics.scanDurationSumAuto).toBe(15);
+      expect(metricsMonitor.metrics.scanDurationSumManual).toBe(0);
+      expect(metricsMonitor.metrics.avgScanDurationAuto).toBe(15);
+      expect(metricsMonitor.metricsHistory).toHaveLength(1);
+      expect(metricsMonitor.metricsHistory[0]).toMatchObject({
+        totalScans: 1,
+        scanDurationSum: 15,
+        interval: 800,
+        isAutoScrolling: true,
+        skipped: true,
+      });
+      expect(mockDocument.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: EVENTS.METRICS_UPDATED,
+          detail: { metrics: expect.any(Object) },
+        })
+      );
+    });
+
+    test("updates counters with postsProcessed > 0 in auto mode", () => {
+      metricsMonitor.isPostScanningEnabled = true;
+      const detail = {
+        duration: 25,
+        postsProcessed: 2,
+        wasSkipped: false,
+        interval: 800,
+        isAutoScrolling: true,
+      };
+
+      metricsMonitor.recordScan(detail);
+
+      expect(metricsMonitor.metrics.totalScans).toBe(1);
+      expect(metricsMonitor.metrics.totalScansAuto).toBe(1);
+      expect(metricsMonitor.metrics.scanDurationSumAuto).toBe(25);
+      expect(metricsMonitor.metrics.avgScanDurationAuto).toBe(25);
+      expect(metricsMonitor.metricsHistory[0]).toMatchObject({
+        totalScans: 1,
+        scanDurationSum: 25,
+        interval: 800,
+        isAutoScrolling: true,
+        skipped: false,
+      });
+      expect(mockDocument.dispatchEvent).toHaveBeenCalled();
+    });
+
+    test("skips updates when isPostScanningEnabled is false in auto mode", () => {
+      metricsMonitor.isPostScanningEnabled = false;
+      const detail = {
+        duration: 15,
+        postsProcessed: 2,
+        wasSkipped: false,
+        interval: 800,
+        isAutoScrolling: true,
+      };
+
+      metricsMonitor.recordScan(detail);
+
+      expect(metricsMonitor.metrics.totalScans).toBe(0);
+      expect(metricsMonitor.metrics.totalScansAuto).toBe(0);
+      expect(metricsMonitor.metrics.scanDurationSum).toBe(0);
+      expect(metricsMonitor.metricsHistory).toHaveLength(0);
+      expect(mockDocument.dispatchEvent).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("recordTabCheck", () => {
+    test("updates totalTabChecks, tabCheckDurationSum, and rateLimitCount when rateLimited is true", () => {
+      metricsMonitor.isPostScanningEnabled = true;
+      const detail = {
+        duration: 5000,
+        success: false,
+        rateLimited: true,
+        attempts: 5,
+      };
+
+      metricsMonitor.recordTabCheck(detail);
+
+      expect(metricsMonitor.metrics.totalTabChecks).toBe(1);
+      expect(metricsMonitor.metrics.tabCheckDurationSum).toBe(5000);
+      expect(metricsMonitor.metrics.avgTabCheckDuration).toBe(5000);
+      expect(metricsMonitor.metrics.rateLimitCount).toBe(1);
+      expect(metricsMonitor.metricsHistory).toHaveLength(1);
+      expect(metricsMonitor.metricsHistory[0]).toMatchObject({
+        totalTabChecks: 1,
+        tabCheckDurationSum: 5000,
+        tabCheckRateLimited: true,
+        tabCheckSuccess: false,
+      });
+      expect(mockDocument.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: EVENTS.METRICS_UPDATED,
+          detail: { metrics: expect.any(Object) },
+        })
+      );
+    });
+
+    test("updates counters for successful tab check", () => {
+      metricsMonitor.isPostScanningEnabled = true;
+      const detail = {
+        duration: 3000,
+        success: true,
+        rateLimited: false,
+        attempts: 3,
+      };
+
+      metricsMonitor.recordTabCheck(detail);
+
+      expect(metricsMonitor.metrics.totalTabChecks).toBe(1);
+      expect(metricsMonitor.metrics.tabCheckDurationSum).toBe(3000);
+      expect(metricsMonitor.metrics.avgTabCheckDuration).toBe(3000);
+      expect(metricsMonitor.metrics.rateLimitCount).toBe(0);
+      expect(metricsMonitor.metricsHistory[0]).toMatchObject({
+        totalTabChecks: 1,
+        tabCheckDurationSum: 3000,
+        tabCheckRateLimited: false,
+        tabCheckSuccess: true,
+      });
+      expect(mockDocument.dispatchEvent).toHaveBeenCalled();
+    });
+
+    test("skips updates when isPostScanningEnabled is false", () => {
+      metricsMonitor.isPostScanningEnabled = false;
+      const detail = {
+        duration: 3000,
+        success: true,
+        rateLimited: false,
+        attempts: 3,
+      };
+
+      metricsMonitor.recordTabCheck(detail);
+
+      expect(metricsMonitor.metrics.totalTabChecks).toBe(0);
+      expect(metricsMonitor.metrics.tabCheckDurationSum).toBe(0);
+      expect(metricsMonitor.metrics.rateLimitCount).toBe(0);
+      expect(metricsMonitor.metricsHistory).toHaveLength(0);
+      expect(mockDocument.dispatchEvent).not.toHaveBeenCalled();
+    });
+  });
 });
