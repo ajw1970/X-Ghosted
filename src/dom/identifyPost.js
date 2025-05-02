@@ -5,6 +5,7 @@ import { getRelativeLinkToPost } from "./getRelativeLinkToPost";
 import { isPostDivider } from "./isPostDivider";
 import { postQuality } from "../utils/postQuality";
 import { postQualityReasons } from "../utils/postQualityReasons";
+import { domUtils } from "./domUtils.js";
 
 function identifyPost(post, checkReplies = true, logger = console.log) {
   const isDivider = isPostDivider(post);
@@ -16,7 +17,7 @@ function identifyPost(post, checkReplies = true, logger = console.log) {
     };
   }
 
-  const article = post.querySelector("article");
+  const article = domUtils.querySelector("article", post);
   if (!article) {
     return {
       quality: postQuality.UNDEFINED,

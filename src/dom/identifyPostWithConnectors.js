@@ -62,4 +62,4 @@ function identifyPostWithConnectors(
   };
 }
 
-export { identifyPostWithConnectors }
+export { identifyPostWithConnectors };

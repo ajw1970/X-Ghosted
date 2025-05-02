@@ -832,6 +832,13 @@
       removeEventListener(element, event, handler, options = {}) {
         element.removeEventListener(event, handler, options);
       },
+      closest(element, selector) {
+        let current = element;
+        while (current && !current.matches(selector)) {
+          current = current.parentElement;
+        }
+        return current;
+      },
     };
 
     // src/dom/extractUserFromLink.js
@@ -843,15 +850,22 @@
 
     // src/dom/findPostContainer.js
     function findPostContainer(doc, log = () => {}) {
-      const potentialPosts = doc.querySelectorAll(
-        'div[data-testid="cellInnerDiv"]'
+      const potentialPosts = domUtils.querySelectorAll(
+        'div[data-testid="cellInnerDiv"]',
+        doc
       );
       if (!potentialPosts.length) {
         return null;
       }
       let firstPost = null;
       for (const post of potentialPosts) {
-        const closestAriaLabel = post.closest('div[aria-label]');
+        let closestAriaLabel = post;
+        while (
+          closestAriaLabel &&
+          !closestAriaLabel.getAttribute('aria-label')
+        ) {
+          closestAriaLabel = closestAriaLabel.parentElement;
+        }
         if (
           closestAriaLabel &&
           closestAriaLabel.getAttribute('aria-label') === 'Timeline: Messages'
@@ -914,7 +928,9 @@
 
     // src/dom/getRelativeLinkToPost.js
     function getRelativeLinkToPost(element) {
-      const link = element.querySelector('a:has(time)')?.getAttribute('href');
+      const link = domUtils
+        .querySelector('a:has(time)', element)
+        ?.getAttribute('href');
       return link || false;
     }
 
@@ -948,7 +964,7 @@
     // src/dom/postHasProblemCommunity.js
     function postHasProblemCommunity(article) {
       const communityIds = ['1889908654133911912'];
-      const aTags = Array.from(article.querySelectorAll('a'));
+      const aTags = Array.from(domUtils.querySelectorAll('a', article));
       for (const aTag of aTags) {
         for (const id of communityIds) {
           if (aTag.href.endsWith(`/i/communities/${id}`)) {
@@ -975,7 +991,7 @@
       function normalizedTextContent(textContent) {
         return textContent.replace(/[‘’]/g, "'").toLowerCase();
       }
-      const spans = Array.from(article.querySelectorAll('span'));
+      const spans = Array.from(domUtils.querySelectorAll('span', article));
       for (const span of spans) {
         const textContent = normalizedTextContent(span.textContent);
         for (const notice of targetNotices) {
@@ -1010,7 +1026,7 @@
           link: false,
         };
       }
-      const article = post.querySelector('article');
+      const article = domUtils.querySelector('article', post);
       if (!article) {
         return {
           quality: postQuality.UNDEFINED,
@@ -1094,7 +1110,7 @@
         return classifyVerticalLinePost(post, quality, logger);
       }
       const hasCommunityContext =
-        post.querySelector(SELECTORS.COMMUNITY_CONTEXT) !== null;
+        domUtils.querySelector(SELECTORS.COMMUNITY_CONTEXT, post) !== null;
       const hasIndent = hasIndentation(post, hasCommunityContext);
       if (containsSystemNotice) {
         return classifyPlaceholderPost(
@@ -1111,19 +1127,20 @@
       return postConnector.INDEPENDENT;
     }
     function hasVerticalLine(post) {
-      return post.querySelector(SELECTORS.VERTICAL_LINE) !== null;
+      return domUtils.querySelector(SELECTORS.VERTICAL_LINE, post) !== null;
     }
     function hasIndentation(post, hasCommunityContext) {
-      const container = post.querySelector(SELECTORS.CONTAINER);
+      const container = domUtils.querySelector(SELECTORS.CONTAINER, post);
       return (
         container?.querySelector(SELECTORS.INDENTATION) && !hasCommunityContext
       );
     }
     function isReplyingTo(post) {
-      return post.querySelector(SELECTORS.REPLYING_TO) !== null;
+      return domUtils.querySelector(SELECTORS.REPLYING_TO, post) !== null;
     }
     function classifyVerticalLinePost(post, quality, logger) {
-      const isReply = post.querySelector(SELECTORS.REPLY_INDICATOR) !== null;
+      const isReply =
+        domUtils.querySelector(SELECTORS.REPLY_INDICATOR, post) !== null;
       if (isReply || quality === postQuality.UNDEFINED) {
         logger(
           'Returning CONTINUES: has vertical lines with reply indicator or undefined quality'
@@ -3633,7 +3650,7 @@
     return ProcessedPostsManager;
   })();
   window.MetricsMonitor = (function () {
-    const { CONFIG, EVENTS } = window.XGhostedUtils;
+    const { CONFIG, EVENTS, domUtils } = window.XGhostedUtils;
     // src/utils/MetricsMonitor.js
     var MetricsMonitor = class {
       constructor({ timing, log, storage, document }) {
@@ -3684,41 +3701,58 @@
         this.initEventListeners();
       }
       initEventListeners() {
-        this.document.addEventListener(
+        domUtils.addEventListener(
+          this.document,
           EVENTS.INIT_COMPONENTS,
           ({ detail: { config } }) => {
             this.timing = { ...this.timing, ...config.timing };
           }
         );
-        this.document.addEventListener(EVENTS.RECORD_POLL, ({ detail }) => {
-          this.recordPoll(detail);
-        });
-        this.document.addEventListener(EVENTS.RECORD_SCROLL, ({ detail }) => {
-          this.recordScroll(detail);
-        });
-        this.document.addEventListener(EVENTS.RECORD_SCAN, ({ detail }) => {
-          this.recordScan(detail);
-        });
-        this.document.addEventListener(
+        domUtils.addEventListener(
+          this.document,
+          EVENTS.RECORD_POLL,
+          ({ detail }) => {
+            this.recordPoll(detail);
+          }
+        );
+        domUtils.addEventListener(
+          this.document,
+          EVENTS.RECORD_SCROLL,
+          ({ detail }) => {
+            this.recordScroll(detail);
+          }
+        );
+        domUtils.addEventListener(
+          this.document,
+          EVENTS.RECORD_SCAN,
+          ({ detail }) => {
+            this.recordScan(detail);
+          }
+        );
+        domUtils.addEventListener(
+          this.document,
           EVENTS.RECORD_TAB_CHECK,
           ({ detail }) => {
             this.recordTabCheck(detail);
           }
         );
-        this.document.addEventListener(
+        domUtils.addEventListener(
+          this.document,
           EVENTS.SET_INITIAL_WAIT_TIME,
           ({ detail }) => {
             this.setInitialWaitTime(detail.time);
           }
         );
-        this.document.addEventListener(
+        domUtils.addEventListener(
+          this.document,
           EVENTS.SET_POST_DENSITY,
           ({ detail }) => {
             this.setPostDensity(detail.count);
           }
         );
-        this.document.addEventListener(EVENTS.REQUEST_METRICS, () => {
-          this.document.dispatchEvent(
+        domUtils.addEventListener(this.document, EVENTS.REQUEST_METRICS, () => {
+          domUtils.dispatchEvent(
+            this.document,
             new CustomEvent(EVENTS.METRICS_RETRIEVED, {
               detail: { timingHistory: this.metricsHistory },
             })
@@ -3728,7 +3762,7 @@
             this.metricsHistory.length
           );
         });
-        this.document.addEventListener(EVENTS.EXPORT_METRICS, () => {
+        domUtils.addEventListener(this.document, EVENTS.EXPORT_METRICS, () => {
           const blob = new Blob(
             [JSON.stringify(this.metricsHistory, null, 2)],
             {
@@ -3736,7 +3770,7 @@
             }
           );
           const url = URL.createObjectURL(blob);
-          const a = this.document.createElement('a');
+          const a = domUtils.createElement('a', this.document);
           a.href = url;
           a.download = 'xGhosted_timing_history.json';
           a.click();
@@ -3838,7 +3872,8 @@
           'Emitting xghosted:metrics-updated with totalPolls:',
           this.metrics.totalPolls
         );
-        this.document.dispatchEvent(
+        domUtils.dispatchEvent(
+          this.document,
           new CustomEvent(EVENTS.METRICS_UPDATED, {
             detail: { metrics: this.metrics },
           })
@@ -3962,7 +3997,7 @@
           sessionStarts: this.metrics.sessionStarts,
           sessionStops: this.metrics.sessionStops,
           avgSessionDuration: this.metrics.avgSessionDuration,
-          pageType: this.metrics.postDensity,
+          pageType: this.metrics.pageType,
           timestamp: performance.now(),
           skipped: wasSkipped,
           interval,
@@ -3971,7 +4006,8 @@
         if (this.metricsHistory.length > 100) {
           this.metricsHistory.shift();
         }
-        this.document.dispatchEvent(
+        domUtils.dispatchEvent(
+          this.document,
           new CustomEvent(EVENTS.METRICS_UPDATED, {
             detail: { metrics: this.metrics },
           })
@@ -4033,7 +4069,8 @@
         if (this.metricsHistory.length > 100) {
           this.metricsHistory.shift();
         }
-        this.document.dispatchEvent(
+        domUtils.dispatchEvent(
+          this.document,
           new CustomEvent(EVENTS.METRICS_UPDATED, {
             detail: { metrics: this.metrics },
           })
@@ -4054,46 +4091,7 @@
           this.log(`Post density set: ${count}`);
         }
       }
-      logMetrics() {
-        if (CONFIG.debug) {
-          this.log('Current metrics:', {
-            totalPolls: this.metrics.totalPolls,
-            totalSkips: this.metrics.totalSkips,
-            totalPostsProcessed: this.metrics.totalPostsProcessed,
-            avgPostsProcessed: this.metrics.avgPostsProcessed.toFixed(2),
-            totalScrolls: this.metrics.totalScrolls,
-            bottomReachedCount: this.metrics.bottomReachedCount,
-            totalScans: this.metrics.totalScans,
-            totalScansManual: this.metrics.totalScansManual,
-            totalScansAuto: this.metrics.totalScansAuto,
-            scanDurationSum: this.metrics.scanDurationSum.toFixed(2),
-            scanDurationSumManual:
-              this.metrics.scanDurationSumManual.toFixed(2),
-            scanDurationSumAuto: this.metrics.scanDurationSumAuto.toFixed(2),
-            avgScanDuration: this.metrics.avgScanDuration.toFixed(2),
-            avgScanDurationManual:
-              this.metrics.avgScanDurationManual.toFixed(2),
-            avgScanDurationAuto: this.metrics.avgScanDurationAuto.toFixed(2),
-            maxScanDuration: this.metrics.maxScanDuration.toFixed(2),
-            totalTabChecks: this.metrics.totalTabChecks,
-            tabCheckDurationSum: this.metrics.tabCheckDurationSum.toFixed(2),
-            avgTabCheckDuration: this.metrics.avgTabCheckDuration.toFixed(2),
-            rateLimitCount: this.metrics.rateLimitCount,
-            cellInnerDivCount: this.metrics.cellInnerDivCount,
-            containerFinds: this.metrics.containerFinds,
-            containerDetectionAttempts: this.metrics.containerDetectionAttempts,
-            containerFoundTimestamp:
-              this.metrics.containerFoundTimestamp?.toFixed(2),
-            initialWaitTime: this.metrics.initialWaitTime?.toFixed(2),
-            postDensity: this.metrics.postDensity,
-            pageType: this.metrics.pageType,
-            sessionStarts: this.metrics.sessionStarts,
-            sessionStops: this.metrics.sessionStops,
-            avgSessionDuration: this.metrics.avgSessionDuration.toFixed(2),
-            metricsHistoryLength: this.metricsHistory.length,
-          });
-        }
-      }
+      logMetrics() {}
     };
     return MetricsMonitor;
   })();

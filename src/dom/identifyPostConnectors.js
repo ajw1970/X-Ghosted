@@ -1,6 +1,7 @@
 import { postConnector } from "../utils/postConnector";
 import { postConnectorNameGetter } from "../utils/postConnectorNameGetter";
 import { postQuality } from "../utils/postQuality";
+import { domUtils } from "./domUtils.js";
 
 // Configuration for DOM selectors
 const SELECTORS = {
@@ -12,15 +13,6 @@ const SELECTORS = {
   REPLYING_TO: ".r-4qtqp9.r-zl2h9q",
 };
 
-/**
- * Identifies the connector type for a post
- * @param {HTMLElement} post - The post DOM element
- * @param {postQuality} quality - The quality of the post
- * @param {boolean} [containsSystemNotice=false] - Whether the post contains a system notice
- * @param {postConnector | false} [previousPostConnector=false] - The previous post's connector
- * @param {Function} [logger=console.log] - Logger function
- * @returns {postConnector} The-->
- */
 function identifyPostConnectors(
   post,
   quality,
@@ -46,7 +38,7 @@ function identifyPostConnectors(
 
   // Check for community context
   const hasCommunityContext =
-    post.querySelector(SELECTORS.COMMUNITY_CONTEXT) !== null;
+    domUtils.querySelector(SELECTORS.COMMUNITY_CONTEXT, post) !== null;
 
   // Check for indentation, excluding community context
   const hasIndent = hasIndentation(post, hasCommunityContext);
@@ -66,46 +58,24 @@ function identifyPostConnectors(
   return postConnector.INDEPENDENT;
 }
 
-/**
- * Checks if the post has a vertical connecting line
- * @param {HTMLElement} post
- * @returns {boolean}
- */
 function hasVerticalLine(post) {
-  return post.querySelector(SELECTORS.VERTICAL_LINE) !== null;
+  return domUtils.querySelector(SELECTORS.VERTICAL_LINE, post) !== null;
 }
 
-/**
- * Checks if the post has indentation (excluding community context)
- * @param {HTMLElement} post
- * @param {boolean} hasCommunityContext
- * @returns {boolean}
- */
 function hasIndentation(post, hasCommunityContext) {
-  const container = post.querySelector(SELECTORS.CONTAINER);
+  const container = domUtils.querySelector(SELECTORS.CONTAINER, post);
   return (
     container?.querySelector(SELECTORS.INDENTATION) && !hasCommunityContext
   );
 }
 
-/**
- * Checks if the post is a reply (has "Replying to" div)
- * @param {HTMLElement} post
- * @returns {boolean}
- */
 function isReplyingTo(post) {
-  return post.querySelector(SELECTORS.REPLYING_TO) !== null;
+  return domUtils.querySelector(SELECTORS.REPLYING_TO, post) !== null;
 }
 
-/**
- * Classifies posts with vertical lines
- * @param {HTMLElement} post
- * @param {postQuality} quality
- * @param {Function} logger
- * @returns {postConnector}
- */
 function classifyVerticalLinePost(post, quality, logger) {
-  const isReply = post.querySelector(SELECTORS.REPLY_INDICATOR) !== null;
+  const isReply =
+    domUtils.querySelector(SELECTORS.REPLY_INDICATOR, post) !== null;
 
   if (isReply || quality === postQuality.UNDEFINED) {
     logger(
@@ -118,13 +88,6 @@ function classifyVerticalLinePost(post, quality, logger) {
   return postConnector.STARTS;
 }
 
-/**
- * Classifies placeholder posts
- * @param {postConnector | false} previousPostConnector
- * @param {boolean} hasIndent
- * @param {Function} logger
- * @returns {postConnector}
- */
 function classifyPlaceholderPost(previousPostConnector, hasIndent, logger) {
   if (
     !hasIndent &&

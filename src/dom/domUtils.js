@@ -17,4 +17,11 @@ export const domUtils = {
   removeEventListener(element, event, handler, options = {}) {
     element.removeEventListener(event, handler, options);
   },
+  closest(element, selector) {
+    let current = element;
+    while (current && !current.matches(selector)) {
+      current = current.parentElement;
+    }
+    return current;
+  },
 };
