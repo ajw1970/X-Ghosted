@@ -359,6 +359,48 @@
       [EVENTS.SAVE_METRICS]: {},
     };
 
+    // src/dom/domUtils.js
+    var domUtils = {
+      querySelector(selector, doc = document) {
+        return doc.querySelector(selector);
+      },
+      querySelectorAll(selector, doc = document) {
+        return doc.querySelectorAll(selector);
+      },
+      createElement(tag, doc = document) {
+        return doc.createElement(tag);
+      },
+      addEventListener(element, event, handler, options = {}) {
+        element.addEventListener(event, handler, options);
+      },
+      dispatchEvent(element, event) {
+        element.dispatchEvent(event);
+      },
+      removeEventListener(element, event, handler, options = {}) {
+        element.removeEventListener(event, handler, options);
+      },
+      closest(element, selector) {
+        let current = element;
+        while (current && !current.matches(selector)) {
+          current = current.parentElement;
+        }
+        return current;
+      },
+      scrollBy(options, win = window) {
+        win.scrollBy(options);
+      },
+      getScrollY(win = window) {
+        return win.scrollY;
+      },
+      getInnerHeight(win = window) {
+        return win.innerHeight;
+      },
+      POSTS_IN_DOCUMENT: `div[data-testid="cellInnerDiv"]`,
+      POST_CONTAINER_SELECTOR: 'div[data-xghosted="posts-container"]',
+      POSTS_IN_CONTAINER_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]`,
+      UNPROCESSED_POSTS_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`,
+    };
+
     // src/utils/PollingManager.js
     var PollingManager = class {
       constructor({ document: document2, xGhosted, timing, log }) {
@@ -430,20 +472,20 @@
         );
       }
       performSmoothScroll() {
-        const beforeScrollY = window.scrollY;
+        const beforeScrollY = domUtils.getScrollY();
         this.log('Performing smooth scroll down...');
         this.state.scrolls++;
         this.log('Scroll count: ' + this.state.scrolls);
         const scrollAmount =
           this.state.idleCycleCount >= 3
-            ? window.innerHeight
-            : window.innerHeight * 0.9;
-        window.scrollBy({
+            ? domUtils.getInnerHeight()
+            : domUtils.getInnerHeight() * 0.9;
+        domUtils.scrollBy({
           top: scrollAmount,
           behavior: CONFIG.smoothScrolling ? 'smooth' : 'auto',
         });
         if (CONFIG.debug) {
-          const afterScrollY = window.scrollY;
+          const afterScrollY = domUtils.getScrollY();
           if (afterScrollY === beforeScrollY) {
             this.log('Scroll attempt failed: scrollY unchanged');
           } else {
@@ -457,31 +499,25 @@
           this.log('Polling already active, updating state only');
           return;
         }
-        this.emit(EVENTS.SCANNING_STATE_UPDATED, {
-          isPostScanningEnabled: this.state.isPostScanningEnabled,
-        });
+        let containerFound = false;
+        let containerAttempted = false;
+        let postsProcessed = 0;
         const pollCycle = async () => {
-          const currentUrl = this.document.location.href;
-          if (CONFIG.debug) {
-            this.log(
-              `Checking URL: current=${currentUrl}, last=${this.xGhosted.state.lastUrlFullPath}`
-            );
+          if (!this.document.body) {
+            this.log('No document body, retrying...');
+            this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
+            return;
           }
-          await this.checkUrlDebounced(currentUrl);
-          let cellInnerDivCount = 0;
-          let containerFound = false;
-          let containerAttempted = false;
-          let postsProcessed = 0;
-          const container = this.xGhosted.getPostContainer();
-          if (container) {
-            cellInnerDivCount = this.xGhosted.getCellInnerDivCount();
-            if (
-              CONFIG.debug &&
-              cellInnerDivCount !== this.state.lastCellInnerDivCount
-            ) {
+          const urlChanged = await this.xGhosted.checkUrl(window.location.href);
+          let cellInnerDivCount = urlChanged
+            ? 0
+            : this.xGhosted.getCellInnerDivCount();
+          if (cellInnerDivCount !== this.state.lastCellInnerDivCount) {
+            if (CONFIG.debug) {
               this.log(`cellInnerDivCount: ${cellInnerDivCount}`);
             }
-          } else {
+          }
+          if (!containerFound) {
             containerAttempted = true;
             containerFound = this.xGhosted.findPostContainer();
             if (containerFound) {
@@ -531,13 +567,15 @@
             const interval = this.state.userRequestedAutoScrolling
               ? this.timing.scrollInterval
               : this.timing.pollInterval;
-            this.emit(EVENTS.RECORD_SCAN, {
-              duration,
-              postsProcessed,
-              wasSkipped: postsProcessed === 0,
-              interval,
-              isAutoScrolling: this.state.userRequestedAutoScrolling,
-            });
+            if (this.state.userRequestedAutoScrolling || postsProcessed > 0) {
+              this.emit(EVENTS.RECORD_SCAN, {
+                duration,
+                postsProcessed,
+                wasSkipped: postsProcessed === 0,
+                interval,
+                isAutoScrolling: this.state.userRequestedAutoScrolling,
+              });
+            }
           } else if (
             cellInnerDivCount !== this.state.lastCellInnerDivCount &&
             CONFIG.debug
@@ -571,7 +609,8 @@
             const previousPostCount = cellInnerDivCount;
             this.performSmoothScroll();
             const bottomReached =
-              window.innerHeight + window.scrollY >= document.body.scrollHeight;
+              domUtils.getScrollY() + domUtils.getInnerHeight() >=
+              this.document.body.scrollHeight;
             const newPostCount = this.xGhosted.getCellInnerDivCount();
             this.emit(EVENTS.RECORD_SCROLL, { bottomReached });
             if (bottomReached || this.state.idleCycleCount >= 3) {
@@ -821,39 +860,6 @@
       UNDEFINED: Object.freeze({ name: 'Nothing to measure', value: 5 }),
       GOOD: Object.freeze({ name: 'Looks good', value: 5 }),
     });
-
-    // src/dom/domUtils.js
-    var domUtils = {
-      querySelector(selector, doc = document) {
-        return doc.querySelector(selector);
-      },
-      querySelectorAll(selector, doc = document) {
-        return doc.querySelectorAll(selector);
-      },
-      createElement(tag, doc = document) {
-        return doc.createElement(tag);
-      },
-      addEventListener(element, event, handler, options = {}) {
-        element.addEventListener(event, handler, options);
-      },
-      dispatchEvent(element, event) {
-        element.dispatchEvent(event);
-      },
-      removeEventListener(element, event, handler, options = {}) {
-        element.removeEventListener(event, handler, options);
-      },
-      closest(element, selector) {
-        let current = element;
-        while (current && !current.matches(selector)) {
-          current = current.parentElement;
-        }
-        return current;
-      },
-      POSTS_IN_DOCUMENT: `div[data-testid="cellInnerDiv"]`,
-      POST_CONTAINER_SELECTOR: 'div[data-xghosted="posts-container"]',
-      POSTS_IN_CONTAINER_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]`,
-      UNPROCESSED_POSTS_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`,
-    };
 
     // src/dom/extractUserFromLink.js
     function extractUserFromLink(link) {
@@ -1723,11 +1729,7 @@
           log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
         }
         this.state.isHighlighting = false;
-        emit(EVENTS.RECORD_HIGHLIGHT, {
-          duration: performance.now() - start,
-          wasSkipped: postsProcessed === 0,
-        });
-        return results;
+        return { results, postsProcessed };
       }
       processPost(
         post,

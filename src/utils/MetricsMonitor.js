@@ -61,7 +61,7 @@ class MetricsMonitor {
         this.timing = { ...this.timing, ...config.timing };
       }
     );
-
+  
     domUtils.addEventListener(
       this.document,
       EVENTS.RECORD_POLL,
@@ -135,7 +135,7 @@ class MetricsMonitor {
       URL.revokeObjectURL(url);
       this.log("Exported timing history as JSON");
     });
-
+  
     domUtils.addEventListener(
       this.document,
       EVENTS.SCANNING_STATE_UPDATED,

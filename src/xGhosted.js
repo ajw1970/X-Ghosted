@@ -343,9 +343,11 @@ class XGhosted {
         this.document
       );
     const processedIds = new Set();
-
+  
     if (debug) {
-      log(`Processing ${postsToProcess.length} posts, checkReplies: ${checkReplies}`);
+      log(
+        `Processing ${postsToProcess.length} posts, checkReplies: ${checkReplies}`
+      );
     }
 
     let previousPostQuality = null;
@@ -377,12 +379,7 @@ class XGhosted {
     }
 
     this.state.isHighlighting = false;
-    emit(EVENTS.RECORD_HIGHLIGHT, {
-      duration: performance.now() - start,
-      wasSkipped: postsProcessed === 0,
-    });
-
-    return results;
+    return { results, postsProcessed };
   }
 
   processPost(

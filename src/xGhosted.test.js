@@ -63,7 +63,7 @@ describe("XGhosted DOM Updates", () => {
     const posts = document.querySelectorAll(domUtils.POSTS_IN_DOCUMENT);
 
     // Call processUnprocessedPosts with mocked dependencies and checkReplies: true
-    xGhosted.processUnprocessedPosts(
+    const { postsProcessed } = xGhosted.processUnprocessedPosts(
       posts,
       true,
       CONFIG.debug,
@@ -142,15 +142,8 @@ describe("XGhosted DOM Updates", () => {
       const expectedClass = `xghosted-${qualityName}`;
       const expectedDataAttr = `postquality.${qualityName}`;
 
-      /*       // Debug log to trace link value
-      console.log(
-        `Post ${index} expected link: ${expected.link}, actual link: ${post.getAttribute("data-xghosted-id")}`
-      ); */
-
-      // Check data-xghosted attribute
       expect(post.getAttribute("data-xghosted")).toBe(expectedDataAttr);
 
-      // Check data-xghosted-id attribute
       if (
         expected.quality === PROBLEM &&
         expected.link &&
@@ -167,10 +160,8 @@ describe("XGhosted DOM Updates", () => {
         expect(post.getAttribute("data-xghosted-id")).toBe("");
       }
 
-      // Check CSS class
       expect(post.classList.contains(expectedClass)).toBe(true);
 
-      // Check eyeball for POTENTIAL_PROBLEM posts
       if (expected.quality === POTENTIAL_PROBLEM) {
         const shareButtonContainer = post.querySelector(
           'button[aria-label="Share post"]'
@@ -191,9 +182,6 @@ describe("XGhosted DOM Updates", () => {
       }
     });
 
-    // Debug: Log all emitted events
-    console.log("Emitted events:", mockEmit.mock.calls);
-
     // Verify emit calls for POST_REGISTERED
     const registeredPosts = expectedAnalyses.filter(
       (analysis) =>
@@ -201,7 +189,7 @@ describe("XGhosted DOM Updates", () => {
         analysis.quality !== DIVIDER &&
         analysis.link !== "false"
     );
-    expect(mockEmit).toHaveBeenCalledTimes(registeredPosts.length + 2); // 7 POST_REGISTERED + SAVE_METRICS + RECORD_HIGHLIGHT
+    expect(mockEmit).toHaveBeenCalledTimes(registeredPosts.length + 1); // 7 POST_REGISTERED + SAVE_METRICS
     registeredPosts.forEach((analysis) => {
       expect(mockEmit).toHaveBeenCalledWith(EVENTS.POST_REGISTERED, {
         href: analysis.link,
@@ -216,15 +204,11 @@ describe("XGhosted DOM Updates", () => {
       });
     });
 
-    // Verify SAVE_METRICS and RECORD_HIGHLIGHT were emitted
+    // Verify SAVE_METRICS was emitted
     expect(mockEmit).toHaveBeenCalledWith(EVENTS.SAVE_METRICS, {});
-    expect(mockEmit).toHaveBeenCalledWith(
-      EVENTS.RECORD_HIGHLIGHT,
-      expect.objectContaining({
-        duration: expect.any(Number),
-        wasSkipped: false,
-      })
-    );
+
+    // Verify postsProcessed return value
+    expect(postsProcessed).toBe(7);
   });
 
   test("processUnprocessedPosts applies correct data-xghosted attributes, classes, and no eyeballs with checkReplies false", () => {
@@ -234,7 +218,7 @@ describe("XGhosted DOM Updates", () => {
     const posts = document.querySelectorAll(domUtils.POSTS_IN_DOCUMENT);
 
     // Call processUnprocessedPosts with mocked dependencies and checkReplies: false
-    xGhosted.processUnprocessedPosts(
+    const { postsProcessed } = xGhosted.processUnprocessedPosts(
       posts,
       false,
       CONFIG.debug,
@@ -313,15 +297,8 @@ describe("XGhosted DOM Updates", () => {
       const expectedClass = `xghosted-${qualityName}`;
       const expectedDataAttr = `postquality.${qualityName}`;
 
-      /*       // Debug log to trace link value
-      console.log(
-        `Post ${index} expected link: ${expected.link}, actual link: ${post.getAttribute("data-xghosted-id")}`
-      ); */
-
-      // Check data-xghosted attribute
       expect(post.getAttribute("data-xghosted")).toBe(expectedDataAttr);
 
-      // Check data-xghosted-id attribute
       if (
         expected.quality === PROBLEM &&
         expected.link &&
@@ -338,10 +315,8 @@ describe("XGhosted DOM Updates", () => {
         expect(post.getAttribute("data-xghosted-id")).toBe("");
       }
 
-      // Check CSS class
       expect(post.classList.contains(expectedClass)).toBe(true);
 
-      // Check no eyeballs (no POTENTIAL_PROBLEM posts)
       const shareButtonContainer = post.querySelector(
         'button[aria-label="Share post"]'
       )?.parentElement;
@@ -352,9 +327,6 @@ describe("XGhosted DOM Updates", () => {
       }
     });
 
-    // Debug: Log all emitted events
-    console.log("Emitted events:", mockEmit.mock.calls);
-
     // Verify emit calls for POST_REGISTERED
     const registeredPosts = expectedAnalyses.filter(
       (analysis) =>
@@ -362,7 +334,7 @@ describe("XGhosted DOM Updates", () => {
         analysis.quality !== DIVIDER &&
         analysis.link !== "false"
     );
-    expect(mockEmit).toHaveBeenCalledTimes(registeredPosts.length + 2); // 7 POST_REGISTERED + SAVE_METRICS + RECORD_HIGHLIGHT
+    expect(mockEmit).toHaveBeenCalledTimes(registeredPosts.length + 1); // 7 POST_REGISTERED + SAVE_METRICS
     registeredPosts.forEach((analysis) => {
       expect(mockEmit).toHaveBeenCalledWith(EVENTS.POST_REGISTERED, {
         href: analysis.link,
@@ -377,14 +349,36 @@ describe("XGhosted DOM Updates", () => {
       });
     });
 
-    // Verify SAVE_METRICS and RECORD_HIGHLIGHT were emitted
+    // Verify SAVE_METRICS was emitted
     expect(mockEmit).toHaveBeenCalledWith(EVENTS.SAVE_METRICS, {});
-    expect(mockEmit).toHaveBeenCalledWith(
-      EVENTS.RECORD_HIGHLIGHT,
-      expect.objectContaining({
-        duration: expect.any(Number),
-        wasSkipped: false,
-      })
+
+    // Verify postsProcessed return value
+    expect(postsProcessed).toBe(7);
+  });
+
+  test("processUnprocessedPosts returns correct postsProcessed count", () => {
+    const posts = document.querySelectorAll(domUtils.POSTS_IN_DOCUMENT);
+
+    // Test with non-empty posts
+    const { postsProcessed } = xGhosted.processUnprocessedPosts(
+      posts,
+      true,
+      CONFIG.debug,
+      mockLog,
+      mockEmit
     );
+    expect(postsProcessed).toBe(7);
+
+    // Test with empty posts
+    mockEmit.mockClear();
+    const { postsProcessed: emptyPostsProcessed } =
+      xGhosted.processUnprocessedPosts(
+        [],
+        true,
+        CONFIG.debug,
+        mockLog,
+        mockEmit
+      );
+    expect(emptyPostsProcessed).toBe(0);
   });
 });

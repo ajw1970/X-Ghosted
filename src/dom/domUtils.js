@@ -24,6 +24,15 @@ export const domUtils = {
     }
     return current;
   },
+  scrollBy(options, win = window) {
+    win.scrollBy(options);
+  },
+  getScrollY(win = window) {
+    return win.scrollY;
+  },
+  getInnerHeight(win = window) {
+    return win.innerHeight;
+  },
   POSTS_IN_DOCUMENT: `div[data-testid="cellInnerDiv"]`,
   POST_CONTAINER_SELECTOR: 'div[data-xghosted="posts-container"]',
   POSTS_IN_CONTAINER_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]`,

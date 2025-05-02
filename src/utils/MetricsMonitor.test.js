@@ -24,7 +24,6 @@ describe("MetricsMonitor", () => {
       storage: mockStorage,
       document: mockDocument,
     });
-    // Reset mocks
     mockDocument.addEventListener.mockReset();
     mockDocument.dispatchEvent.mockReset();
     vi.clearAllMocks();

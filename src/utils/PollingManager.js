@@ -1,6 +1,7 @@
 import { debounce } from "./debounce.js";
 import { CONFIG } from "../config.js";
 import { EVENTS } from "../events.js";
+import { domUtils } from "../dom/domUtils.js";
 
 class PollingManager {
   constructor({ document, xGhosted, timing, log }) {
@@ -10,7 +11,8 @@ class PollingManager {
     this.log = log || console.log.bind(console);
     this.state = {
       isPostScanningEnabled: CONFIG.timing.isPostScanningEnabledOnStartup,
-      userRequestedAutoScrolling: CONFIG.timing.userRequestedAutoScrollOnStartup,
+      userRequestedAutoScrolling:
+        CONFIG.timing.userRequestedAutoScrollOnStartup,
       noPostsFoundCount: 0,
       lastCellInnerDivCount: 0,
       idleCycleCount: 0,
@@ -76,20 +78,20 @@ class PollingManager {
   }
 
   performSmoothScroll() {
-    const beforeScrollY = window.scrollY;
+    const beforeScrollY = domUtils.getScrollY();
     this.log("Performing smooth scroll down...");
     this.state.scrolls++;
     this.log("Scroll count: " + this.state.scrolls);
     const scrollAmount =
       this.state.idleCycleCount >= 3
-        ? window.innerHeight
-        : window.innerHeight * 0.9;
-    window.scrollBy({
+        ? domUtils.getInnerHeight()
+        : domUtils.getInnerHeight() * 0.9;
+    domUtils.scrollBy({
       top: scrollAmount,
       behavior: CONFIG.smoothScrolling ? "smooth" : "auto",
     });
     if (CONFIG.debug) {
-      const afterScrollY = window.scrollY;
+      const afterScrollY = domUtils.getScrollY();
       if (afterScrollY === beforeScrollY) {
         this.log("Scroll attempt failed: scrollY unchanged");
       } else {
@@ -105,34 +107,28 @@ class PollingManager {
       return;
     }
 
-    this.emit(EVENTS.SCANNING_STATE_UPDATED, {
-      isPostScanningEnabled: this.state.isPostScanningEnabled,
-    });
+    let containerFound = false;
+    let containerAttempted = false;
+    let postsProcessed = 0;
 
     const pollCycle = async () => {
-      const currentUrl = this.document.location.href;
-      if (CONFIG.debug) {
-        this.log(
-          `Checking URL: current=${currentUrl}, last=${this.xGhosted.state.lastUrlFullPath}`
-        );
+      if (!this.document.body) {
+        this.log("No document body, retrying...");
+        this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
+        return;
       }
-      await this.checkUrlDebounced(currentUrl);
 
-      let cellInnerDivCount = 0;
-      let containerFound = false;
-      let containerAttempted = false;
-      let postsProcessed = 0;
-
-      const container = this.xGhosted.getPostContainer();
-      if (container) {
-        cellInnerDivCount = this.xGhosted.getCellInnerDivCount();
-        if (
-          CONFIG.debug &&
-          cellInnerDivCount !== this.state.lastCellInnerDivCount
-        ) {
+      const urlChanged = await this.xGhosted.checkUrl(window.location.href);
+      let cellInnerDivCount = urlChanged
+        ? 0
+        : this.xGhosted.getCellInnerDivCount();
+      if (cellInnerDivCount !== this.state.lastCellInnerDivCount) {
+        if (CONFIG.debug) {
           this.log(`cellInnerDivCount: ${cellInnerDivCount}`);
         }
-      } else {
+      }
+
+      if (!containerFound) {
         containerAttempted = true;
         containerFound = this.xGhosted.findPostContainer();
         if (containerFound) {
@@ -183,13 +179,15 @@ class PollingManager {
         const interval = this.state.userRequestedAutoScrolling
           ? this.timing.scrollInterval
           : this.timing.pollInterval;
-        this.emit(EVENTS.RECORD_SCAN, {
-          duration,
-          postsProcessed,
-          wasSkipped: postsProcessed === 0,
-          interval,
-          isAutoScrolling: this.state.userRequestedAutoScrolling,
-        });
+        if (this.state.userRequestedAutoScrolling || postsProcessed > 0) {
+          this.emit(EVENTS.RECORD_SCAN, {
+            duration,
+            postsProcessed,
+            wasSkipped: postsProcessed === 0,
+            interval,
+            isAutoScrolling: this.state.userRequestedAutoScrolling,
+          });
+        }
       } else if (
         cellInnerDivCount !== this.state.lastCellInnerDivCount &&
         CONFIG.debug
@@ -225,7 +223,8 @@ class PollingManager {
         const previousPostCount = cellInnerDivCount;
         this.performSmoothScroll();
         const bottomReached =
-          window.innerHeight + window.scrollY >= document.body.scrollHeight;
+          domUtils.getScrollY() + domUtils.getInnerHeight() >=
+          this.document.body.scrollHeight;
         const newPostCount = this.xGhosted.getCellInnerDivCount();
         this.emit(EVENTS.RECORD_SCROLL, { bottomReached });
         if (bottomReached || this.state.idleCycleCount >= 3) {
