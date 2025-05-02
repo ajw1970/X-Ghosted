@@ -2497,7 +2497,7 @@
     }
     window.Panel = Panel;
 
-    // src/ui/PanelManager.js
+    // src/ui/Modal.jsx
     function Modal({ isOpen, onClose, onSubmit, mode, config }) {
       const [csvText, setCsvText] = window.preactHooks.useState('');
       const handleFileChange = (e) => {
@@ -2592,6 +2592,8 @@
       );
     }
     window.Modal = Modal;
+
+    // src/ui/PanelManager.js
     window.PanelManager = function (
       doc,
       themeMode = 'light',
