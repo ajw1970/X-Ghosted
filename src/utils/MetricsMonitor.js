@@ -44,6 +44,8 @@ class MetricsMonitor {
       avgSessionDuration: 0,
       currentSessionStart: null,
     };
+    this.isPostScanningEnabled = CONFIG.timing.isPostScanningEnabledOnStartup;
+    this.lastScanningState = null; // To track changes in scanning state
     this.initialWaitTimeSet = false;
     this.hasSetDensity = false;
     this.metricsHistory = [];
@@ -133,6 +135,19 @@ class MetricsMonitor {
       URL.revokeObjectURL(url);
       this.log("Exported timing history as JSON");
     });
+
+    domUtils.addEventListener(
+      this.document,
+      EVENTS.SCANNING_STATE_UPDATED,
+      ({ detail: { isPostScanningEnabled } }) => {
+        this.isPostScanningEnabled = isPostScanningEnabled;
+        if (CONFIG.debug) {
+          this.log(
+            `MetricsMonitor: Scanning state updated to ${isPostScanningEnabled}`
+          );
+        }
+      }
+    );
   }
 
   recordPoll({
@@ -141,16 +156,40 @@ class MetricsMonitor {
     containerFound,
     containerAttempted,
     pageType,
-    isScanningStarted,
-    isScanningStopped,
     cellInnerDivCount,
   }) {
-    const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-    if (skipped) {
+    if (!this.isPostScanningEnabled) {
       if (CONFIG.debug) {
-        this.log("Skipping RECORD_POLL: post scanning is disabled");
+        this.log("Skipping RECORD_POLL: Post scanning is disabled");
       }
       return;
+    }
+
+    // Detect session start/stop based on state changes
+    if (this.lastScanningState === null) {
+      this.lastScanningState = this.isPostScanningEnabled;
+    } else if (this.isPostScanningEnabled !== this.lastScanningState) {
+      if (this.isPostScanningEnabled) {
+        this.metrics.sessionStarts++;
+        this.metrics.currentSessionStart = performance.now();
+        this.log(
+          `Polling session started (count: ${this.metrics.sessionStarts})`
+        );
+      } else {
+        if (this.metrics.currentSessionStart !== null) {
+          this.metrics.sessionStops++;
+          const duration = performance.now() - this.metrics.currentSessionStart;
+          this.metrics.sessionDurationSum += duration;
+          this.metrics.avgSessionDuration = this.metrics.sessionStops
+            ? this.metrics.sessionDurationSum / this.metrics.sessionStops
+            : 0;
+          this.log(
+            `Polling session stopped (duration: ${duration.toFixed(2)}ms)`
+          );
+          this.metrics.currentSessionStart = null;
+        }
+      }
+      this.lastScanningState = this.isPostScanningEnabled;
     }
 
     this.metrics.totalPolls++;
@@ -172,24 +211,6 @@ class MetricsMonitor {
     }
     this.metrics.pageType = pageType;
     this.metrics.cellInnerDivCount = cellInnerDivCount || 0;
-
-    if (isScanningStarted) {
-      this.metrics.sessionStarts++;
-      this.metrics.currentSessionStart = performance.now();
-      this.log(
-        `Polling session started (count: ${this.metrics.sessionStarts})`
-      );
-    }
-    if (isScanningStopped && this.metrics.currentSessionStart !== null) {
-      this.metrics.sessionStops++;
-      const duration = performance.now() - this.metrics.currentSessionStart;
-      this.metrics.sessionDurationSum += duration;
-      this.metrics.avgSessionDuration = this.metrics.sessionStops
-        ? this.metrics.sessionDurationSum / this.metrics.sessionStops
-        : 0;
-      this.log(`Polling session stopped (duration: ${duration.toFixed(2)}ms)`);
-      this.metrics.currentSessionStart = null;
-    }
 
     this.metricsHistory.push({
       totalPolls: this.metrics.totalPolls,
@@ -242,10 +263,9 @@ class MetricsMonitor {
   }
 
   recordScroll({ bottomReached }) {
-    const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-    if (skipped) {
+    if (!this.isPostScanningEnabled) {
       if (CONFIG.debug) {
-        this.log("Skipping RECORD_SCROLL: post scanning is disabled");
+        this.log("Skipping RECORD_SCROLL: Post scanning is disabled");
       }
       return;
     }
@@ -257,6 +277,8 @@ class MetricsMonitor {
       totalSkips: this.metrics.totalSkips,
       totalPostsProcessed: this.metrics.totalPostsProcessed,
       avgPostsProcessed: this.metrics.avgPostsProcessed,
+      totalScrolls: this.metrics.totalScrolls,
+      bottomReachedCount: this.metrics.bottomReachedCount,
       totalScans: this.metrics.totalScans,
       totalScansManual: this.metrics.totalScansManual,
       totalScansAuto: this.metrics.totalScansAuto,
@@ -294,10 +316,9 @@ class MetricsMonitor {
     interval,
     isAutoScrolling,
   }) {
-    const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-    if (skipped) {
+    if (!this.isPostScanningEnabled) {
       if (CONFIG.debug) {
-        this.log("Skipping RECORD_SCAN: post scanning is disabled");
+        this.log("Skipping RECORD_SCAN: Post scanning is disabled");
       }
       return;
     }
@@ -344,7 +365,7 @@ class MetricsMonitor {
       totalSkips: this.metrics.totalSkips,
       totalPostsProcessed: this.metrics.totalPostsProcessed,
       avgPostsProcessed: this.metrics.avgPostsProcessed,
-      totalScrolls: this.metrics.totalScans,
+      totalScrolls: this.metrics.totalScrolls,
       bottomReachedCount: this.metrics.bottomReachedCount,
       totalScans: this.metrics.totalScans,
       totalScansManual: this.metrics.totalScansManual,
@@ -388,10 +409,9 @@ class MetricsMonitor {
   }
 
   recordTabCheck({ duration, success, rateLimited, attempts }) {
-    const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-    if (skipped) {
+    if (!this.isPostScanningEnabled) {
       if (CONFIG.debug) {
-        this.log("Skipping RECORD_TAB_CHECK: post scanning is disabled");
+        this.log("Skipping RECORD_TAB_CHECK: Post scanning is disabled");
       }
       return;
     }

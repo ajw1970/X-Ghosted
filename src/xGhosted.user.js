@@ -28,6 +28,8 @@
       rateLimitPause: 20000,
       pollInterval: 500,
       scrollInterval: 800,
+      isPostScanningEnabledOnStartup: true,
+      userRequestedAutoScrollOnStartup: false,
     },
     showSplash: true,
     logTarget: 'tampermonkey',
@@ -239,6 +241,10 @@
         rateLimitPause: 20 * 1e3,
         pollInterval: 500,
         scrollInterval: 800,
+        isPostScanningEnabledOnStartup: true,
+        // Default: scanning enabled on startup
+        userRequestedAutoScrollOnStartup: false,
+        // Default: disabled on startup
       },
       showSplash: true,
       logTarget: 'tampermonkey',
@@ -361,8 +367,9 @@
         this.timing = { ...CONFIG.timing, ...timing };
         this.log = log || console.log.bind(console);
         this.state = {
-          isPostScanningEnabled: true,
-          userRequestedAutoScrolling: false,
+          isPostScanningEnabled: CONFIG.timing.isPostScanningEnabledOnStartup,
+          userRequestedAutoScrolling:
+            CONFIG.timing.userRequestedAutoScrollOnStartup,
           noPostsFoundCount: 0,
           lastCellInnerDivCount: 0,
           idleCycleCount: 0,
@@ -450,6 +457,9 @@
           this.log('Polling already active, updating state only');
           return;
         }
+        this.emit(EVENTS.SCANNING_STATE_UPDATED, {
+          isPostScanningEnabled: this.state.isPostScanningEnabled,
+        });
         const pollCycle = async () => {
           const currentUrl = this.document.location.href;
           if (CONFIG.debug) {
@@ -2611,8 +2621,9 @@
         isPanelVisible: true,
         isRateLimited: false,
         isManualCheckEnabled: false,
-        isPostScanningEnabled: true,
-        userRequestedAutoScrolling: false,
+        isPostScanningEnabled: CONFIG.timing.isPostScanningEnabledOnStartup,
+        userRequestedAutoScrolling:
+          CONFIG.timing.userRequestedAutoScrollOnStartup,
         themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
         hasSeenSplash: false,
         userProfileName: null,
@@ -3696,6 +3707,9 @@
           avgSessionDuration: 0,
           currentSessionStart: null,
         };
+        this.isPostScanningEnabled =
+          CONFIG.timing.isPostScanningEnabledOnStartup;
+        this.lastScanningState = null;
         this.initialWaitTimeSet = false;
         this.hasSetDensity = false;
         this.metricsHistory = [];
@@ -3779,6 +3793,18 @@
           URL.revokeObjectURL(url);
           this.log('Exported timing history as JSON');
         });
+        domUtils.addEventListener(
+          this.document,
+          EVENTS.SCANNING_STATE_UPDATED,
+          ({ detail: { isPostScanningEnabled } }) => {
+            this.isPostScanningEnabled = isPostScanningEnabled;
+            if (CONFIG.debug) {
+              this.log(
+                `MetricsMonitor: Scanning state updated to ${isPostScanningEnabled}`
+              );
+            }
+          }
+        );
       }
       recordPoll({
         postsProcessed,
@@ -3786,16 +3812,39 @@
         containerFound,
         containerAttempted,
         pageType,
-        isScanningStarted,
-        isScanningStopped,
         cellInnerDivCount,
       }) {
-        const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-        if (skipped) {
+        if (!this.isPostScanningEnabled) {
           if (CONFIG.debug) {
-            this.log('Skipping RECORD_POLL: post scanning is disabled');
+            this.log('Skipping RECORD_POLL: Post scanning is disabled');
           }
           return;
+        }
+        if (this.lastScanningState === null) {
+          this.lastScanningState = this.isPostScanningEnabled;
+        } else if (this.isPostScanningEnabled !== this.lastScanningState) {
+          if (this.isPostScanningEnabled) {
+            this.metrics.sessionStarts++;
+            this.metrics.currentSessionStart = performance.now();
+            this.log(
+              `Polling session started (count: ${this.metrics.sessionStarts})`
+            );
+          } else {
+            if (this.metrics.currentSessionStart !== null) {
+              this.metrics.sessionStops++;
+              const duration =
+                performance.now() - this.metrics.currentSessionStart;
+              this.metrics.sessionDurationSum += duration;
+              this.metrics.avgSessionDuration = this.metrics.sessionStops
+                ? this.metrics.sessionDurationSum / this.metrics.sessionStops
+                : 0;
+              this.log(
+                `Polling session stopped (duration: ${duration.toFixed(2)}ms)`
+              );
+              this.metrics.currentSessionStart = null;
+            }
+          }
+          this.lastScanningState = this.isPostScanningEnabled;
         }
         this.metrics.totalPolls++;
         if (wasSkipped) this.metrics.totalSkips++;
@@ -3817,25 +3866,6 @@
         }
         this.metrics.pageType = pageType;
         this.metrics.cellInnerDivCount = cellInnerDivCount || 0;
-        if (isScanningStarted) {
-          this.metrics.sessionStarts++;
-          this.metrics.currentSessionStart = performance.now();
-          this.log(
-            `Polling session started (count: ${this.metrics.sessionStarts})`
-          );
-        }
-        if (isScanningStopped && this.metrics.currentSessionStart !== null) {
-          this.metrics.sessionStops++;
-          const duration = performance.now() - this.metrics.currentSessionStart;
-          this.metrics.sessionDurationSum += duration;
-          this.metrics.avgSessionDuration = this.metrics.sessionStops
-            ? this.metrics.sessionDurationSum / this.metrics.sessionStops
-            : 0;
-          this.log(
-            `Polling session stopped (duration: ${duration.toFixed(2)}ms)`
-          );
-          this.metrics.currentSessionStart = null;
-        }
         this.metricsHistory.push({
           totalPolls: this.metrics.totalPolls,
           totalSkips: this.metrics.totalSkips,
@@ -3883,10 +3913,9 @@
         this.logMetrics();
       }
       recordScroll({ bottomReached }) {
-        const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-        if (skipped) {
+        if (!this.isPostScanningEnabled) {
           if (CONFIG.debug) {
-            this.log('Skipping RECORD_SCROLL: post scanning is disabled');
+            this.log('Skipping RECORD_SCROLL: Post scanning is disabled');
           }
           return;
         }
@@ -3897,6 +3926,8 @@
           totalSkips: this.metrics.totalSkips,
           totalPostsProcessed: this.metrics.totalPostsProcessed,
           avgPostsProcessed: this.metrics.avgPostsProcessed,
+          totalScrolls: this.metrics.totalScrolls,
+          bottomReachedCount: this.metrics.bottomReachedCount,
           totalScans: this.metrics.totalScans,
           totalScansManual: this.metrics.totalScansManual,
           totalScansAuto: this.metrics.totalScansAuto,
@@ -3932,10 +3963,9 @@
         interval,
         isAutoScrolling,
       }) {
-        const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-        if (skipped) {
+        if (!this.isPostScanningEnabled) {
           if (CONFIG.debug) {
-            this.log('Skipping RECORD_SCAN: post scanning is disabled');
+            this.log('Skipping RECORD_SCAN: Post scanning is disabled');
           }
           return;
         }
@@ -3977,7 +4007,7 @@
           totalSkips: this.metrics.totalSkips,
           totalPostsProcessed: this.metrics.totalPostsProcessed,
           avgPostsProcessed: this.metrics.avgPostsProcessed,
-          totalScrolls: this.metrics.totalScans,
+          totalScrolls: this.metrics.totalScrolls,
           bottomReachedCount: this.metrics.bottomReachedCount,
           totalScans: this.metrics.totalScans,
           totalScansManual: this.metrics.totalScansManual,
@@ -4017,10 +4047,9 @@
         this.logMetrics();
       }
       recordTabCheck({ duration, success, rateLimited, attempts }) {
-        const skipped = !window.XGhosted?.state?.isPostScanningEnabled;
-        if (skipped) {
+        if (!this.isPostScanningEnabled) {
           if (CONFIG.debug) {
-            this.log('Skipping RECORD_TAB_CHECK: post scanning is disabled');
+            this.log('Skipping RECORD_TAB_CHECK: Post scanning is disabled');
           }
           return;
         }

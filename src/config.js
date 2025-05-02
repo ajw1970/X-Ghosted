@@ -7,6 +7,8 @@ export const CONFIG = {
     rateLimitPause: 20 * 1000,
     pollInterval: 500,
     scrollInterval: 800,
+    isPostScanningEnabledOnStartup: true, // Default: scanning enabled on startup
+    userRequestedAutoScrollOnStartup: false, // Default: disabled on startup
   },
   showSplash: true,
   logTarget: "tampermonkey",

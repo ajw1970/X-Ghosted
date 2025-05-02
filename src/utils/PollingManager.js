@@ -9,8 +9,8 @@ class PollingManager {
     this.timing = { ...CONFIG.timing, ...timing };
     this.log = log || console.log.bind(console);
     this.state = {
-      isPostScanningEnabled: true,
-      userRequestedAutoScrolling: false,
+      isPostScanningEnabled: CONFIG.timing.isPostScanningEnabledOnStartup,
+      userRequestedAutoScrolling: CONFIG.timing.userRequestedAutoScrollOnStartup,
       noPostsFoundCount: 0,
       lastCellInnerDivCount: 0,
       idleCycleCount: 0,
@@ -104,6 +104,10 @@ class PollingManager {
       this.log("Polling already active, updating state only");
       return;
     }
+
+    this.emit(EVENTS.SCANNING_STATE_UPDATED, {
+      isPostScanningEnabled: this.state.isPostScanningEnabled,
+    });
 
     const pollCycle = async () => {
       const currentUrl = this.document.location.href;
