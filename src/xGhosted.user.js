@@ -849,6 +849,10 @@
         }
         return current;
       },
+      POSTS_IN_DOCUMENT: `div[data-testid="cellInnerDiv"]`,
+      POST_CONTAINER_SELECTOR: 'div[data-xghosted="posts-container"]',
+      POSTS_IN_CONTAINER_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]`,
+      UNPROCESSED_POSTS_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`,
     };
 
     // src/dom/extractUserFromLink.js
@@ -1353,21 +1357,8 @@
       PollingManager,
       domUtils,
     } = window.XGhostedUtils;
-    var __defProp = Object.defineProperty;
-    var __defNormalProp = (obj, key, value) =>
-      key in obj
-        ? __defProp(obj, key, {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value,
-          })
-        : (obj[key] = value);
-    var __publicField = (obj, key, value) =>
-      __defNormalProp(obj, typeof key !== 'symbol' ? key + '' : key, value);
-
     // src/xGhosted.js
-    var _XGhosted = class _XGhosted {
+    var XGhosted = class {
       constructor({ document: document2, window, config = {} }) {
         this.timing = { ...CONFIG.timing, ...config.timing };
         this.document = document2;
@@ -1575,7 +1566,7 @@
       }
       getPostContainer() {
         return domUtils.querySelector(
-          _XGhosted.POST_CONTAINER_SELECTOR,
+          domUtils.POST_CONTAINER_SELECTOR,
           this.document
         );
       }
@@ -1589,13 +1580,13 @@
       }
       getCellInnerDivCount() {
         return domUtils.querySelectorAll(
-          _XGhosted.POSTS_IN_CONTAINER_SELECTOR,
+          domUtils.POSTS_IN_CONTAINER_SELECTOR,
           this.document
         ).length;
       }
       getUnprocessedPosts() {
         return domUtils.querySelectorAll(
-          _XGhosted.UNPROCESSED_POSTS_SELECTOR,
+          domUtils.UNPROCESSED_POSTS_SELECTOR,
           this.document
         );
       }
@@ -1695,7 +1686,7 @@
         const postsToProcess =
           posts ||
           domUtils.querySelectorAll(
-            _XGhosted.UNPROCESSED_POSTS_SELECTOR,
+            domUtils.UNPROCESSED_POSTS_SELECTOR,
             this.document
           );
         const processedIds = /* @__PURE__ */ new Set();
@@ -1903,7 +1894,7 @@
             if (
               this.document.body &&
               domUtils.querySelectorAll(
-                _XGhosted.POSTS_IN_DOCUMENT,
+                domUtils.POSTS_IN_DOCUMENT,
                 this.document
               ).length > 0
             ) {
@@ -1943,27 +1934,6 @@
         }
       }
     };
-    __publicField(
-      _XGhosted,
-      'POSTS_IN_DOCUMENT',
-      `div[data-testid="cellInnerDiv"]`
-    );
-    __publicField(
-      _XGhosted,
-      'POST_CONTAINER_SELECTOR',
-      'div[data-xghosted="posts-container"]'
-    );
-    __publicField(
-      _XGhosted,
-      'POSTS_IN_CONTAINER_SELECTOR',
-      `${_XGhosted.POST_CONTAINER_SELECTOR} ${_XGhosted.POSTS_IN_DOCUMENT}`
-    );
-    __publicField(
-      _XGhosted,
-      'UNPROCESSED_POSTS_SELECTOR',
-      `${_XGhosted.POSTS_IN_CONTAINER_SELECTOR}:not([data-xghosted-id])`
-    );
-    var XGhosted = _XGhosted;
     return XGhosted;
   })();
   window.SplashPanel = (function () {

@@ -24,4 +24,8 @@ export const domUtils = {
     }
     return current;
   },
+  POSTS_IN_DOCUMENT: `div[data-testid="cellInnerDiv"]`,
+  POST_CONTAINER_SELECTOR: 'div[data-xghosted="posts-container"]',
+  POSTS_IN_CONTAINER_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]`,
+  UNPROCESSED_POSTS_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`,
 };

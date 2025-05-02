@@ -47,11 +47,6 @@ class XGhosted {
     });
   }
 
-  static POSTS_IN_DOCUMENT = `div[data-testid="cellInnerDiv"]`;
-  static POST_CONTAINER_SELECTOR = 'div[data-xghosted="posts-container"]';
-  static POSTS_IN_CONTAINER_SELECTOR = `${XGhosted.POST_CONTAINER_SELECTOR} ${XGhosted.POSTS_IN_DOCUMENT}`;
-  static UNPROCESSED_POSTS_SELECTOR = `${XGhosted.POSTS_IN_CONTAINER_SELECTOR}:not([data-xghosted-id])`;
-
   emit(eventName, data) {
     domUtils.dispatchEvent(
       this.document,
@@ -224,7 +219,7 @@ class XGhosted {
 
   getPostContainer() {
     return domUtils.querySelector(
-      XGhosted.POST_CONTAINER_SELECTOR,
+      domUtils.POST_CONTAINER_SELECTOR,
       this.document
     );
   }
@@ -240,14 +235,14 @@ class XGhosted {
 
   getCellInnerDivCount() {
     return domUtils.querySelectorAll(
-      XGhosted.POSTS_IN_CONTAINER_SELECTOR,
+      domUtils.POSTS_IN_CONTAINER_SELECTOR,
       this.document
     ).length;
   }
 
   getUnprocessedPosts() {
     return domUtils.querySelectorAll(
-      XGhosted.UNPROCESSED_POSTS_SELECTOR,
+      domUtils.UNPROCESSED_POSTS_SELECTOR,
       this.document
     );
   }
@@ -348,7 +343,7 @@ class XGhosted {
     const postsToProcess =
       posts ||
       domUtils.querySelectorAll(
-        XGhosted.UNPROCESSED_POSTS_SELECTOR,
+        domUtils.UNPROCESSED_POSTS_SELECTOR,
         this.document
       );
     const processedIds = new Set();
@@ -572,7 +567,7 @@ class XGhosted {
       const checkDomInterval = setInterval(() => {
         if (
           this.document.body &&
-          domUtils.querySelectorAll(XGhosted.POSTS_IN_DOCUMENT, this.document)
+          domUtils.querySelectorAll(domUtils.POSTS_IN_DOCUMENT, this.document)
             .length > 0
         ) {
           const foundContainer = this.findPostContainer();
