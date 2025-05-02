@@ -1690,6 +1690,11 @@
             this.document
           );
         const processedIds = /* @__PURE__ */ new Set();
+        if (debug) {
+          log(
+            `Processing ${postsToProcess.length} posts, checkReplies: ${checkReplies}`
+          );
+        }
         let previousPostQuality = null;
         let previousPostConnector = null;
         for (const post of postsToProcess) {
@@ -1783,18 +1788,21 @@
             log(`No share button container found for post with href: ${id}`);
           }
         }
-        const postId = connectedPostAnalysis.link;
-        if (postId && !processedIds.has(id)) {
+        if (id && id !== 'false' && !processedIds.has(id)) {
           processedIds.add(id);
+          if (debug) {
+            log(
+              `Emitting POST_REGISTERED for id: ${id}, processedIds:`,
+              Array.from(processedIds)
+            );
+          }
           emit(EVENTS.POST_REGISTERED, {
-            href: postId,
+            href: id,
             data: { analysis: connectedPostAnalysis, checked: false },
           });
-        } else if (debug && postId) {
+        } else if (debug && id && id !== 'false') {
           const snippet = post.textContent.slice(0, 50).replace(/\n/g, ' ');
-          log(
-            `Duplicate post skipped: ${id} (postId: ${postId}, snippet: "${snippet}")`
-          );
+          log(`Duplicate post skipped: ${id} (snippet: "${snippet}")`);
         }
         return {
           analysis: connectedPostAnalysis,

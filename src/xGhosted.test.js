@@ -4,6 +4,7 @@ import { postQuality } from "./utils/postQuality.js";
 import { CONFIG } from "./config.js";
 import { EVENTS } from "./events.js";
 import { postQualityNameGetter } from "./utils/postQualityNameGetter.js";
+import { domUtils } from "./dom/domUtils.js";
 
 // Mock ProcessedPostsManager to simulate cache behavior
 const mockProcessedPostsManager = {
@@ -59,7 +60,7 @@ describe("XGhosted DOM Updates", () => {
     const { GOOD, PROBLEM, POTENTIAL_PROBLEM, DIVIDER } = postQuality;
 
     // Get all posts
-    const posts = document.querySelectorAll(XGhosted.POSTS_IN_DOCUMENT);
+    const posts = document.querySelectorAll(domUtils.POSTS_IN_DOCUMENT);
 
     // Call processUnprocessedPosts with mocked dependencies and checkReplies: true
     xGhosted.processUnprocessedPosts(
@@ -89,7 +90,7 @@ describe("XGhosted DOM Updates", () => {
       },
       {
         quality: PROBLEM,
-        link: "/ajweltytest/status/1901080866002014636", // As per gold-standard
+        link: "/ajweltytest/status/1901080866002014636",
         reason: "Found notice: this post is unavailable",
       },
       {
@@ -172,7 +173,7 @@ describe("XGhosted DOM Updates", () => {
       // Check eyeball for POTENTIAL_PROBLEM posts
       if (expected.quality === POTENTIAL_PROBLEM) {
         const shareButtonContainer = post.querySelector(
-          'button[aria-label="Share post'
+          'button[aria-label="Share post"]'
         )?.parentElement;
         expect(shareButtonContainer).toBeTruthy();
         expect(
@@ -190,6 +191,9 @@ describe("XGhosted DOM Updates", () => {
       }
     });
 
+    // Debug: Log all emitted events
+    console.log("Emitted events:", mockEmit.mock.calls);
+
     // Verify emit calls for POST_REGISTERED
     const registeredPosts = expectedAnalyses.filter(
       (analysis) =>
@@ -197,7 +201,7 @@ describe("XGhosted DOM Updates", () => {
         analysis.quality !== DIVIDER &&
         analysis.link !== "false"
     );
-    expect(mockEmit).toHaveBeenCalledTimes(registeredPosts.length + 2); // +2 for SAVE_METRICS and RECORD_HIGHLIGHT
+    expect(mockEmit).toHaveBeenCalledTimes(registeredPosts.length + 2); // 7 POST_REGISTERED + SAVE_METRICS + RECORD_HIGHLIGHT
     registeredPosts.forEach((analysis) => {
       expect(mockEmit).toHaveBeenCalledWith(EVENTS.POST_REGISTERED, {
         href: analysis.link,
@@ -227,7 +231,7 @@ describe("XGhosted DOM Updates", () => {
     const { GOOD, PROBLEM, DIVIDER } = postQuality;
 
     // Get all posts
-    const posts = document.querySelectorAll(XGhosted.POSTS_IN_DOCUMENT);
+    const posts = document.querySelectorAll(domUtils.POSTS_IN_DOCUMENT);
 
     // Call processUnprocessedPosts with mocked dependencies and checkReplies: false
     xGhosted.processUnprocessedPosts(
@@ -257,7 +261,7 @@ describe("XGhosted DOM Updates", () => {
       },
       {
         quality: PROBLEM,
-        link: "/ajweltytest/status/1901080866002014636", // As per gold-standard
+        link: "/ajweltytest/status/1901080866002014636",
         reason: "Found notice: this post is unavailable",
       },
       {
@@ -266,7 +270,7 @@ describe("XGhosted DOM Updates", () => {
         reason: "Invisible Divider Between Post Collections",
       },
       {
-        quality: GOOD, // Was POTENTIAL_PROBLEM with checkReplies: true
+        quality: GOOD,
         link: "/ajweltytest/status/1899820959197995180",
         reason: "Looks good",
       },
@@ -276,7 +280,7 @@ describe("XGhosted DOM Updates", () => {
         reason: "Invisible Divider Between Post Collections",
       },
       {
-        quality: GOOD, // Was POTENTIAL_PROBLEM with checkReplies: true
+        quality: GOOD,
         link: "/ajweltytest/status/1899820920266535120",
         reason: "Looks good",
       },
@@ -348,6 +352,9 @@ describe("XGhosted DOM Updates", () => {
       }
     });
 
+    // Debug: Log all emitted events
+    console.log("Emitted events:", mockEmit.mock.calls);
+
     // Verify emit calls for POST_REGISTERED
     const registeredPosts = expectedAnalyses.filter(
       (analysis) =>
@@ -355,7 +362,7 @@ describe("XGhosted DOM Updates", () => {
         analysis.quality !== DIVIDER &&
         analysis.link !== "false"
     );
-    expect(mockEmit).toHaveBeenCalledTimes(registeredPosts.length + 2); // +2 for SAVE_METRICS and RECORD_HIGHLIGHT
+    expect(mockEmit).toHaveBeenCalledTimes(registeredPosts.length + 2); // 7 POST_REGISTERED + SAVE_METRICS + RECORD_HIGHLIGHT
     registeredPosts.forEach((analysis) => {
       expect(mockEmit).toHaveBeenCalledWith(EVENTS.POST_REGISTERED, {
         href: analysis.link,

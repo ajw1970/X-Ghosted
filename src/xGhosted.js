@@ -109,9 +109,7 @@ class XGhosted {
   }
 
   async userRequestedPostCheck(href, post) {
-    this.log(
-      `User requested check for ${href}, post=${post ? "found" : "null"}`
-    );
+    this.log(`User requested check for ${href}, post=${post ? "found" : "null"}`);
     const cached = await this.waitForPostRetrieved(href);
     this.log(
       `Cached post for ${href}: quality=${cached?.analysis?.quality?.name || "none"}, checked=${cached?.checked || false}`
@@ -310,9 +308,7 @@ class XGhosted {
           if (attempts >= maxAttempts) {
             clearInterval(checkInterval);
             if (newWindow) newWindow.close();
-            this.log(
-              `Failed to process ${href} within ${maxAttempts} attempts`
-            );
+            this.log(`Failed to process ${href} within ${maxAttempts} attempts`);
             const duration = performance.now() - start;
             this.emit(EVENTS.RECORD_TAB_CHECK, {
               duration,
@@ -347,6 +343,10 @@ class XGhosted {
         this.document
       );
     const processedIds = new Set();
+
+    if (debug) {
+      log(`Processing ${postsToProcess.length} posts, checkReplies: ${checkReplies}`);
+    }
 
     let previousPostQuality = null;
     let previousPostConnector = null;
@@ -449,17 +449,19 @@ class XGhosted {
       }
     }
 
-    const postId = connectedPostAnalysis.link;
-    if (postId && !processedIds.has(id)) {
+    if (id && id !== "false" && !processedIds.has(id)) {
       processedIds.add(id);
+      if (debug) {
+        log(`Emitting POST_REGISTERED for id: ${id}, processedIds:`, Array.from(processedIds));
+      }
       emit(EVENTS.POST_REGISTERED, {
-        href: postId,
+        href: id,
         data: { analysis: connectedPostAnalysis, checked: false },
       });
-    } else if (debug && postId) {
+    } else if (debug && id && id !== "false") {
       const snippet = post.textContent.slice(0, 50).replace(/\n/g, " ");
       log(
-        `Duplicate post skipped: ${id} (postId: ${postId}, snippet: "${snippet}")`
+        `Duplicate post skipped: ${id} (snippet: "${snippet}")`
       );
     }
 
@@ -541,9 +543,7 @@ class XGhosted {
       })
     );
 
-    this.emit(EVENTS.STATE_UPDATED, {
-      isRateLimited: this.state.isRateLimited,
-    });
+    this.emit(EVENTS.STATE_UPDATED, { isRateLimited: this.state.isRateLimited });
 
     const styleSheet = domUtils.createElement("style", this.document);
     styleSheet.textContent = `
