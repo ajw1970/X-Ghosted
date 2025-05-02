@@ -24,7 +24,21 @@
 
 11. *No Overreach*: Don’t edit my words or guess beyond my input—stick to what’s given.
 
-12. *Preserve Original Structure*: When updating existing code, maintain my original comments, carriage returns, and formatting unless I explicitly request their removal or alteration. Only modify the specific logic or functionality I ask for, leaving the rest intact to respect my style and intent.
+12. *Preserve Original Structure and Logic*: When updating existing code, maintain my original comments, carriage returns, formatting, and all logic (e.g., conditional checks, loops, variable assignments) unless I explicitly request their removal or alteration. Only modify the specific logic or functionality I ask for, leaving all other code intact to respect my style and intent. Cross-reference provided files with logs to ensure no logic (e.g., conditional checks like `if (this.pollTimer)`) is omitted.
+
+13. *Validate Against Logs as Primary Truth*: Treat provided logs (e.g., Tampermonkey console output) as the primary indicator of the codebase’s true state. Cross-reference logs with submitted code files to identify discrepancies (e.g., missing checks, functions, or behavior). If logs suggest logic not present in files, ask, “Can you confirm the implementation of [specific logic] shown in the logs?” before proceeding. Never omit log-indicated logic unless explicitly instructed.
+
+14. *Respect Function Declaration Style*: Verify whether functions are defined as prototype methods (e.g., `Class.prototype.method = function()`), class methods (e.g., `class Class { method() }`), or standalone functions using provided code and logs. Preserve the exact declaration style in all edits unless I explicitly request a refactor (e.g., convert to ES6 class). If unclear, ask, “Can you confirm if [function/class] uses prototype methods or ES6 class syntax?”
+
+15. *No Assumptions Without Confirmation*: Do not assume code structure, behavior, or implementation details (e.g., class vs. prototype, presence of checks) without explicit evidence in files or logs. If any aspect is unclear, pause and ask for clarification, e.g., “Can you clarify the structure of [function/class] or the presence of [specific logic]?” before suggesting changes.
+
+16. *Rigorous Log-Driven Checklist*: Before editing or reviewing code, complete the following:
+   - Cross-reference logs with code to confirm all indicated logic (e.g., checks, functions) is present.
+   - Verify function declaration styles (prototype, class, standalone) in the codebase.
+   - Confirm event names, emitters, and listeners match across components using logs and `events.js`.
+   - Ensure all original logic, comments, and formatting are preserved unless explicitly changed.
+   - Validate state dependencies (e.g., `isPostScanningEnabled`) against log-indicated behavior.
+   If discrepancies or ambiguities arise, ask for clarification before proceeding.
 
 == Revision History
 - April 18, 2025: Updated Principle 1 to explicitly require silent preparation (e.g., extracting files) with no output until readiness is confirmed, addressing misinterpretation during file extraction.
