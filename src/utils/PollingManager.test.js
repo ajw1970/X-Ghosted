@@ -152,7 +152,7 @@ describe("PollingManager", () => {
       );
     });
 
-    test("skips RECORD_SCAN when isPostScanningEnabled is false", async () => {
+    test("skips RECORD_SCAN when scanning is disabled after initialization", async () => {
       pollingManager.state.isPostScanningEnabled = false;
       pollingManager.state.userRequestedAutoScrolling = false;
       mockXGhosted.getUnprocessedPosts.mockReturnValue([{}, {}]);
@@ -162,6 +162,7 @@ describe("PollingManager", () => {
       });
 
       pollingManager.startPolling();
+      pollingManager.setPostScanning(false); // Disable scanning synchronously
       await vi.advanceTimersByTimeAsync(CONFIG.timing.pollInterval);
 
       expect(mockDocument.dispatchEvent).not.toHaveBeenCalledWith(
@@ -174,6 +175,28 @@ describe("PollingManager", () => {
         expect.objectContaining({
           type: EVENTS.RECORD_POLL,
           detail: expect.any(Object),
+        })
+      );
+    });
+
+    test("startPolling initializes scanning via initializePostScanning", async () => {
+      pollingManager.startPolling();
+      expect(pollingManager.state.isPostScanningEnabled).toBe(true);
+      expect(mockLog).toHaveBeenCalledWith("Initializing post scanning...");
+      expect(mockLog).toHaveBeenCalledWith(
+        "Post Scanning enabled, state: isPostScanningEnabled=true"
+      );
+      expect(mockDocument.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: EVENTS.SCANNING_STATE_UPDATED,
+          detail: { isPostScanningEnabled: true },
+        })
+      );
+      await vi.advanceTimersByTimeAsync(CONFIG.timing.pollInterval);
+      expect(mockDocument.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: EVENTS.RECORD_POLL,
+          detail: expect.objectContaining({ wasSkipped: false }),
         })
       );
     });

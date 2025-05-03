@@ -28,7 +28,7 @@
       rateLimitPause: 20000,
       pollInterval: 500,
       scrollInterval: 800,
-      isPostScanningEnabledOnStartup: true,
+      isPostScanningEnabledOnStartup: false,
       userRequestedAutoScrollOnStartup: false,
     },
     showSplash: true,
@@ -241,10 +241,9 @@
         rateLimitPause: 20 * 1e3,
         pollInterval: 500,
         scrollInterval: 800,
-        isPostScanningEnabledOnStartup: true,
-        // Default: scanning enabled on startup
+        isPostScanningEnabledOnStartup: false,
+        // We'll send an event to change to true on the first heartbeat poll
         userRequestedAutoScrollOnStartup: false,
-        // Default: disabled on startup
       },
       showSplash: true,
       logTarget: 'tampermonkey',
@@ -252,7 +251,6 @@
       linkPrefix: 'https://x.com',
       debug: false,
       smoothScrolling: true,
-      // Reverted to smooth scrolling
     };
 
     // src/events.js
@@ -453,6 +451,10 @@
           this.startPolling();
         }
       }
+      initializePostScanning() {
+        this.log('Initializing post scanning...');
+        this.setPostScanning(true);
+      }
       setAutoScrolling(enabled) {
         if (enabled && !this.state.isPostScanningEnabled) {
           this.log('Cannot enable auto-scrolling: polling is disabled');
@@ -631,6 +633,7 @@
           `Starting polling with interval ${this.timing.pollInterval}ms...`
         );
         this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
+        this.initializePostScanning();
       }
       emit(eventName, data) {
         this.document.dispatchEvent(

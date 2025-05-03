@@ -58,6 +58,11 @@ class PollingManager {
     }
   }
 
+  initializePostScanning() {
+    this.log("Initializing post scanning...");
+    this.setPostScanning(true);
+  }
+
   setAutoScrolling(enabled) {
     if (enabled && !this.state.isPostScanningEnabled) {
       this.log("Cannot enable auto-scrolling: polling is disabled");
@@ -244,6 +249,7 @@ class PollingManager {
 
     this.log(`Starting polling with interval ${this.timing.pollInterval}ms...`);
     this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
+    this.initializePostScanning();
   }
 
   emit(eventName, data) {

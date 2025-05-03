@@ -7,13 +7,13 @@ export const CONFIG = {
     rateLimitPause: 20 * 1000,
     pollInterval: 500,
     scrollInterval: 800,
-    isPostScanningEnabledOnStartup: true, // Default: scanning enabled on startup
-    userRequestedAutoScrollOnStartup: false, // Default: disabled on startup
+    isPostScanningEnabledOnStartup: false, // We'll send an event to change to true on the first heartbeat poll
+    userRequestedAutoScrollOnStartup: false,
   },
   showSplash: true,
   logTarget: "tampermonkey",
   persistProcessedPosts: false,
   linkPrefix: "https://x.com",
   debug: false,
-  smoothScrolling: true, // Reverted to smooth scrolling
+  smoothScrolling: true,
 };
