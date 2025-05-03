@@ -1467,6 +1467,7 @@
         this.log(
           `User requested check for ${href}, post=${post ? 'found' : 'null'}`
         );
+        this.emit(EVENTS.SET_SCANNING, { enabled: false });
         const cached = await this.waitForPostRetrieved(href);
         this.log(
           `Cached post for ${href}: quality=${cached?.analysis?.quality?.name || 'none'}, checked=${cached?.checked || false}`
