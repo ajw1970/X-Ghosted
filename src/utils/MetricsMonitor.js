@@ -129,18 +129,21 @@ class MetricsMonitor {
     });
 
     domUtils.addEventListener(this.document, EVENTS.EXPORT_METRICS, () => {
-      // Aggregate any remaining data in the windows before export
+      // Capture current state of windows before aggregating
+      const nonAggregatedRecords = {
+        polls: [...this.pollWindow],
+        scansManual: [...this.scanWindowManual],
+        scansAuto: [...this.scanWindowAuto],
+        tabChecks: [...this.tabCheckWindow],
+      };
+
+      // Aggregate any remaining data in the windows
       this.aggregateMetrics();
 
       // Combine aggregated history with non-aggregated records
       const exportData = {
         aggregatedHistory: this.metricsHistory,
-        nonAggregatedRecords: {
-          polls: this.pollWindow,
-          scansManual: this.scanWindowManual,
-          scansAuto: this.scanWindowAuto,
-          tabChecks: this.tabCheckWindow,
-        },
+        nonAggregatedRecords: nonAggregatedRecords,
       };
 
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {

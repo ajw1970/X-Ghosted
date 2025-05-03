@@ -37,6 +37,7 @@
     linkPrefix: 'https://x.com',
     debug: false,
     smoothScrolling: true,
+    scrollPercentage: 0.9,
   };
 
   // Event constants for consistent event naming across components
@@ -241,6 +242,7 @@
         rateLimitPause: 20 * 1e3,
         pollInterval: 500,
         scrollInterval: 800,
+        // 1250,
         isPostScanningEnabledOnStartup: false,
         // We'll send an event to change to true on the first heartbeat poll
         userRequestedAutoScrollOnStartup: false,
@@ -251,6 +253,7 @@
       linkPrefix: 'https://x.com',
       debug: false,
       smoothScrolling: true,
+      scrollPercentage: 0.9,
     };
 
     // src/events.js
@@ -477,7 +480,7 @@
         const scrollAmount =
           this.state.idleCycleCount >= 3
             ? domUtils.getInnerHeight()
-            : domUtils.getInnerHeight() * 0.9;
+            : domUtils.getInnerHeight() * CONFIG.scrollPercentage;
         domUtils.scrollBy({
           top: scrollAmount,
           behavior: CONFIG.smoothScrolling ? 'smooth' : 'auto',
@@ -3798,15 +3801,16 @@
           );
         });
         domUtils.addEventListener(this.document, EVENTS.EXPORT_METRICS, () => {
+          const nonAggregatedRecords = {
+            polls: [...this.pollWindow],
+            scansManual: [...this.scanWindowManual],
+            scansAuto: [...this.scanWindowAuto],
+            tabChecks: [...this.tabCheckWindow],
+          };
           this.aggregateMetrics();
           const exportData = {
             aggregatedHistory: this.metricsHistory,
-            nonAggregatedRecords: {
-              polls: this.pollWindow,
-              scansManual: this.scanWindowManual,
-              scansAuto: this.scanWindowAuto,
-              tabChecks: this.tabCheckWindow,
-            },
+            nonAggregatedRecords,
           };
           const blob = new Blob([JSON.stringify(exportData, null, 2)], {
             type: 'application/json',

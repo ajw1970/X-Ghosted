@@ -86,7 +86,7 @@ class PollingManager {
     const scrollAmount =
       this.state.idleCycleCount >= 3
         ? domUtils.getInnerHeight()
-        : domUtils.getInnerHeight() * 0.9;
+        : domUtils.getInnerHeight() * CONFIG.scrollPercentage;
     domUtils.scrollBy({
       top: scrollAmount,
       behavior: CONFIG.smoothScrolling ? "smooth" : "auto",
