@@ -617,9 +617,9 @@
             this.emit(EVENTS.RECORD_SCROLL, { bottomReached });
             if (bottomReached || this.state.idleCycleCount >= 3) {
               this.log(
-                `Stopping auto-scrolling: ${bottomReached ? 'reached page bottom' : '3 idle cycles'}`
+                `Stopping post scanning: ${bottomReached ? 'reached page bottom' : '3 idle cycles'}`
               );
-              this.setAutoScrolling(false);
+              this.setPostScanning(false);
             }
             this.pollTimer = setTimeout(pollCycle, this.timing.scrollInterval);
           } else {
