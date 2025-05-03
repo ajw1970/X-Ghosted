@@ -45,7 +45,7 @@ class MetricsMonitor {
       currentSessionStart: null,
     };
     this.isPostScanningEnabled = CONFIG.timing.isPostScanningEnabledOnStartup;
-    this.lastScanningState = null; // To track changes in scanning state
+    this.lastScanningState = null;
     this.initialWaitTimeSet = false;
     this.hasSetDensity = false;
     this.metricsHistory = [];
@@ -61,7 +61,7 @@ class MetricsMonitor {
         this.timing = { ...this.timing, ...config.timing };
       }
     );
-  
+
     domUtils.addEventListener(
       this.document,
       EVENTS.RECORD_POLL,
@@ -135,7 +135,7 @@ class MetricsMonitor {
       URL.revokeObjectURL(url);
       this.log("Exported timing history as JSON");
     });
-  
+
     domUtils.addEventListener(
       this.document,
       EVENTS.SCANNING_STATE_UPDATED,
@@ -165,7 +165,6 @@ class MetricsMonitor {
       return;
     }
 
-    // Detect session start/stop based on state changes
     if (this.lastScanningState === null) {
       this.lastScanningState = this.isPostScanningEnabled;
     } else if (this.isPostScanningEnabled !== this.lastScanningState) {
@@ -409,13 +408,6 @@ class MetricsMonitor {
   }
 
   recordTabCheck({ duration, success, rateLimited, attempts }) {
-    if (!this.isPostScanningEnabled) {
-      if (CONFIG.debug) {
-        this.log("Skipping RECORD_TAB_CHECK: Post scanning is disabled");
-      }
-      return;
-    }
-
     this.metrics.totalTabChecks++;
     this.metrics.tabCheckDurationSum += duration;
     this.metrics.avgTabCheckDuration = this.metrics.totalTabChecks
@@ -477,8 +469,12 @@ class MetricsMonitor {
     this.logMetrics();
   }
 
+  logMetrics() {
+    // Implementation of logMetrics remains unchanged
+  }
+
   setInitialWaitTime(time) {
-    if (!this.initialWaitTimeSet && time !== null) {
+    if (!this.initialWaitTimeSet) {
       this.metrics.initialWaitTime = time;
       this.initialWaitTimeSet = true;
       this.log(`Initial wait time set: ${time}ms`);
@@ -486,15 +482,11 @@ class MetricsMonitor {
   }
 
   setPostDensity(count) {
-    if (!this.hasSetDensity && count !== null) {
+    if (!this.hasSetDensity) {
       this.metrics.postDensity = count;
       this.hasSetDensity = true;
       this.log(`Post density set: ${count}`);
     }
-  }
-
-  logMetrics() {
-    // Implementation unchanged, omitted for brevity
   }
 }
 

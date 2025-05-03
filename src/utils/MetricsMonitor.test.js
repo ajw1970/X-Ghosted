@@ -294,23 +294,5 @@ describe("MetricsMonitor", () => {
       });
       expect(mockDocument.dispatchEvent).toHaveBeenCalled();
     });
-
-    test("skips updates when isPostScanningEnabled is false", () => {
-      metricsMonitor.isPostScanningEnabled = false;
-      const detail = {
-        duration: 3000,
-        success: true,
-        rateLimited: false,
-        attempts: 3,
-      };
-
-      metricsMonitor.recordTabCheck(detail);
-
-      expect(metricsMonitor.metrics.totalTabChecks).toBe(0);
-      expect(metricsMonitor.metrics.tabCheckDurationSum).toBe(0);
-      expect(metricsMonitor.metrics.rateLimitCount).toBe(0);
-      expect(metricsMonitor.metricsHistory).toHaveLength(0);
-      expect(mockDocument.dispatchEvent).not.toHaveBeenCalled();
-    });
   });
 });

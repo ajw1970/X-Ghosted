@@ -4061,12 +4061,6 @@
         this.logMetrics();
       }
       recordTabCheck({ duration, success, rateLimited, attempts }) {
-        if (!this.isPostScanningEnabled) {
-          if (CONFIG.debug) {
-            this.log('Skipping RECORD_TAB_CHECK: Post scanning is disabled');
-          }
-          return;
-        }
         this.metrics.totalTabChecks++;
         this.metrics.tabCheckDurationSum += duration;
         this.metrics.avgTabCheckDuration = this.metrics.totalTabChecks
@@ -4122,21 +4116,21 @@
         );
         this.logMetrics();
       }
+      logMetrics() {}
       setInitialWaitTime(time) {
-        if (!this.initialWaitTimeSet && time !== null) {
+        if (!this.initialWaitTimeSet) {
           this.metrics.initialWaitTime = time;
           this.initialWaitTimeSet = true;
           this.log(`Initial wait time set: ${time}ms`);
         }
       }
       setPostDensity(count) {
-        if (!this.hasSetDensity && count !== null) {
+        if (!this.hasSetDensity) {
           this.metrics.postDensity = count;
           this.hasSetDensity = true;
           this.log(`Post density set: ${count}`);
         }
       }
-      logMetrics() {}
     };
     return MetricsMonitor;
   })();
