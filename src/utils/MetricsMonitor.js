@@ -49,6 +49,11 @@ class MetricsMonitor {
     this.initialWaitTimeSet = false;
     this.hasSetDensity = false;
     this.metricsHistory = [];
+    this.pollWindow = [];
+    this.scanWindowManual = [];
+    this.scanWindowAuto = [];
+    this.tabCheckWindow = [];
+    this.AGGREGATION_THRESHOLD = 100; // Aggregate every 100 polls
     this.log("MetricsMonitor initialized");
     this.initEventListeners();
   }
@@ -124,7 +129,21 @@ class MetricsMonitor {
     });
 
     domUtils.addEventListener(this.document, EVENTS.EXPORT_METRICS, () => {
-      const blob = new Blob([JSON.stringify(this.metricsHistory, null, 2)], {
+      // Aggregate any remaining data in the windows before export
+      this.aggregateMetrics();
+
+      // Combine aggregated history with non-aggregated records
+      const exportData = {
+        aggregatedHistory: this.metricsHistory,
+        nonAggregatedRecords: {
+          polls: this.pollWindow,
+          scansManual: this.scanWindowManual,
+          scansAuto: this.scanWindowAuto,
+          tabChecks: this.tabCheckWindow,
+        },
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
         type: "application/json",
       });
       const url = URL.createObjectURL(blob);
@@ -211,40 +230,19 @@ class MetricsMonitor {
     this.metrics.pageType = pageType;
     this.metrics.cellInnerDivCount = cellInnerDivCount || 0;
 
-    this.metricsHistory.push({
+    this.pollWindow.push({
       totalPolls: this.metrics.totalPolls,
       totalSkips: this.metrics.totalSkips,
       totalPostsProcessed: this.metrics.totalPostsProcessed,
       avgPostsProcessed: this.metrics.avgPostsProcessed,
-      totalScrolls: this.metrics.totalScrolls,
-      bottomReachedCount: this.metrics.bottomReachedCount,
-      totalScans: this.metrics.totalScans,
-      totalScansManual: this.metrics.totalScansManual,
-      totalScansAuto: this.metrics.totalScansAuto,
-      scanDurationSum: this.metrics.scanDurationSum,
-      scanDurationSumManual: this.metrics.scanDurationSumManual,
-      scanDurationSumAuto: this.metrics.scanDurationSumAuto,
-      avgScanDuration: this.metrics.avgScanDuration,
-      avgScanDurationManual: this.metrics.avgScanDurationManual,
-      avgScanDurationAuto: this.metrics.avgScanDurationAuto,
-      maxScanDuration: this.metrics.maxScanDuration,
-      totalTabChecks: this.metrics.totalTabChecks,
-      tabCheckDurationSum: this.metrics.tabCheckDurationSum,
-      avgTabCheckDuration: this.metrics.avgTabCheckDuration,
-      rateLimitCount: this.metrics.rateLimitCount,
       cellInnerDivCount: this.metrics.cellInnerDivCount,
-      postDensity: this.metrics.postDensity,
-      initialWaitTime: this.metrics.initialWaitTime,
-      sessionStarts: this.metrics.sessionStarts,
-      sessionStops: this.metrics.sessionStops,
-      avgSessionDuration: this.metrics.avgSessionDuration,
       pageType: this.metrics.pageType,
       timestamp: performance.now(),
       skipped: false,
     });
 
-    if (this.metricsHistory.length > 100) {
-      this.metricsHistory.shift();
+    if (this.pollWindow.length >= this.AGGREGATION_THRESHOLD) {
+      this.aggregateMetrics();
     }
 
     this.log(
@@ -271,41 +269,7 @@ class MetricsMonitor {
 
     this.metrics.totalScrolls++;
     if (bottomReached) this.metrics.bottomReachedCount++;
-    this.metricsHistory.push({
-      totalPolls: this.metrics.totalPolls,
-      totalSkips: this.metrics.totalSkips,
-      totalPostsProcessed: this.metrics.totalPostsProcessed,
-      avgPostsProcessed: this.metrics.avgPostsProcessed,
-      totalScrolls: this.metrics.totalScrolls,
-      bottomReachedCount: this.metrics.bottomReachedCount,
-      totalScans: this.metrics.totalScans,
-      totalScansManual: this.metrics.totalScansManual,
-      totalScansAuto: this.metrics.totalScansAuto,
-      scanDurationSum: this.metrics.scanDurationSum,
-      scanDurationSumManual: this.metrics.scanDurationSumManual,
-      scanDurationSumAuto: this.metrics.scanDurationSumAuto,
-      avgScanDuration: this.metrics.avgScanDuration,
-      avgScanDurationManual: this.metrics.avgScanDurationManual,
-      avgScanDurationAuto: this.metrics.avgScanDurationAuto,
-      maxScanDuration: this.metrics.maxScanDuration,
-      totalTabChecks: this.metrics.totalTabChecks,
-      tabCheckDurationSum: this.metrics.tabCheckDurationSum,
-      avgTabCheckDuration: this.metrics.avgTabCheckDuration,
-      rateLimitCount: this.metrics.rateLimitCount,
-      cellInnerDivCount: this.metrics.cellInnerDivCount,
-      postDensity: this.metrics.postDensity,
-      initialWaitTime: this.metrics.initialWaitTime,
-      sessionStarts: this.metrics.sessionStarts,
-      sessionStops: this.metrics.sessionStops,
-      avgSessionDuration: this.metrics.avgSessionDuration,
-      pageType: this.metrics.pageType,
-      timestamp: performance.now(),
-      skipped: false,
-    });
-
-    if (this.metricsHistory.length > 100) {
-      this.metricsHistory.shift();
-    }
+    // Scroll events will be aggregated in aggregateMetrics
   }
 
   recordScan({
@@ -345,56 +309,20 @@ class MetricsMonitor {
       this.metrics.avgScanDurationAuto = this.metrics.totalScansAuto
         ? this.metrics.scanDurationSumAuto / this.metrics.totalScansAuto
         : 0;
+      this.scanWindowAuto.push({ duration, interval });
     } else {
       this.metrics.totalScansManual++;
       this.metrics.scanDurationSumManual += duration;
       this.metrics.avgScanDurationManual = this.metrics.totalScansManual
         ? this.metrics.scanDurationSumManual / this.metrics.totalScansManual
         : 0;
+      this.scanWindowManual.push({ duration, interval });
     }
 
     if (CONFIG.debug) {
       this.log(
         `Scan duration: ${duration.toFixed(2)}ms, interval: ${interval}ms`
       );
-    }
-
-    this.metricsHistory.push({
-      totalPolls: this.metrics.totalPolls,
-      totalSkips: this.metrics.totalSkips,
-      totalPostsProcessed: this.metrics.totalPostsProcessed,
-      avgPostsProcessed: this.metrics.avgPostsProcessed,
-      totalScrolls: this.metrics.totalScrolls,
-      bottomReachedCount: this.metrics.bottomReachedCount,
-      totalScans: this.metrics.totalScans,
-      totalScansManual: this.metrics.totalScansManual,
-      totalScansAuto: this.metrics.totalScansAuto,
-      scanDurationSum: this.metrics.scanDurationSum,
-      scanDurationSumManual: this.metrics.scanDurationSumManual,
-      scanDurationSumAuto: this.metrics.scanDurationSumAuto,
-      avgScanDuration: this.metrics.avgScanDuration,
-      avgScanDurationManual: this.metrics.avgScanDurationManual,
-      avgScanDurationAuto: this.metrics.avgScanDurationAuto,
-      maxScanDuration: this.metrics.maxScanDuration,
-      totalTabChecks: this.metrics.totalTabChecks,
-      tabCheckDurationSum: this.metrics.tabCheckDurationSum,
-      avgTabCheckDuration: this.metrics.avgTabCheckDuration,
-      rateLimitCount: this.metrics.rateLimitCount,
-      cellInnerDivCount: this.metrics.cellInnerDivCount,
-      postDensity: this.metrics.postDensity,
-      initialWaitTime: this.metrics.initialWaitTime,
-      sessionStarts: this.metrics.sessionStarts,
-      sessionStops: this.metrics.sessionStops,
-      avgSessionDuration: this.metrics.avgSessionDuration,
-      pageType: this.metrics.pageType,
-      timestamp: performance.now(),
-      skipped: wasSkipped,
-      interval,
-      isAutoScrolling,
-    });
-
-    if (this.metricsHistory.length > 100) {
-      this.metricsHistory.shift();
     }
 
     domUtils.dispatchEvent(
@@ -421,43 +349,13 @@ class MetricsMonitor {
       );
     }
 
-    this.metricsHistory.push({
-      totalPolls: this.metrics.totalPolls,
-      totalSkips: this.metrics.totalSkips,
-      totalPostsProcessed: this.metrics.totalPostsProcessed,
-      avgPostsProcessed: this.metrics.avgPostsProcessed,
-      totalScrolls: this.metrics.totalScrolls,
-      bottomReachedCount: this.metrics.bottomReachedCount,
-      totalScans: this.metrics.totalScans,
-      totalScansManual: this.metrics.totalScansManual,
-      totalScansAuto: this.metrics.totalScansAuto,
-      scanDurationSum: this.metrics.scanDurationSum,
-      scanDurationSumManual: this.metrics.scanDurationSumManual,
-      scanDurationSumAuto: this.metrics.scanDurationSumAuto,
-      avgScanDuration: this.metrics.avgScanDuration,
-      avgScanDurationManual: this.metrics.avgScanDurationManual,
-      avgScanDurationAuto: this.metrics.avgScanDurationAuto,
-      maxScanDuration: this.metrics.maxScanDuration,
-      totalTabChecks: this.metrics.totalTabChecks,
-      tabCheckDurationSum: this.metrics.tabCheckDurationSum,
-      avgTabCheckDuration: this.metrics.avgTabCheckDuration,
-      rateLimitCount: this.metrics.rateLimitCount,
-      cellInnerDivCount: this.metrics.cellInnerDivCount,
-      postDensity: this.metrics.postDensity,
-      initialWaitTime: this.metrics.initialWaitTime,
-      sessionStarts: this.metrics.sessionStarts,
-      sessionStops: this.metrics.sessionStops,
-      avgSessionDuration: this.metrics.avgSessionDuration,
-      pageType: this.metrics.pageType,
+    this.tabCheckWindow.push({
+      duration,
+      success,
+      rateLimited,
+      attempts,
       timestamp: performance.now(),
-      tabCheckSuccess: success,
-      tabCheckRateLimited: rateLimited,
-      tabCheckAttempts: attempts,
     });
-
-    if (this.metricsHistory.length > 100) {
-      this.metricsHistory.shift();
-    }
 
     domUtils.dispatchEvent(
       this.document,
@@ -467,6 +365,102 @@ class MetricsMonitor {
     );
 
     this.logMetrics();
+  }
+
+  aggregateMetrics() {
+    const pollCount = this.pollWindow.length;
+    if (pollCount === 0) return;
+
+    // Aggregate poll data
+    const latestPoll = this.pollWindow[pollCount - 1];
+    const avgPostsProcessed = this.metrics.postsProcessedCount
+      ? this.metrics.totalPostsProcessed / this.metrics.postsProcessedCount
+      : 0;
+
+    // Aggregate scan data
+    const avgScanDurationManual =
+      this.scanWindowManual.length > 0
+        ? this.scanWindowManual.reduce(
+            (sum, entry) => sum + entry.duration,
+            0
+          ) / this.scanWindowManual.length
+        : 0;
+    const avgScanIntervalManual =
+      this.scanWindowManual.length > 0
+        ? this.scanWindowManual.reduce(
+            (sum, entry) => sum + entry.interval,
+            0
+          ) / this.scanWindowManual.length
+        : 0;
+    const avgScanDurationAuto =
+      this.scanWindowAuto.length > 0
+        ? this.scanWindowAuto.reduce((sum, entry) => sum + entry.duration, 0) /
+          this.scanWindowAuto.length
+        : 0;
+    const avgScanIntervalAuto =
+      this.scanWindowAuto.length > 0
+        ? this.scanWindowAuto.reduce((sum, entry) => sum + entry.interval, 0) /
+          this.scanWindowAuto.length
+        : 0;
+
+    // Aggregate tab check data
+    const avgTabCheckDuration =
+      this.tabCheckWindow.length > 0
+        ? this.tabCheckWindow.reduce((sum, entry) => sum + entry.duration, 0) /
+          this.tabCheckWindow.length
+        : 0;
+    const rateLimitedCount = this.tabCheckWindow.filter(
+      (entry) => entry.rateLimited
+    ).length;
+
+    // Push aggregated entry to metricsHistory
+    this.metricsHistory.push({
+      totalPolls: this.metrics.totalPolls,
+      totalSkips: this.metrics.totalSkips,
+      totalPostsProcessed: this.metrics.totalPostsProcessed,
+      avgPostsProcessed: avgPostsProcessed,
+      totalScrolls: this.metrics.totalScrolls,
+      bottomReachedCount: this.metrics.bottomReachedCount,
+      totalScans: this.metrics.totalScans,
+      totalScansManual: this.metrics.totalScansManual,
+      totalScansAuto: this.metrics.totalScansAuto,
+      scanDurationSum: this.metrics.scanDurationSum,
+      scanDurationSumManual: this.metrics.scanDurationSumManual,
+      scanDurationSumAuto: this.metrics.scanDurationSumAuto,
+      avgScanDuration: this.metrics.avgScanDuration,
+      avgScanDurationManual: avgScanDurationManual,
+      avgScanDurationAuto: avgScanDurationAuto,
+      avgScanIntervalManual: avgScanIntervalManual,
+      avgScanIntervalAuto: avgScanIntervalAuto,
+      maxScanDuration: this.metrics.maxScanDuration,
+      totalTabChecks: this.metrics.totalTabChecks,
+      tabCheckDurationSum: this.metrics.tabCheckDurationSum,
+      avgTabCheckDuration: avgTabCheckDuration,
+      rateLimitCount: rateLimitedCount,
+      cellInnerDivCount: latestPoll.cellInnerDivCount,
+      postDensity: this.metrics.postDensity,
+      initialWaitTime: this.metrics.initialWaitTime,
+      sessionStarts: this.metrics.sessionStarts,
+      sessionStops: this.metrics.sessionStops,
+      avgSessionDuration: this.metrics.avgSessionDuration,
+      pageType: latestPoll.pageType,
+      timestamp: performance.now(),
+      pollCount: pollCount,
+      scanCountManual: this.scanWindowManual.length,
+      scanCountAuto: this.scanWindowAuto.length,
+      tabCheckCount: this.tabCheckWindow.length,
+    });
+
+    // Maintain 100-entry cap
+    if (this.metricsHistory.length > 100) {
+      this.metricsHistory.shift();
+    }
+
+    // Reset windows
+    this.pollWindow = [];
+    this.scanWindowManual = [];
+    this.scanWindowAuto = [];
+    this.tabCheckWindow = [];
   }
 
   logMetrics() {
