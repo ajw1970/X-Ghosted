@@ -456,10 +456,6 @@
         this.setPostScanning(true);
       }
       setAutoScrolling(enabled) {
-        if (enabled && !this.state.isPostScanningEnabled) {
-          this.log('Cannot enable auto-scrolling: polling is disabled');
-          return;
-        }
         this.state.userRequestedAutoScrolling = enabled;
         this.state.idleCycleCount = enabled ? 0 : this.state.idleCycleCount;
         this.log(
