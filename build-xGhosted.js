@@ -37,14 +37,14 @@ templateContent = templateContent
   .replace(/{{VERSION}}/g, appVersion)
   .replace(/{{Suffix}}/g, suffix);
 
-// Dynamically import config.js and events.js
+// Dynamically import config.js and the compiled events.js
 async function loadConfigAndEvents() {
   try {
     const configModule = await import(path.resolve(SRC_DIR, "config.js"));
     if (!configModule.CONFIG) {
       throw new Error("CONFIG export not found in config.js");
     }
-    const eventsModule = await import(path.resolve(SRC_DIR, "events.js"));
+    const eventsModule = await import(path.resolve(SRC_DIR, "events.js")); // Import compiled events.js
     if (!eventsModule.EVENTS || !eventsModule.EVENT_CONTRACTS) {
       throw new Error(
         "EVENTS or EVENT_CONTRACTS export not found in events.js"
@@ -132,7 +132,7 @@ async function loadConfigAndEvents() {
       modules.map((mod) => path.resolve(mod.entryPoint))
     );
 
-    // Dynamically scan src/utils/ and src/dom/ for .js files, excluding tests and detectTheme.js
+    // Dynamically scan src/utils/ and src/dom/ for .js and .ts files, excluding tests and detectTheme.js
     const utilityDirs = ["utils", "dom"].map((dir) =>
       path.resolve(SRC_DIR, dir)
     );
@@ -141,7 +141,7 @@ async function loadConfigAndEvents() {
         .readdirSync(dir)
         .filter(
           (file) =>
-            file.endsWith(".js") &&
+            (file.endsWith(".js") || file.endsWith(".ts")) &&
             !file.includes(".test.") &&
             file !== "detectTheme.js"
         );
@@ -162,13 +162,14 @@ async function loadConfigAndEvents() {
         write: false,
         format: "esm",
         metafile: true,
+        loader: { ".js": "js", ".ts": "ts" },
       });
       const imports = result.metafile.inputs;
       for (const file in imports) {
         const filePath = path.resolve(process.cwd(), file);
         if (
           file !== path.relative(process.cwd(), mod.entryPoint) &&
-          file.endsWith(".js") &&
+          (file.endsWith(".js") || file.endsWith(".ts")) &&
           !file.includes(".test.") &&
           !moduleEntryPoints.has(filePath) &&
           !file.includes("detectTheme.js")
@@ -219,7 +220,7 @@ async function loadConfigAndEvents() {
         platform: "browser",
         write: false,
         format: "esm",
-        loader: { ".js": "js" },
+        loader: { ".js": "js", ".ts": "ts" },
         external: ["window.preact", "window.preactHooks"],
         metafile: true,
       });
@@ -290,7 +291,7 @@ async function loadConfigAndEvents() {
         platform: "browser",
         write: false,
         format: "esm",
-        loader: { ".jsx": "jsx", ".js": "js", ".css": "text" },
+        loader: { ".jsx": "jsx", ".js": "js", ".ts": "ts", ".css": "text" },
         jsxFactory: mod.requiresPreact ? "window.preact.h" : undefined,
         jsxFragment: mod.requiresPreact ? "window.preact.Fragment" : undefined,
         external: mod.requiresPreact

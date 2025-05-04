@@ -1,14 +1,14 @@
 import { debounce } from "./debounce.js";
 import { CONFIG } from "../config.js";
 import { EVENTS } from "../events.js";
-import { domUtils } from "../dom/domUtils.js";
 
 class PollingManager {
-  constructor({ document, xGhosted, timing, log }) {
+  constructor({ document, xGhosted, timing, log, domService }) {
     this.document = document;
     this.xGhosted = xGhosted;
     this.timing = { ...CONFIG.timing, ...timing };
     this.log = log || console.log.bind(console);
+    this.domService = domService; // Inject DomService
     this.state = {
       isPostScanningEnabled: CONFIG.timing.isPostScanningEnabledOnStartup,
       userRequestedAutoScrolling:
@@ -48,11 +48,9 @@ class PollingManager {
     this.log(
       `Post Scanning ${enabled ? "enabled" : "disabled"}, state: isPostScanningEnabled=${this.state.isPostScanningEnabled}`
     );
-    this.document.dispatchEvent(
-      new CustomEvent(EVENTS.SCANNING_STATE_UPDATED, {
-        detail: { isPostScanningEnabled: this.state.isPostScanningEnabled },
-      })
-    );
+    this.domService.emit(EVENTS.SCANNING_STATE_UPDATED, {
+      isPostScanningEnabled: this.state.isPostScanningEnabled,
+    });
     if (!this.pollTimer && enabled) {
       this.startPolling();
     }
@@ -69,30 +67,26 @@ class PollingManager {
     this.log(
       `Auto-scrolling set to: ${enabled}, state: userRequestedAutoScrolling=${this.state.userRequestedAutoScrolling}`
     );
-    this.document.dispatchEvent(
-      new CustomEvent(EVENTS.AUTO_SCROLLING_TOGGLED, {
-        detail: {
-          userRequestedAutoScrolling: this.state.userRequestedAutoScrolling,
-        },
-      })
-    );
+    this.domService.emit(EVENTS.AUTO_SCROLLING_TOGGLED, {
+      userRequestedAutoScrolling: this.state.userRequestedAutoScrolling,
+    });
   }
 
   performSmoothScroll() {
-    const beforeScrollY = domUtils.getScrollY();
+    const beforeScrollY = this.domService.getScrollY();
     this.log("Performing smooth scroll down...");
     this.state.scrolls++;
     this.log("Scroll count: " + this.state.scrolls);
     const scrollAmount =
       this.state.idleCycleCount >= 3
-        ? domUtils.getInnerHeight()
-        : domUtils.getInnerHeight() * CONFIG.scrollPercentage;
-    domUtils.scrollBy({
+        ? this.domService.getInnerHeight()
+        : this.domService.getInnerHeight() * CONFIG.scrollPercentage;
+    this.domService.scrollBy({
       top: scrollAmount,
       behavior: CONFIG.smoothScrolling ? "smooth" : "auto",
     });
     if (CONFIG.debug) {
-      const afterScrollY = domUtils.getScrollY();
+      const afterScrollY = this.domService.getScrollY();
       if (afterScrollY === beforeScrollY) {
         this.log("Scroll attempt failed: scrollY unchanged");
       } else {
@@ -135,7 +129,9 @@ class PollingManager {
         if (this.xGhosted.findPostContainer()) {
           this.log("Container found, setting post density");
           cellInnerDivCount = this.xGhosted.getCellInnerDivCount();
-          this.emit(EVENTS.SET_POST_DENSITY, { count: cellInnerDivCount });
+          this.domService.emit(EVENTS.SET_POST_DENSITY, {
+            count: cellInnerDivCount,
+          });
         } else if (CONFIG.debug) {
           this.log(
             this.state.noPostsFoundCount === 0
@@ -159,7 +155,7 @@ class PollingManager {
             this.xGhosted.state.isWithReplies,
             CONFIG.debug,
             this.log,
-            this.emit.bind(this)
+            this.domService.emit.bind(this.domService)
           );
           this.state.noPostsFoundCount = 0;
           this.state.idleCycleCount = 0;
@@ -171,7 +167,7 @@ class PollingManager {
             this.xGhosted.state.isWithReplies,
             CONFIG.debug,
             this.log,
-            this.emit.bind(this)
+            this.domService.emit.bind(this.domService)
           );
         } else {
           this.state.idleCycleCount++;
@@ -181,7 +177,7 @@ class PollingManager {
           ? this.timing.scrollInterval
           : this.timing.pollInterval;
         if (this.state.userRequestedAutoScrolling || postsProcessed > 0) {
-          this.emit(EVENTS.RECORD_SCAN, {
+          this.domService.emit(EVENTS.RECORD_SCAN, {
             duration,
             postsProcessed,
             wasSkipped: postsProcessed === 0,
@@ -199,7 +195,7 @@ class PollingManager {
       }
       this.state.lastCellInnerDivCount = cellInnerDivCount;
 
-      this.emit(EVENTS.RECORD_POLL, {
+      this.domService.emit(EVENTS.RECORD_POLL, {
         postsProcessed,
         wasSkipped: !this.state.isPostScanningEnabled,
         containerFound: this.xGhosted.state.containerFound,
@@ -224,10 +220,10 @@ class PollingManager {
         const previousPostCount = cellInnerDivCount;
         this.performSmoothScroll();
         const bottomReached =
-          domUtils.getScrollY() + domUtils.getInnerHeight() >=
-          this.document.body.scrollHeight;
+          this.domService.getScrollY() + this.domService.getInnerHeight() >=
+          this.domService.getScrollHeight();
         const newPostCount = this.xGhosted.getCellInnerDivCount();
-        this.emit(EVENTS.RECORD_SCROLL, { bottomReached });
+        this.domService.emit(EVENTS.RECORD_SCROLL, { bottomReached });
         if (bottomReached || this.state.idleCycleCount >= 3) {
           this.log(
             `Stopping post scanning: ${bottomReached ? "reached page bottom" : "3 idle cycles"}`
@@ -246,10 +242,6 @@ class PollingManager {
     this.log(`Starting polling with interval ${this.timing.pollInterval}ms...`);
     this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
     this.initializePostScanning();
-  }
-
-  emit(eventName, data) {
-    this.document.dispatchEvent(new CustomEvent(eventName, { detail: data }));
   }
 }
 

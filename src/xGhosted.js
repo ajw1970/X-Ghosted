@@ -8,6 +8,7 @@ import { CONFIG } from "./config.js";
 import { EVENTS } from "./events.js";
 import { PollingManager } from "./utils/PollingManager.js";
 import { domUtils } from "./dom/domUtils.js";
+import { DomService } from "./dom/DomService.js";
 
 class XGhosted {
   constructor({ document, window, config = {} }) {
@@ -39,19 +40,18 @@ class XGhosted {
         this.emit.bind(this)
       );
     }, 500);
+    this.domService = new DomService({ document, window, domUtils });
     this.pollingManager = new PollingManager({
       document: this.document,
       xGhosted: this,
       timing: this.timing,
       log: this.log,
+      domService: this.domService,
     });
   }
 
   emit(eventName, data) {
-    domUtils.dispatchEvent(
-      this.document,
-      new CustomEvent(eventName, { detail: data })
-    );
+    this.domService.emit(eventName, data);
   }
 
   waitForClearConfirmation() {
@@ -166,10 +166,7 @@ class XGhosted {
       : postQuality.GOOD;
     cached.checked = true;
     this.emit(EVENTS.POST_REGISTERED, { href, data: cached });
-    domUtils.dispatchEvent(
-      this.document,
-      new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
-    );
+    this.emit(EVENTS.STATE_UPDATED, { ...this.state });
     this.log(`User requested post check completed for ${href}`);
   }
 
@@ -181,20 +178,14 @@ class XGhosted {
     this.state.isWithReplies = isWithReplies;
     if (this.state.userProfileName !== userProfileName) {
       this.state.userProfileName = userProfileName;
-      domUtils.dispatchEvent(
-        this.document,
-        new CustomEvent(EVENTS.USER_PROFILE_UPDATED, {
-          detail: { userProfileName: this.state.userProfileName },
-        })
-      );
+      this.emit(EVENTS.USER_PROFILE_UPDATED, {
+        userProfileName: this.state.userProfileName,
+      });
     }
     this.emit(EVENTS.CLEAR_POSTS, {});
     await this.waitForClearConfirmation();
     this.state.containerFound = false;
-    domUtils.dispatchEvent(
-      this.document,
-      new CustomEvent(EVENTS.POSTS_CLEARED, { detail: {} })
-    );
+    this.emit(EVENTS.POSTS_CLEARED, {});
     this.log(`URL change completed`);
   }
 
@@ -220,10 +211,7 @@ class XGhosted {
   }
 
   getPostContainer() {
-    return domUtils.querySelector(
-      domUtils.POST_CONTAINER_SELECTOR,
-      this.document
-    );
+    return this.domService.getPostContainer();
   }
 
   findPostContainer() {
@@ -236,17 +224,11 @@ class XGhosted {
   }
 
   getCellInnerDivCount() {
-    return domUtils.querySelectorAll(
-      domUtils.POSTS_IN_CONTAINER_SELECTOR,
-      this.document
-    ).length;
+    return this.domService.getCellInnerDivCount();
   }
 
   getUnprocessedPosts() {
-    return domUtils.querySelectorAll(
-      domUtils.UNPROCESSED_POSTS_SELECTOR,
-      this.document
-    );
+    return this.domService.getUnprocessedPosts();
   }
 
   async checkPostInNewTab(href) {
@@ -342,12 +324,7 @@ class XGhosted {
     const start = performance.now();
     this.state.isHighlighting = true;
     const results = [];
-    const postsToProcess =
-      posts ||
-      domUtils.querySelectorAll(
-        domUtils.UNPROCESSED_POSTS_SELECTOR,
-        this.document
-      );
+    const postsToProcess = posts || this.getUnprocessedPosts();
     const processedIds = new Set();
 
     if (debug) {
@@ -377,10 +354,7 @@ class XGhosted {
     const postsProcessed = processedIds.size;
     if (postsProcessed > 0) {
       emit(EVENTS.SAVE_METRICS, {});
-      domUtils.dispatchEvent(
-        this.document,
-        new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
-      );
+      emit(EVENTS.STATE_UPDATED, { ...this.state });
       log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
     }
 
@@ -510,12 +484,10 @@ class XGhosted {
             this.log(`Eyeball click skipped for ${href} due to rate limit`);
             return;
           }
-          domUtils.dispatchEvent(
-            this.document,
-            new CustomEvent(EVENTS.REQUEST_POST_CHECK, {
-              detail: { href, post: clickedPost },
-            })
-          );
+          this.emit(EVENTS.REQUEST_POST_CHECK, {
+            href,
+            post: clickedPost,
+          });
         }
       },
       { capture: true }
@@ -528,24 +500,16 @@ class XGhosted {
 
     this.initEventListeners();
 
-    domUtils.dispatchEvent(
-      this.document,
-      new CustomEvent(EVENTS.USER_PROFILE_UPDATED, {
-        detail: { userProfileName: this.state.userProfileName },
-      })
-    );
+    this.emit(EVENTS.USER_PROFILE_UPDATED, {
+      userProfileName: this.state.userProfileName,
+    });
 
-    domUtils.dispatchEvent(
-      this.document,
-      new CustomEvent(EVENTS.INIT, {
-        detail: {
-          config: {
-            pollInterval: this.timing.pollInterval,
-            scrollInterval: this.timing.scrollInterval,
-          },
-        },
-      })
-    );
+    this.emit(EVENTS.INIT, {
+      config: {
+        pollInterval: this.timing.pollInterval,
+        scrollInterval: this.timing.scrollInterval,
+      },
+    });
 
     this.emit(EVENTS.STATE_UPDATED, {
       isRateLimited: this.state.isRateLimited,

@@ -11,7 +11,7 @@ npm run build || { show_progress "Error: npm build failed"; exit 1; }
 
 # Run grokify.js with different parameters
 show_progress "Running setup grokify.js execution..."
-node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs grok/2-project.stuff.txt || {
+node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs tsconfig.json grok/2-project.stuff.txt || {
     show_progress "Error: First grokify.js execution failed"; exit 1;
 }
 
@@ -36,7 +36,7 @@ node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs gro
 # }
 
 show_progress "Running xGhosted DOM grokify.js execution..."
-node grokify.js build-xGhosted.js src/xGhosted.template.js src/xGhosted.js src/utils/ProcessedPostsManager.js src/utils/MetricsMonitor.js src/xGhosted.test.js src/utils/MetricsMonitor.test.js  grok/3-xGhosted.dom.txt --exclude "*.test.js" || {
+node grokify.js build-xGhosted.js src/xGhosted.template.js src/xGhosted.js src/*.ts src/utils/ProcessedPostsManager.js src/utils/MetricsMonitor.js src/xGhosted.test.js src/utils/MetricsMonitor.test.js  grok/3-xGhosted.dom.txt --exclude "*.test.js" || {
     show_progress "Error: Second grokify.js execution failed"; exit 1;
 }
 

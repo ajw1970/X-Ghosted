@@ -35,7 +35,7 @@
     logTarget: 'tampermonkey',
     persistProcessedPosts: false,
     linkPrefix: 'https://x.com',
-    debug: true,
+    debug: false,
     smoothScrolling: true,
     scrollPercentage: 1.9,
   };
@@ -250,7 +250,7 @@
       logTarget: 'tampermonkey',
       persistProcessedPosts: false,
       linkPrefix: 'https://x.com',
-      debug: true,
+      debug: false,
       smoothScrolling: true,
       scrollPercentage: 1.9,
     };
@@ -359,55 +359,14 @@
       [EVENTS.SAVE_METRICS]: {},
     };
 
-    // src/dom/domUtils.js
-    var domUtils = {
-      querySelector(selector, doc = document) {
-        return doc.querySelector(selector);
-      },
-      querySelectorAll(selector, doc = document) {
-        return doc.querySelectorAll(selector);
-      },
-      createElement(tag, doc = document) {
-        return doc.createElement(tag);
-      },
-      addEventListener(element, event, handler, options = {}) {
-        element.addEventListener(event, handler, options);
-      },
-      dispatchEvent(element, event) {
-        element.dispatchEvent(event);
-      },
-      removeEventListener(element, event, handler, options = {}) {
-        element.removeEventListener(event, handler, options);
-      },
-      closest(element, selector) {
-        let current = element;
-        while (current && !current.matches(selector)) {
-          current = current.parentElement;
-        }
-        return current;
-      },
-      scrollBy(options, win = window) {
-        win.scrollBy(options);
-      },
-      getScrollY(win = window) {
-        return win.scrollY;
-      },
-      getInnerHeight(win = window) {
-        return win.innerHeight;
-      },
-      POSTS_IN_DOCUMENT: `div[data-testid="cellInnerDiv"]`,
-      POST_CONTAINER_SELECTOR: 'div[data-xghosted="posts-container"]',
-      POSTS_IN_CONTAINER_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]`,
-      UNPROCESSED_POSTS_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`,
-    };
-
     // src/utils/PollingManager.js
     var PollingManager = class {
-      constructor({ document: document2, xGhosted, timing, log }) {
+      constructor({ document: document2, xGhosted, timing, log, domService }) {
         this.document = document2;
         this.xGhosted = xGhosted;
         this.timing = { ...CONFIG.timing, ...timing };
         this.log = log || console.log.bind(console);
+        this.domService = domService;
         this.state = {
           isPostScanningEnabled: CONFIG.timing.isPostScanningEnabledOnStartup,
           userRequestedAutoScrolling:
@@ -444,11 +403,9 @@
         this.log(
           `Post Scanning ${enabled ? 'enabled' : 'disabled'}, state: isPostScanningEnabled=${this.state.isPostScanningEnabled}`
         );
-        this.document.dispatchEvent(
-          new CustomEvent(EVENTS.SCANNING_STATE_UPDATED, {
-            detail: { isPostScanningEnabled: this.state.isPostScanningEnabled },
-          })
-        );
+        this.domService.emit(EVENTS.SCANNING_STATE_UPDATED, {
+          isPostScanningEnabled: this.state.isPostScanningEnabled,
+        });
         if (!this.pollTimer && enabled) {
           this.startPolling();
         }
@@ -463,29 +420,25 @@
         this.log(
           `Auto-scrolling set to: ${enabled}, state: userRequestedAutoScrolling=${this.state.userRequestedAutoScrolling}`
         );
-        this.document.dispatchEvent(
-          new CustomEvent(EVENTS.AUTO_SCROLLING_TOGGLED, {
-            detail: {
-              userRequestedAutoScrolling: this.state.userRequestedAutoScrolling,
-            },
-          })
-        );
+        this.domService.emit(EVENTS.AUTO_SCROLLING_TOGGLED, {
+          userRequestedAutoScrolling: this.state.userRequestedAutoScrolling,
+        });
       }
       performSmoothScroll() {
-        const beforeScrollY = domUtils.getScrollY();
+        const beforeScrollY = this.domService.getScrollY();
         this.log('Performing smooth scroll down...');
         this.state.scrolls++;
         this.log('Scroll count: ' + this.state.scrolls);
         const scrollAmount =
           this.state.idleCycleCount >= 3
-            ? domUtils.getInnerHeight()
-            : domUtils.getInnerHeight() * CONFIG.scrollPercentage;
-        domUtils.scrollBy({
+            ? this.domService.getInnerHeight()
+            : this.domService.getInnerHeight() * CONFIG.scrollPercentage;
+        this.domService.scrollBy({
           top: scrollAmount,
           behavior: CONFIG.smoothScrolling ? 'smooth' : 'auto',
         });
         if (CONFIG.debug) {
-          const afterScrollY = domUtils.getScrollY();
+          const afterScrollY = this.domService.getScrollY();
           if (afterScrollY === beforeScrollY) {
             this.log('Scroll attempt failed: scrollY unchanged');
           } else {
@@ -523,7 +476,9 @@
             if (this.xGhosted.findPostContainer()) {
               this.log('Container found, setting post density');
               cellInnerDivCount = this.xGhosted.getCellInnerDivCount();
-              this.emit(EVENTS.SET_POST_DENSITY, { count: cellInnerDivCount });
+              this.domService.emit(EVENTS.SET_POST_DENSITY, {
+                count: cellInnerDivCount,
+              });
             } else if (CONFIG.debug) {
               this.log(
                 this.state.noPostsFoundCount === 0
@@ -546,7 +501,7 @@
                 this.xGhosted.state.isWithReplies,
                 CONFIG.debug,
                 this.log,
-                this.emit.bind(this)
+                this.domService.emit.bind(this.domService)
               );
               this.state.noPostsFoundCount = 0;
               this.state.idleCycleCount = 0;
@@ -558,7 +513,7 @@
                 this.xGhosted.state.isWithReplies,
                 CONFIG.debug,
                 this.log,
-                this.emit.bind(this)
+                this.domService.emit.bind(this.domService)
               );
             } else {
               this.state.idleCycleCount++;
@@ -568,7 +523,7 @@
               ? this.timing.scrollInterval
               : this.timing.pollInterval;
             if (this.state.userRequestedAutoScrolling || postsProcessed > 0) {
-              this.emit(EVENTS.RECORD_SCAN, {
+              this.domService.emit(EVENTS.RECORD_SCAN, {
                 duration,
                 postsProcessed,
                 wasSkipped: postsProcessed === 0,
@@ -585,7 +540,7 @@
             );
           }
           this.state.lastCellInnerDivCount = cellInnerDivCount;
-          this.emit(EVENTS.RECORD_POLL, {
+          this.domService.emit(EVENTS.RECORD_POLL, {
             postsProcessed,
             wasSkipped: !this.state.isPostScanningEnabled,
             containerFound: this.xGhosted.state.containerFound,
@@ -609,10 +564,10 @@
             const previousPostCount = cellInnerDivCount;
             this.performSmoothScroll();
             const bottomReached =
-              domUtils.getScrollY() + domUtils.getInnerHeight() >=
-              this.document.body.scrollHeight;
+              this.domService.getScrollY() + this.domService.getInnerHeight() >=
+              this.domService.getScrollHeight();
             const newPostCount = this.xGhosted.getCellInnerDivCount();
-            this.emit(EVENTS.RECORD_SCROLL, { bottomReached });
+            this.domService.emit(EVENTS.RECORD_SCROLL, { bottomReached });
             if (bottomReached || this.state.idleCycleCount >= 3) {
               this.log(
                 `Stopping post scanning: ${bottomReached ? 'reached page bottom' : '3 idle cycles'}`
@@ -632,11 +587,6 @@
         );
         this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
         this.initializePostScanning();
-      }
-      emit(eventName, data) {
-        this.document.dispatchEvent(
-          new CustomEvent(eventName, { detail: data })
-        );
       }
     };
 
@@ -861,6 +811,97 @@
       UNDEFINED: Object.freeze({ name: 'Nothing to measure', value: 5 }),
       GOOD: Object.freeze({ name: 'Looks good', value: 5 }),
     });
+
+    // src/dom/DomService.js
+    var DomService = class {
+      constructor({
+        document: document2,
+        window: window2,
+        domUtils: domUtils2,
+      }) {
+        this.document = document2;
+        this.window = window2;
+        this.domUtils = domUtils2;
+      }
+      getScrollY() {
+        return this.domUtils.getScrollY(this.window);
+      }
+      getInnerHeight() {
+        return this.domUtils.getInnerHeight(this.window);
+      }
+      scrollBy(options) {
+        this.domUtils.scrollBy(options, this.window);
+      }
+      getScrollHeight() {
+        return this.document.body.scrollHeight;
+      }
+      emit(eventName, data) {
+        this.domUtils.dispatchEvent(
+          this.document,
+          new CustomEvent(eventName, { detail: data })
+        );
+      }
+      getPostContainer() {
+        return this.domUtils.querySelector(
+          this.domUtils.POST_CONTAINER_SELECTOR,
+          this.document
+        );
+      }
+      getCellInnerDivCount() {
+        return this.domUtils.querySelectorAll(
+          this.domUtils.POSTS_IN_CONTAINER_SELECTOR,
+          this.document
+        ).length;
+      }
+      getUnprocessedPosts() {
+        return this.domUtils.querySelectorAll(
+          this.domUtils.UNPROCESSED_POSTS_SELECTOR,
+          this.document
+        );
+      }
+    };
+
+    // src/dom/domUtils.js
+    var domUtils = {
+      querySelector(selector, doc = document) {
+        return doc.querySelector(selector);
+      },
+      querySelectorAll(selector, doc = document) {
+        return doc.querySelectorAll(selector);
+      },
+      createElement(tag, doc = document) {
+        return doc.createElement(tag);
+      },
+      addEventListener(element, event, handler, options = {}) {
+        element.addEventListener(event, handler, options);
+      },
+      dispatchEvent(element, event) {
+        element.dispatchEvent(event);
+      },
+      removeEventListener(element, event, handler, options = {}) {
+        element.removeEventListener(event, handler, options);
+      },
+      closest(element, selector) {
+        let current = element;
+        while (current && !current.matches(selector)) {
+          current = current.parentElement;
+        }
+        return current;
+      },
+      scrollBy(options, win = window) {
+        win.scrollBy(options);
+      },
+      getScrollY(win = window) {
+        return win.scrollY;
+      },
+      getInnerHeight(win = window) {
+        return win.innerHeight;
+      },
+      POSTS_IN_DOCUMENT: `div[data-testid="cellInnerDiv"]`,
+      POST_CONTAINER_SELECTOR: 'div[data-xghosted="posts-container"]',
+      POSTS_IN_CONTAINER_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]`,
+      UNPROCESSED_POSTS_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`,
+    };
 
     // src/dom/extractUserFromLink.js
     function extractUserFromLink(link) {
@@ -1298,6 +1339,7 @@
     }
     return {
       CONFIG,
+      DomService,
       EVENTS,
       EVENT_CONTRACTS,
       Logger,
@@ -1363,6 +1405,7 @@
       EVENTS,
       PollingManager,
       domUtils,
+      DomService,
     } = window.XGhostedUtils;
     // src/xGhosted.js
     var XGhosted = class {
@@ -1396,18 +1439,21 @@
             this.emit.bind(this)
           );
         }, 500);
+        this.domService = new DomService({
+          document: document2,
+          window,
+          domUtils,
+        });
         this.pollingManager = new PollingManager({
           document: this.document,
           xGhosted: this,
           timing: this.timing,
           log: this.log,
+          domService: this.domService,
         });
       }
       emit(eventName, data) {
-        domUtils.dispatchEvent(
-          this.document,
-          new CustomEvent(eventName, { detail: data })
-        );
+        this.domService.emit(eventName, data);
       }
       waitForClearConfirmation() {
         return new Promise((resolve) => {
@@ -1520,10 +1566,7 @@
           : postQuality.GOOD;
         cached.checked = true;
         this.emit(EVENTS.POST_REGISTERED, { href, data: cached });
-        domUtils.dispatchEvent(
-          this.document,
-          new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
-        );
+        this.emit(EVENTS.STATE_UPDATED, { ...this.state });
         this.log(`User requested post check completed for ${href}`);
       }
       async handleUrlChange(urlFullPath) {
@@ -1534,20 +1577,14 @@
         this.state.isWithReplies = isWithReplies;
         if (this.state.userProfileName !== userProfileName) {
           this.state.userProfileName = userProfileName;
-          domUtils.dispatchEvent(
-            this.document,
-            new CustomEvent(EVENTS.USER_PROFILE_UPDATED, {
-              detail: { userProfileName: this.state.userProfileName },
-            })
-          );
+          this.emit(EVENTS.USER_PROFILE_UPDATED, {
+            userProfileName: this.state.userProfileName,
+          });
         }
         this.emit(EVENTS.CLEAR_POSTS, {});
         await this.waitForClearConfirmation();
         this.state.containerFound = false;
-        domUtils.dispatchEvent(
-          this.document,
-          new CustomEvent(EVENTS.POSTS_CLEARED, { detail: {} })
-        );
+        this.emit(EVENTS.POSTS_CLEARED, {});
         this.log(`URL change completed`);
       }
       async detectAndHandleUrlChange(url) {
@@ -1573,10 +1610,7 @@
         return { urlFullPath, oldUrlFullPath };
       }
       getPostContainer() {
-        return domUtils.querySelector(
-          domUtils.POST_CONTAINER_SELECTOR,
-          this.document
-        );
+        return this.domService.getPostContainer();
       }
       findPostContainer() {
         const container = findPostContainer(this.document, this.log);
@@ -1587,16 +1621,10 @@
         return false;
       }
       getCellInnerDivCount() {
-        return domUtils.querySelectorAll(
-          domUtils.POSTS_IN_CONTAINER_SELECTOR,
-          this.document
-        ).length;
+        return this.domService.getCellInnerDivCount();
       }
       getUnprocessedPosts() {
-        return domUtils.querySelectorAll(
-          domUtils.UNPROCESSED_POSTS_SELECTOR,
-          this.document
-        );
+        return this.domService.getUnprocessedPosts();
       }
       async checkPostInNewTab(href) {
         this.log(`Checking post in new tab: ${href}`);
@@ -1691,12 +1719,7 @@
         const start = performance.now();
         this.state.isHighlighting = true;
         const results = [];
-        const postsToProcess =
-          posts ||
-          domUtils.querySelectorAll(
-            domUtils.UNPROCESSED_POSTS_SELECTOR,
-            this.document
-          );
+        const postsToProcess = posts || this.getUnprocessedPosts();
         const processedIds = /* @__PURE__ */ new Set();
         if (debug) {
           log(
@@ -1724,10 +1747,7 @@
         const postsProcessed = processedIds.size;
         if (postsProcessed > 0) {
           emit(EVENTS.SAVE_METRICS, {});
-          domUtils.dispatchEvent(
-            this.document,
-            new CustomEvent(EVENTS.STATE_UPDATED, { detail: { ...this.state } })
-          );
+          emit(EVENTS.STATE_UPDATED, { ...this.state });
           log(`Highlighted ${postsProcessed} new posts, state-updated emitted`);
         }
         this.state.isHighlighting = false;
@@ -1849,12 +1869,10 @@
                 this.log(`Eyeball click skipped for ${href} due to rate limit`);
                 return;
               }
-              domUtils.dispatchEvent(
-                this.document,
-                new CustomEvent(EVENTS.REQUEST_POST_CHECK, {
-                  detail: { href, post: clickedPost },
-                })
-              );
+              this.emit(EVENTS.REQUEST_POST_CHECK, {
+                href,
+                post: clickedPost,
+              });
             }
           },
           { capture: true }
@@ -1864,23 +1882,15 @@
         this.log('Initializing XGhosted...');
         const startTime = performance.now();
         this.initEventListeners();
-        domUtils.dispatchEvent(
-          this.document,
-          new CustomEvent(EVENTS.USER_PROFILE_UPDATED, {
-            detail: { userProfileName: this.state.userProfileName },
-          })
-        );
-        domUtils.dispatchEvent(
-          this.document,
-          new CustomEvent(EVENTS.INIT, {
-            detail: {
-              config: {
-                pollInterval: this.timing.pollInterval,
-                scrollInterval: this.timing.scrollInterval,
-              },
-            },
-          })
-        );
+        this.emit(EVENTS.USER_PROFILE_UPDATED, {
+          userProfileName: this.state.userProfileName,
+        });
+        this.emit(EVENTS.INIT, {
+          config: {
+            pollInterval: this.timing.pollInterval,
+            scrollInterval: this.timing.scrollInterval,
+          },
+        });
         this.emit(EVENTS.STATE_UPDATED, {
           isRateLimited: this.state.isRateLimited,
         });
