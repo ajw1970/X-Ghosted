@@ -37,17 +37,17 @@ templateContent = templateContent
   .replace(/{{VERSION}}/g, appVersion)
   .replace(/{{Suffix}}/g, suffix);
 
-// Dynamically import config.js and the compiled events.js
+// Dynamically import config.js and the compiled events.ts
 async function loadConfigAndEvents() {
   try {
     const configModule = await import(path.resolve(SRC_DIR, "config.js"));
     if (!configModule.CONFIG) {
       throw new Error("CONFIG export not found in config.js");
     }
-    const eventsModule = await import(path.resolve(SRC_DIR, "events.js")); // Import compiled events.js
+    const eventsModule = await import(path.resolve("dist", "events.js")); // Import compiled events.ts
     if (!eventsModule.EVENTS || !eventsModule.EVENT_CONTRACTS) {
       throw new Error(
-        "EVENTS or EVENT_CONTRACTS export not found in events.js"
+        "EVENTS or EVENT_CONTRACTS export not found in events.ts"
       );
     }
     return {
@@ -58,7 +58,7 @@ async function loadConfigAndEvents() {
   } catch (err) {
     console.error("Failed to load config or events:", err.message);
     console.error("config.js path:", path.resolve(SRC_DIR, "config.js"));
-    console.error("events.js path:", path.resolve(SRC_DIR, "events.js"));
+    console.error("events.ts path:", path.resolve("dist", "events.js"));
     process.exit(1);
   }
 }
