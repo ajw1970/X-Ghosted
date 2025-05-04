@@ -5,52 +5,26 @@ show_progress() {
     printf "[%s] %s\n" "$(date '+%H:%M:%S')" "$1"
 }
 
-# Build and test steps
 show_progress "Running npm build..."
 npm run build || { show_progress "Error: npm build failed"; exit 1; }
 
-# Run grokify.js with different parameters
 show_progress "Running setup grokify.js execution..."
 node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs tsconfig.json grok/2-project.stuff.txt || {
     show_progress "Error: First grokify.js execution failed"; exit 1;
 }
 
-# show_progress "Running build grokify.js execution..."
-# node grokify.js build-xGhosted.js src/xGhosted.template.js grok/3-xGhosted.build.txt --exclude "*.test.js" || {
-#     show_progress "Error: Second grokify.js execution failed"; exit 1;
-# }
+show_progress "Running 3-xGhosted src folder code..."
+./file_printer.sh -e ./src > grok/3-xGhosted.src.txt || { show_progress "Error: execution failed"; exit 1; }
+./file_printer.sh -t ./src > grok/3-xGhosted.src.tests.txt || { show_progress "Error: execution failed"; exit 1; }
 
-# show_progress "Running xGhosted code grokify.js execution..."
-# node grokify.js src/xGhosted.js grok/3-xGhosted.code.txt --exclude "*.test.js" || {
-#     show_progress "Error: Second grokify.js execution failed"; exit 1;
-# }
+show_progress "Running 3-xGhosted src/dom folder code..."
+./file_printer.sh -e ./src/dom > grok/3-xGhosted.src.dom.txt || { show_progress "Error: execution failed"; exit 1; }
+./file_printer.sh -t ./src/dom > grok/3-xGhosted.src.dom.tests.txt || { show_progress "Error: execution failed"; exit 1; }
 
-# show_progress "Running xGhosted posts grokify.js execution..."
-# node grokify.js src/utils/ProcessedPostsManager.js grok/3-xGhosted.posts.txt --exclude "*.test.js" || {
-#     show_progress "Error: Second grokify.js execution failed"; exit 1;
-# }
+show_progress "Running 3-xGhosted src/ui folder code..."
+./file_printer.sh -e ./src/ui > grok/3-xGhosted.src.ui.txt || { show_progress "Error: execution failed"; exit 1; }
+#./file_printer.sh -t ./src/ui > grok/3-xGhosted.src.ui.tests.txt || { show_progress "Error: execution failed"; exit 1; }
 
-# show_progress "Running xGhosted timing grokify.js execution..."
-# node grokify.js src/utils/MetricsMonitor.js grok/3-xGhosted.timing.txt --exclude "*.test.js" || {
-#     show_progress "Error: Second grokify.js execution failed"; exit 1;
-# }
-
-show_progress "Running xGhosted DOM grokify.js execution..."
-node grokify.js build-xGhosted.js src/xGhosted.template.js src/xGhosted.js src/*.ts src/utils/ProcessedPostsManager.js src/utils/MetricsMonitor.js src/xGhosted.test.js src/utils/MetricsMonitor.test.js  grok/3-xGhosted.dom.txt --exclude "*.test.js" || {
-    show_progress "Error: Second grokify.js execution failed"; exit 1;
-}
-
-show_progress "Running xGhosted UI grokify.js execution..."
-node grokify.js src/ui/*.js src/ui/*.jsx src/ui/*.css grok/3-xGhosted.ui.txt --exclude "*.test.js" || {
-    show_progress "Error: Second grokify.js execution failed"; exit 1;
-}
-
-# show_progress "Running second grokify.js execution..."
-# node grokify.js build-xGhosted.js src/*.js src/*/*.js src/ui/*.css src/ui/*.js* grok/3-xGhosted.code.txt --exclude "*.test.js" || {
-#     show_progress "Error: Second grokify.js execution failed"; exit 1;
-# }
-
-# # Replace large file with smaller chunks
-# split -l 1500 grok/3-xGhosted.code.txt -d --additional-suffix=.txt grok/3-xGhosted.code-part-
-# rm grok/3-xGhosted.code.txt
-
+show_progress "Running 3-xGhosted src/utils folder code..."
+./file_printer.sh -e ./src/utils > grok/3-xGhosted.src.utils.txt || { show_progress "Error: execution failed"; exit 1; }
+./file_printer.sh -t ./src/utils > grok/3-xGhosted.src.utils.tests.txt || { show_progress "Error: execution failed"; exit 1; }
