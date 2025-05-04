@@ -530,6 +530,7 @@ class XGhosted {
       cursor: pointer;
       text-decoration: none;
     }
+    ${CONFIG.decoratePostsContainer ? `.xghosted-posts-container { border: 4px solid #00FFFF; }` : ""}
   `;
     this.document.head.appendChild(styleSheet);
 

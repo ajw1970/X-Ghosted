@@ -37,7 +37,8 @@
     linkPrefix: 'https://x.com',
     debug: false,
     smoothScrolling: true,
-    scrollPercentage: 1.9,
+    scrollPercentage: 1.75,
+    decoratePostsContainer: false,
   };
 
   // Event constants for consistent event naming across components
@@ -252,7 +253,8 @@
       linkPrefix: 'https://x.com',
       debug: false,
       smoothScrolling: true,
-      scrollPercentage: 1.9,
+      scrollPercentage: 1.75,
+      decoratePostsContainer: false,
     };
 
     // src/events.ts
@@ -1379,6 +1381,7 @@
         return false;
       }
       div.setAttribute('data-xghosted', 'posts-container');
+      div.classList.add('xghosted-posts-container');
       log("Div tagged with data-xghosted='posts-container'");
       if (div.hasAttribute('aria-label')) {
         const ariaLabel = div.getAttribute('aria-label');
@@ -1972,6 +1975,7 @@
       cursor: pointer;
       text-decoration: none;
     }
+    ${CONFIG.decoratePostsContainer ? `.xghosted-posts-container { border: 4px solid #00FFFF; }` : ''}
   `;
         this.document.head.appendChild(styleSheet);
         const startPolling = () => {

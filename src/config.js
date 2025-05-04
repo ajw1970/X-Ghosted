@@ -17,4 +17,5 @@ export const CONFIG = {
   debug: false,
   smoothScrolling: true,
   scrollPercentage: 1.9,
+  decoratePostsContainer: false,
 };

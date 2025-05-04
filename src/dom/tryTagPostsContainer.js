@@ -52,6 +52,7 @@ function tagContainerDiv(div, log = () => {}) {
   }
 
   div.setAttribute("data-xghosted", "posts-container");
+  div.classList.add("xghosted-posts-container");
   log("Div tagged with data-xghosted='posts-container'");
 
   if (div.hasAttribute("aria-label")) {
@@ -79,4 +80,9 @@ function tryTagPostsContainer(doc, log = () => {}) {
   return tagContainerDiv(containerDiv, log);
 }
 
-export { tryTagPostsContainer, findFirstPost, selectContainerDiv, tagContainerDiv };
+export {
+  tryTagPostsContainer,
+  findFirstPost,
+  selectContainerDiv,
+  tagContainerDiv,
+};
