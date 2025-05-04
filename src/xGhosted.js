@@ -109,9 +109,11 @@ class XGhosted {
   }
 
   async userRequestedPostCheck(href, post) {
-    this.log(`User requested check for ${href}, post=${post ? "found" : "null"}`);
+    this.log(
+      `User requested check for ${href}, post=${post ? "found" : "null"}`
+    );
     this.emit(EVENTS.SET_SCANNING, { enabled: false });
-    
+
     const cached = await this.waitForPostRetrieved(href);
     this.log(
       `Cached post for ${href}: quality=${cached?.analysis?.quality?.name || "none"}, checked=${cached?.checked || false}`
@@ -196,7 +198,7 @@ class XGhosted {
     this.log(`URL change completed`);
   }
 
-  async checkUrl(url) {
+  async detectAndHandleUrlChange(url) {
     const { urlFullPath, oldUrlFullPath } = this.getUrlFullPathIfChanged(url);
     if (urlFullPath) {
       this.log(`URL has changed from (${oldUrlFullPath}) to (${urlFullPath})`);
@@ -310,7 +312,9 @@ class XGhosted {
           if (attempts >= maxAttempts) {
             clearInterval(checkInterval);
             if (newWindow) newWindow.close();
-            this.log(`Failed to process ${href} within ${maxAttempts} attempts`);
+            this.log(
+              `Failed to process ${href} within ${maxAttempts} attempts`
+            );
             const duration = performance.now() - start;
             this.emit(EVENTS.RECORD_TAB_CHECK, {
               duration,
@@ -345,7 +349,7 @@ class XGhosted {
         this.document
       );
     const processedIds = new Set();
-  
+
     if (debug) {
       log(
         `Processing ${postsToProcess.length} posts, checkReplies: ${checkReplies}`
@@ -451,7 +455,10 @@ class XGhosted {
     if (id && id !== "false" && !processedIds.has(id)) {
       processedIds.add(id);
       if (debug) {
-        log(`Emitting POST_REGISTERED for id: ${id}, processedIds:`, Array.from(processedIds));
+        log(
+          `Emitting POST_REGISTERED for id: ${id}, processedIds:`,
+          Array.from(processedIds)
+        );
       }
       emit(EVENTS.POST_REGISTERED, {
         href: id,
@@ -459,9 +466,7 @@ class XGhosted {
       });
     } else if (debug && id && id !== "false") {
       const snippet = post.textContent.slice(0, 50).replace(/\n/g, " ");
-      log(
-        `Duplicate post skipped: ${id} (snippet: "${snippet}")`
-      );
+      log(`Duplicate post skipped: ${id} (snippet: "${snippet}")`);
     }
 
     return {
@@ -542,7 +547,9 @@ class XGhosted {
       })
     );
 
-    this.emit(EVENTS.STATE_UPDATED, { isRateLimited: this.state.isRateLimited });
+    this.emit(EVENTS.STATE_UPDATED, {
+      isRateLimited: this.state.isRateLimited,
+    });
 
     const styleSheet = domUtils.createElement("style", this.document);
     styleSheet.textContent = `
@@ -562,45 +569,24 @@ class XGhosted {
   `;
     this.document.head.appendChild(styleSheet);
 
-    const startContainerCheck = () => {
-      const checkDomInterval = setInterval(() => {
-        if (
-          this.document.body &&
-          domUtils.querySelectorAll(domUtils.POSTS_IN_DOCUMENT, this.document)
-            .length > 0
-        ) {
-          const foundContainer = this.findPostContainer();
-          if (foundContainer) {
-            clearInterval(checkDomInterval);
-            const waitTime = performance.now() - startTime;
-            this.log(`Initial wait time set: ${waitTime}ms`);
-            this.emit(EVENTS.SET_INITIAL_WAIT_TIME, { time: waitTime });
-            this.pollingManager.startPolling();
-          }
-        }
-      }, 500);
-      setTimeout(() => {
-        if (checkDomInterval) {
-          clearInterval(checkDomInterval);
-          const waitTime = performance.now() - startTime;
-          this.log(`Timeout: Initial wait time set: ${waitTime}ms`);
-          this.emit(EVENTS.SET_INITIAL_WAIT_TIME, { time: waitTime });
-          this.log("DOM readiness timeout reached, starting polling");
-          this.pollingManager.startPolling();
-        }
-      }, 5000);
+    const startPolling = () => {
+      this.log("DOM ready, starting polling");
+      const waitTime = performance.now() - startTime;
+      this.log(`Initial wait time set: ${waitTime}ms`);
+      this.emit(EVENTS.SET_INITIAL_WAIT_TIME, { time: waitTime });
+      this.pollingManager.startPolling();
     };
 
     if (
       document.readyState === "complete" ||
       document.readyState === "interactive"
     ) {
-      startContainerCheck();
+      startPolling();
     } else {
       domUtils.addEventListener(
         this.document,
         "DOMContentLoaded",
-        startContainerCheck,
+        startPolling,
         { once: true }
       );
     }

@@ -27,7 +27,7 @@
       exportThrottle: 5000,
       rateLimitPause: 20000,
       pollInterval: 500,
-      scrollInterval: 800,
+      scrollInterval: 1250,
       isPostScanningEnabledOnStartup: false,
       userRequestedAutoScrollOnStartup: false,
     },
@@ -35,9 +35,9 @@
     logTarget: 'tampermonkey',
     persistProcessedPosts: false,
     linkPrefix: 'https://x.com',
-    debug: false,
+    debug: true,
     smoothScrolling: true,
-    scrollPercentage: 0.9,
+    scrollPercentage: 1.9,
   };
 
   // Event constants for consistent event naming across components
@@ -241,8 +241,7 @@
         exportThrottle: 5e3,
         rateLimitPause: 20 * 1e3,
         pollInterval: 500,
-        scrollInterval: 800,
-        // 1250,
+        scrollInterval: 1250,
         isPostScanningEnabledOnStartup: false,
         // We'll send an event to change to true on the first heartbeat poll
         userRequestedAutoScrollOnStartup: false,
@@ -251,9 +250,9 @@
       logTarget: 'tampermonkey',
       persistProcessedPosts: false,
       linkPrefix: 'https://x.com',
-      debug: false,
+      debug: true,
       smoothScrolling: true,
-      scrollPercentage: 0.9,
+      scrollPercentage: 1.9,
     };
 
     // src/events.js
@@ -420,8 +419,8 @@
           lastScrollY: 0,
         };
         this.pollTimer = null;
-        this.checkUrlDebounced = debounce(
-          (url) => this.xGhosted.checkUrl(url),
+        this.detectAndHandleUrlChangeDebounced = debounce(
+          (url) => this.xGhosted.detectAndHandleUrlChange(url),
           100
         );
         this.initEventListeners();
@@ -500,7 +499,6 @@
           this.log('Polling already active, updating state only');
           return;
         }
-        let containerFound = false;
         let containerAttempted = false;
         let postsProcessed = 0;
         const pollCycle = async () => {
@@ -509,7 +507,9 @@
             this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
             return;
           }
-          const urlChanged = await this.xGhosted.checkUrl(window.location.href);
+          const urlChanged = await this.detectAndHandleUrlChangeDebounced(
+            window.location.href
+          );
           let cellInnerDivCount = urlChanged
             ? 0
             : this.xGhosted.getCellInnerDivCount();
@@ -518,10 +518,9 @@
               this.log(`cellInnerDivCount: ${cellInnerDivCount}`);
             }
           }
-          if (!containerFound) {
+          if (!this.xGhosted.state.containerFound) {
             containerAttempted = true;
-            containerFound = this.xGhosted.findPostContainer();
-            if (containerFound) {
+            if (this.xGhosted.findPostContainer()) {
               this.log('Container found, setting post density');
               cellInnerDivCount = this.xGhosted.getCellInnerDivCount();
               this.emit(EVENTS.SET_POST_DENSITY, { count: cellInnerDivCount });
@@ -551,7 +550,7 @@
               );
               this.state.noPostsFoundCount = 0;
               this.state.idleCycleCount = 0;
-            } else if (containerFound) {
+            } else if (this.xGhosted.state.containerFound) {
               this.state.noPostsFoundCount = 0;
               this.state.idleCycleCount = 0;
               await this.xGhosted.processUnprocessedPosts(
@@ -589,7 +588,7 @@
           this.emit(EVENTS.RECORD_POLL, {
             postsProcessed,
             wasSkipped: !this.state.isPostScanningEnabled,
-            containerFound,
+            containerFound: this.xGhosted.state.containerFound,
             containerAttempted,
             pageType: this.xGhosted.state.isWithReplies
               ? 'with_replies'
@@ -623,7 +622,7 @@
             this.pollTimer = setTimeout(pollCycle, this.timing.scrollInterval);
           } else {
             if (this.state.userRequestedAutoScrolling && CONFIG.debug) {
-              this.log('Auto-scrolling skipped: polling is disabled');
+              this.log('Auto-scrolling skipped: polling disabled');
             }
             this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
           }
@@ -1551,7 +1550,7 @@
         );
         this.log(`URL change completed`);
       }
-      async checkUrl(url) {
+      async detectAndHandleUrlChange(url) {
         const { urlFullPath, oldUrlFullPath } =
           this.getUrlFullPathIfChanged(url);
         if (urlFullPath) {
@@ -1902,46 +1901,23 @@
     }
   `;
         this.document.head.appendChild(styleSheet);
-        const startContainerCheck = () => {
-          const checkDomInterval = setInterval(() => {
-            if (
-              this.document.body &&
-              domUtils.querySelectorAll(
-                domUtils.POSTS_IN_DOCUMENT,
-                this.document
-              ).length > 0
-            ) {
-              const foundContainer = this.findPostContainer();
-              if (foundContainer) {
-                clearInterval(checkDomInterval);
-                const waitTime = performance.now() - startTime;
-                this.log(`Initial wait time set: ${waitTime}ms`);
-                this.emit(EVENTS.SET_INITIAL_WAIT_TIME, { time: waitTime });
-                this.pollingManager.startPolling();
-              }
-            }
-          }, 500);
-          setTimeout(() => {
-            if (checkDomInterval) {
-              clearInterval(checkDomInterval);
-              const waitTime = performance.now() - startTime;
-              this.log(`Timeout: Initial wait time set: ${waitTime}ms`);
-              this.emit(EVENTS.SET_INITIAL_WAIT_TIME, { time: waitTime });
-              this.log('DOM readiness timeout reached, starting polling');
-              this.pollingManager.startPolling();
-            }
-          }, 5e3);
+        const startPolling = () => {
+          this.log('DOM ready, starting polling');
+          const waitTime = performance.now() - startTime;
+          this.log(`Initial wait time set: ${waitTime}ms`);
+          this.emit(EVENTS.SET_INITIAL_WAIT_TIME, { time: waitTime });
+          this.pollingManager.startPolling();
         };
         if (
           document.readyState === 'complete' ||
           document.readyState === 'interactive'
         ) {
-          startContainerCheck();
+          startPolling();
         } else {
           domUtils.addEventListener(
             this.document,
             'DOMContentLoaded',
-            startContainerCheck,
+            startPolling,
             { once: true }
           );
         }

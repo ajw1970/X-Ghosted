@@ -20,8 +20,8 @@ class PollingManager {
       lastScrollY: 0,
     };
     this.pollTimer = null;
-    this.checkUrlDebounced = debounce(
-      (url) => this.xGhosted.checkUrl(url),
+    this.detectAndHandleUrlChangeDebounced = debounce(
+      (url) => this.xGhosted.detectAndHandleUrlChange(url),
       100
     );
     this.initEventListeners();
@@ -108,7 +108,6 @@ class PollingManager {
       return;
     }
 
-    let containerFound = false;
     let containerAttempted = false;
     let postsProcessed = 0;
 
@@ -119,7 +118,9 @@ class PollingManager {
         return;
       }
 
-      const urlChanged = await this.xGhosted.checkUrl(window.location.href);
+      const urlChanged = await this.detectAndHandleUrlChangeDebounced(
+        window.location.href
+      );
       let cellInnerDivCount = urlChanged
         ? 0
         : this.xGhosted.getCellInnerDivCount();
@@ -129,10 +130,9 @@ class PollingManager {
         }
       }
 
-      if (!containerFound) {
+      if (!this.xGhosted.state.containerFound) {
         containerAttempted = true;
-        containerFound = this.xGhosted.findPostContainer();
-        if (containerFound) {
+        if (this.xGhosted.findPostContainer()) {
           this.log("Container found, setting post density");
           cellInnerDivCount = this.xGhosted.getCellInnerDivCount();
           this.emit(EVENTS.SET_POST_DENSITY, { count: cellInnerDivCount });
@@ -163,7 +163,7 @@ class PollingManager {
           );
           this.state.noPostsFoundCount = 0;
           this.state.idleCycleCount = 0;
-        } else if (containerFound) {
+        } else if (this.xGhosted.state.containerFound) {
           this.state.noPostsFoundCount = 0;
           this.state.idleCycleCount = 0;
           await this.xGhosted.processUnprocessedPosts(
@@ -202,7 +202,7 @@ class PollingManager {
       this.emit(EVENTS.RECORD_POLL, {
         postsProcessed,
         wasSkipped: !this.state.isPostScanningEnabled,
-        containerFound,
+        containerFound: this.xGhosted.state.containerFound,
         containerAttempted,
         pageType: this.xGhosted.state.isWithReplies
           ? "with_replies"
@@ -237,7 +237,7 @@ class PollingManager {
         this.pollTimer = setTimeout(pollCycle, this.timing.scrollInterval);
       } else {
         if (this.state.userRequestedAutoScrolling && CONFIG.debug) {
-          this.log("Auto-scrolling skipped: polling is disabled");
+          this.log("Auto-scrolling skipped: polling disabled");
         }
         this.pollTimer = setTimeout(pollCycle, this.timing.pollInterval);
       }
