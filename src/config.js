@@ -16,6 +16,6 @@ export const CONFIG = {
   linkPrefix: "https://x.com",
   debug: false,
   smoothScrolling: true,
-  scrollPercentage: 1.9,
+  scrollPercentage: 1.75,
   decoratePostsContainer: false,
 };
