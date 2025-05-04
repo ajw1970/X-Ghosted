@@ -33,7 +33,7 @@ export const domUtils = {
   getInnerHeight(win = window) {
     return win.innerHeight;
   },
-  POSTS_IN_DOCUMENT: `div[data-testid="cellInnerDiv"]`,
+  POSTS_IN_DOC_SELECTOR: `div[data-testid="cellInnerDiv"]`,
   POST_CONTAINER_SELECTOR: 'div[data-xghosted="posts-container"]',
   POSTS_IN_CONTAINER_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]`,
   UNPROCESSED_POSTS_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`,

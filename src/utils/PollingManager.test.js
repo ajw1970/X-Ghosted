@@ -37,7 +37,7 @@ describe("PollingManager", () => {
         userProfileName: null,
         isHighlighting: false,
       },
-      findPostContainer: vi.fn().mockReturnValue(false),
+      tryTagPostsContainer: vi.fn().mockReturnValue(false),
       getCellInnerDivCount: vi.fn().mockReturnValue(0),
       getUnprocessedPosts: vi.fn().mockReturnValue([]),
       processUnprocessedPosts: vi

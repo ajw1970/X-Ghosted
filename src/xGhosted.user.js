@@ -473,7 +473,7 @@
           }
           if (!this.xGhosted.state.containerFound) {
             containerAttempted = true;
-            if (this.xGhosted.findPostContainer()) {
+            if (this.xGhosted.tryTagPostsContainer()) {
               this.log('Container found, setting post density');
               cellInnerDivCount = this.xGhosted.getCellInnerDivCount();
               this.domService.emit(EVENTS.SET_POST_DENSITY, {
@@ -897,7 +897,7 @@
       getInnerHeight(win = window) {
         return win.innerHeight;
       },
-      POSTS_IN_DOCUMENT: `div[data-testid="cellInnerDiv"]`,
+      POSTS_IN_DOC_SELECTOR: `div[data-testid="cellInnerDiv"]`,
       POST_CONTAINER_SELECTOR: 'div[data-xghosted="posts-container"]',
       POSTS_IN_CONTAINER_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]`,
       UNPROCESSED_POSTS_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`,
@@ -908,52 +908,6 @@
       if (!link) return null;
       const match = link.match(/^\/([^/]+)/);
       return match ? match[1] : null;
-    }
-
-    // src/dom/findPostContainer.js
-    function findPostContainer(doc, log = () => {}) {
-      const potentialPosts = domUtils.querySelectorAll(
-        'div[data-testid="cellInnerDiv"]',
-        doc
-      );
-      if (!potentialPosts.length) {
-        return null;
-      }
-      let firstPost = null;
-      for (const post of potentialPosts) {
-        let closestAriaLabel = post;
-        while (
-          closestAriaLabel &&
-          !closestAriaLabel.getAttribute('aria-label')
-        ) {
-          closestAriaLabel = closestAriaLabel.parentElement;
-        }
-        if (
-          closestAriaLabel &&
-          closestAriaLabel.getAttribute('aria-label') === 'Timeline: Messages'
-        ) {
-          log('Skipping post in Messages timeline');
-          continue;
-        }
-        firstPost = post;
-        break;
-      }
-      if (!firstPost) {
-        log('No valid posts found outside Messages timeline');
-        return null;
-      }
-      let currentElement = firstPost.parentElement;
-      while (currentElement) {
-        if (currentElement.hasAttribute('aria-label')) {
-          currentElement.setAttribute('data-xghosted', 'posts-container');
-          const ariaLabel = currentElement.getAttribute('aria-label');
-          log(`Posts container identified with aria-label: "${ariaLabel}"`);
-          return currentElement;
-        }
-        currentElement = currentElement.parentElement;
-      }
-      log('No parent container found with aria-label');
-      return null;
     }
 
     // src/dom/findReplyingToWithDepth.js
@@ -1337,6 +1291,67 @@
         userProfileName: null,
       };
     }
+
+    // src/dom/tryTagPostsContainer.js
+    function findFirstPost(doc, log = () => {}) {
+      const post = domUtils.querySelector(domUtils.POSTS_IN_DOC_SELECTOR, doc);
+      if (!post) {
+        log('No posts found in document');
+        return null;
+      }
+      log('First post found');
+      return post;
+    }
+    function selectContainerDiv(post, log = () => {}) {
+      if (!post || !(post instanceof Element)) {
+        log('Invalid post element; cannot select container');
+        return null;
+      }
+      const parent = post.parentElement;
+      if (!parent) {
+        log('No parent element found for the post');
+        return null;
+      }
+      const grandparent = parent.parentElement;
+      if (parent.hasAttribute('aria-label')) {
+        log('Parent div has aria-label; selecting it');
+        return parent;
+      }
+      if (grandparent) {
+        if (grandparent.hasAttribute('aria-label')) {
+          log('Grandparent div has aria-label; selecting it');
+          return grandparent;
+        }
+        log('No aria-label found; selecting grandparent');
+        return grandparent;
+      }
+      log('No aria-label found and no grandparent; selecting parent');
+      return parent;
+    }
+    function tagContainerDiv(div, log = () => {}) {
+      if (!div || !(div instanceof Element)) {
+        log('Invalid div element; cannot tag');
+        return false;
+      }
+      div.setAttribute('data-xghosted', 'posts-container');
+      log("Div tagged with data-xghosted='posts-container'");
+      if (div.hasAttribute('aria-label')) {
+        const ariaLabel = div.getAttribute('aria-label');
+        log(`Tagged div has aria-label: "${ariaLabel}"`);
+      }
+      return true;
+    }
+    function tryTagPostsContainer(doc, log = () => {}) {
+      const post = findFirstPost(doc, log);
+      if (!post) {
+        return false;
+      }
+      const containerDiv = selectContainerDiv(post, log);
+      if (!containerDiv) {
+        return false;
+      }
+      return tagContainerDiv(containerDiv, log);
+    }
     return {
       CONFIG,
       DomService,
@@ -1350,7 +1365,7 @@
       domUtils,
       exportToCSV,
       extractUserFromLink,
-      findPostContainer,
+      findFirstPost,
       findReplyingToWithDepth,
       getPostEngagement,
       getRelativeLinkToPost,
@@ -1368,8 +1383,11 @@
       postQuality,
       postQualityNameGetter,
       postQualityReasons,
+      selectContainerDiv,
       summarizeConnectedPosts,
       summarizeRatedPosts,
+      tagContainerDiv,
+      tryTagPostsContainer,
     };
   })();
 
@@ -1397,7 +1415,7 @@
     const {
       postQuality,
       debounce,
-      findPostContainer,
+      tryTagPostsContainer,
       identifyPostWithConnectors,
       postQualityNameGetter,
       parseUrl,
@@ -1612,8 +1630,8 @@
       getPostContainer() {
         return this.domService.getPostContainer();
       }
-      findPostContainer() {
-        const container = findPostContainer(this.document, this.log);
+      tryTagPostsContainer() {
+        const container = tryTagPostsContainer(this.document, this.log);
         if (container) {
           this.state.containerFound = true;
           return true;

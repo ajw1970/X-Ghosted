@@ -82,7 +82,7 @@ describe("XGhosted DOM Updates", () => {
     const { GOOD, PROBLEM, POTENTIAL_PROBLEM, DIVIDER } = postQuality;
 
     // Get all posts
-    const posts = document.querySelectorAll(domUtils.POSTS_IN_DOCUMENT);
+    const posts = document.querySelectorAll(domUtils.POSTS_IN_DOC_SELECTOR);
 
     // Call processUnprocessedPosts with mocked dependencies and checkReplies: true
     const { postsProcessed } = xGhosted.processUnprocessedPosts(
@@ -243,7 +243,7 @@ describe("XGhosted DOM Updates", () => {
     const { GOOD, PROBLEM, DIVIDER } = postQuality;
 
     // Get all posts
-    const posts = document.querySelectorAll(domUtils.POSTS_IN_DOCUMENT);
+    const posts = document.querySelectorAll(domUtils.POSTS_IN_DOC_SELECTOR);
 
     // Call processUnprocessedPosts with mocked dependencies and checkReplies: false
     const { postsProcessed } = xGhosted.processUnprocessedPosts(
@@ -391,7 +391,7 @@ describe("XGhosted DOM Updates", () => {
   });
 
   test("processUnprocessedPosts returns correct postsProcessed count", () => {
-    const posts = document.querySelectorAll(domUtils.POSTS_IN_DOCUMENT);
+    const posts = document.querySelectorAll(domUtils.POSTS_IN_DOC_SELECTOR);
 
     // Test with non-empty posts
     const { postsProcessed } = xGhosted.processUnprocessedPosts(

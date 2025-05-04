@@ -126,7 +126,7 @@ class PollingManager {
 
       if (!this.xGhosted.state.containerFound) {
         containerAttempted = true;
-        if (this.xGhosted.findPostContainer()) {
+        if (this.xGhosted.tryTagPostsContainer()) {
           this.log("Container found, setting post density");
           cellInnerDivCount = this.xGhosted.getCellInnerDivCount();
           this.domService.emit(EVENTS.SET_POST_DENSITY, {

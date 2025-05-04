@@ -1,6 +1,6 @@
 import { postQuality } from "./utils/postQuality.js";
 import { debounce } from "./utils/debounce.js";
-import { findPostContainer } from "./dom/findPostContainer.js";
+import { tryTagPostsContainer } from "./dom/tryTagPostsContainer.js";
 import { identifyPostWithConnectors } from "./dom/identifyPostWithConnectors.js";
 import { postQualityNameGetter } from "./utils/postQualityNameGetter.js";
 import { parseUrl } from "./dom/parseUrl.js";
@@ -214,8 +214,8 @@ class XGhosted {
     return this.domService.getPostContainer();
   }
 
-  findPostContainer() {
-    const container = findPostContainer(this.document, this.log);
+  tryTagPostsContainer() {
+    const container = tryTagPostsContainer(this.document, this.log);
     if (container) {
       this.state.containerFound = true;
       return true;
