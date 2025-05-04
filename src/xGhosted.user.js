@@ -255,7 +255,7 @@
       scrollPercentage: 1.9,
     };
 
-    // src/events.js
+    // src/events.ts
     var EVENTS = {
       INIT_COMPONENTS: 'xghosted:init-components',
       POST_REGISTERED: 'xghosted:post-registered',
