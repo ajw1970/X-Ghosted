@@ -1,5 +1,5 @@
 import { postQuality } from "../utils/postQuality";
-import { identifyPosts } from "./identifyPosts";
+import { identifyPosts } from "../dom/identifyPosts";
 import { describeSampleAnalyses } from "../utils/describeSampleAnalyses";
 import { postConnector } from "../utils/postConnector";
 import { test } from "vitest";

@@ -1,8 +1,8 @@
 import { postQuality } from "../utils/postQuality";
-import { identifyPosts } from "./identifyPosts";
+import { identifyPosts } from "../dom/identifyPosts";
 import { postConnector } from "../utils/postConnector";
 import { describeSampleAnalyses } from "../utils/describeSampleAnalyses";
-import { postHasProblemSystemNotice } from "./postHasProblemSystemNotice";
+import { postHasProblemSystemNotice } from "../dom/postHasProblemSystemNotice";
 import { describe, expect, it } from "vitest";
 
 const {
