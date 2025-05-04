@@ -14,7 +14,7 @@ node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs tsc
 }
 
 show_progress "Running 3-xGhosted src folder code..."
-./file_printer.sh -e ./src > grok/3-xGhosted.src.txt || { show_progress "Error: execution failed"; exit 1; }
+./file_printer.sh src xGhosted.js xGhosted.template.js config.js events.ts > grok/3-xGhosted.src.txt || { show_progress "Error: execution failed"; exit 1; }
 ./file_printer.sh -t ./src > grok/3-xGhosted.src.tests.txt || { show_progress "Error: execution failed"; exit 1; }
 
 show_progress "Running 3-xGhosted src/dom folder code..."

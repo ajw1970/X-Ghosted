@@ -2,9 +2,10 @@
 
 # Function to print usage instructions
 usage() {
-    echo "Usage: $0 [-t|-e] <directory_path>"
-    echo "-t: Include only *.test.js files"
-    echo "-e: Exclude *.test.js files"
+    echo "Usage: $0 [-t|-e] <directory_path> [file1 file2 ...]"
+    echo "-t: Include only *.test.js files (from provided list or directory if no files specified)"
+    echo "-e: Exclude *.test.js files (from provided list or directory if no files specified)"
+    echo "If no mode is specified, process the exact files listed"
     exit 1
 }
 
@@ -38,26 +39,57 @@ if [ ! -d "$directory" ]; then
     exit 1
 fi
 
-# Process files based on mode
-if [ "$mode" = "tests_only" ]; then
-    # Find only *.test.js files in the given directory (no recursion)
-    files=$(find "$directory" -maxdepth 1 -type f -name "*.test.js")
-elif [ "$mode" = "exclude_tests" ]; then
-    # Find all files except *.test.js in the given directory (no recursion)
-    files=$(find "$directory" -maxdepth 1 -type f ! -name "*.test.js")
+# Shift to get the list of files (if any)
+shift
+
+# Process files based on mode and input
+files=()
+if [ $# -eq 0 ] && [ -n "$mode" ]; then
+    # No files specified, scan directory based on mode
+    if [ "$mode" = "tests_only" ]; then
+        # Find only *.test.js files in the given directory (no recursion)
+        while IFS= read -r file; do
+            files+=("$file")
+        done < <(find "$directory" -maxdepth 1 -type f -name "*.test.js")
+    elif [ "$mode" = "exclude_tests" ]; then
+        # Find all files except *.test.js in the given directory (no recursion)
+        while IFS= read -r file; do
+            files+=("$file")
+        done < <(find "$directory" -maxdepth 1 -type f ! -name "*.test.js")
+    fi
 else
-    echo "Error: Please specify a mode (-t or -e)."
-    usage
+    # Process provided file list
+    for file in "$@"; do
+        full_path="$directory/$file"
+        # Check if the file exists
+        if [ -f "$full_path" ]; then
+            # Apply mode filtering
+            if [ "$mode" = "tests_only" ]; then
+                if [[ "$file" == *.test.js ]]; then
+                    files+=("$full_path")
+                fi
+            elif [ "$mode" = "exclude_tests" ]; then
+                if [[ "$file" != *.test.js ]]; then
+                    files+=("$full_path")
+                fi
+            else
+                # No mode specified, include the file as is
+                files+=("$full_path")
+            fi
+        else
+            echo "Warning: File '$full_path' does not exist, skipping."
+        fi
+    done
 fi
 
-# Check if any files were found
-if [ -z "$files" ]; then
-    echo "No matching files found in '$directory'."
+# Check if any valid files were found
+if [ ${#files[@]} -eq 0 ]; then
+    echo "No valid matching files found."
     exit 0
 fi
 
 # Iterate over the files and print their name and content
-for file in $files; do
+for file in "${files[@]}"; do
     # Print file name as header
     echo "===== $file ====="
     # Print file content
