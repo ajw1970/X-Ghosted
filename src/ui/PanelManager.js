@@ -104,9 +104,9 @@ window.PanelManager = function (
 window.PanelManager.prototype.init = function () {
   this.loadState();
   this.uiElements.panelContainer = this.document.createElement("div");
-  this.uiElements.panelContainer.id = "xghosted-panel-container";
+  this.uiElements.panelContainer.id = "ghosted-panel-container";
   this.uiElements.panel = this.document.createElement("div");
-  this.uiElements.panel.id = "xghosted-panel";
+  this.uiElements.panel.id = "ghosted-panel";
   this.uiElements.panelContainer.appendChild(this.uiElements.panel);
   this.document.body.appendChild(this.uiElements.panelContainer);
   if (window.xGhostedStyles) {
@@ -475,7 +475,7 @@ window.PanelManager.prototype.applyPanelStyles = function () {
   };
   this.styleElement.textContent = `
     button:active { transform: scale(0.95); }
-    #xghosted-panel-container {
+    #ghosted-panel-container {
       position: fixed;
       right: ${position.right};
       top: ${position.top};

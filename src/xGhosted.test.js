@@ -161,7 +161,7 @@ describe("XGhosted DOM Updates", () => {
     posts.forEach((post, index) => {
       const expected = expectedAnalyses[index];
       const qualityName = postQualityNameGetter(expected.quality).toLowerCase();
-      const expectedClass = `xghosted-${qualityName}`;
+      const expectedClass = `ghosted-${qualityName}`;
       const expectedDataAttr = `postquality.${qualityName}`;
 
       expect(post.getAttribute("data-ghosted")).toBe(expectedDataAttr);
@@ -189,16 +189,16 @@ describe("XGhosted DOM Updates", () => {
           'button[aria-label="Share post"]'
         )?.parentElement;
         expect(shareButtonContainer).toBeTruthy();
-        expect(
-          shareButtonContainer.classList.contains("xghosted-eyeball")
-        ).toBe(true);
+        expect(shareButtonContainer.classList.contains("ghosted-eyeball")).toBe(
+          true
+        );
       } else {
         const shareButtonContainer = post.querySelector(
           'button[aria-label="Share post"]'
         )?.parentElement;
         if (shareButtonContainer) {
           expect(
-            shareButtonContainer.classList.contains("xghosted-eyeball")
+            shareButtonContainer.classList.contains("ghosted-eyeball")
           ).toBe(false);
         }
       }
@@ -322,7 +322,7 @@ describe("XGhosted DOM Updates", () => {
     posts.forEach((post, index) => {
       const expected = expectedAnalyses[index];
       const qualityName = postQualityNameGetter(expected.quality).toLowerCase();
-      const expectedClass = `xghosted-${qualityName}`;
+      const expectedClass = `ghosted-${qualityName}`;
       const expectedDataAttr = `postquality.${qualityName}`;
 
       expect(post.getAttribute("data-ghosted")).toBe(expectedDataAttr);
@@ -349,9 +349,9 @@ describe("XGhosted DOM Updates", () => {
         'button[aria-label="Share post"]'
       )?.parentElement;
       if (shareButtonContainer) {
-        expect(
-          shareButtonContainer.classList.contains("xghosted-eyeball")
-        ).toBe(false);
+        expect(shareButtonContainer.classList.contains("ghosted-eyeball")).toBe(
+          false
+        );
       }
     });
 
@@ -503,9 +503,9 @@ describe("XGhosted DOM Updates", () => {
       const href = "/test/status/123";
       const post = document.createElement("div");
       post.setAttribute("data-ghostedid", href);
-      post.classList.add("xghosted-potential_problem");
+      post.classList.add("ghosted-potential-problem");
       const eyeball = document.createElement("div");
-      eyeball.classList.add("xghosted-eyeball");
+      eyeball.classList.add("ghosted-eyeball");
       post.appendChild(eyeball);
 
       // Mock DOM queries
@@ -541,12 +541,12 @@ describe("XGhosted DOM Updates", () => {
         EVENTS.STATE_UPDATED,
         expect.any(Object)
       );
-      expect(post.classList.contains("xghosted-problem_adjacent")).toBe(true);
-      expect(post.classList.contains("xghosted-potential_problem")).toBe(false);
+      expect(post.classList.contains("ghosted-problem-adjacent")).toBe(true);
+      expect(post.classList.contains("ghosted-potential-problem")).toBe(false);
       expect(post.getAttribute("data-ghosted")).toBe(
         "postquality.problem_adjacent"
       );
-      expect(eyeball.classList.contains("xghosted-eyeball")).toBe(false);
+      expect(eyeball.classList.contains("ghosted-eyeball")).toBe(false);
     });
 
     test("init emits initialization events", () => {

@@ -52,7 +52,7 @@ function tagContainerDiv(div, log = () => {}) {
   }
 
   div.setAttribute("data-ghosted", "posts-container");
-  div.classList.add("xghosted-posts-container");
+  div.classList.add("ghosted-posts-container");
   log("Div tagged with data-ghosted='posts-container'");
 
   if (div.hasAttribute("aria-label")) {

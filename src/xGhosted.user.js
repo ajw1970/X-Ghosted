@@ -1381,7 +1381,7 @@
         return false;
       }
       div.setAttribute('data-ghosted', 'posts-container');
-      div.classList.add('xghosted-posts-container');
+      div.classList.add('ghosted-posts-container');
       log("Div tagged with data-ghosted='posts-container'");
       if (div.hasAttribute('aria-label')) {
         const ariaLabel = div.getAttribute('aria-label');
@@ -1611,24 +1611,24 @@
           );
         } else {
           currentPost.classList.remove(
-            'xghosted-problem_adjacent',
-            'xghosted-potential_problem',
-            'xghosted-good',
-            'xghosted-problem'
+            'ghosted-problem-adjacent',
+            'ghosted-potential-problem',
+            'ghosted-good',
+            'ghosted-problem'
           );
           currentPost.classList.add(
-            isProblem ? 'xghosted-problem_adjacent' : 'xghosted-good'
+            isProblem ? 'ghosted-problem-adjacent' : 'ghosted-good'
           );
           currentPost.setAttribute(
             'data-ghosted',
             `postquality.${isProblem ? 'problem_adjacent' : 'good'}`
           );
           const eyeballContainer = domUtils.querySelector(
-            '.xghosted-eyeball',
+            '.ghosted-eyeball',
             currentPost
           );
           if (eyeballContainer) {
-            eyeballContainer.classList.remove('xghosted-eyeball');
+            eyeballContainer.classList.remove('ghosted-eyeball');
           } else {
             this.log(`Eyeball container not found for post with href: ${href}`);
           }
@@ -1859,7 +1859,7 @@
         ).toLowerCase();
         post.setAttribute('data-ghosted', `postquality.${qualityName}`);
         post.setAttribute('data-ghostedid', id && id !== 'false' ? id : '');
-        post.classList.add(`xghosted-${qualityName}`);
+        post.classList.add(`ghosted-${qualityName}`);
         if (connectedPostAnalysis.quality === postQuality.PROBLEM) {
           log('Marked PROBLEM post');
         } else if (connectedPostAnalysis.quality === postQuality.DIVIDER) {
@@ -1879,7 +1879,7 @@
             post
           )?.parentElement;
           if (shareButtonContainer) {
-            shareButtonContainer.classList.add('xghosted-eyeball');
+            shareButtonContainer.classList.add('ghosted-eyeball');
           } else if (debug) {
             log(`No share button container found for post with href: ${id}`);
           }
@@ -1922,8 +1922,8 @@
           'click',
           (e) => {
             const eyeball =
-              e.target.closest('.xghosted-eyeball') ||
-              (e.target.classList.contains('xghosted-eyeball')
+              e.target.closest('.ghosted-eyeball') ||
+              (e.target.classList.contains('ghosted-eyeball')
                 ? e.target
                 : null);
             if (eyeball) {
@@ -1968,20 +1968,20 @@
         });
         const styleSheet = domUtils.createElement('style', this.document);
         styleSheet.textContent = `
-    .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.15); }
-    .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.15); }
-    .xghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.25); }
-    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.25); }
-    .xghosted-problem_adjacent { border: 2px solid coral; background: rgba(255, 127, 80, 0.25); }
-    .xghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
-    .xghosted-eyeball::after {
+    .ghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.15); }
+    .ghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.15); }
+    .ghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.25); }
+    .ghosted-potential-problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.25); }
+    .ghosted-problem-adjacent { border: 2px solid coral; background: rgba(255, 127, 80, 0.25); }
+    .ghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
+    .ghosted-eyeball::after {
       content: '\u{1F440}';
       color: rgb(29, 155, 240);
       padding: 8px;
       cursor: pointer;
       text-decoration: none;
     }
-    ${CONFIG.decoratePostsContainer ? `.xghosted-posts-container { border: 4px solid #00FFFF; }` : ''}
+    ${CONFIG.decoratePostsContainer ? `.ghosted-posts-container { border: 4px solid #00FFFF; }` : ''}
   `;
         this.document.head.appendChild(styleSheet);
         const startPolling = () => {
@@ -2035,16 +2035,16 @@
       this.init = function () {
         this.logger('Initializing SplashPanel...');
         this.container = this.document.createElement('div');
-        this.container.id = 'xghosted-splash';
+        this.container.id = 'ghosted-splash';
         this.container.style.cssText =
           'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; border: 2px solid #333; border-radius: 12px; padding: 20px; z-index: 10000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);';
         this.document.body.appendChild(this.container);
         this.styleElement = this.document.createElement('style');
         this.styleElement.textContent = `
-              #xghosted-splash {
+              #ghosted-splash {
                   cursor: move;
               }
-              #xghosted-splash button {
+              #ghosted-splash button {
                   cursor: pointer;
               }
           `;
@@ -2178,7 +2178,7 @@
         window.preact.h(
           'div',
           {
-            id: 'xghosted-panel',
+            id: 'ghosted-panel',
             style: {
               background: config.THEMES[currentMode].bg,
               border: `2px solid ${isScanning ? config.THEMES[currentMode].border : '#FFA500'}`,
@@ -2783,9 +2783,9 @@
     window.PanelManager.prototype.init = function () {
       this.loadState();
       this.uiElements.panelContainer = this.document.createElement('div');
-      this.uiElements.panelContainer.id = 'xghosted-panel-container';
+      this.uiElements.panelContainer.id = 'ghosted-panel-container';
       this.uiElements.panel = this.document.createElement('div');
-      this.uiElements.panel.id = 'xghosted-panel';
+      this.uiElements.panel.id = 'ghosted-panel';
       this.uiElements.panelContainer.appendChild(this.uiElements.panel);
       this.document.body.appendChild(this.uiElements.panelContainer);
       if (window.xGhostedStyles) {
@@ -3177,7 +3177,7 @@
       };
       this.styleElement.textContent = `
     button:active { transform: scale(0.95); }
-    #xghosted-panel-container {
+    #ghosted-panel-container {
       position: fixed;
       right: ${position.right};
       top: ${position.top};
@@ -4504,8 +4504,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-}
-`;
+}`;
 
   // Initialize core components with document and configuration
   const postsManager = new window.ProcessedPostsManager({

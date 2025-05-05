@@ -24,17 +24,17 @@ function SplashPanel(
   this.init = function () {
     this.logger("Initializing SplashPanel...");
     this.container = this.document.createElement("div");
-    this.container.id = "xghosted-splash";
+    this.container.id = "ghosted-splash";
     this.container.style.cssText =
       'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; border: 2px solid #333; border-radius: 12px; padding: 20px; z-index: 10000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);';
     this.document.body.appendChild(this.container);
 
     this.styleElement = this.document.createElement("style");
     this.styleElement.textContent = `
-              #xghosted-splash {
+              #ghosted-splash {
                   cursor: move;
               }
-              #xghosted-splash button {
+              #ghosted-splash button {
                   cursor: pointer;
               }
           `;

@@ -139,24 +139,24 @@ class XGhosted {
       );
     } else {
       currentPost.classList.remove(
-        "xghosted-problem_adjacent",
-        "xghosted-potential_problem",
-        "xghosted-good",
-        "xghosted-problem"
+        "ghosted-problem-adjacent",
+        "ghosted-potential-problem",
+        "ghosted-good",
+        "ghosted-problem"
       );
       currentPost.classList.add(
-        isProblem ? "xghosted-problem_adjacent" : "xghosted-good"
+        isProblem ? "ghosted-problem-adjacent" : "ghosted-good"
       );
       currentPost.setAttribute(
         "data-ghosted",
         `postquality.${isProblem ? "problem_adjacent" : "good"}`
       );
       const eyeballContainer = domUtils.querySelector(
-        ".xghosted-eyeball",
+        ".ghosted-eyeball",
         currentPost
       );
       if (eyeballContainer) {
-        eyeballContainer.classList.remove("xghosted-eyeball");
+        eyeballContainer.classList.remove("ghosted-eyeball");
       } else {
         this.log(`Eyeball container not found for post with href: ${href}`);
       }
@@ -398,7 +398,7 @@ class XGhosted {
     ).toLowerCase();
     post.setAttribute("data-ghosted", `postquality.${qualityName}`);
     post.setAttribute("data-ghostedid", id && id !== "false" ? id : "");
-    post.classList.add(`xghosted-${qualityName}`);
+    post.classList.add(`ghosted-${qualityName}`);
 
     if (connectedPostAnalysis.quality === postQuality.PROBLEM) {
       log("Marked PROBLEM post");
@@ -420,7 +420,7 @@ class XGhosted {
         post
       )?.parentElement;
       if (shareButtonContainer) {
-        shareButtonContainer.classList.add("xghosted-eyeball");
+        shareButtonContainer.classList.add("ghosted-eyeball");
       } else if (debug) {
         log(`No share button container found for post with href: ${id}`);
       }
@@ -467,8 +467,8 @@ class XGhosted {
       "click",
       (e) => {
         const eyeball =
-          e.target.closest(".xghosted-eyeball") ||
-          (e.target.classList.contains("xghosted-eyeball") ? e.target : null);
+          e.target.closest(".ghosted-eyeball") ||
+          (e.target.classList.contains("ghosted-eyeball") ? e.target : null);
         if (eyeball) {
           e.preventDefault();
           e.stopPropagation();
@@ -517,20 +517,20 @@ class XGhosted {
 
     const styleSheet = domUtils.createElement("style", this.document);
     styleSheet.textContent = `
-    .xghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.15); }
-    .xghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.15); }
-    .xghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.25); }
-    .xghosted-potential_problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.25); }
-    .xghosted-problem_adjacent { border: 2px solid coral; background: rgba(255, 127, 80, 0.25); }
-    .xghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
-    .xghosted-eyeball::after {
+    .ghosted-good { border: 2px solid green; background: rgba(0, 255, 0, 0.15); }
+    .ghosted-problem { border: 2px solid red; background: rgba(255, 0, 0, 0.15); }
+    .ghosted-undefined { border: 2px solid gray; background: rgba(128, 128, 128, 0.25); }
+    .ghosted-potential-problem { border: 2px solid yellow; background: rgba(255, 255, 0, 0.25); }
+    .ghosted-problem-adjacent { border: 2px solid coral; background: rgba(255, 127, 80, 0.25); }
+    .ghosted-collapsed { height: 0px; overflow: hidden; margin: 0; padding: 0; }
+    .ghosted-eyeball::after {
       content: '\u{1F440}';
       color: rgb(29, 155, 240);
       padding: 8px;
       cursor: pointer;
       text-decoration: none;
     }
-    ${CONFIG.decoratePostsContainer ? `.xghosted-posts-container { border: 4px solid #00FFFF; }` : ""}
+    ${CONFIG.decoratePostsContainer ? `.ghosted-posts-container { border: 4px solid #00FFFF; }` : ""}
   `;
     this.document.head.appendChild(styleSheet);
 

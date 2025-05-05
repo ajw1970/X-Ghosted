@@ -109,7 +109,7 @@ describe("tryTagPostsContainer and related functions", () => {
 
       expect(result).toBe(true);
       expect(div.getAttribute("data-ghosted")).toBe("posts-container");
-      expect(div.classList.contains("xghosted-posts-container")).toBe(true);
+      expect(div.classList.contains("ghosted-posts-container")).toBe(true);
       expect(log).toHaveBeenCalledWith(
         "Div tagged with data-ghosted='posts-container'"
       );
@@ -127,7 +127,7 @@ describe("tryTagPostsContainer and related functions", () => {
 
       expect(result).toBe(true);
       expect(div.getAttribute("data-ghosted")).toBe("posts-container");
-      expect(div.classList.contains("xghosted-posts-container")).toBe(true);
+      expect(div.classList.contains("ghosted-posts-container")).toBe(true);
       expect(log).toHaveBeenCalledWith(
         "Div tagged with data-ghosted='posts-container'"
       );
@@ -156,7 +156,7 @@ describe("tryTagPostsContainer and related functions", () => {
 
       expect(result).toBe(true);
       expect(grandparent.getAttribute("data-ghosted")).toBe("posts-container");
-      expect(grandparent.classList.contains("xghosted-posts-container")).toBe(
+      expect(grandparent.classList.contains("ghosted-posts-container")).toBe(
         true
       );
       expect(log).toHaveBeenCalledWith("First post found");
@@ -261,9 +261,9 @@ describe("tryTagPostsContainer and related functions", () => {
       expect(postsContainer.getAttribute("data-ghosted")).toBe(
         "posts-container"
       );
-      expect(
-        postsContainer.classList.contains("xghosted-posts-container")
-      ).toBe(true);
+      expect(postsContainer.classList.contains("ghosted-posts-container")).toBe(
+        true
+      );
       expect(log).toHaveBeenCalledWith("First post found");
       expect(log).toHaveBeenCalledWith(
         "No aria-label found; selecting grandparent"

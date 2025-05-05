@@ -34,7 +34,7 @@ function Panel({
     window.preact.h(
       'div',
       {
-        id: 'xghosted-panel',
+        id: 'ghosted-panel',
         style: {
           background: config.THEMES[currentMode].bg,
           border: `2px solid ${isScanning ? config.THEMES[currentMode].border : '#FFA500'}`,
