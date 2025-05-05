@@ -2,7 +2,7 @@ import { postQuality } from "./utils/postQuality.js";
 import { debounce } from "./utils/debounce.js";
 import { tryTagPostsContainer } from "./dom/tryTagPostsContainer.js";
 import { identifyPostWithConnectors } from "./dom/identifyPostWithConnectors.js";
-import { postQualityNameGetter } from "./utils/postQualityNameGetter.js";
+import { postQualityClassNameGetter } from "./utils/postQualityNameGetter.js";
 import { parseUrl } from "./dom/parseUrl.js";
 import { CONFIG } from "./config.js";
 import { EVENTS } from "./events.js";
@@ -393,9 +393,9 @@ class XGhosted {
     }
 
     const id = connectedPostAnalysis.link;
-    const qualityName = postQualityNameGetter(
+    const qualityName = postQualityClassNameGetter(
       connectedPostAnalysis.quality
-    ).toLowerCase();
+    );
     post.setAttribute("data-ghosted", `postquality.${qualityName}`);
     post.setAttribute("data-ghostedid", id && id !== "false" ? id : "");
     post.classList.add(`ghosted-${qualityName}`);

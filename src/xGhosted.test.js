@@ -3,7 +3,7 @@ import { XGhosted } from "./xGhosted.js";
 import { postQuality } from "./utils/postQuality.js";
 import { CONFIG } from "./config.js";
 import { EVENTS } from "./events.js";
-import { postQualityNameGetter } from "./utils/postQualityNameGetter.js";
+import { postQualityClassNameGetter } from "./utils/postQualityNameGetter.js";
 import { domUtils } from "./dom/domUtils.js";
 
 // Mock ProcessedPostsManager to simulate cache behavior
@@ -160,7 +160,7 @@ describe("XGhosted DOM Updates", () => {
     // Verify DOM updates for each post
     posts.forEach((post, index) => {
       const expected = expectedAnalyses[index];
-      const qualityName = postQualityNameGetter(expected.quality).toLowerCase();
+      const qualityName = postQualityClassNameGetter(expected.quality);
       const expectedClass = `ghosted-${qualityName}`;
       const expectedDataAttr = `postquality.${qualityName}`;
 
@@ -321,7 +321,7 @@ describe("XGhosted DOM Updates", () => {
     // Verify DOM updates for each post
     posts.forEach((post, index) => {
       const expected = expectedAnalyses[index];
-      const qualityName = postQualityNameGetter(expected.quality).toLowerCase();
+      const qualityName = postQualityClassNameGetter(expected.quality);
       const expectedClass = `ghosted-${qualityName}`;
       const expectedDataAttr = `postquality.${qualityName}`;
 

@@ -27,7 +27,7 @@
       exportThrottle: 5000,
       rateLimitPause: 20000,
       pollInterval: 500,
-      scrollInterval: 1250,
+      scrollInterval: 1500,
       isPostScanningEnabledOnStartup: false,
       userRequestedAutoScrollOnStartup: false,
     },
@@ -37,7 +37,7 @@
     linkPrefix: 'https://x.com',
     debug: false,
     smoothScrolling: true,
-    scrollPercentage: 1.75,
+    scrollPercentage: 2,
     decoratePostsContainer: false,
   };
 
@@ -242,7 +242,7 @@
         exportThrottle: 5e3,
         rateLimitPause: 20 * 1e3,
         pollInterval: 500,
-        scrollInterval: 1250,
+        scrollInterval: 1500,
         isPostScanningEnabledOnStartup: false,
         // We'll send an event to change to true on the first heartbeat poll
         userRequestedAutoScrollOnStartup: false,
@@ -253,7 +253,7 @@
       linkPrefix: 'https://x.com',
       debug: false,
       smoothScrolling: true,
-      scrollPercentage: 1.75,
+      scrollPercentage: 2,
       decoratePostsContainer: false,
     };
 
@@ -845,6 +845,9 @@
       if (quality === postQuality.GOOD) return 'GOOD';
       return 'unknown';
     }
+    function postQualityClassNameGetter(quality) {
+      return postQualityNameGetter(quality).toLowerCase().replace('_', '-');
+    }
 
     // src/utils/postQualityReasons.js
     var postQualityReasons = Object.freeze({
@@ -1435,6 +1438,7 @@
       postHasProblemCommunity,
       postHasProblemSystemNotice,
       postQuality,
+      postQualityClassNameGetter,
       postQualityNameGetter,
       postQualityReasons,
       selectContainerDiv,
@@ -1471,7 +1475,7 @@
       debounce,
       tryTagPostsContainer,
       identifyPostWithConnectors,
-      postQualityNameGetter,
+      postQualityClassNameGetter,
       parseUrl,
       CONFIG,
       EVENTS,
@@ -1854,9 +1858,9 @@
           };
         }
         const id = connectedPostAnalysis.link;
-        const qualityName = postQualityNameGetter(
+        const qualityName = postQualityClassNameGetter(
           connectedPostAnalysis.quality
-        ).toLowerCase();
+        );
         post.setAttribute('data-ghosted', `postquality.${qualityName}`);
         post.setAttribute('data-ghostedid', id && id !== 'false' ? id : '');
         post.classList.add(`ghosted-${qualityName}`);
