@@ -78,7 +78,7 @@ describe("XGhosted DOM Updates", () => {
     mockEmit.mockClear();
   });
 
-  test("processUnprocessedPosts applies correct data-xghosted attributes, classes, and eyeballs with checkReplies true", () => {
+  test("processUnprocessedPosts applies correct data-ghosted attributes, classes, and eyeballs with checkReplies true", () => {
     const { GOOD, PROBLEM, POTENTIAL_PROBLEM, DIVIDER } = postQuality;
 
     // Get all posts
@@ -164,22 +164,22 @@ describe("XGhosted DOM Updates", () => {
       const expectedClass = `xghosted-${qualityName}`;
       const expectedDataAttr = `postquality.${qualityName}`;
 
-      expect(post.getAttribute("data-xghosted")).toBe(expectedDataAttr);
+      expect(post.getAttribute("data-ghosted")).toBe(expectedDataAttr);
 
       if (
         expected.quality === PROBLEM &&
         expected.link &&
         expected.link !== "false"
       ) {
-        expect(post.getAttribute("data-xghosted-id")).toBe(expected.link);
+        expect(post.getAttribute("data-ghostedid")).toBe(expected.link);
       } else if (
         expected.link &&
         expected.quality !== DIVIDER &&
         expected.link !== "false"
       ) {
-        expect(post.getAttribute("data-xghosted-id")).toBe(expected.link);
+        expect(post.getAttribute("data-ghostedid")).toBe(expected.link);
       } else {
-        expect(post.getAttribute("data-xghosted-id")).toBe("");
+        expect(post.getAttribute("data-ghostedid")).toBe("");
       }
 
       expect(post.classList.contains(expectedClass)).toBe(true);
@@ -239,7 +239,7 @@ describe("XGhosted DOM Updates", () => {
     expect(postsProcessed).toBe(7);
   });
 
-  test("processUnprocessedPosts applies correct data-xghosted attributes, classes, and no eyeballs with checkReplies false", () => {
+  test("processUnprocessedPosts applies correct data-ghosted attributes, classes, and no eyeballs with checkReplies false", () => {
     const { GOOD, PROBLEM, DIVIDER } = postQuality;
 
     // Get all posts
@@ -325,22 +325,22 @@ describe("XGhosted DOM Updates", () => {
       const expectedClass = `xghosted-${qualityName}`;
       const expectedDataAttr = `postquality.${qualityName}`;
 
-      expect(post.getAttribute("data-xghosted")).toBe(expectedDataAttr);
+      expect(post.getAttribute("data-ghosted")).toBe(expectedDataAttr);
 
       if (
         expected.quality === PROBLEM &&
         expected.link &&
         expected.link !== "false"
       ) {
-        expect(post.getAttribute("data-xghosted-id")).toBe(expected.link);
+        expect(post.getAttribute("data-ghostedid")).toBe(expected.link);
       } else if (
         expected.link &&
         expected.quality !== DIVIDER &&
         expected.link !== "false"
       ) {
-        expect(post.getAttribute("data-xghosted-id")).toBe(expected.link);
+        expect(post.getAttribute("data-ghostedid")).toBe(expected.link);
       } else {
-        expect(post.getAttribute("data-xghosted-id")).toBe("");
+        expect(post.getAttribute("data-ghostedid")).toBe("");
       }
 
       expect(post.classList.contains(expectedClass)).toBe(true);
@@ -502,7 +502,7 @@ describe("XGhosted DOM Updates", () => {
     test("userRequestedPostCheck updates post state and emits events", async () => {
       const href = "/test/status/123";
       const post = document.createElement("div");
-      post.setAttribute("data-xghosted-id", href);
+      post.setAttribute("data-ghostedid", href);
       post.classList.add("xghosted-potential_problem");
       const eyeball = document.createElement("div");
       eyeball.classList.add("xghosted-eyeball");
@@ -543,7 +543,7 @@ describe("XGhosted DOM Updates", () => {
       );
       expect(post.classList.contains("xghosted-problem_adjacent")).toBe(true);
       expect(post.classList.contains("xghosted-potential_problem")).toBe(false);
-      expect(post.getAttribute("data-xghosted")).toBe(
+      expect(post.getAttribute("data-ghosted")).toBe(
         "postquality.problem_adjacent"
       );
       expect(eyeball.classList.contains("xghosted-eyeball")).toBe(false);

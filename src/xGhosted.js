@@ -130,7 +130,7 @@ class XGhosted {
       `Manual check result for ${href}: ${isProblem ? "problem" : "good"}`
     );
     const currentPost = domUtils.querySelector(
-      `[data-xghosted-id="${href}"]`,
+      `[data-ghostedid="${href}"]`,
       this.document
     );
     if (!currentPost) {
@@ -148,7 +148,7 @@ class XGhosted {
         isProblem ? "xghosted-problem_adjacent" : "xghosted-good"
       );
       currentPost.setAttribute(
-        "data-xghosted",
+        "data-ghosted",
         `postquality.${isProblem ? "problem_adjacent" : "good"}`
       );
       const eyeballContainer = domUtils.querySelector(
@@ -265,7 +265,7 @@ class XGhosted {
             return;
           }
           const targetPost = domUtils.querySelector(
-            `[data-xghosted-id="${href}"]`,
+            `[data-ghostedid="${href}"]`,
             doc
           );
           if (targetPost) {
@@ -273,7 +273,7 @@ class XGhosted {
             clearInterval(checkInterval);
             const hasProblem =
               domUtils.querySelector(
-                '[data-xghosted="postquality.problem"]',
+                '[data-ghosted="postquality.problem"]',
                 doc
               ) !== null;
             newWindow.close();
@@ -396,8 +396,8 @@ class XGhosted {
     const qualityName = postQualityNameGetter(
       connectedPostAnalysis.quality
     ).toLowerCase();
-    post.setAttribute("data-xghosted", `postquality.${qualityName}`);
-    post.setAttribute("data-xghosted-id", id && id !== "false" ? id : "");
+    post.setAttribute("data-ghosted", `postquality.${qualityName}`);
+    post.setAttribute("data-ghostedid", id && id !== "false" ? id : "");
     post.classList.add(`xghosted-${qualityName}`);
 
     if (connectedPostAnalysis.quality === postQuality.PROBLEM) {
@@ -473,8 +473,8 @@ class XGhosted {
           e.preventDefault();
           e.stopPropagation();
           this.log("Eyeball clicked! Digging in...");
-          const clickedPost = eyeball.closest("div[data-xghosted-id]");
-          const href = clickedPost?.getAttribute("data-xghosted-id");
+          const clickedPost = eyeball.closest("div[data-ghostedid]");
+          const href = clickedPost?.getAttribute("data-ghostedid");
           if (!href) {
             this.log("No href found for clicked eyeball");
             return;

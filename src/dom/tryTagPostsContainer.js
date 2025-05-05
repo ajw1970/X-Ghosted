@@ -17,8 +17,8 @@ function selectContainerDiv(post, log = () => {}) {
   }
 
   const parent = post.parentElement;
-  if (!parent) {
-    log("No parent element found for the post");
+  if (!parent || parent.tagName.toLowerCase() !== "div") {
+    log("No parent div element found for the post");
     return null;
   }
 
@@ -30,8 +30,8 @@ function selectContainerDiv(post, log = () => {}) {
     return parent;
   }
 
-  // Check grandparent for aria-label, if it exists
-  if (grandparent) {
+  // Check grandparent for aria-label, if it exists and is a div
+  if (grandparent && grandparent.tagName.toLowerCase() === "div") {
     if (grandparent.hasAttribute("aria-label")) {
       log("Grandparent div has aria-label; selecting it");
       return grandparent;
@@ -41,7 +41,7 @@ function selectContainerDiv(post, log = () => {}) {
   }
 
   // Only parent exists, no aria-label
-  log("No aria-label found and no grandparent; selecting parent");
+  log("No aria-label found and no grandparent div; selecting parent");
   return parent;
 }
 
@@ -51,9 +51,9 @@ function tagContainerDiv(div, log = () => {}) {
     return false;
   }
 
-  div.setAttribute("data-xghosted", "posts-container");
+  div.setAttribute("data-ghosted", "posts-container");
   div.classList.add("xghosted-posts-container");
-  log("Div tagged with data-xghosted='posts-container'");
+  log("Div tagged with data-ghosted='posts-container'");
 
   if (div.hasAttribute("aria-label")) {
     const ariaLabel = div.getAttribute("aria-label");
@@ -64,19 +64,25 @@ function tagContainerDiv(div, log = () => {}) {
 }
 
 function tryTagPostsContainer(doc, log = () => {}) {
-  // Step 1: Find the first post
+  // Step 1: Make sure it's missing
+  if (domUtils.querySelector(domUtils.POST_CONTAINER_SELECTOR, doc)) {
+    log(`Posts container already tagged with data-ghosted='posts-container'`);
+    return true;
+  }
+
+  // Step 2: Find the first post
   const post = findFirstPost(doc, log);
   if (!post) {
     return false;
   }
 
-  // Step 2: Select the container div (parent or grandparent)
+  // Step 3: Select the container div (parent or grandparent)
   const containerDiv = selectContainerDiv(post, log);
   if (!containerDiv) {
     return false;
   }
 
-  // Step 3: Tag the container div and log aria-label if present
+  // Step 4: Tag the container div and log aria-label if present
   return tagContainerDiv(containerDiv, log);
 }
 

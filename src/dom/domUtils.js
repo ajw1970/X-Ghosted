@@ -33,8 +33,8 @@ export const domUtils = {
   getInnerHeight(win = window) {
     return win.innerHeight;
   },
-  POSTS_IN_DOC_SELECTOR: `div[data-testid="cellInnerDiv"]`,
-  POST_CONTAINER_SELECTOR: 'div[data-xghosted="posts-container"]',
-  POSTS_IN_CONTAINER_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]`,
-  UNPROCESSED_POSTS_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`,
+  POSTS_IN_DOC_SELECTOR: `div:not([aria-label="Timeline: Messages"]) > div > div[data-testid="cellInnerDiv"]`,
+  POST_CONTAINER_SELECTOR: 'div[data-ghosted="posts-container"]',
+  POSTS_IN_CONTAINER_SELECTOR: `div[data-ghosted="posts-container"] > div > div[data-testid="cellInnerDiv"]`,
+  UNPROCESSED_POSTS_SELECTOR: `div[data-ghosted="posts-container"] > div > div[data-testid="cellInnerDiv"]:not([data-ghostedid])`,
 };

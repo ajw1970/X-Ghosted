@@ -944,10 +944,10 @@
       getInnerHeight(win = window) {
         return win.innerHeight;
       },
-      POSTS_IN_DOC_SELECTOR: `div[data-testid="cellInnerDiv"]`,
-      POST_CONTAINER_SELECTOR: 'div[data-xghosted="posts-container"]',
-      POSTS_IN_CONTAINER_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]`,
-      UNPROCESSED_POSTS_SELECTOR: `div[data-xghosted="posts-container"] div[data-testid="cellInnerDiv"]:not([data-xghosted-id])`,
+      POSTS_IN_DOC_SELECTOR: `div:not([aria-label="Timeline: Messages"]) > div > div[data-testid="cellInnerDiv"]`,
+      POST_CONTAINER_SELECTOR: 'div[data-ghosted="posts-container"]',
+      POSTS_IN_CONTAINER_SELECTOR: `div[data-ghosted="posts-container"] > div > div[data-testid="cellInnerDiv"]`,
+      UNPROCESSED_POSTS_SELECTOR: `div[data-ghosted="posts-container"] > div > div[data-testid="cellInnerDiv"]:not([data-ghostedid])`,
     };
 
     // src/dom/extractUserFromLink.js
@@ -1355,8 +1355,8 @@
         return null;
       }
       const parent = post.parentElement;
-      if (!parent) {
-        log('No parent element found for the post');
+      if (!parent || parent.tagName.toLowerCase() !== 'div') {
+        log('No parent div element found for the post');
         return null;
       }
       const grandparent = parent.parentElement;
@@ -1364,7 +1364,7 @@
         log('Parent div has aria-label; selecting it');
         return parent;
       }
-      if (grandparent) {
+      if (grandparent && grandparent.tagName.toLowerCase() === 'div') {
         if (grandparent.hasAttribute('aria-label')) {
           log('Grandparent div has aria-label; selecting it');
           return grandparent;
@@ -1372,7 +1372,7 @@
         log('No aria-label found; selecting grandparent');
         return grandparent;
       }
-      log('No aria-label found and no grandparent; selecting parent');
+      log('No aria-label found and no grandparent div; selecting parent');
       return parent;
     }
     function tagContainerDiv(div, log = () => {}) {
@@ -1380,9 +1380,9 @@
         log('Invalid div element; cannot tag');
         return false;
       }
-      div.setAttribute('data-xghosted', 'posts-container');
+      div.setAttribute('data-ghosted', 'posts-container');
       div.classList.add('xghosted-posts-container');
-      log("Div tagged with data-xghosted='posts-container'");
+      log("Div tagged with data-ghosted='posts-container'");
       if (div.hasAttribute('aria-label')) {
         const ariaLabel = div.getAttribute('aria-label');
         log(`Tagged div has aria-label: "${ariaLabel}"`);
@@ -1390,6 +1390,12 @@
       return true;
     }
     function tryTagPostsContainer(doc, log = () => {}) {
+      if (domUtils.querySelector(domUtils.POST_CONTAINER_SELECTOR, doc)) {
+        log(
+          `Posts container already tagged with data-ghosted='posts-container'`
+        );
+        return true;
+      }
       const post = findFirstPost(doc, log);
       if (!post) {
         return false;
@@ -1596,7 +1602,7 @@
           `Manual check result for ${href}: ${isProblem ? 'problem' : 'good'}`
         );
         const currentPost = domUtils.querySelector(
-          `[data-xghosted-id="${href}"]`,
+          `[data-ghostedid="${href}"]`,
           this.document
         );
         if (!currentPost) {
@@ -1614,7 +1620,7 @@
             isProblem ? 'xghosted-problem_adjacent' : 'xghosted-good'
           );
           currentPost.setAttribute(
-            'data-xghosted',
+            'data-ghosted',
             `postquality.${isProblem ? 'problem_adjacent' : 'good'}`
           );
           const eyeballContainer = domUtils.querySelector(
@@ -1728,7 +1734,7 @@
                 return;
               }
               const targetPost = domUtils.querySelector(
-                `[data-xghosted-id="${href}"]`,
+                `[data-ghostedid="${href}"]`,
                 doc
               );
               if (targetPost) {
@@ -1736,7 +1742,7 @@
                 clearInterval(checkInterval);
                 const hasProblem =
                   domUtils.querySelector(
-                    '[data-xghosted="postquality.problem"]',
+                    '[data-ghosted="postquality.problem"]',
                     doc
                   ) !== null;
                 newWindow.close();
@@ -1851,8 +1857,8 @@
         const qualityName = postQualityNameGetter(
           connectedPostAnalysis.quality
         ).toLowerCase();
-        post.setAttribute('data-xghosted', `postquality.${qualityName}`);
-        post.setAttribute('data-xghosted-id', id && id !== 'false' ? id : '');
+        post.setAttribute('data-ghosted', `postquality.${qualityName}`);
+        post.setAttribute('data-ghostedid', id && id !== 'false' ? id : '');
         post.classList.add(`xghosted-${qualityName}`);
         if (connectedPostAnalysis.quality === postQuality.PROBLEM) {
           log('Marked PROBLEM post');
@@ -1924,8 +1930,8 @@
               e.preventDefault();
               e.stopPropagation();
               this.log('Eyeball clicked! Digging in...');
-              const clickedPost = eyeball.closest('div[data-xghosted-id]');
-              const href = clickedPost?.getAttribute('data-xghosted-id');
+              const clickedPost = eyeball.closest('div[data-ghostedid]');
+              const href = clickedPost?.getAttribute('data-ghostedid');
               if (!href) {
                 this.log('No href found for clicked eyeball');
                 return;
