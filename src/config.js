@@ -6,7 +6,7 @@ export const CONFIG = {
     exportThrottle: 5000,
     rateLimitPause: 20 * 1000,
     pollInterval: 500,
-    scrollInterval: 1250,
+    scrollInterval: 1500,
     isPostScanningEnabledOnStartup: false, // We'll send an event to change to true on the first heartbeat poll
     userRequestedAutoScrollOnStartup: false,
   },
@@ -16,6 +16,6 @@ export const CONFIG = {
   linkPrefix: "https://x.com",
   debug: false,
   smoothScrolling: true,
-  scrollPercentage: 1.75,
+  scrollPercentage: 2.0,
   decoratePostsContainer: false,
 };
