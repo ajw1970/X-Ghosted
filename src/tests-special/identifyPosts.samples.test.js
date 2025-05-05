@@ -1513,7 +1513,7 @@ describe("identifyPosts - Problems", () => {
           "   0 Invisibly Dividing",
           "   1 Standing Alone",
           "   1 Starting",
-          "   1 Continuing", // This can't be right
+          "   1 Continuing",
           "   0 Dangling",
         ].join("\n")
       );
