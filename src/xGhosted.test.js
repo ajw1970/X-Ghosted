@@ -167,10 +167,7 @@ describe("XGhosted DOM Updates", () => {
 
     // Verify emitted events for POST_REGISTERED
     const registeredPosts = expectedAnalyses.filter(
-      (analysis) =>
-        analysis.link &&
-        analysis.quality !== DIVIDER &&
-        analysis.link !== "false"
+      (analysis) => analysis.link
     );
     expect(emitSpy).toHaveBeenCalledTimes(registeredPosts.length + 2); // POST_REGISTERED + SAVE_METRICS + STATE_UPDATED
     registeredPosts.forEach((analysis) => {
