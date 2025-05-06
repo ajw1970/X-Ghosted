@@ -55,7 +55,7 @@ export const EVENT_CONTRACTS: EventContracts = {
   [EVENTS.POST_REGISTERED]: { href: "string", data: "object" },
   [EVENTS.POST_REQUESTED]: { href: "string" },
   [EVENTS.POST_RETRIEVED]: { href: "string", post: "object|null" },
-  [EVENTS.REQUEST_POST_CHECK]: { href: "string", post: "object|null" },
+  [EVENTS.REQUEST_POST_CHECK]: { href: "string" },
   [EVENTS.CLEAR_POSTS]: {},
   [EVENTS.CLEAR_POSTS_UI]: {},
   [EVENTS.POSTS_CLEARED]: {},

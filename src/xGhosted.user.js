@@ -99,7 +99,6 @@
     },
     'xghosted:request-post-check': {
       href: 'string',
-      post: 'object|null',
     },
     'xghosted:clear-posts': {},
     'xghosted:clear-posts-ui': {},
@@ -303,7 +302,7 @@
       [EVENTS.POST_REGISTERED]: { href: 'string', data: 'object' },
       [EVENTS.POST_REQUESTED]: { href: 'string' },
       [EVENTS.POST_RETRIEVED]: { href: 'string', post: 'object|null' },
-      [EVENTS.REQUEST_POST_CHECK]: { href: 'string', post: 'object|null' },
+      [EVENTS.REQUEST_POST_CHECK]: { href: 'string' },
       [EVENTS.CLEAR_POSTS]: {},
       [EVENTS.CLEAR_POSTS_UI]: {},
       [EVENTS.POSTS_CLEARED]: {},
@@ -1587,10 +1586,8 @@
           }, 1e3);
         });
       }
-      async userRequestedPostCheck(href, post) {
-        this.log(
-          `User requested check for ${href}, post=${post ? 'found' : 'null'}`
-        );
+      async userRequestedPostCheck(href) {
+        this.log(`User requested check for ${href}`);
         this.emit(EVENTS.SET_SCANNING, { enabled: false });
         const cached = await this.waitForPostRetrieved(href);
         this.log(
@@ -1914,11 +1911,9 @@
         domUtils.addEventListener(
           this.document,
           EVENTS.REQUEST_POST_CHECK,
-          ({ detail: { href, post } }) => {
-            this.log(
-              `Received ${EVENTS.REQUEST_POST_CHECK} for href=${href}, post=${post ? 'found' : 'null'}`
-            );
-            this.userRequestedPostCheck(href, post);
+          ({ detail: { href } }) => {
+            this.log(`Received ${EVENTS.REQUEST_POST_CHECK} for href=${href}`);
+            this.userRequestedPostCheck(href);
           }
         );
         domUtils.addEventListener(
@@ -1947,7 +1942,6 @@
               }
               this.emit(EVENTS.REQUEST_POST_CHECK, {
                 href,
-                post: clickedPost,
               });
             }
           },

@@ -108,10 +108,8 @@ class XGhosted {
     });
   }
 
-  async userRequestedPostCheck(href, post) {
-    this.log(
-      `User requested check for ${href}, post=${post ? "found" : "null"}`
-    );
+  async userRequestedPostCheck(href) {
+    this.log(`User requested check for ${href}`);
     this.emit(EVENTS.SET_SCANNING, { enabled: false });
 
     const cached = await this.waitForPostRetrieved(href);
@@ -454,11 +452,9 @@ class XGhosted {
     domUtils.addEventListener(
       this.document,
       EVENTS.REQUEST_POST_CHECK,
-      ({ detail: { href, post } }) => {
-        this.log(
-          `Received ${EVENTS.REQUEST_POST_CHECK} for href=${href}, post=${post ? "found" : "null"}`
-        );
-        this.userRequestedPostCheck(href, post);
+      ({ detail: { href } }) => {
+        this.log(`Received ${EVENTS.REQUEST_POST_CHECK} for href=${href}`);
+        this.userRequestedPostCheck(href);
       }
     );
 
@@ -486,7 +482,6 @@ class XGhosted {
           }
           this.emit(EVENTS.REQUEST_POST_CHECK, {
             href,
-            post: clickedPost,
           });
         }
       },

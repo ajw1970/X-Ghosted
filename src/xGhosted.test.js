@@ -419,7 +419,7 @@ describe("XGhosted DOM Updates", () => {
         });
 
       // Call userRequestedPostCheck
-      await xGhosted.userRequestedPostCheck(href, post);
+      await xGhosted.userRequestedPostCheck(href);
 
       // Verify DOM updates
       expect(post.classList.contains("ghosted-problem-adjacent")).toBe(true);
