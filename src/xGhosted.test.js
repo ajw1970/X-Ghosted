@@ -127,17 +127,7 @@ describe("XGhosted DOM Updates", () => {
 
       expect(post.getAttribute("data-ghosted")).toBe(expectedDataAttr);
 
-      if (
-        expected.quality === PROBLEM &&
-        expected.link &&
-        expected.link !== "false"
-      ) {
-        expect(post.getAttribute("data-ghostedid")).toBe(expected.link);
-      } else if (
-        expected.link &&
-        expected.quality !== DIVIDER &&
-        expected.link !== "false"
-      ) {
+      if (expected.link) {
         expect(post.getAttribute("data-ghostedid")).toBe(expected.link);
       } else {
         expect(post.getAttribute("data-ghostedid")).toBe("");
@@ -289,17 +279,7 @@ describe("XGhosted DOM Updates", () => {
 
       expect(post.getAttribute("data-ghosted")).toBe(expectedDataAttr);
 
-      if (
-        expected.quality === PROBLEM &&
-        expected.link &&
-        expected.link !== "false"
-      ) {
-        expect(post.getAttribute("data-ghostedid")).toBe(expected.link);
-      } else if (
-        expected.link &&
-        expected.quality !== DIVIDER &&
-        expected.link !== "false"
-      ) {
+      if (expected.link) {
         expect(post.getAttribute("data-ghostedid")).toBe(expected.link);
       } else {
         expect(post.getAttribute("data-ghostedid")).toBe("");
@@ -319,10 +299,7 @@ describe("XGhosted DOM Updates", () => {
 
     // Verify emitted events for POST_REGISTERED
     const registeredPosts = expectedAnalyses.filter(
-      (analysis) =>
-        analysis.link &&
-        analysis.quality !== DIVIDER &&
-        analysis.link !== "false"
+      (analysis) => analysis.link
     );
     expect(emitSpy).toHaveBeenCalledTimes(registeredPosts.length + 2); // POST_REGISTERED + SAVE_METRICS + STATE_UPDATED
     registeredPosts.forEach((analysis) => {
