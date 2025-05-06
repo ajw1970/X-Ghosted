@@ -1,5 +1,3 @@
-import { domUtils } from "./domUtils.js";
-
 function findReplyingToWithDepth(article) {
   function getInnerHTMLWithoutAttributes(element) {
     const clone = element.cloneNode(true);
