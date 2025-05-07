@@ -218,6 +218,7 @@ window.PanelManager.prototype.init = function () {
   };
   const handleCsvImported = (e) => {
     const { importedCount } = e.detail || {};
+    this.log(`PanelManager: CSV import completed with ${importedCount} posts`);
     if (importedCount > 0) {
       this.log("PanelManager: CSV imported, requesting posts");
       this.state.flagged = [];
@@ -225,6 +226,10 @@ window.PanelManager.prototype.init = function () {
       this.state.pendingImportCount = importedCount;
       this.document.dispatchEvent(new CustomEvent(EVENTS.REQUEST_POSTS));
       this.renderPanel();
+    } else {
+      alert(
+        "No posts were imported. Please check the CSV format and try again."
+      );
     }
   };
   const handlePostsRetrieved = (e) => {
@@ -276,6 +281,7 @@ window.PanelManager.prototype.init = function () {
     );
   };
   const handleCsvExported = ({ detail: { csvData } }) => {
+    // csvData is a pre-formatted CSV string, no need to map
     const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = this.document.createElement("a");
@@ -285,6 +291,7 @@ window.PanelManager.prototype.init = function () {
     URL.revokeObjectURL(url);
     this.log(`Exported CSV: processed_posts.csv`);
   };
+
   this.document.addEventListener(
     EVENTS.INIT_COMPONENTS,
     ({ detail: { config } }) => {
@@ -633,14 +640,16 @@ window.PanelManager.prototype.openAbout = function () {
 };
 
 window.PanelManager.prototype.submitCsv = function (csvText) {
+  this.log(
+    `PanelManager: Dispatching REQUEST_IMPORT_CSV with csvText length: ${csvText?.length || 0}`
+  );
   this.document.dispatchEvent(
-    new CustomEvent(EVENTS.CSV_IMPORT, {
+    new CustomEvent(EVENTS.REQUEST_IMPORT_CSV, {
       detail: { csvText },
     })
   );
   this.closeModal();
-  this.renderPanel(); // Immediate for user interaction
-  this.log("Dispatched CSV import event");
+  // this.renderPanel(); // Immediate for user interaction
 };
 
 window.PanelManager.prototype.updateTheme = function (newMode) {

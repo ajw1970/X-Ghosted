@@ -54,7 +54,6 @@
     POSTS_CLEARED_CONFIRMED: 'xghosted:posts-cleared-confirmed',
     REQUEST_POSTS: 'xghosted:request-posts',
     POSTS_RETRIEVED: 'xghosted:posts-retrieved',
-    CSV_IMPORT: 'xghosted:csv-import',
     CSV_IMPORTED: 'xghosted:csv-imported',
     REQUEST_IMPORT_CSV: 'xghosted:request-import-csv',
     EXPORT_CSV: 'xghosted:export-csv',
@@ -107,9 +106,6 @@
     'xghosted:request-posts': {},
     'xghosted:posts-retrieved': {
       posts: 'array',
-    },
-    'xghosted:csv-import': {
-      csvText: 'string',
     },
     'xghosted:csv-imported': {
       importedCount: 'number',
@@ -269,7 +265,6 @@
       POSTS_CLEARED_CONFIRMED: 'xghosted:posts-cleared-confirmed',
       REQUEST_POSTS: 'xghosted:request-posts',
       POSTS_RETRIEVED: 'xghosted:posts-retrieved',
-      CSV_IMPORT: 'xghosted:csv-import',
       CSV_IMPORTED: 'xghosted:csv-imported',
       REQUEST_IMPORT_CSV: 'xghosted:request-import-csv',
       EXPORT_CSV: 'xghosted:export-csv',
@@ -309,7 +304,6 @@
       [EVENTS.POSTS_CLEARED_CONFIRMED]: {},
       [EVENTS.REQUEST_POSTS]: {},
       [EVENTS.POSTS_RETRIEVED]: { posts: 'array' },
-      [EVENTS.CSV_IMPORT]: { csvText: 'string' },
       [EVENTS.CSV_IMPORTED]: { importedCount: 'number' },
       [EVENTS.REQUEST_IMPORT_CSV]: { csvText: 'string' },
       [EVENTS.EXPORT_CSV]: {},
@@ -2942,6 +2936,9 @@
       };
       const handleCsvImported = (e) => {
         const { importedCount } = e.detail || {};
+        this.log(
+          `PanelManager: CSV import completed with ${importedCount} posts`
+        );
         if (importedCount > 0) {
           this.log('PanelManager: CSV imported, requesting posts');
           this.state.flagged = [];
@@ -2949,6 +2946,10 @@
           this.state.pendingImportCount = importedCount;
           this.document.dispatchEvent(new CustomEvent(EVENTS.REQUEST_POSTS));
           this.renderPanel();
+        } else {
+          alert(
+            'No posts were imported. Please check the CSV format and try again.'
+          );
         }
       };
       const handlePostsRetrieved = (e) => {
@@ -3365,14 +3366,15 @@
       this.log('Dispatched open about event');
     };
     window.PanelManager.prototype.submitCsv = function (csvText) {
+      this.log(
+        `PanelManager: Dispatching REQUEST_IMPORT_CSV with csvText length: ${csvText?.length || 0}`
+      );
       this.document.dispatchEvent(
-        new CustomEvent(EVENTS.CSV_IMPORT, {
+        new CustomEvent(EVENTS.REQUEST_IMPORT_CSV, {
           detail: { csvText },
         })
       );
       this.closeModal();
-      this.renderPanel();
-      this.log('Dispatched CSV import event');
     };
     window.PanelManager.prototype.updateTheme = function (newMode) {
       this.state.themeMode = newMode;
@@ -3725,18 +3727,43 @@
           this.log('No CSV text provided, skipping import');
           return 0;
         }
-        const lines = csvText.trim().split('\n');
-        const headers = lines[0].split(',');
+        this.log(`Processing CSV text with length: ${csvText.length}`);
+        const lines = csvText.trim().split(/\r?\n/);
+        this.log(`Parsed ${lines.length} lines from CSV`);
+        if (lines.length === 0) {
+          this.log('No lines found in CSV, skipping import');
+          return 0;
+        }
+        const headers = lines[0].split(',').map((h) => h.trim());
         const expectedHeaders = ['Link', 'Quality', 'Reason', 'Checked'];
         if (!expectedHeaders.every((h, i) => headers[i] === h)) {
           this.log(
-            'Invalid CSV format, expected headers: ' + expectedHeaders.join(',')
+            `Invalid CSV format, expected headers: ${expectedHeaders.join(',')}, got: ${headers.join(',')}`
           );
+          return 0;
+        }
+        if (lines.length === 1) {
+          this.log('No data rows found in CSV, only headers');
           return 0;
         }
         let importedCount = 0;
         for (let i = 1; i < lines.length; i++) {
-          const [link, quality, reason, checked] = lines[i].split(',');
+          const row = lines[i].trim();
+          if (!row) {
+            this.log(`Skipping empty row at index ${i}`);
+            continue;
+          }
+          const columns = row.split(',').map((c) => c.trim());
+          if (columns.length !== expectedHeaders.length) {
+            this.log(
+              `Skipping row ${i} with invalid column count: ${columns.length}, expected: ${expectedHeaders.length}, row: ${row}`
+            );
+            continue;
+          }
+          const [link, quality, reason, checked] = columns;
+          this.log(
+            `Processing row ${i}: link=${link}, quality=${quality}, reason=${reason}, checked=${checked}`
+          );
           const id = link.startsWith(this.linkPrefix)
             ? link.slice(this.linkPrefix.length)
             : link;
@@ -3744,7 +3771,9 @@
             (q) => q.name === quality
           );
           if (!qualityObj) {
-            this.log(`Skipping invalid quality for post: ${link}`);
+            this.log(
+              `Skipping invalid quality for post: ${link}, quality: ${quality}`
+            );
             continue;
           }
           this.posts[id] = {
@@ -3761,6 +3790,8 @@
           if (this.persistProcessedPosts) {
             this.save();
           }
+        } else {
+          this.log('No posts imported from CSV');
         }
         return importedCount;
       }

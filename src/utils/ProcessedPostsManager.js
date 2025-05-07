@@ -219,18 +219,43 @@ class ProcessedPostsManager {
       this.log("No CSV text provided, skipping import");
       return 0;
     }
-    const lines = csvText.trim().split("\n");
-    const headers = lines[0].split(",");
+    this.log(`Processing CSV text with length: ${csvText.length}`);
+    const lines = csvText.trim().split(/\r?\n/); // Handle both \n and \r\n
+    this.log(`Parsed ${lines.length} lines from CSV`);
+    if (lines.length === 0) {
+      this.log("No lines found in CSV, skipping import");
+      return 0;
+    }
+    const headers = lines[0].split(",").map((h) => h.trim());
     const expectedHeaders = ["Link", "Quality", "Reason", "Checked"];
     if (!expectedHeaders.every((h, i) => headers[i] === h)) {
       this.log(
-        "Invalid CSV format, expected headers: " + expectedHeaders.join(",")
+        `Invalid CSV format, expected headers: ${expectedHeaders.join(",")}, got: ${headers.join(",")}`
       );
+      return 0;
+    }
+    if (lines.length === 1) {
+      this.log("No data rows found in CSV, only headers");
       return 0;
     }
     let importedCount = 0;
     for (let i = 1; i < lines.length; i++) {
-      const [link, quality, reason, checked] = lines[i].split(",");
+      const row = lines[i].trim();
+      if (!row) {
+        this.log(`Skipping empty row at index ${i}`);
+        continue;
+      }
+      const columns = row.split(",").map((c) => c.trim());
+      if (columns.length !== expectedHeaders.length) {
+        this.log(
+          `Skipping row ${i} with invalid column count: ${columns.length}, expected: ${expectedHeaders.length}, row: ${row}`
+        );
+        continue;
+      }
+      const [link, quality, reason, checked] = columns;
+      this.log(
+        `Processing row ${i}: link=${link}, quality=${quality}, reason=${reason}, checked=${checked}`
+      );
       const id = link.startsWith(this.linkPrefix)
         ? link.slice(this.linkPrefix.length)
         : link;
@@ -238,7 +263,9 @@ class ProcessedPostsManager {
         (q) => q.name === quality
       );
       if (!qualityObj) {
-        this.log(`Skipping invalid quality for post: ${link}`);
+        this.log(
+          `Skipping invalid quality for post: ${link}, quality: ${quality}`
+        );
         continue;
       }
       this.posts[id] = {
@@ -255,6 +282,8 @@ class ProcessedPostsManager {
       if (this.persistProcessedPosts) {
         this.save();
       }
+    } else {
+      this.log("No posts imported from CSV");
     }
     return importedCount;
   }
