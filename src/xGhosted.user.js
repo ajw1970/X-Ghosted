@@ -1600,8 +1600,14 @@
         this.log(`Manual check starting for ${href}`);
         const isProblem = await this.checkPostInNewTab(href);
         this.log(
-          `Manual check result for ${href}: ${isProblem ? 'problem' : 'good'}`
+          `Manual check result for ${href}: ${isProblem === void 0 ? 'timeout' : isProblem ? 'problem' : 'good'}`
         );
+        if (isProblem === void 0) {
+          this.log(
+            `Check failed for ${href}: timeout, preserving POTENTIAL_PROBLEM`
+          );
+          return;
+        }
         const currentPost = domUtils.querySelector(
           `[data-ghostedid="${href}"]`,
           this.document
@@ -1702,9 +1708,10 @@
       async checkPostInNewTab(href) {
         this.log(`Checking post in new tab: ${href}`);
         const fullUrl = `${this.linkPrefix}${href}`;
+        this.log(`Opened new window for ${fullUrl}`);
         const newWindow = this.window.open(fullUrl, '_blank');
         let attempts = 0;
-        const maxAttempts = 10;
+        const maxAttempts = 20;
         const start = performance.now();
         return new Promise((resolve) => {
           const checkInterval = setInterval(() => {
@@ -1734,18 +1741,59 @@
                 }, 3e5);
                 return;
               }
-              const targetPost = domUtils.querySelector(
-                `[data-ghostedid="${href}"]`,
-                doc
+              const cellInnerDivCount = doc.querySelectorAll(
+                '[data-testid="cellInnerDiv"]'
+              ).length;
+              const ghostedIdCount =
+                doc.querySelectorAll('[data-ghostedid]').length;
+              const validCount = Array.from(
+                doc.querySelectorAll('[data-ghostedid]')
+              ).filter(
+                (post) =>
+                  !['postquality.undefined', 'postquality.divider'].includes(
+                    post.getAttribute('data-ghosted')
+                  )
+              ).length;
+              this.log(
+                `Polling for post processing, attempt ${attempts}, cellInnerDivCount: ${cellInnerDivCount}, ghostedIdCount: ${ghostedIdCount}, validCount: ${validCount}`
               );
-              if (targetPost) {
-                this.log(`Original post found in new tab: ${href}`);
+              if (
+                cellInnerDivCount === ghostedIdCount &&
+                cellInnerDivCount > 0
+              ) {
                 clearInterval(checkInterval);
-                const hasProblem =
-                  domUtils.querySelector(
-                    '[data-ghosted="postquality.problem"]',
-                    doc
-                  ) !== null;
+                const targetPost = domUtils.querySelector(
+                  `[data-ghostedid="${href}"]`,
+                  doc
+                );
+                if (!targetPost) {
+                  this.log(`No target post found for ${href}`);
+                  newWindow.close();
+                  this.emit(EVENTS.RECORD_TAB_CHECK, {
+                    duration: performance.now() - start,
+                    success: false,
+                    rateLimited: false,
+                    attempts,
+                  });
+                  resolve(void 0);
+                  return;
+                }
+                let hasProblem;
+                if (validCount === 1) {
+                  hasProblem = true;
+                  this.log(
+                    `Single valid post found for ${href}, assuming problem`
+                  );
+                } else {
+                  hasProblem =
+                    domUtils.querySelector(
+                      '[data-ghosted="postquality.problem"]',
+                      doc
+                    ) !== null;
+                  this.log(
+                    `Multiple valid posts found for ${href}, hasProblem: ${hasProblem}`
+                  );
+                }
                 newWindow.close();
                 const duration = performance.now() - start;
                 this.emit(EVENTS.RECORD_TAB_CHECK, {
@@ -1754,30 +1802,29 @@
                   rateLimited: false,
                   attempts,
                 });
-                if (hasProblem) {
-                  this.log(`Problem found in thread at ${href}`);
-                } else {
-                  this.log(`No problem found in thread at ${href}`);
-                }
+                this.log(
+                  `Post check completed for ${href}, hasProblem: ${hasProblem}, cellInnerDivCount: ${cellInnerDivCount}, ghostedIdCount: ${ghostedIdCount}, validCount: ${validCount}`
+                );
                 resolve(hasProblem);
+                return;
               }
               if (attempts >= maxAttempts) {
                 clearInterval(checkInterval);
                 if (newWindow) newWindow.close();
-                this.log(
-                  `Failed to process ${href} within ${maxAttempts} attempts`
-                );
                 const duration = performance.now() - start;
+                this.log(
+                  `Timeout: failed to process ${href} after ${maxAttempts} attempts, cellInnerDivCount: ${cellInnerDivCount}, ghostedIdCount: ${ghostedIdCount}, validCount: ${validCount}, contentLength: ${doc.body.textContent.length}`
+                );
                 this.emit(EVENTS.RECORD_TAB_CHECK, {
                   duration,
                   success: false,
                   rateLimited: false,
                   attempts,
                 });
-                resolve(false);
+                resolve(void 0);
               }
             }
-          }, 250);
+          }, 500);
         });
       }
       expandArticle(article) {
@@ -1940,9 +1987,7 @@
                 this.log(`Eyeball click skipped for ${href} due to rate limit`);
                 return;
               }
-              this.emit(EVENTS.REQUEST_POST_CHECK, {
-                href,
-              });
+              this.emit(EVENTS.REQUEST_POST_CHECK, { href });
             }
           },
           { capture: true }

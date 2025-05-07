@@ -99,7 +99,7 @@ describe("XGhosted DOM Updates", () => {
       {
         quality: DIVIDER,
         link: false,
-        reason: "Invisible Divider Between Post Collections",
+        reason: "Invisible Divider Before Post Collection",
       },
       {
         quality: GOOD,
@@ -384,189 +384,558 @@ describe("XGhosted DOM Updates", () => {
       expect(stylesheet.textContent).toContain(".ghosted-eyeball::after");
     });
 
-    test("userRequestedPostCheck updates post state and emits events", async () => {
-      const href = "/ajweltytest/status/1899820959197995180";
+    test(
+      "userRequestedPostCheck updates post state and emits events for successful check",
+      async () => {
+        const href = "/ajweltytest/status/1899820959197995180";
 
-      // Process posts to set up potential problem post
-      const posts = document.querySelectorAll(domUtils.POSTS_IN_DOC_SELECTOR);
-      await xGhosted.processUnprocessedPosts(
-        posts,
-        true,
-        CONFIG.debug,
-        mockLog,
-        xGhosted.emit.bind(xGhosted)
-      );
+        // Process posts to set up potential problem post
+        const posts = document.querySelectorAll(domUtils.POSTS_IN_DOC_SELECTOR);
+        await xGhosted.processUnprocessedPosts(
+          posts,
+          true,
+          CONFIG.debug,
+          mockLog,
+          xGhosted.emit.bind(xGhosted)
+        );
 
-      // Find the potential problem post
-      const post = document.querySelector(`[data-ghostedid="${href}"]`);
-      expect(post).toBeTruthy();
-      expect(post.classList.contains("ghosted-potential-problem")).toBe(true);
-      const shareContainer = post.querySelector(
-        'button[aria-label="Share post"]'
-      )?.parentElement;
-      expect(shareContainer.classList.contains("ghosted-eyeball")).toBe(true);
+        // Find the potential problem post
+        const post = document.querySelector(`[data-ghostedid="${href}"]`);
+        expect(post).toBeTruthy();
+        expect(post.classList.contains("ghosted-potential-problem")).toBe(true);
+        const shareContainer = post.querySelector(
+          'button[aria-label="Share post"]'
+        )?.parentElement;
+        expect(shareContainer.classList.contains("ghosted-eyeball")).toBe(true);
 
-      // Spy on dependencies
-      const emitSpy = vi.spyOn(xGhosted, "emit");
-      const checkPostInNewTabSpy = vi
-        .spyOn(xGhosted, "checkPostInNewTab")
-        .mockResolvedValue(true);
-      const waitForPostRetrievedSpy = vi
-        .spyOn(xGhosted, "waitForPostRetrieved")
-        .mockResolvedValue({
-          analysis: { quality: postQuality.POTENTIAL_PROBLEM },
-          checked: false,
+        // Spy on dependencies
+        const emitSpy = vi.spyOn(xGhosted, "emit");
+        const checkPostInNewTabSpy = vi
+          .spyOn(xGhosted, "checkPostInNewTab")
+          .mockResolvedValue(true);
+        const waitForPostRetrievedSpy = vi
+          .spyOn(xGhosted, "waitForPostRetrieved")
+          .mockResolvedValue({
+            analysis: { quality: postQuality.POTENTIAL_PROBLEM },
+            checked: false,
+          });
+
+        // Call userRequestedPostCheck
+        await xGhosted.userRequestedPostCheck(href);
+
+        // Verify DOM updates
+        expect(post.classList.contains("ghosted-problem-adjacent")).toBe(true);
+        expect(post.classList.contains("ghosted-potential-problem")).toBe(
+          false
+        );
+        expect(post.getAttribute("data-ghosted")).toBe(
+          "postquality.problem_adjacent"
+        );
+        expect(shareContainer.classList.contains("ghosted-eyeball")).toBe(
+          false
+        );
+
+        // Verify spies were called
+        expect(checkPostInNewTabSpy).toHaveBeenCalledWith(href);
+        expect(waitForPostRetrievedSpy).toHaveBeenCalledWith(href);
+
+        // Verify emitted events
+        expect(emitSpy).toHaveBeenCalledWith(EVENTS.SET_SCANNING, {
+          enabled: false,
         });
-
-      // Call userRequestedPostCheck
-      await xGhosted.userRequestedPostCheck(href);
-
-      // Verify DOM updates
-      expect(post.classList.contains("ghosted-problem-adjacent")).toBe(true);
-      expect(post.classList.contains("ghosted-potential-problem")).toBe(false);
-      expect(post.getAttribute("data-ghosted")).toBe(
-        "postquality.problem_adjacent"
-      );
-      expect(shareContainer.classList.contains("ghosted-eyeball")).toBe(false);
-
-      // Verify spies were called
-      expect(checkPostInNewTabSpy).toHaveBeenCalledWith(href);
-      expect(waitForPostRetrievedSpy).toHaveBeenCalledWith(href);
-
-      // Verify emitted events
-      expect(emitSpy).toHaveBeenCalledWith(EVENTS.SET_SCANNING, {
-        enabled: false,
-      });
-      expect(emitSpy).toHaveBeenCalledWith(
-        EVENTS.POST_REGISTERED,
-        expect.objectContaining({
-          href,
-          data: expect.objectContaining({
-            analysis: expect.objectContaining({
-              quality: postQuality.PROBLEM_ADJACENT,
+        expect(emitSpy).toHaveBeenCalledWith(
+          EVENTS.POST_REGISTERED,
+          expect.objectContaining({
+            href,
+            data: expect.objectContaining({
+              analysis: expect.objectContaining({
+                quality: postQuality.PROBLEM_ADJACENT,
+              }),
+              checked: true,
             }),
-            checked: true,
-          }),
-        })
-      );
-      expect(emitSpy).toHaveBeenCalledWith(
-        EVENTS.STATE_UPDATED,
-        expect.any(Object)
-      );
-    });
+          })
+        );
+        expect(emitSpy).toHaveBeenCalledWith(
+          EVENTS.STATE_UPDATED,
+          expect.any(Object)
+        );
+      },
+      { timeout: 10000 }
+    );
 
-    test("checkPostInNewTab handles successful check and emits RECORD_TAB_CHECK", async () => {
-      vi.useFakeTimers();
+    test(
+      "userRequestedPostCheck handles timeout and preserves POTENTIAL_PROBLEM",
+      async () => {
+        const href = "/ajweltytest/status/1899820959197995180";
 
-      const href = "/test/status/123";
-      const mockNewWindow = {
-        document: {
-          readyState: "complete",
-          body: { textContent: "" },
-          querySelector: vi
-            .fn()
-            .mockReturnValueOnce({}) // targetPost
-            .mockReturnValueOnce(null), // no problem
-        },
-        close: vi.fn(),
-      };
-      vi.spyOn(window, "open").mockReturnValue(mockNewWindow);
+        // Process posts to set up potential problem post
+        const posts = document.querySelectorAll(domUtils.POSTS_IN_DOC_SELECTOR);
+        await xGhosted.processUnprocessedPosts(
+          posts,
+          true,
+          CONFIG.debug,
+          mockLog,
+          xGhosted.emit.bind(xGhosted)
+        );
 
-      // Spy on emit to track events
-      const emitSpy = vi.spyOn(xGhosted, "emit");
+        // Find the potential problem post
+        const post = document.querySelector(`[data-ghostedid="${href}"]`);
+        expect(post).toBeTruthy();
+        expect(post.classList.contains("ghosted-potential-problem")).toBe(true);
+        const shareContainer = post.querySelector(
+          'button[aria-label="Share post"]'
+        )?.parentElement;
+        expect(shareContainer.classList.contains("ghosted-eyeball")).toBe(true);
 
-      const promise = xGhosted.checkPostInNewTab(href);
+        // Spy on dependencies
+        const emitSpy = vi.spyOn(xGhosted, "emit");
+        const checkPostInNewTabSpy = vi
+          .spyOn(xGhosted, "checkPostInNewTab")
+          .mockResolvedValue(undefined);
+        const waitForPostRetrievedSpy = vi
+          .spyOn(xGhosted, "waitForPostRetrieved")
+          .mockResolvedValue({
+            analysis: { quality: postQuality.POTENTIAL_PROBLEM },
+            checked: false,
+          });
 
-      // Simulate interval checks
-      vi.advanceTimersByTime(250);
+        // Call userRequestedPostCheck
+        await xGhosted.userRequestedPostCheck(href);
 
-      const result = await promise;
+        // Verify no DOM updates
+        expect(post.classList.contains("ghosted-potential-problem")).toBe(true);
+        expect(post.classList.contains("ghosted-problem-adjacent")).toBe(false);
+        expect(post.classList.contains("ghosted-good")).toBe(false);
+        expect(post.getAttribute("data-ghosted")).toBe(
+          "postquality.potential-problem"
+        );
+        expect(shareContainer.classList.contains("ghosted-eyeball")).toBe(true);
 
-      // Verify result and emitted events
-      expect(result).toBe(false); // No problem found
-      expect(emitSpy).toHaveBeenCalledWith(
-        EVENTS.RECORD_TAB_CHECK,
-        expect.objectContaining({
-          success: true,
-          rateLimited: false,
-          attempts: 1,
-        })
-      );
+        // Verify spies were called
+        expect(checkPostInNewTabSpy).toHaveBeenCalledWith(href);
+        expect(waitForPostRetrievedSpy).toHaveBeenCalledWith(href);
 
-      // Verify window.close was called
-      expect(mockNewWindow.close).toHaveBeenCalled();
+        // Verify emitted events
+        expect(emitSpy).toHaveBeenCalledWith(EVENTS.SET_SCANNING, {
+          enabled: false,
+        });
+        expect(emitSpy).not.toHaveBeenCalledWith(
+          EVENTS.POST_REGISTERED,
+          expect.any(Object)
+        );
+        expect(emitSpy).not.toHaveBeenCalledWith(
+          EVENTS.STATE_UPDATED,
+          expect.any(Object)
+        );
+      },
+      { timeout: 10000 }
+    );
 
-      vi.useRealTimers();
-    });
+    test(
+      "checkPostInNewTab handles single valid post and assumes problem",
+      async () => {
+        vi.useFakeTimers();
 
-    test("checkPostInNewTab handles rate limit and emits RECORD_TAB_CHECK", async () => {
-      vi.useFakeTimers();
+        const href = "/ajweltytest/status/1899820959197995180";
+        const mockNewWindow = {
+          document: {
+            readyState: "complete",
+            body: { textContent: "Single post content" },
+            querySelector: vi.fn().mockImplementation((selector) => {
+              if (selector === `[data-ghostedid="${href}"]`) {
+                return { getAttribute: () => href };
+              }
+              return null;
+            }),
+            querySelectorAll: vi.fn().mockImplementation((selector) => {
+              if (selector === '[data-testid="cellInnerDiv"]') {
+                return [
+                  { getAttribute: () => null },
+                  { getAttribute: () => null },
+                ];
+              }
+              if (selector === "[data-ghostedid]") {
+                return [
+                  {
+                    getAttribute: vi
+                      .fn()
+                      .mockReturnValueOnce("postquality.undefined")
+                      .mockReturnValueOnce(""),
+                  },
+                  {
+                    getAttribute: vi
+                      .fn()
+                      .mockReturnValueOnce("postquality.potential_problem")
+                      .mockReturnValueOnce(href),
+                  },
+                ];
+              }
+              return [];
+            }),
+          },
+          close: vi.fn(),
+        };
+        vi.spyOn(window, "open").mockReturnValue(mockNewWindow);
 
-      const href = "/test/status/123";
-      const mockNewWindow = {
-        document: {
-          readyState: "complete",
-          body: { textContent: "Rate limit exceeded" },
-        },
-        close: vi.fn(),
-      };
-      vi.spyOn(window, "open").mockReturnValue(mockNewWindow);
+        // Spy on emit and log
+        const emitSpy = vi.spyOn(xGhosted, "emit");
+        const logSpy = vi.spyOn(xGhosted, "log");
 
-      // Spy on emit to track events
-      const emitSpy = vi.spyOn(xGhosted, "emit");
+        const promise = xGhosted.checkPostInNewTab(href);
 
-      const promise = xGhosted.checkPostInNewTab(href);
+        // Simulate interval checks
+        vi.advanceTimersByTime(500);
 
-      // Simulate interval checks
-      vi.advanceTimersByTime(250);
+        const result = await promise;
 
-      // Verify emitted events
-      expect(emitSpy).toHaveBeenCalledWith(EVENTS.SET_SCANNING, {
-        enabled: false,
-      });
-      expect(emitSpy).toHaveBeenCalledWith(EVENTS.RATE_LIMIT_DETECTED, {
-        pauseDuration: 300000,
-      });
-      expect(emitSpy).toHaveBeenCalledWith(
-        EVENTS.RECORD_TAB_CHECK,
-        expect.objectContaining({
-          success: false,
-          rateLimited: true,
-          attempts: 1,
-        })
-      );
+        // Verify result and logs
+        expect(result).toBe(true);
+        expect(logSpy).toHaveBeenCalledWith(
+          `Single valid post found for ${href}, assuming problem`
+        );
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            `Post check completed for ${href}, hasProblem: true, cellInnerDivCount: 2, ghostedIdCount: 2, validCount: 1`
+          )
+        );
+        expect(emitSpy).toHaveBeenCalledWith(
+          EVENTS.RECORD_TAB_CHECK,
+          expect.objectContaining({
+            success: true,
+            rateLimited: false,
+            attempts: 1,
+          })
+        );
 
-      // Simulate rate limit timeout
-      vi.advanceTimersByTime(300000);
-      const result = await promise;
-      expect(result).toBe(false);
-      expect(xGhosted.state.isRateLimited).toBe(false);
+        // Verify window.close was called
+        expect(mockNewWindow.close).toHaveBeenCalled();
 
-      vi.useRealTimers();
-    });
+        vi.useRealTimers();
+      },
+      { timeout: 10000 }
+    );
 
-    test("handleUrlChange updates state and emits events", async () => {
-      // Spy on emit to track events
-      const emitSpy = vi.spyOn(xGhosted, "emit");
+    test(
+      "checkPostInNewTab handles multiple valid posts with problem",
+      async () => {
+        vi.useFakeTimers();
 
-      // Mock waitForClearConfirmation to resolve immediately
-      vi.spyOn(xGhosted, "waitForClearConfirmation").mockResolvedValue();
+        const href = "/ajweltytest/status/1899820959197995180";
+        const mockNewWindow = {
+          document: {
+            readyState: "complete",
+            body: { textContent: "Multiple posts content" },
+            querySelector: vi.fn().mockImplementation((selector) => {
+              if (selector === `[data-ghostedid="${href}"]`) {
+                return { getAttribute: () => href };
+              }
+              if (selector === '[data-ghosted="postquality.problem"]') {
+                return { getAttribute: () => "" };
+              }
+              return null;
+            }),
+            querySelectorAll: vi.fn().mockImplementation((selector) => {
+              if (selector === '[data-testid="cellInnerDiv"]') {
+                return [
+                  { getAttribute: () => null },
+                  { getAttribute: () => null },
+                  { getAttribute: () => null },
+                ];
+              }
+              if (selector === "[data-ghostedid]") {
+                return [
+                  {
+                    getAttribute: vi
+                      .fn()
+                      .mockReturnValueOnce("postquality.potential_problem")
+                      .mockReturnValueOnce(href),
+                  },
+                  {
+                    getAttribute: vi
+                      .fn()
+                      .mockReturnValueOnce("postquality.problem")
+                      .mockReturnValueOnce(""),
+                  },
+                  {
+                    getAttribute: vi
+                      .fn()
+                      .mockReturnValueOnce("postquality.good")
+                      .mockReturnValueOnce("/other/status/123"),
+                  },
+                ];
+              }
+              return [];
+            }),
+          },
+          close: vi.fn(),
+        };
+        vi.spyOn(window, "open").mockReturnValue(mockNewWindow);
 
-      // Call handleUrlChange with a new URL
-      const newUrl = "https://x.com/testuser/with_replies";
-      await xGhosted.handleUrlChange(newUrl);
+        // Spy on emit and log
+        const emitSpy = vi.spyOn(xGhosted, "emit");
+        const logSpy = vi.spyOn(xGhosted, "log");
 
-      // Verify state updates
-      expect(xGhosted.state.isWithReplies).toBe(true);
-      expect(xGhosted.state.userProfileName).toBe("testuser");
-      expect(xGhosted.state.containerFound).toBe(false);
+        const promise = xGhosted.checkPostInNewTab(href);
 
-      // Verify emitted events
-      expect(emitSpy).toHaveBeenCalledWith(EVENTS.USER_PROFILE_UPDATED, {
-        userProfileName: "testuser",
-      });
-      expect(emitSpy).toHaveBeenCalledWith(EVENTS.CLEAR_POSTS, {});
-      expect(emitSpy).toHaveBeenCalledWith(EVENTS.POSTS_CLEARED, {});
-    });
+        // Simulate interval checks
+        vi.advanceTimersByTime(500);
+
+        const result = await promise;
+
+        // Verify result and logs
+        expect(result).toBe(true);
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            `Multiple valid posts found for ${href}, hasProblem: true`
+          )
+        );
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            `Post check completed for ${href}, hasProblem: true, cellInnerDivCount: 3, ghostedIdCount: 3, validCount: 3`
+          )
+        );
+        expect(emitSpy).toHaveBeenCalledWith(
+          EVENTS.RECORD_TAB_CHECK,
+          expect.objectContaining({
+            success: true,
+            rateLimited: false,
+            attempts: 1,
+          })
+        );
+
+        // Verify window.close was called
+        expect(mockNewWindow.close).toHaveBeenCalled();
+
+        vi.useRealTimers();
+      },
+      { timeout: 10000 }
+    );
+
+    test(
+      "checkPostInNewTab handles timeout and returns undefined",
+      async () => {
+        vi.useFakeTimers();
+
+        const href = "/test/status/123";
+        const mockNewWindow = {
+          document: {
+            readyState: "complete",
+            body: { textContent: "" },
+            querySelector: vi.fn().mockReturnValue(null),
+            querySelectorAll: vi.fn().mockImplementation((selector) => {
+              if (selector === '[data-testid="cellInnerDiv"]') {
+                return [
+                  { getAttribute: () => null },
+                  { getAttribute: () => null },
+                ];
+              }
+              if (selector === "[data-ghostedid]") {
+                return [
+                  {
+                    getAttribute: vi
+                      .fn()
+                      .mockReturnValueOnce("postquality.undefined")
+                      .mockReturnValueOnce(""),
+                  },
+                ];
+              }
+              return [];
+            }),
+          },
+          close: vi.fn(),
+        };
+        vi.spyOn(window, "open").mockReturnValue(mockNewWindow);
+
+        // Spy on emit and log
+        const emitSpy = vi.spyOn(xGhosted, "emit");
+        const logSpy = vi.spyOn(xGhosted, "log");
+
+        const promise = xGhosted.checkPostInNewTab(href);
+
+        // Simulate timeout (20 attempts * 500ms = 10000ms)
+        vi.advanceTimersByTime(10000);
+
+        const result = await promise;
+
+        // Verify result and logs
+        expect(result).toBe(undefined);
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            `Timeout: failed to process ${href} after 20 attempts`
+          )
+        );
+        expect(emitSpy).toHaveBeenCalledWith(
+          EVENTS.RECORD_TAB_CHECK,
+          expect.objectContaining({
+            success: false,
+            rateLimited: false,
+            attempts: 20,
+          })
+        );
+
+        // Verify window.close was called
+        expect(mockNewWindow.close).toHaveBeenCalled();
+
+        vi.useRealTimers();
+      },
+      { timeout: 10000 }
+    );
+
+    test(
+      "checkPostInNewTab handles rate limit and emits RECORD_TAB_CHECK",
+      async () => {
+        vi.useFakeTimers();
+
+        const href = "/test/status/123";
+        const mockNewWindow = {
+          document: {
+            readyState: "complete",
+            body: { textContent: "Rate limit exceeded" },
+            querySelector: vi.fn().mockReturnValue(null),
+            querySelectorAll: vi.fn().mockReturnValue([]),
+          },
+          close: vi.fn(),
+        };
+        vi.spyOn(window, "open").mockReturnValue(mockNewWindow);
+
+        // Spy on emit to track events
+        const emitSpy = vi.spyOn(xGhosted, "emit");
+
+        const promise = xGhosted.checkPostInNewTab(href);
+
+        // Simulate interval checks
+        vi.advanceTimersByTime(500);
+
+        // Verify emitted events
+        expect(emitSpy).toHaveBeenCalledWith(EVENTS.SET_SCANNING, {
+          enabled: false,
+        });
+        expect(emitSpy).toHaveBeenCalledWith(EVENTS.RATE_LIMIT_DETECTED, {
+          pauseDuration: 300000,
+        });
+        expect(emitSpy).toHaveBeenCalledWith(
+          EVENTS.RECORD_TAB_CHECK,
+          expect.objectContaining({
+            success: false,
+            rateLimited: true,
+            attempts: 1,
+          })
+        );
+
+        // Simulate rate limit timeout
+        vi.advanceTimersByTime(300000);
+        const result = await promise;
+        expect(result).toBe(false);
+        expect(xGhosted.state.isRateLimited).toBe(false);
+
+        vi.useRealTimers();
+      },
+      { timeout: 10000 }
+    );
+
+    test(
+      "checkPostInNewTab handles no target post and returns undefined",
+      async () => {
+        vi.useFakeTimers();
+
+        const href = "/test/status/123";
+        const mockNewWindow = {
+          document: {
+            readyState: "complete",
+            body: { textContent: "No target post" },
+            querySelector: vi.fn().mockImplementation((selector) => {
+              if (selector === `[data-ghostedid="${href}"]`) {
+                return null; // No target post
+              }
+              return null;
+            }),
+            querySelectorAll: vi.fn().mockImplementation((selector) => {
+              if (selector === '[data-testid="cellInnerDiv"]') {
+                return [
+                  { getAttribute: () => null },
+                  { getAttribute: () => null },
+                ];
+              }
+              if (selector === "[data-ghostedid]") {
+                return [
+                  {
+                    getAttribute: vi
+                      .fn()
+                      .mockReturnValueOnce("postquality.good")
+                      .mockReturnValueOnce("/other/status/456"),
+                  },
+                  {
+                    getAttribute: vi
+                      .fn()
+                      .mockReturnValueOnce("postquality.good")
+                      .mockReturnValueOnce("/other/status/789"),
+                  },
+                ];
+              }
+              return [];
+            }),
+          },
+          close: vi.fn(),
+        };
+        vi.spyOn(window, "open").mockReturnValue(mockNewWindow);
+
+        // Spy on emit and log
+        const emitSpy = vi.spyOn(xGhosted, "emit");
+        const logSpy = vi.spyOn(xGhosted, "log");
+
+        const promise = xGhosted.checkPostInNewTab(href);
+
+        // Simulate interval checks
+        vi.advanceTimersByTime(500);
+
+        const result = await promise;
+
+        // Verify result and logs
+        expect(result).toBe(undefined);
+        expect(logSpy).toHaveBeenCalledWith(`No target post found for ${href}`);
+        expect(emitSpy).toHaveBeenCalledWith(
+          EVENTS.RECORD_TAB_CHECK,
+          expect.objectContaining({
+            success: false,
+            rateLimited: false,
+            attempts: 1,
+          })
+        );
+
+        // Verify window.close was called
+        expect(mockNewWindow.close).toHaveBeenCalled();
+
+        vi.useRealTimers();
+      },
+      { timeout: 10000 }
+    );
+
+    test(
+      "handleUrlChange updates state and emits events",
+      async () => {
+        // Spy on emit to track events
+        const emitSpy = vi.spyOn(xGhosted, "emit");
+
+        // Mock waitForClearConfirmation to resolve immediately
+        vi.spyOn(xGhosted, "waitForClearConfirmation").mockResolvedValue();
+
+        // Call handleUrlChange with a new URL
+        const newUrl = "https://x.com/testuser/with_replies";
+        await xGhosted.handleUrlChange(newUrl);
+
+        // Verify state updates
+        expect(xGhosted.state.isWithReplies).toBe(true);
+        expect(xGhosted.state.userProfileName).toBe("testuser");
+        expect(xGhosted.state.containerFound).toBe(false);
+
+        // Verify emitted events
+        expect(emitSpy).toHaveBeenCalledWith(EVENTS.USER_PROFILE_UPDATED, {
+          userProfileName: "testuser",
+        });
+        expect(emitSpy).toHaveBeenCalledWith(EVENTS.CLEAR_POSTS, {});
+        expect(emitSpy).toHaveBeenCalledWith(EVENTS.POSTS_CLEARED, {});
+      },
+      { timeout: 10000 }
+    );
   });
 });
