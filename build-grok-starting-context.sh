@@ -6,13 +6,19 @@ show_progress() {
 }
 
 show_progress "Running build-grok-files..."
-./build-grok-files.sh
+./build-grok-files.sh || {
+    show_progress "Warning: Failed"
+}
 
 show_progress "Running build-grok-code-files..."
-./build-grok-code-files.sh
+./build-grok-code-files.sh || {
+    show_progress "Warning: Failed"
+}
 
 show_progress "Running build-grok-test-results..."
-./build-grok-test-results.sh
+./build-grok-test-results.sh || {
+    show_progress "Warning: Failed"
+}
 
 # Generate TOC and line count, excluding the TOC file itself
 TOC_FILE="grok/5-toc-and-line-count-check.txt"
