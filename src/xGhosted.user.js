@@ -2146,7 +2146,10 @@
         newTop = Math.max(0, Math.min(newTop, windowHeight - rect.height));
         newLeft = Math.max(0, Math.min(newLeft, windowWidth - rect.width));
         this.container.style.top = `${newTop}px`;
-        this.container.style.left = `${this.initialLeft + deltaX}px`;
+        this.container.style.left = `${newLeft}px`;
+        this.logger(
+          `Dragging SplashPanel: top=${newTop}px, left=${newLeft}px, rect.height=${rect.height}, windowHeight=${windowHeight}`
+        );
       };
       this.stopDrag = function () {
         this.isDragging = false;
