@@ -1,5 +1,4 @@
 = xGhosted: Keep Your X Presence Clean!
-:toc: none
 
 xGhosted is a Tampermonkey userscript designed to help X users spot and manage “hanging chads”—lingering replies tied to deleted or problematic posts that might flag your account as low-quality, reducing visibility. With xGhosted, you can easily identify problem posts, check reply threads, and export your findings to stay in control of your X presence.
 
