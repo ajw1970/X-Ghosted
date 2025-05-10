@@ -1,0 +1,104 @@
+= Grok Step 4: Backlog and Checklist
+
+* Make sure all UI/UX works
+
+** [x] Test manual check enabled/disabled
+
+** [x] Test open post in new tab when isManualCheckEnabled = false
+
+** [x] Test userRequestedManualCheckInNewTab
+*** [x] Works on a reply to a deleted post
+*** [x] Need to test on a reply to a good post.
+***** [x] We also expect that if a post is verified bad, the tab stays open and the post is highlighted in red along with the indicator on the panel changing to red.
+
+*** [x] I had planned to change the logic on identify posts and the way we handle identification links. It might be time to focus on those.
+
+** [x] Test export csv
+** [x] Test import csv
+** [x] Test reset csv
+
+* [x] Add eyeball link column for potential problem posts in the panel
+** [x] Test open post in new tab from panel link
+
+* [x] Using the processedPosts list to avoid reprocessing posts.
+
+* [x] Move eyeballs to left hand column of the panel and make them always visible. Have it replace the yellow dot for potential problem posts.
+* [x] Examine the Preact implementation of the panel and see if we can make it more efficient. 
+* [x] Save user changed theme and stop defaulting unless theme had never been set before.
+* [x] Stop using mutation observer and simplify logic for identifying new posts
+
+* [x] When doing tab check, first find post we opened, then scroll to the top, then check for problems.
+* [x] Default to isManualCheckEnabled = true
+* [x] Make sure we can open with the eyeballs from the panel if manual check is disabled
+* [x] Make sure we can open the old way with the eyeballs if manual check is disabled and panel didn't open.
+
+* [x] Fix move panel
+* [x] Adjust layout to open up room in top tool bar. Move post counter down to be a listing header.
+* [x] Add ability to disable xGhosted from the panel (meaning the processing stops so that no new highlighting happens). Have the panel container element change color to indicate.
+* [x] Dial in size of panel when collapsed.
+* [x] Start/Stop icon isn't updating for processing until doing something else to trigger a panel refresh
+
+* [x] User requested eyeball check should stop processing.
+* [x] Allow file upload for import CSV
+
+* [x] Fix duplicate variables in user file like h and h2 for instance.
+* [x] Theme Selection loses border when panel is active but regains it when clicking outside the browser.
+* [x] Update Modal to look and feel like Panel. Still needs contrast improvements in Dim and dark themes. The textbox hint is unreadable.
+* [x] Add gap between eyeballs and link in the panel list
+* [x] Add Identified Posts (count) to header too.
+* [x] Add a specific drag handle to avoid accidentally moving the panel.
+** Implemented on April 18, 2025, with a right-justified drag handle in the list header row using `fa-up-down-left-right` icon.
+* [x] Add a toggle to enable/disable dragging (pin/unpin panel location).
+** Planned as part of Task 8 in the roadmap, to be implemented in the Tools panel with `isDraggingEnabled` state.
+* [ ] Add button for timing metrics CSV export.
+* [ ] Add disable button to clear highlighted posts from x.com dom (leave them on the list) and stop processing and scrolling.
+* [x] Make Splash panel draggable
+* [ ] Replace new windows post check with Puppeteer or something similar to avoid the need for a new window.
+** [ ] Grok suggested this solution with a netlify endpoint: https://grok.com/share/bGVnYWN5_27dfba9c-32bc-4638-af8a-6adc7f9f211f
+* [x] Have splash screen only open once for the user. Allow a way to show it again later from Tools.
+** Implemented on April 18, 2025, with `hasSeenSplash` in `PanelManager.js` and "About" button in `Panel.jsx`.
+* [ ] Decouple xGhosted from ProcessedPostsManager but be careful.
+* [x] Add a copy icon near the url list to make it easy to copy the problems without going to the Tools menu.
+* [x] Start/Stop icons are small and hard to identify.
+* [x] Stop processing when a first order problem is identified.
+* [x] Update xGhosted.template.js with a userscript name suffix that is set to "-{{BranchName}}" when not on main git branch.
+* [x] Use build-xGhosted to replace placeholder in xGhosted.template.js with package.json version. Have this included in the Splash Screen.
+* [ ] If on with_replies, get account name from url and make sure to highlight reply to a problem that didn't belong to that account. As it is now, a bad post can have a good looking reply but we want the user to notice that they might want to step out of that conversation.
+** [ ] Test with this sample: Reply-to-repost-of-unavailable.html
+** [ ] Also test with: Replying-To-Conversation-Thread-with-Dashed-Lines.html
+* [ ] Append a # followed by a custom identifier, e.g., https://example.com#xGhostCheck. The fragment is not sent to the server and is accessible client-side via window.location.hash. Tampermonkey template can check for this with if (window.location.hash === '#xGhostCheck') and then show a special splash screen instead of the main panel.
+* [ ] Add Two Problems to postQuality. OUR-PROBLEM AND NOT-OUR-PROBLEM. (Checking username of href)
+* [ ] build ChatRTX local copy of samples and tests to see what's redundant and what's not tested yet.
+* [ ] Splash screen dragging is broken now - sticks to bottom of the page once dragging starts.
+* [ ] Identify reply to without <a> tag.
+* [ ] Display reason in Panel problems list.
+* [ ] Stop leaving confirmed problem tab open. 
+* [ ] Max height on panel 
+* [ ] Vertical scroll
+* [ ] Show live counts when panel hidden (use bubbles or something simple so that you can tell if it's still finding things)
+* [ ] processed posts needs to stay in sequence found even after checkPostInNewTab returns and updates a potential probem. As it is now, the udates go to the bottom of the list. We don't want that. 
+* [x] Stop persisting auto scroll
+* [x] Fix panel layout and margins.
+* [x] Fix panel width when collapsed.
+* [x] Add border to Start Processing button when processing is stopped to make it clear what to use to restart processing.
+* [x] Switch to Auto Scroll instead of Auto Collapse. 
+* [x] Make sure we're not persisting processedPosts. 
+* [x] Make sure we clear processedPosts when the urlFullPath changes.
+* [ ] Fix tests
+* [ ] Identify, isolate, and test critical behaviors to prevent regression
+
+* [ ] xGhosted should highlight posts just fine without panel working.
+* [ ] Fix resize panel
+* [ ] Introduce logging system like Winston: https://grok.com/share/bGVnYWN5_4903ae06-b1a5-4941-8dc9-028940cc7297
+* [ ] Consider usecase for using getPostEngagement.js
+* Clarify dom for post container and X.com behavior
+
+** We can use a class to collapse when that is enabled.
+
+* Add unit tests to increase coverage of all but UI/UX stuff.
+
+*MERGE*: collapsing into main
+
+* Switch from HTM to JSX for Preact
+* Swtich to TypeScript
+* Push list of bad communities and system notice strings into editable data with a default starting set of data.

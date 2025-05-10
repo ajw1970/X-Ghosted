@@ -1,0 +1,110 @@
+= MetricsMonitor.js Improvement Plan
+:revision-date: May 01, 2025
+
+== Objective
+Improve `MetricsMonitor.js` to enhance interval optimization (`pollInterval: 500ms`, `scrollInterval: 800ms`) for `xGhosted` userscript, focusing on testing, metrics granularity, and memory management. Address `RECORD_SCAN` behavior, `checkPostInNewTab` performance, and `metricsHistory` aggregation, aligning with debugging goals in `_grok-step2-project-context.txt.adoc` and `_grok-doc-Polling Heartbeat Design.txt.adoc`.
+
+== Background
+- *Purpose*: Optimize `pollInterval` and `scrollInterval` to balance DOM loading, post processing, and user scrolling (manual and auto).
+- *Current Issues*: 0% test coverage for `MetricsMonitor.js` (`4-test.results.txt`), verbose logging with `CONFIG.debug = true`, and unbounded `metricsHistory` growth.
+- *User Preferences*:
+  - Rename `RECORD_HIGHLIGHT` to `RECORD_SCAN`, keep `RECORD_POLL` and `RECORD_SCROLL`.
+  - Emit `RECORD_SCAN`:
+    - Manual scrolling (`userRequestedAutoScrolling: false`): Only when `postsProcessed > 0`.
+    - Auto-scrolling (`userRequestedAutoScrolling: true`): Every poll (`scrollInterval`, 800ms).
+  - Include `interval` field in `RECORD_SCAN` (500ms or 800ms).
+  - Aggregate `metricsHistory` separately for manual/auto-scrolling.
+  - Track `checkPostInNewTab` performance via `RECORD_TAB_CHECK`.
+  - Remove `saveMetrics()` to eliminate persistence.
+  - Keep `CONFIG.debug = false`, no logging changes.
+  - Measure average time between `RECORD_SCAN` events for manual scrolling (`avgScanIntervalManual`).
+
+== Improvement Plan
+
+=== 1. Rename RECORD_HIGHLIGHT to RECORD_SCAN
+- *Goal*: Clarify `RECORD_SCAN` as post-processing metric (`processUnprocessedPosts` in `XGhosted.js`).
+- *Actions*:
+  - Update `events.js` to rename `RECORD_HIGHLIGHT` to `RECORD_SCAN`, merge contract with `duration`, `postsProcessed`, `wasSkipped`, `interval`, `isAutoScrolling`.
+  - Update `XGhosted.js` to emit `RECORD_SCAN` in `processUnprocessedPosts`:
+    - Manual: Only if `postsProcessed > 0`.
+    - Auto: Every `scrollInterval` poll.
+  - Update `MetricsMonitor.js` to handle `RECORD_SCAN` via `recordScan`, renaming `totalHighlights` to `totalScans`, `highlightingDurationSum` to `scanDurationSum`.
+- *Testing*:
+  - Verify `recordScan` updates `totalScans`, `scanDurationSum`, `duration`.
+  - Test gating by `isPostScanningEnabled`.
+  - Confirm `metricsHistory` includes `interval`, `isAutoScrolling`.
+
+=== 2. Track Manual vs. Auto-Scrolling Separately
+- *Goal*: Compare post-processing performance for manual (`pollInterval`) and auto-scrolling (`scrollInterval`).
+- *Actions*:
+  - Add `isAutoScrolling` to `RECORD_SCAN` events, sourced from `userRequestedAutoScrolling` in `PollingManager.js`.
+  - Maintain counters in `MetricsMonitor.js`: `totalScansManual`, `totalScansAuto`, `scanDurationSumManual`, `scanDurationSumAuto`.
+  - Calculate `avgScanIntervalManual` (time between `RECORD_SCAN` events when `isAutoScrolling: false`) for DOM loading insight.
+- *Testing*:
+  - Verify counters update based on `isAutoScrolling`.
+  - Test `avgScanIntervalManual` accuracy for manual scrolling.
+  - Ensure `metricsHistory` separates manual/auto-scrolling data.
+
+=== 3. Track checkPostInNewTab Performance
+- *Goal*: Measure performance of user-triggered `checkPostInNewTab` (`XGhosted.js`) to optimize `tabCheckThrottle` (5000ms).
+- *Actions*:
+  - Add `RECORD_TAB_CHECK` event in `checkPostInNewTab` with fields: `duration`, `success`, `rateLimited`, `attempts`.
+  - Implement `recordTabCheck` in `MetricsMonitor.js` to update `totalTabChecks`, `tabCheckDurationSum`, `rateLimitCount`.
+- *Testing*:
+  - Verify counter updates for `RECORD_TAB_CHECK`.
+  - Test `metricsHistory` entries for `duration`, `rateLimited`.
+  - Confirm minimal entries due to manual triggering.
+
+=== 4. Aggregate metricsHistory
+- *Goal*: Reduce `metricsHistory` buildup for long sessions, supporting interval tuning.
+- *Actions*:
+  - Aggregate metrics every 100 polls (~50 seconds at 500ms):
+    - `totalPolls`, `totalScrolls`, `scanDurationSum`, `totalTabChecks`, `avgScanIntervalManual`.
+    - Separate aggregates for `isAutoScrolling: true/false`.
+  - Store averages (e.g., `avgScanDurationManual`, `avgScanDurationAuto`) and counts per window.
+  - Maintain 100-entry cap, adjustable based on testing.
+- *Testing*:
+  - Confirm `metricsHistory` grows slowly (<10 entries/minute).
+  - Verify correct aggregation by `isAutoScrolling`.
+
+=== 5. Remove saveMetrics
+- *Goal*: Eliminate storage persistence, keeping `metricsHistory` in memory.
+- *Actions*:
+  - Remove `saveMetrics()` calls and storage writes in `MetricsMonitor.js`.
+- *Testing*:
+  - Verify no `storage.set()` calls during `recordPoll`, `recordScan`, `recordTabCheck`.
+
+=== 6. Maintain Logging
+- *Goal*: Ensure clean console with `CONFIG.debug = false`.
+- *Actions*:
+  - Retain `CONFIG.debug = false` in `config.js`.
+- *Testing*:
+  - Confirm no logs emitted when `debug = false`.
+
+=== 7. Testing Strategy
+- *Goal*: Increase `MetricsMonitor.js` test coverage from 0% to >50% (`4-test.results.txt`).
+- *Actions*:
+  - Create `src/utils/MetricsMonitor.test.js`, modeling `src/xGhosted.test.js`.
+  - Mock `document`, `window.XGhosted.state`, `storage` using Vitest and JSDOM.
+  - Prioritize tests for:
+    - `recordPoll`: Updates `totalPolls`, `totalSkips`, `cellInnerDivCount`; gated by `isPostScanningEnabled`.
+    - `recordScan` (manual): Updates `totalScansManual`, `scanDurationSumManual` when `postsProcessed > 0`; includes `interval`, `isAutoScrolling: false`.
+    - `recordScan` (auto): Updates `totalScansAuto`, `scanDurationSumAuto` every poll; includes `interval`, `isAutoScrolling: true`.
+    - `recordTabCheck`: Updates `totalTabChecks`, `tabCheckDurationSum`, `rateLimitCount`.
+    - `metricsHistory`: Starts empty, caps at 100, aggregates correctly.
+- *Execution*: Run `npm test` (`vitest run --coverage`) to validate coverage.
+
+== Considerations
+- *DOM Loading*: Consider adding `domLoadTime` metric to `RECORD_POLL` or `RECORD_SCAN` for post-scroll DOM stabilization, enhancing `scrollInterval` tuning.
+- *Manual Scrolling*: `RECORD_POLL` could track `manualScrollCount` for rapid scrolling frequency, complementing `avgScanIntervalManual`.
+- *Export Format*: Ensure `xGhosted_timing_history.json` (`EXPORT_METRICS`) is user-friendly, with aggregated summaries for manual/auto-scrolling and tab checks.
+- *Context Limits*: Implementation deferred to new session to manage content size limits, using this plan as a handoff.
+
+== Next Steps
+- *New Session*: Provide this plan and fresh files (`1-grok-files.txt`, etc.) to implement changes.
+- *Priorities*: Start with `recordPoll`, `recordScan` (manual) tests, then `recordScan` (auto) and `recordTabCheck`.
+- *Aggregation Details*: Confirm metrics (`duration`, `postsProcessed`, `interval`, `tabCheckDuration`) and frequency (100 polls or 5 minutes).
+- *Validation*: Review test coverage and `xGhosted_timing_history.json` output for tuning insights.
+
+== Revision History
+- May 01, 2025: Created plan for `MetricsMonitor.js` improvements, addressing `RECORD_SCAN`, `checkPostInNewTab`, aggregation, and testing.

@@ -1,0 +1,230 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 8px;
+}
+
+.toolbar > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  margin-left: 12px;
+}
+
+.toolbar > div > button:not(:last-child) {
+  margin-right: 12px;
+}
+
+.tools-section {
+  /* No opacity to prevent affecting children */
+}
+
+.tools-section > div > div:first-child {
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.manual-check-separator {
+  border-bottom: 2px solid var(--border-color);
+  margin: 8px 0;
+}
+
+.manual-check-section {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0px;
+}
+
+.content-wrapper {
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  padding-right: 4px;
+  padding-left: 8px;
+  padding-top: 0;
+}
+
+.panel-button {
+  background: linear-gradient(
+    to bottom,
+    var(--button-bg),
+    color-mix(in srgb, var(--button-bg) 70%, #000000)
+  );
+  color: var(--button-text);
+  border: 2px solid var(--border-color);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition:
+    background 0.2s ease,
+    transform 0.1s ease;
+  display: flex;
+  align-items: center;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 0 8px rgba(255, 255, 255, 0.2);
+  max-width: 160px;
+  text-align: center;
+}
+
+.panel-button:hover {
+  background: var(--hover-bg);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 0 8px rgba(255, 255, 255, 0.3);
+}
+
+.panel-button:active {
+  transform: scale(0.95);
+}
+
+.scanning-stopped {
+  border: 2px solid #ffa500;
+}
+
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.dropdown-button {
+  width: 100%;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 8px 12px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--button-bg, #3a4a5b);
+  color: var(--button-text);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 0 8px rgba(255, 255, 255, 0.2);
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.dropdown-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  /* Bolder text for better readability */
+  background-color: var(--button-bg, #3a4a5b);
+  color: var(--button-text);
+}
+
+.dropdown-item:hover {
+  background-color: var(--hover-bg);
+  color: var(--button-text);
+}
+
+.status-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.link-row {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: center;
+  column-gap: 8px;
+  /* Adds a consistent gap between columns */
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  justify-self: center;
+}
+
+.status-eyeball {
+  font-size: 16px;
+  color: rgb(29, 155, 240);
+  cursor: pointer;
+  line-height: 20px;
+  justify-self: center;
+  /* Centers the eyeball in the column */
+}
+
+.status-problem {
+  background-color: red;
+}
+
+.status-problem-adjacent {
+  background-color: coral;
+}
+
+.problem-links-wrapper {
+  padding: 0 8px;
+  max-height: 300px; /* Added to limit vertical growth */
+  overflow-y: auto; /* Ensure scrollbar appears when content exceeds max-height */
+}
+
+.problem-links-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.problem-links-wrapper::-webkit-scrollbar-thumb {
+  background: var(--scroll-color);
+  border-radius: 3px;
+}
+
+.problem-links-wrapper::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+.link-item {
+  padding: 2px 0;
+  overflow-wrap: break-word;
+  word-break: break-all;
+}
+
+.link-item a {
+  color: var(--text-color);
+  text-decoration: none;
+}
+
+.link-item a:hover {
+  text-decoration: underline;
+  color: var(--hover-bg);
+}
+
+.problem-posts-header {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 8px;
+}
+
+.panel-button i {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.drag-handle {
+  cursor: move;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.header-text-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
