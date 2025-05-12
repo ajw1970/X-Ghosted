@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         xGhosted
+// @name         xGhosted-next-release
 // @namespace    http://tampermonkey.net/
-// @version      0.6.2
+// @version      0.6.3
 // @description  Highlight and manage problem posts on X.com with a resizable, draggable panel
 // @author       You
 // @match        https://x.com/*
@@ -1459,7 +1459,7 @@
   }
 
   // Log startup
-  log('xGhosted v0.6.2 starting - Manual mode on');
+  log('xGhosted v0.6.3 starting - Manual mode on');
 
   // --- Inject Modules ---
   window.XGhosted = (function () {
