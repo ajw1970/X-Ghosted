@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         xGhosted-next-release
+// @name         xGhosted
 // @namespace    http://tampermonkey.net/
 // @version      0.6.2
 // @description  Highlight and manage problem posts on X.com with a resizable, draggable panel
