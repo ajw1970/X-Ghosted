@@ -37,6 +37,8 @@ window.PanelManager = function (
     isModalOpen: false,
     isDropdownOpen: false,
     pendingImportCount: null,
+    isSplashDragging: false,
+    splashPosition: { top: null, left: null },
   };
   this.log(`PanelManager initialized with themeMode: ${this.state.themeMode}`);
   this.uiElements = {
@@ -115,6 +117,9 @@ window.PanelManager.prototype.init = function () {
   this.uiElements.panelContainer.appendChild(this.uiElements.panel);
   this.uiElements.splashContainer = this.document.createElement("div");
   this.uiElements.splashContainer.id = "ghosted-splash-container";
+  this.uiElements.splashContainer.style.zIndex = "10001";
+  this.uiElements.splashContainer.style.width = "400px";
+  this.uiElements.splashContainer.style.height = "200px";
   this.document.body.appendChild(this.uiElements.panelContainer);
   this.document.body.appendChild(this.uiElements.splashContainer);
   if (window.xGhostedStyles) {
@@ -122,16 +127,19 @@ window.PanelManager.prototype.init = function () {
       const modalStyleSheet = this.document.createElement("style");
       modalStyleSheet.textContent = window.xGhostedStyles.modal;
       this.document.head.appendChild(modalStyleSheet);
+      this.log("Loaded xGhostedStyles.modal:", window.xGhostedStyles.modal);
     }
     if (window.xGhostedStyles.panel) {
       const panelStyleSheet = this.document.createElement("style");
       panelStyleSheet.textContent = window.xGhostedStyles.panel;
       this.document.head.appendChild(panelStyleSheet);
+      this.log("Loaded xGhostedStyles.panel:", window.xGhostedStyles.panel);
     }
     if (window.xGhostedStyles.splash) {
       const splashStyleSheet = this.document.createElement("style");
       splashStyleSheet.textContent = window.xGhostedStyles.splash;
       this.document.head.appendChild(splashStyleSheet);
+      this.log("Loaded xGhostedStyles.splash:", window.xGhostedStyles.splash);
     }
   }
   if (!this.state.hasSeenSplash) {
@@ -416,6 +424,8 @@ window.PanelManager.prototype.saveState = function () {
       isDropdownOpen: this.state.isDropdownOpen,
       isSplashOpen: this.state.isSplashOpen,
       pendingImportCount: this.state.pendingImportCount,
+      isSplashDragging: this.state.isSplashDragging,
+      splashPosition: { ...this.state.splashPosition },
     },
   };
   this.log("Saving state with isPanelVisible:", this.state.isPanelVisible);
@@ -435,6 +445,11 @@ window.PanelManager.prototype.loadState = function () {
   this.state.isModalOpen = panelState.isModalOpen ?? false;
   this.state.isDropdownOpen = panelState.isDropdownOpen ?? false;
   this.state.pendingImportCount = panelState.pendingImportCount ?? null;
+  this.state.isSplashDragging = panelState.isSplashDragging ?? false;
+  this.state.splashPosition = panelState.splashPosition ?? {
+    top: null,
+    left: null,
+  };
   if (
     panelState.panelPosition &&
     panelState.panelPosition.right &&
@@ -484,7 +499,7 @@ window.PanelManager.prototype.loadState = function () {
     this.state.panelPosition.top = top;
   }
   this.log(
-    `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, hasSeenSplash=${this.state.hasSeenSplash}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}, isToolsExpanded=${this.state.isToolsExpanded}, isModalOpen=${this.state.isModalOpen}, isDropdownOpen=${this.state.isDropdownOpen}, isSplashOpen=${this.state.isSplashOpen}, pendingImportCount=${this.state.pendingImportCount}`
+    `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, hasSeenSplash=${this.state.hasSeenSplash}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}, isToolsExpanded=${this.state.isToolsExpanded}, isModalOpen=${this.state.isModalOpen}, isDropdownOpen=${this.state.isDropdownOpen}, isSplashOpen=${this.state.isSplashOpen}, pendingImportCount=${this.state.pendingImportCount}, isSplashDragging=${this.state.isSplashDragging}, splashPosition=${JSON.stringify(this.state.splashPosition)}`
   );
 };
 
@@ -544,13 +559,25 @@ window.PanelManager.prototype.onEyeballClick = function (href) {
 
 window.PanelManager.prototype.showSplashPage = function () {
   this.state.isSplashOpen = true;
+  this.state.isSplashDragging = false;
+  this.state.splashPosition = { top: null, left: null };
   this.saveState();
   this.renderPanel();
+  // Force layout update
+  if (this.uiElements.splashContainer) {
+    this.uiElements.splashContainer.style.top = "50%";
+    this.uiElements.splashContainer.style.left = "50%";
+    this.uiElements.splashContainer.style.width = "400px";
+    this.uiElements.splashContainer.style.height = "200px";
+    this.uiElements.splashContainer.offsetWidth; // Force reflow
+  }
   this.log("Splash screen opened");
 };
 
 window.PanelManager.prototype.closeSplash = function () {
   this.state.isSplashOpen = false;
+  this.state.isSplashDragging = false;
+  this.state.splashPosition = { top: null, left: null };
   this.saveState();
   this.renderPanel();
   this.log("Splash screen closed");
@@ -606,6 +633,9 @@ window.PanelManager.prototype.renderPanel = function () {
         onDragStart: (e) => this.startSplashDrag(e),
         mode: this.state.themeMode,
         config: this.uiElements.config,
+        isDragging: this.state.isSplashDragging,
+        currentTop: this.state.splashPosition.top,
+        currentLeft: this.state.splashPosition.left,
       }),
       this.uiElements.splashContainer
     );
@@ -675,41 +705,101 @@ window.PanelManager.prototype.startSplashDrag = function (e) {
   e.preventDefault();
   const draggedContainer = this.uiElements.splashContainer;
   if (!draggedContainer) return;
+  this.state.isSplashDragging = true;
   draggedContainer.classList.add("dragging");
-  const rect = draggedContainer.getBoundingClientRect();
-  const initialTop = rect.top + window.scrollY;
-  const initialLeft = rect.left + window.scrollX;
-  const dragStartX = e.clientX;
-  const dragStartY = e.clientY;
+  // Remove transform and defer rect calculation
+  const computedStyle = window.getComputedStyle(draggedContainer);
+  const initialTransform = computedStyle.transform;
+  const initialComputedTop = computedStyle.top;
+  const initialComputedLeft = computedStyle.left;
+  const panelZIndex = window.getComputedStyle(
+    this.uiElements.panelContainer
+  ).zIndex;
+  const splashZIndex = computedStyle.zIndex;
   draggedContainer.style.transform = "none";
-  draggedContainer.style.top = `${initialTop}px`;
-  draggedContainer.style.left = `${initialLeft}px`;
-  let lastUpdate = 0;
-  const throttleDelay = 16;
-  const onMouseMove = (e2) => {
-    const now = Date.now();
-    if (now - lastUpdate < throttleDelay) return;
-    lastUpdate = now;
-    const deltaX = e2.clientX - dragStartX;
-    const deltaY = e2.clientY - dragStartY;
-    let newTop = initialTop + deltaY;
-    let newLeft = initialLeft + deltaX;
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    newTop = Math.max(0, Math.min(newTop, windowHeight - rect.height));
-    newLeft = Math.max(0, Math.min(newLeft, windowWidth - rect.width));
-    draggedContainer.style.top = `${newTop}px`;
-    draggedContainer.style.left = `${newLeft}px`;
-  };
-  const onMouseUp = () => {
-    draggedContainer.classList.remove("dragging");
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", onMouseUp);
-    this.log("Stopped dragging SplashPanel");
-  };
-  document.addEventListener("mousemove", onMouseMove);
-  document.addEventListener("mouseup", onMouseUp);
-  this.log("Started dragging SplashPanel");
+  draggedContainer.offsetWidth; // Force reflow
+  // Double requestAnimationFrame to ensure layout is settled
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      const rect = draggedContainer.getBoundingClientRect();
+      let rectWidth =
+        rect.width > 0 && rect.width <= window.innerWidth ? rect.width : 400;
+      let rectHeight =
+        rect.height > 0 && rect.height <= window.innerHeight
+          ? rect.height
+          : 200;
+      if (rect.width <= 0 || rect.width > window.innerWidth) {
+        this.log(
+          `Warning: Invalid rectWidth=${rect.width}, using fallback 400`
+        );
+        rectWidth = 400;
+      }
+      if (rect.height <= 0 || rect.height > window.innerHeight) {
+        this.log(
+          `Warning: Invalid rectHeight=${rect.height}, using fallback 200`
+        );
+        rectHeight = 200;
+      }
+      const isCentered =
+        this.state.splashPosition.top == null &&
+        this.state.splashPosition.left == null;
+      let offsetX, offsetY, initialLeft, initialTop;
+      if (isCentered) {
+        initialLeft = window.innerWidth / 2 - rectWidth / 2;
+        initialTop = window.innerHeight / 2 - rectHeight / 2;
+        offsetX = e.clientX - initialLeft;
+        offsetY = e.clientY - initialTop;
+      } else {
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        offsetX = e.clientX - initialLeft;
+        offsetY = e.clientY - initialTop;
+      }
+      draggedContainer.style.position = "fixed";
+      draggedContainer.style.top = `${initialTop}px`;
+      draggedContainer.style.left = `${initialLeft}px`;
+      this.state.splashPosition = { top: initialTop, left: initialLeft };
+      this.renderPanel();
+      let lastUpdate = 0;
+      const throttleDelay = 16;
+      const onMouseMove = (e2) => {
+        const now = Date.now();
+        if (now - lastUpdate < throttleDelay) return;
+        lastUpdate = now;
+        let newTop = e2.clientY - offsetY;
+        let newLeft = e2.clientX - offsetX;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        newTop = Math.max(0, Math.min(newTop, windowHeight - rectHeight));
+        newLeft = Math.max(0, Math.min(newLeft, windowWidth - rectWidth));
+        this.state.splashPosition = { top: newTop, left: newLeft };
+        draggedContainer.style.top = `${newTop}px`;
+        draggedContainer.style.left = `${newLeft}px`;
+        this.renderPanel();
+        const currentComputedStyle = window.getComputedStyle(draggedContainer);
+        this.log(
+          `Dragging SplashPanel: clientX=${e2.clientX}, clientY=${e2.clientY}, ` +
+            `offsetX=${offsetX}, offsetY=${offsetY}, initialLeft=${initialLeft}, initialTop=${initialTop}, ` +
+            `rectLeft=${rect.left}, rectTop=${rect.top}, newTop=${newTop}px, newLeft=${newLeft}px, ` +
+            `windowWidth=${windowWidth}, rectWidth=${rectWidth}, ` +
+            `initialTransform=${initialTransform}, initialComputedTop=${initialComputedTop}, ` +
+            `initialComputedLeft=${initialComputedLeft}, currentComputedTop=${currentComputedStyle.top}, ` +
+            `currentComputedLeft=${currentComputedStyle.left}, panelZIndex=${panelZIndex}, splashZIndex=${splashZIndex}`
+        );
+      };
+      const onMouseUp = () => {
+        draggedContainer.classList.remove("dragging");
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+        this.saveState();
+        this.renderPanel();
+        this.log("Stopped dragging SplashPanel");
+      };
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+      this.log("Started dragging SplashPanel");
+    });
+  });
 };
 
 window.PanelManager.prototype.toggleTools = function () {
