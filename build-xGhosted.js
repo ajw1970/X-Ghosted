@@ -90,6 +90,10 @@ async function loadConfigAndEvents() {
     path.resolve(SRC_DIR, "ui/Panel.css"),
     "utf8"
   );
+  const splashCssContent = fs.readFileSync(
+    path.resolve(SRC_DIR, "ui/SplashPanel.css"),
+    "utf8"
+  );
 
   // Define modules to bundle separately
   const modules = [
@@ -97,12 +101,6 @@ async function loadConfigAndEvents() {
       entryPoint: path.resolve(SRC_DIR, "xGhosted.js"),
       placeholder: "// INJECT: xGhosted",
       globalName: "XGhosted",
-      requiresPreact: false,
-    },
-    {
-      entryPoint: path.resolve(SRC_DIR, "ui/SplashPanel.js"),
-      placeholder: "// INJECT: SplashPanel",
-      globalName: "SplashPanel",
       requiresPreact: false,
     },
     {
@@ -379,6 +377,7 @@ async function loadConfigAndEvents() {
       window.xGhostedStyles = window.xGhostedStyles || {};
       window.xGhostedStyles.modal = \`${modalCssContent.replace(/`/g, "\\`")}\`;
       window.xGhostedStyles.panel = \`${panelCssContent.replace(/`/g, "\\`")}\`;
+      window.xGhostedStyles.splash = \`${splashCssContent.replace(/`/g, "\\`")}\`;
     `;
     finalContent = finalContent.replace("// INJECT: Styles", stylesCode);
 

@@ -48,7 +48,6 @@
 
   // --- Inject Modules ---
   // INJECT: xGhosted
-  // INJECT: SplashPanel
   // INJECT: PanelManager
   // INJECT: ProcessedPostsManager
   // INJECT: MetricsMonitor

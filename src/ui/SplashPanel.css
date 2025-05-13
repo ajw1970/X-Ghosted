@@ -1,0 +1,15 @@
+.splash-panel * {
+  box-sizing: border-box;
+}
+
+.splash-panel {
+  cursor: move;
+}
+
+.splash-panel button {
+  cursor: pointer;
+}
+
+.splash-panel.dragging {
+  user-select: none;
+}

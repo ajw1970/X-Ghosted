@@ -2045,141 +2045,6 @@
     };
     return XGhosted;
   })();
-  window.SplashPanel = (function () {
-    // src/ui/SplashPanel.js
-    function SplashPanel(
-      doc,
-      logger,
-      version,
-      userProfileName,
-      pollInterval,
-      scrollInterval
-    ) {
-      this.document = doc;
-      this.logger = logger;
-      this.container = null;
-      this.userProfileName = userProfileName || null;
-      this.config = {
-        pollInterval: pollInterval || 'Unknown',
-        scrollInterval: scrollInterval || 'Unknown',
-      };
-      this.isDragging = false;
-      this.dragStartX = 0;
-      this.dragStartY = 0;
-      this.initialTop = 0;
-      this.initialLeft = 0;
-      this.styleElement = null;
-      this.init = function () {
-        this.logger('Initializing SplashPanel...');
-        this.container = this.document.createElement('div');
-        this.container.id = 'ghosted-splash';
-        this.container.style.cssText =
-          'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; border: 2px solid #333; border-radius: 12px; padding: 20px; z-index: 10000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);';
-        this.document.body.appendChild(this.container);
-        this.styleElement = this.document.createElement('style');
-        this.styleElement.textContent = `
-              #ghosted-splash {
-                  cursor: move;
-              }
-              #ghosted-splash button {
-                  cursor: pointer;
-              }
-          `;
-        this.document.head.appendChild(this.styleElement);
-        this.render({
-          pollInterval: this.config.pollInterval,
-          scrollInterval: this.config.scrollInterval,
-        });
-        this.container.addEventListener('mousedown', (e) => this.startDrag(e));
-        this.document.addEventListener('xghosted:init', (e) => {
-          const config = e.detail?.config || {};
-          this.config = {
-            pollInterval: config.pollInterval || this.config.pollInterval,
-            scrollInterval: config.scrollInterval || this.config.scrollInterval,
-          };
-          this.logger('Received xghosted:init with config:', this.config);
-          this.render({
-            pollInterval: this.config.pollInterval,
-            scrollInterval: this.config.scrollInterval,
-          });
-        });
-        this.document.addEventListener('xghosted:user-profile-updated', (e) => {
-          const { userProfileName: userProfileName2 } = e.detail || {};
-          this.logger(
-            'Received xghosted:user-profile-updated with userProfileName:',
-            userProfileName2
-          );
-          this.userProfileName = userProfileName2 || this.userProfileName;
-          this.render({
-            pollInterval: this.config.pollInterval,
-            scrollInterval: this.config.scrollInterval,
-          });
-        });
-      };
-      this.startDrag = function (e) {
-        if (e.target.tagName === 'BUTTON') return;
-        e.preventDefault();
-        this.isDragging = true;
-        this.dragStartX = e.clientX;
-        this.dragStartY = e.clientY;
-        const rect = this.container.getBoundingClientRect();
-        this.initialTop = rect.top + window.scrollY;
-        this.initialLeft = rect.left + window.scrollX;
-        this.container.style.transform = 'none';
-        this.container.style.top = `${this.initialTop}px`;
-        this.container.style.left = `${this.initialLeft}px`;
-        this.document.addEventListener('mousemove', (e2) => this.onDrag(e2));
-        this.document.addEventListener('mouseup', () => this.stopDrag(), {
-          once: true,
-        });
-        this.logger('Started dragging SplashPanel');
-      };
-      this.onDrag = function (e) {
-        if (!this.isDragging) return;
-        const deltaX = e.clientX - this.dragStartX;
-        const deltaY = e.clientY - this.dragStartY;
-        let newTop = this.initialTop + deltaY;
-        let newLeft = this.initialLeft + deltaX;
-        const rect = this.container.getBoundingClientRect();
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-        newTop = Math.max(0, Math.min(newTop, windowHeight - rect.height));
-        newLeft = Math.max(0, Math.min(newLeft, windowWidth - rect.width));
-        this.container.style.top = `${newTop}px`;
-        this.container.style.left = `${newLeft}px`;
-        this.logger(
-          `Dragging SplashPanel: top=${newTop}px, left=${newLeft}px, rect.height=${rect.height}, windowHeight=${windowHeight}`
-        );
-      };
-      this.stopDrag = function () {
-        this.isDragging = false;
-        this.document.removeEventListener('mousemove', this.onDrag);
-        this.logger('Stopped dragging SplashPanel');
-      };
-      this.render = function (config) {
-        this.container.innerHTML = `
-              <h2 style="margin: 0 0 10px 0; font-size: 24px; color: #333; display: block;">xGhosted: \u{1D54F} Post Analyzer!</h2>
-              <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Tampermonkey Version: ${version}</p>
-              ${this.userProfileName ? `<p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Profile: ${this.userProfileName}</p>` : ''}
-              <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Poll Interval: ${config.pollInterval} ms</p>
-              <p style="margin: 5px 0; font-size: 16px; color: #333; display: block;">Scroll Interval: ${config.scrollInterval} ms</p>
-              <button style="padding: 8px 16px; background: #3A4A5B; color: #fff; border: 2px solid #8292A2; border-radius: 8px; cursor: pointer; font-size: 14px; display: inline-block;">Close</button>
-          `;
-        const closeButton = this.container.querySelector('button');
-        closeButton.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.logger('SplashPanel closed');
-          this.container.remove();
-        });
-      };
-      try {
-        this.init();
-      } catch (error) {
-        this.logger(`SplashPanel failed to initialize: ${error.message}`);
-      }
-    }
-    return SplashPanel;
-  })();
   window.PanelManager = (function () {
     const { CONFIG, EVENTS } = window.XGhostedUtils;
     // src/ui/Panel.jsx
@@ -2719,6 +2584,118 @@
     }
     window.Modal = Modal;
 
+    // src/ui/SplashPanel.jsx
+    function SplashPanel({
+      version,
+      userProfileName,
+      pollInterval,
+      scrollInterval,
+      onClose,
+      onDragStart,
+      mode,
+      config,
+    }) {
+      return window.preact.h(
+        'div',
+        {
+          id: 'ghosted-splash',
+          className: 'splash-panel',
+          onMouseDown: onDragStart,
+          style: {
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: config.THEMES[mode].bg,
+            color: config.THEMES[mode].text,
+            border: `2px solid ${config.THEMES[mode].border}`,
+            borderRadius: '12px',
+            padding: '20px',
+            zIndex: 1e4,
+            fontFamily: config.PANEL.FONT,
+            textAlign: 'center',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            cursor: 'move',
+          },
+        },
+        window.preact.h(
+          'h2',
+          {
+            style: {
+              margin: '0 0 10px 0',
+              fontSize: '24px',
+              display: 'block',
+            },
+          },
+          'xGhosted: \u{1D54F} Post Analyzer!'
+        ),
+        window.preact.h(
+          'p',
+          {
+            style: {
+              margin: '5px 0',
+              fontSize: '16px',
+              display: 'block',
+            },
+          },
+          `Tampermonkey Version: ${version}`
+        ),
+        userProfileName &&
+          window.preact.h(
+            'p',
+            {
+              style: {
+                margin: '5px 0',
+                fontSize: '16px',
+                display: 'block',
+              },
+            },
+            `Profile: ${userProfileName}`
+          ),
+        window.preact.h(
+          'p',
+          {
+            style: {
+              margin: '5px 0',
+              fontSize: '16px',
+              display: 'block',
+            },
+          },
+          `Poll Interval: ${pollInterval} ms`
+        ),
+        window.preact.h(
+          'p',
+          {
+            style: {
+              margin: '5px 0',
+              fontSize: '16px',
+              display: 'block',
+            },
+          },
+          `Scroll Interval: ${scrollInterval} ms`
+        ),
+        window.preact.h(
+          'button',
+          {
+            onClick: onClose,
+            style: {
+              padding: '8px 16px',
+              background: config.THEMES[mode].button,
+              color: config.THEMES[mode].buttonText,
+              border: `2px solid ${config.THEMES[mode].border}`,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              display: 'inline-block',
+            },
+            'aria-label': 'Close splash screen',
+          },
+          'Close'
+        )
+      );
+    }
+    window.SplashPanel = SplashPanel;
+
     // src/ui/PanelManager.js
     window.PanelManager = function (
       doc,
@@ -2742,6 +2719,7 @@
           CONFIG.timing.userRequestedAutoScrollOnStartup,
         themeMode: validThemes.includes(themeMode) ? themeMode : 'light',
         hasSeenSplash: false,
+        isSplashOpen: false,
         userProfileName: null,
         pollInterval: 'Unknown',
         scrollInterval: 'Unknown',
@@ -2809,6 +2787,7 @@
         },
         panel: null,
         panelContainer: null,
+        splashContainer: null,
       };
       this.styleElement = null;
       this.dragState = {
@@ -2827,7 +2806,10 @@
       this.uiElements.panel = this.document.createElement('div');
       this.uiElements.panel.id = 'ghosted-panel';
       this.uiElements.panelContainer.appendChild(this.uiElements.panel);
+      this.uiElements.splashContainer = this.document.createElement('div');
+      this.uiElements.splashContainer.id = 'ghosted-splash-container';
       this.document.body.appendChild(this.uiElements.panelContainer);
+      this.document.body.appendChild(this.uiElements.splashContainer);
       if (window.xGhostedStyles) {
         if (window.xGhostedStyles.modal) {
           const modalStyleSheet = this.document.createElement('style');
@@ -2838,6 +2820,11 @@
           const panelStyleSheet = this.document.createElement('style');
           panelStyleSheet.textContent = window.xGhostedStyles.panel;
           this.document.head.appendChild(panelStyleSheet);
+        }
+        if (window.xGhostedStyles.splash) {
+          const splashStyleSheet = this.document.createElement('style');
+          splashStyleSheet.textContent = window.xGhostedStyles.splash;
+          this.document.head.appendChild(splashStyleSheet);
         }
       }
       if (!this.state.hasSeenSplash) {
@@ -3144,6 +3131,7 @@
           isToolsExpanded: this.state.isToolsExpanded,
           isModalOpen: this.state.isModalOpen,
           isDropdownOpen: this.state.isDropdownOpen,
+          isSplashOpen: this.state.isSplashOpen,
           pendingImportCount: this.state.pendingImportCount,
         },
       };
@@ -3214,7 +3202,7 @@
         this.state.panelPosition.top = top;
       }
       this.log(
-        `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, hasSeenSplash=${this.state.hasSeenSplash}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}, isToolsExpanded=${this.state.isToolsExpanded}, isModalOpen=${this.state.isModalOpen}, isDropdownOpen=${this.state.isDropdownOpen}, pendingImportCount=${this.state.pendingImportCount}`
+        `Loaded panel state: isPanelVisible=${this.state.isPanelVisible}, themeMode=${this.state.themeMode}, hasSeenSplash=${this.state.hasSeenSplash}, right=${this.state.panelPosition.right}, top=${this.state.panelPosition.top}, isToolsExpanded=${this.state.isToolsExpanded}, isModalOpen=${this.state.isModalOpen}, isDropdownOpen=${this.state.isDropdownOpen}, isSplashOpen=${this.state.isSplashOpen}, pendingImportCount=${this.state.pendingImportCount}`
       );
     };
     window.PanelManager.prototype.applyPanelStyles = function () {
@@ -3266,6 +3254,18 @@
         })
       );
     };
+    window.PanelManager.prototype.showSplashPage = function () {
+      this.state.isSplashOpen = true;
+      this.saveState();
+      this.renderPanel();
+      this.log('Splash screen opened');
+    };
+    window.PanelManager.prototype.closeSplash = function () {
+      this.state.isSplashOpen = false;
+      this.saveState();
+      this.renderPanel();
+      this.log('Splash screen closed');
+    };
     window.PanelManager.prototype.renderPanel = function () {
       if (!this.uiElements.panel) {
         this.log('renderPanel: panel element not initialized, skipping render');
@@ -3305,6 +3305,119 @@
         }),
         this.uiElements.panel
       );
+      if (this.state.isSplashOpen) {
+        window.preact.render(
+          window.preact.h(window.SplashPanel, {
+            version: '0.6.2',
+            userProfileName: this.state.userProfileName,
+            pollInterval: this.state.pollInterval,
+            scrollInterval: this.state.scrollInterval,
+            onClose: () => this.closeSplash(),
+            onDragStart: (e) => this.startSplashDrag(e),
+            mode: this.state.themeMode,
+            config: this.uiElements.config,
+          }),
+          this.uiElements.splashContainer
+        );
+      } else {
+        window.preact.render(null, this.uiElements.splashContainer);
+      }
+    };
+    window.PanelManager.prototype.startDrag = function (e) {
+      const draggedContainer = this.uiElements.panelContainer;
+      if (!draggedContainer) return;
+      draggedContainer.classList.add('dragging');
+      const computedStyle = window.getComputedStyle(draggedContainer);
+      let currentRight =
+        parseFloat(computedStyle.right) ||
+        parseFloat(this.state.panelPosition.right) ||
+        10;
+      let currentTop =
+        parseFloat(computedStyle.top) ||
+        parseFloat(this.state.panelPosition.top) ||
+        60;
+      let initialX = e.clientX + currentRight;
+      let initialY = e.clientY - currentTop;
+      let right = currentRight;
+      let top = currentTop;
+      let lastUpdate = 0;
+      const throttleDelay = 16;
+      const onMouseMove = (e2) => {
+        const now = Date.now();
+        if (now - lastUpdate < throttleDelay) return;
+        lastUpdate = now;
+        right = initialX - e2.clientX;
+        top = e2.clientY - initialY;
+        right = Math.max(
+          0,
+          Math.min(right, window.innerWidth - draggedContainer.offsetWidth)
+        );
+        top = Math.max(
+          0,
+          Math.min(top, window.innerHeight - draggedContainer.offsetHeight)
+        );
+        draggedContainer.style.right = `${right}px`;
+        draggedContainer.style.top = `${top}px`;
+      };
+      const onMouseUp = () => {
+        try {
+          draggedContainer.classList.remove('dragging');
+          if (this.setPanelPosition) {
+            this.setPanelPosition({
+              right: `${right}px`,
+              top: `${top}px`,
+            });
+          }
+        } catch (error) {
+          this.log(`Error in onMouseUp: ${error}`);
+        } finally {
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+        }
+      };
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    };
+    window.PanelManager.prototype.startSplashDrag = function (e) {
+      if (e.target.tagName === 'BUTTON') return;
+      e.preventDefault();
+      const draggedContainer = this.uiElements.splashContainer;
+      if (!draggedContainer) return;
+      draggedContainer.classList.add('dragging');
+      const rect = draggedContainer.getBoundingClientRect();
+      const initialTop = rect.top + window.scrollY;
+      const initialLeft = rect.left + window.scrollX;
+      const dragStartX = e.clientX;
+      const dragStartY = e.clientY;
+      draggedContainer.style.transform = 'none';
+      draggedContainer.style.top = `${initialTop}px`;
+      draggedContainer.style.left = `${initialLeft}px`;
+      let lastUpdate = 0;
+      const throttleDelay = 16;
+      const onMouseMove = (e2) => {
+        const now = Date.now();
+        if (now - lastUpdate < throttleDelay) return;
+        lastUpdate = now;
+        const deltaX = e2.clientX - dragStartX;
+        const deltaY = e2.clientY - dragStartY;
+        let newTop = initialTop + deltaY;
+        let newLeft = initialLeft + deltaX;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        newTop = Math.max(0, Math.min(newTop, windowHeight - rect.height));
+        newLeft = Math.max(0, Math.min(newLeft, windowWidth - rect.width));
+        draggedContainer.style.top = `${newTop}px`;
+        draggedContainer.style.left = `${newLeft}px`;
+      };
+      const onMouseUp = () => {
+        draggedContainer.classList.remove('dragging');
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        this.log('Stopped dragging SplashPanel');
+      };
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+      this.log('Started dragging SplashPanel');
     };
     window.PanelManager.prototype.toggleTools = function () {
       this.state.isToolsExpanded = !this.state.isToolsExpanded;
@@ -3417,76 +3530,6 @@
           alert('Failed to copy problem links.');
         });
       this.renderPanel();
-    };
-    window.PanelManager.prototype.showSplashPage = function () {
-      try {
-        new window.SplashPanel(
-          this.document,
-          this.log,
-          '0.6.1',
-          this.state.userProfileName,
-          this.state.pollInterval,
-          this.state.scrollInterval
-        );
-        this.log('SplashPanel displayed');
-      } catch (error) {
-        this.log(`Failed to display SplashPanel: ${error.message}`);
-      }
-    };
-    window.PanelManager.prototype.startDrag = function (e) {
-      const draggedContainer = this.uiElements.panelContainer;
-      if (!draggedContainer) return;
-      draggedContainer.classList.add('dragging');
-      const computedStyle = window.getComputedStyle(draggedContainer);
-      let currentRight =
-        parseFloat(computedStyle.right) ||
-        parseFloat(this.state.panelPosition.right) ||
-        10;
-      let currentTop =
-        parseFloat(computedStyle.top) ||
-        parseFloat(this.state.panelPosition.top) ||
-        60;
-      let initialX = e.clientX + currentRight;
-      let initialY = e.clientY - currentTop;
-      let right = currentRight;
-      let top = currentTop;
-      let lastUpdate = 0;
-      const throttleDelay = 16;
-      const onMouseMove = (e2) => {
-        const now = Date.now();
-        if (now - lastUpdate < throttleDelay) return;
-        lastUpdate = now;
-        right = initialX - e2.clientX;
-        top = e2.clientY - initialY;
-        right = Math.max(
-          0,
-          Math.min(right, window.innerWidth - draggedContainer.offsetWidth)
-        );
-        top = Math.max(
-          0,
-          Math.min(top, window.innerHeight - draggedContainer.offsetHeight)
-        );
-        draggedContainer.style.right = `${right}px`;
-        draggedContainer.style.top = `${top}px`;
-      };
-      const onMouseUp = () => {
-        try {
-          draggedContainer.classList.remove('dragging');
-          if (this.setPanelPosition) {
-            this.setPanelPosition({
-              right: `${right}px`,
-              top: `${top}px`,
-            });
-          }
-        } catch (error) {
-          this.log(`Error in onMouseUp: ${error}`);
-        } finally {
-          document.removeEventListener('mousemove', onMouseMove);
-          document.removeEventListener('mouseup', onMouseUp);
-        }
-      };
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
     };
     window.PanelManager.prototype.updatePosts = function ({ post, isProblem }) {
       if (post) {
@@ -4581,6 +4624,21 @@
   display: flex;
   align-items: center;
   gap: 12px;
+}`;
+  window.xGhostedStyles.splash = `.splash-panel * {
+  box-sizing: border-box;
+}
+
+.splash-panel {
+  cursor: move;
+}
+
+.splash-panel button {
+  cursor: pointer;
+}
+
+.splash-panel.dragging {
+  user-select: none;
 }`;
 
   // Initialize core components with document and configuration
