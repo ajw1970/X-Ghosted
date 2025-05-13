@@ -30,6 +30,7 @@
       scrollInterval: 1500,
       isPostScanningEnabledOnStartup: false,
       userRequestedAutoScrollOnStartup: false,
+      checkPostMaxTries: 30,
     },
     showSplash: true,
     logTarget: 'tampermonkey',
@@ -37,7 +38,7 @@
     linkPrefix: 'https://x.com',
     debug: false,
     smoothScrolling: true,
-    scrollPercentage: 2,
+    scrollPercentage: 1.5,
     decoratePostsContainer: false,
   };
 
@@ -241,6 +242,7 @@
         isPostScanningEnabledOnStartup: false,
         // We'll send an event to change to true on the first heartbeat poll
         userRequestedAutoScrollOnStartup: false,
+        checkPostMaxTries: 30,
       },
       showSplash: true,
       logTarget: 'tampermonkey',
@@ -248,7 +250,7 @@
       linkPrefix: 'https://x.com',
       debug: false,
       smoothScrolling: true,
-      scrollPercentage: 2,
+      scrollPercentage: 1.5,
       decoratePostsContainer: false,
     };
 
@@ -1705,7 +1707,7 @@
         this.log(`Opened new window for ${fullUrl}`);
         const newWindow = this.window.open(fullUrl, '_blank');
         let attempts = 0;
-        const maxAttempts = 20;
+        const maxAttempts = CONFIG.checkPostMaxTries;
         const start = performance.now();
         return new Promise((resolve) => {
           const checkInterval = setInterval(() => {

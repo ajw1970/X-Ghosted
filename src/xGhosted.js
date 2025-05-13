@@ -241,7 +241,7 @@ class XGhosted {
     this.log(`Opened new window for ${fullUrl}`);
     const newWindow = this.window.open(fullUrl, "_blank");
     let attempts = 0;
-    const maxAttempts = 20;
+    const maxAttempts = CONFIG.checkPostMaxTries;
     const start = performance.now();
     return new Promise((resolve) => {
       const checkInterval = setInterval(() => {

@@ -9,6 +9,7 @@ export const CONFIG = {
     scrollInterval: 1500,
     isPostScanningEnabledOnStartup: false, // We'll send an event to change to true on the first heartbeat poll
     userRequestedAutoScrollOnStartup: false,
+    checkPostMaxTries: 30,
   },
   showSplash: true,
   logTarget: "tampermonkey",
@@ -16,6 +17,6 @@ export const CONFIG = {
   linkPrefix: "https://x.com",
   debug: false,
   smoothScrolling: true,
-  scrollPercentage: 2.0,
+  scrollPercentage: 1.5,
   decoratePostsContainer: false,
 };
