@@ -10,7 +10,7 @@ show_progress "Running npm build..."
 npm run build || { show_progress "Error: npm build failed"; exit 1; }
 
 show_progress "Exporting setup grokify.js execution..."
-node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs tsconfig.json grok/2-project.stuff.txt || {
+node grokify.js package.json jest.config.mjs jest.setup.mjs babel.config.mjs tsconfig.json build-xGhosted.js grok/2-project.stuff.txt || {
     show_progress "Error: First grokify.js execution failed"; exit 1;
 }
 
