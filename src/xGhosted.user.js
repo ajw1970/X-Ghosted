@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xGhosted
 // @namespace    http://tampermonkey.net/
-// @version      0.6.2
+// @version      0.6.1
 // @description  Highlight and manage problem posts on X.com with a resizable, draggable panel
 // @author       You
 // @match        https://x.com/*
@@ -1459,7 +1459,7 @@
   }
 
   // Log startup
-  log('xGhosted v0.6.2 starting - Manual mode on');
+  log('xGhosted v0.6.1 starting - Manual mode on');
 
   // --- Inject Modules ---
   window.XGhosted = (function () {
@@ -2146,10 +2146,7 @@
         newTop = Math.max(0, Math.min(newTop, windowHeight - rect.height));
         newLeft = Math.max(0, Math.min(newLeft, windowWidth - rect.width));
         this.container.style.top = `${newTop}px`;
-        this.container.style.left = `${newLeft}px`;
-        this.logger(
-          `Dragging SplashPanel: top=${newTop}px, left=${newLeft}px, rect.height=${rect.height}, windowHeight=${windowHeight}`
-        );
+        this.container.style.left = `${this.initialLeft + deltaX}px`;
       };
       this.stopDrag = function () {
         this.isDragging = false;
