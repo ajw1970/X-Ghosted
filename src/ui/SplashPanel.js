@@ -93,24 +93,21 @@ function SplashPanel(
     this.logger("Started dragging SplashPanel");
   };
 
-    this.onDrag = function (e) {
-      if (!this.isDragging) return;
-      const deltaX = e.clientX - this.dragStartX;
-      const deltaY = e.clientY - this.dragStartY;
-      let newTop = this.initialTop + deltaY;
-      let newLeft = this.initialLeft + deltaX;
-      const rect = this.container.getBoundingClientRect();
-      const windowWidth = window.innerWidth;
-      const windowHeight = window.innerHeight;
-      // Clamp position to viewport
-      newTop = Math.max(0, Math.min(newTop, windowHeight - rect.height));
-      newLeft = Math.max(0, Math.min(newLeft, windowWidth - rect.width));
-      this.container.style.top = `${newTop}px`;
-      this.container.style.left = `${newLeft}px`;
-      this.logger(
-        `Dragging SplashPanel: top=${newTop}px, left=${newLeft}px, rect.height=${rect.height}, windowHeight=${windowHeight}`
-      );
-    };
+  this.onDrag = function (e) {
+    if (!this.isDragging) return;
+    const deltaX = e.clientX - this.dragStartX;
+    const deltaY = e.clientY - this.dragStartY;
+    let newTop = this.initialTop + deltaY;
+    let newLeft = this.initialLeft + deltaX;
+    const rect = this.container.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    // Clamp position to viewport
+    newTop = Math.max(0, Math.min(newTop, windowHeight - rect.height));
+    newLeft = Math.max(0, Math.min(newLeft, windowWidth - rect.width));
+    this.container.style.top = `${newTop}px`;
+    this.container.style.left = `${this.initialLeft + deltaX}px`;
+  };
 
   this.stopDrag = function () {
     this.isDragging = false;
