@@ -86,6 +86,7 @@
     if (window.preact && window.preact.h) {
       panelManager = new window.PanelManager(
         document,
+        (version = "{{VERSION}}"),
         "dim",
         CONFIG.linkPrefix,
         { get: GM_getValue, set: GM_setValue },

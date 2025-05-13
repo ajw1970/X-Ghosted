@@ -2699,6 +2699,7 @@
     // src/ui/PanelManager.js
     window.PanelManager = function (
       doc,
+      version = 'unknown',
       themeMode = 'light',
       linkPrefix,
       storage,
@@ -2710,6 +2711,7 @@
       this.log = log;
       const validThemes = ['light', 'dim', 'dark'];
       this.state = {
+        version,
         panelPosition: { right: '10px', top: '60px' },
         isPanelVisible: true,
         isRateLimited: false,
@@ -3308,7 +3310,7 @@
       if (this.state.isSplashOpen) {
         window.preact.render(
           window.preact.h(window.SplashPanel, {
-            version: '0.6.2',
+            version: this.state.version,
             userProfileName: this.state.userProfileName,
             pollInterval: this.state.pollInterval,
             scrollInterval: this.state.scrollInterval,
@@ -4672,6 +4674,7 @@
     if (window.preact && window.preact.h) {
       panelManager = new window.PanelManager(
         document,
+        (version = '0.6.2'),
         'dim',
         CONFIG.linkPrefix,
         { get: GM_getValue, set: GM_setValue },

@@ -6,6 +6,7 @@ import { EVENTS } from "../events.js";
 
 window.PanelManager = function (
   doc,
+  version = "unknown",
   themeMode = "light",
   linkPrefix,
   storage,
@@ -17,6 +18,7 @@ window.PanelManager = function (
   this.log = log;
   const validThemes = ["light", "dim", "dark"];
   this.state = {
+    version,
     panelPosition: { right: "10px", top: "60px" },
     isPanelVisible: true,
     isRateLimited: false,
@@ -596,7 +598,7 @@ window.PanelManager.prototype.renderPanel = function () {
   if (this.state.isSplashOpen) {
     window.preact.render(
       window.preact.h(window.SplashPanel, {
-        version: "0.6.2",
+        version: this.state.version,
         userProfileName: this.state.userProfileName,
         pollInterval: this.state.pollInterval,
         scrollInterval: this.state.scrollInterval,
