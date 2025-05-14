@@ -48,7 +48,6 @@
 
   // --- Inject Modules ---
   // INJECT: xGhosted
-  // INJECT: SplashPanel
   // INJECT: PanelManager
   // INJECT: ProcessedPostsManager
   // INJECT: MetricsMonitor
@@ -87,6 +86,7 @@
     if (window.preact && window.preact.h) {
       panelManager = new window.PanelManager(
         document,
+        "{{VERSION}}",
         "dim",
         CONFIG.linkPrefix,
         { get: GM_getValue, set: GM_setValue },
